@@ -28,7 +28,7 @@
         body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
-        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
         select.plan-select { background-color: #11151C; }
         select.plan-select option { background-color: #11151C; color: #FFFFFF; }
         .seccion-admin.hidden { display: none; }
@@ -50,7 +50,7 @@
             <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
         </header>
 
-        <nav class="flex items-center flex-wrap gap-x-1 gap-y-2 px-10 py-3 border-b border-white/5 shrink-0">
+        <nav class="flex items-center flex-nowrap md:flex-wrap gap-x-1.5 md:gap-x-1 gap-y-2 overflow-x-auto md:overflow-visible px-4 md:px-10 py-3 border-b border-white/5 shrink-0">
             <button data-seccion="general" class="tab-admin activo"><i class="ph-fill ph-chart-line-up mr-1.5"></i>Vista General</button>
             <button data-seccion="usuarios" class="tab-admin"><i class="ph-fill ph-users-three mr-1.5"></i>Usuarios</button>
             <button data-seccion="planes" class="tab-admin"><i class="ph-fill ph-tag mr-1.5"></i>Planes</button>
