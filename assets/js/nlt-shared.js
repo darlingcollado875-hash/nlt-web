@@ -521,6 +521,32 @@
         }).join('');
     }
 
+    // Red de seguridad para [data-reveal] (animaciones "aparecer al hacer
+    // scroll" con GSAP ScrollTrigger, usadas en 8 páginas: index, ecosystem,
+    // copy-system, plans, indicator, academy, calculators, news). Confirmado
+    // real (14/08, navegando copy-system.html en mobile): 24 de 27 elementos
+    // quedaban en opacity:0 PARA SIEMPRE -- causa conocida de ScrollTrigger,
+    // el resize dinámico de la barra de direcciones del navegador en mobile
+    // invalida sus cálculos de posición justo después de cargar la página,
+    // y el trigger de scroll nunca llega a dispararse para el contenido que
+    // ya estaba "pasado" ese punto. No importa arreglar la causa exacta en
+    // cada una de las 8 páginas -- lo que nunca puede pasar es que quede
+    // contenido invisible. Si sigue en opacity:0 pasado un tiempo prudencial,
+    // se fuerza visible directamente, sin esperar a que GSAP decida.
+    function _revealSafetyNet() {
+        const forzarVisibles = () => {
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                if (getComputedStyle(el).opacity === '0') {
+                    el.style.opacity = '1';
+                    el.style.transform = 'none';
+                }
+            });
+        };
+        window.addEventListener('load', () => setTimeout(forzarVisibles, 1200));
+        setTimeout(forzarVisibles, 2500); // red final, por si 'load' tarda o ya disparó
+    }
+    _revealSafetyNet();
+
     window.NLT = {
         supabase,
         ADMIN_EMAIL,

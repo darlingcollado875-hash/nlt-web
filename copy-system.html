@@ -203,6 +203,7 @@
 
         if (window.gsap && window.ScrollTrigger) {
             gsap.registerPlugin(ScrollTrigger);
+                ScrollTrigger.config({ ignoreMobileResize: true });
             document.querySelectorAll('[data-reveal]').forEach((el) => {
                 if (el.closest('#planesGrid')) return;
                 gsap.set(el, { y: 24 });

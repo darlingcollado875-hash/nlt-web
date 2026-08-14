@@ -196,6 +196,7 @@
 
             function animarReveal() {
                 gsap.registerPlugin(ScrollTrigger);
+                ScrollTrigger.config({ ignoreMobileResize: true });
                 document.querySelectorAll('[data-reveal]').forEach((el) => {
                     gsap.to(el, {
                         opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
@@ -225,6 +226,7 @@
 
             if (window.ScrollTrigger) {
                 gsap.registerPlugin(ScrollTrigger);
+                ScrollTrigger.config({ ignoreMobileResize: true });
                 document.querySelectorAll('[data-count]').forEach((el) => {
                     const target = parseFloat(el.getAttribute('data-count'));
                     ScrollTrigger.create({

@@ -266,6 +266,7 @@
 
         if (window.gsap && window.ScrollTrigger) {
             gsap.registerPlugin(ScrollTrigger);
+                ScrollTrigger.config({ ignoreMobileResize: true });
             document.querySelectorAll('section [data-reveal]').forEach((el) => {
                 if (el.closest('#noticiasBox')) return;
                 gsap.set(el, { y: 24 });
