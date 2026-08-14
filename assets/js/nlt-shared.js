@@ -338,7 +338,7 @@
     // header lo llena con esto -- una sola fuente de verdad para el toggle,
     // en vez de duplicar el markup en cada página.
     function marketTypeToggleHTML(activo) {
-        const base = 'px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border';
+        const base = 'px-2.5 py-1.5 md:px-4 md:py-2 rounded-xl text-[10px] md:text-xs font-bold uppercase tracking-wider transition-all border whitespace-nowrap';
         const on = 'bg-nlt-accent/10 text-nlt-accent border-nlt-accent/20';
         const off = 'text-gray-500 hover:text-gray-300 border-transparent hover:border-white/10';
         return `

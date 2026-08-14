@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Historial</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814b">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814c">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -38,12 +38,12 @@
     <main class="flex-1 min-w-0 flex flex-col overflow-y-auto">
         <header class="flex flex-wrap justify-between items-center gap-4 pl-20 pr-10 pt-10 pb-6 md:px-10 border-b border-white/5">
             <div>
-                <h1 class="text-2xl font-bold">Bitácora de Operaciones</h1>
+                <h1 class="text-lg md:text-2xl font-bold">Bitácora de Operaciones</h1>
                 <p class="text-xs text-gray-500 mt-1">Historial y estadísticas reales de tu Copy System.</p>
             </div>
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-3 md:gap-4">
                 <div id="marketToggle" class="flex gap-2"></div>
-                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
             </div>
         </header>
 
@@ -108,7 +108,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260814"></script>
+    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
     <script src="assets/js/nlt-api-client.js?v=20260814"></script>
     <script>
         const db = NLT.supabase;

@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Configuración Futures</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814b">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814c">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -31,10 +31,10 @@
     <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
 
     <main class="flex-1 min-w-0 flex flex-col h-full">
-        <header class="h-24 flex items-center justify-between pl-20 pr-10 md:px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
-            <h1 class="text-2xl font-bold tracking-tight">Configuración Futures</h1>
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-lg md:text-2xl font-bold tracking-tight">Configuración Futures</h1>
             <div id="marketToggle" class="flex gap-2"></div>
-            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
         </header>
 
         <div class="flex-1 overflow-y-auto p-10 space-y-8">
@@ -64,7 +64,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260814"></script>
+    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
     <script src="assets/js/nlt-api-client.js?v=20260814"></script>
     <script>
         async function cargarProveedor() {
