@@ -137,7 +137,60 @@
                 supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
             });
         }
+        _mountMobileNavToggle(box);
         return session;
+    }
+
+    // El <nav> de escritorio del header público usa "hidden md:flex" -- en
+    // mobile queda oculto del todo y, confirmado real navegando el sitio a
+    // 375px, no hay ningún botón hamburguesa que lo reemplace: en celular no
+    // hay forma de navegar desde el header (solo se ve logo + CTA). Esto
+    // arma un botón hamburguesa + panel desplegable clonando los mismos
+    // links del <nav> de escritorio, para no duplicar el menú a mano en
+    // cada página -- una sola vez acá alcanza para las 10 páginas públicas
+    // que llaman a mountPublicHeader.
+    function _mountMobileNavToggle(ctaBox) {
+        const header = ctaBox.closest('header');
+        const nav = header ? header.querySelector('nav') : null;
+        if (!header || !nav || header.querySelector('#mobileNavToggle')) return;
+
+        const enlaces = Array.from(nav.children);
+        if (!enlaces.length) return;
+
+        const toggle = document.createElement('button');
+        toggle.id = 'mobileNavToggle';
+        toggle.setAttribute('aria-label', 'Abrir menú');
+        toggle.className = 'md:hidden ml-3 w-10 h-10 rounded-full border border-white/10 flex items-center justify-center text-gray-300 hover:text-white hover:border-white/20 transition-colors cursor-pointer';
+        toggle.innerHTML = '<i class="ph-bold ph-list text-lg"></i>';
+        ctaBox.insertAdjacentElement('afterend', toggle);
+
+        const panel = document.createElement('div');
+        panel.id = 'mobileNavPanel';
+        panel.className = 'hidden md:hidden fixed inset-x-0 top-20 z-30 nav-blur border-b border-white/5 px-6 py-6 flex flex-col gap-5 text-base text-gray-300 font-medium';
+        panel.innerHTML = enlaces.map((el) => `<span class="mobile-nav-link">${el.outerHTML}</span>`).join('');
+        header.insertAdjacentElement('afterend', panel);
+        // Los links clonados heredan el mismo comportamiento (href normal, o
+        // el listener del botón "Red en vivo" si aplica) -- delegamos el
+        // click reenviándolo al elemento original en vez de duplicar lógica.
+        Array.from(panel.querySelectorAll('.mobile-nav-link > *')).forEach((clon, i) => {
+            clon.addEventListener('click', (e) => {
+                cerrar();
+                if (clon.tagName === 'BUTTON') { e.preventDefault(); enlaces[i].click(); }
+            });
+        });
+
+        function abrir() {
+            panel.classList.remove('hidden');
+            toggle.innerHTML = '<i class="ph-bold ph-x text-lg"></i>';
+        }
+        function cerrar() {
+            panel.classList.add('hidden');
+            toggle.innerHTML = '<i class="ph-bold ph-list text-lg"></i>';
+        }
+        toggle.addEventListener('click', () => panel.classList.contains('hidden') ? abrir() : cerrar());
+        document.addEventListener('click', (e) => {
+            if (!panel.classList.contains('hidden') && !panel.contains(e.target) && !toggle.contains(e.target)) cerrar();
+        });
     }
 
     function isAdmin(session) {
