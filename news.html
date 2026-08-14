@@ -21,11 +21,11 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260814"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="assets/js/nlt-shared.js?v=20260814c"></script>
+    <script defer src="assets/js/nlt-api-client.js?v=20260814"></script>
     <style>
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
@@ -240,6 +240,11 @@
     </footer>
 
     <script>
+        // Los 4 scripts de <head> (gsap/ScrollTrigger/supabase/nlt-shared) ahora
+        // cargan con defer -- este bloque corría antes de que NLT existiera, así
+        // que todo el contenido pasa a esperar DOMContentLoaded (que igual se
+        // dispara justo después de que los defer terminan).
+        document.addEventListener('DOMContentLoaded', () => {
         // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
         NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
         NLT.mountAuthAwareCTA(['btn-comenzar', 'btn-comenzar-2'], { loggedInLabel: 'Ir al Dashboard' });
@@ -286,10 +291,12 @@
                 gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
             });
         }
+        });
     </script>
 
     <!-- NLT Economic Calendar -- lógica -->
     <script>
+    document.addEventListener('DOMContentLoaded', () => {
     (function () {
         const BANDERAS = { USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CAD: '🇨🇦', AUD: '🇦🇺', NZD: '🇳🇿', CHF: '🇨🇭' };
         const IMPACTO_EMOJI = { LOW: '🟡', MEDIUM: '🟠', HIGH: '🔴' };
@@ -562,6 +569,7 @@
         setInterval(cargar, 60000);       // refresco de datos cada 60s (la cache del backend igual solo se actualiza según sync_interval_minutes)
         setInterval(actualizarCountdownsEnVivo, 1000);  // countdown en vivo sin recargar
     })();
+    });
     </script>
 </body>
 </html>

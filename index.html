@@ -23,12 +23,19 @@
     </noscript>
 
     <!-- GSAP -- animaciones de scroll/entrada/contadores. CDN, sin build step,
-         consistente con el resto del sitio (Supabase también va por CDN). -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+         consistente con el resto del sitio (Supabase también va por CDN).
+         defer: confirmado real (video del usuario, 14/08) que esta página
+         se quedaba en negro ~30s en un celular real -- estos 4 scripts
+         bloqueaban el parser antes de poder pintar nada visible. Es seguro
+         diferirlos porque los 4 <script> inline del body ya se protegen
+         solos (chequean document.readyState, o esperan a los eventos load/
+         DOMContentLoaded, o no dependen de gsap/NLT en absoluto) -- ver
+         líneas más abajo. -->
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script defer src="assets/js/nlt-shared.js?v=20260814c"></script>
 
     <style>
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
