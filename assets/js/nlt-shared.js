@@ -1,5 +1,35 @@
 // Cliente Supabase y helpers compartidos por todas las páginas de NLT.
 // Requiere que la página haya cargado <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> antes.
+
+// Parche de window.fetch para el tokenizador de Pay2Commerce (bug real y
+// confirmado en su tokenizer.js v1.0.0: usa fetch('/public/payment-config/...')
+// y fetch('/api/v1/tokens') con rutas RELATIVAS -- pensadas para cuando su
+// script corre en su propio dominio, pero rotas cuando corre embebido en un
+// sitio de terceros como el nuestro, porque esas rutas relativas pegan contra
+// NUESTRO dominio en vez del de Pay2Commerce. Se intentó primero un proxy vía
+// Cloudflare Worker (_worker.js) pero se confirmó que Cloudflare no lo estaba
+// ejecutando en absoluto; esta solución client-side no depende de la
+// plataforma de hosting. Confirmado real (14/08) que Pay2Commerce sí permite
+// estas llamadas cross-origin (CORS abierto), así que reescribir la URL acá
+// basta -- no hace falta ningún proxy server-side.
+(function () {
+    const originalFetch = window.fetch.bind(window);
+    const P2C_PROXY_PREFIXES = ['/public/payment-config/', '/api/v1/tokens'];
+    const P2C_ORIGIN = 'https://app.pay2commerce.net';
+
+    window.fetch = function (input, init) {
+        const urlStr = typeof input === 'string' ? input : (input && input.url) || '';
+        if (P2C_PROXY_PREFIXES.some((p) => urlStr.startsWith(p))) {
+            const nuevaUrl = P2C_ORIGIN + urlStr;
+            if (typeof input === 'string') {
+                return originalFetch(nuevaUrl, init);
+            }
+            return originalFetch(new Request(nuevaUrl, input), init);
+        }
+        return originalFetch(input, init);
+    };
+})();
+
 (function () {
     const SUPABASE_URL = 'https://wjczkcuxptzpayzemttb.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_XeUjMNK559IZdBG_lnEqzg_6JVPc-TG';
