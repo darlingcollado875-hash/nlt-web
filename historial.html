@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Historial</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', danger: '#EF4444' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        .hist-filter { padding: 8px 14px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); cursor: pointer; white-space: nowrap; }
+        .hist-filter.activo { color: #fff; background: rgba(67,120,255,0.15); border-color: rgba(67,120,255,0.3); }
+        table { min-width: 900px; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl shrink-0"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col overflow-y-auto">
+        <header class="flex flex-wrap justify-between items-center gap-4 px-10 pt-10 pb-6 border-b border-white/5">
+            <div>
+                <h1 class="text-2xl font-bold">Bitácora de Operaciones</h1>
+                <p class="text-xs text-gray-500 mt-1">Historial y estadísticas reales de tu Copy System.</p>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="marketToggle" class="flex gap-2"></div>
+                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <div class="p-10 space-y-6">
+
+            <!-- STATISTICS -->
+            <div id="statsBox" class="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-3">
+                <p class="text-xs text-gray-500 col-span-full animate-pulse">Cargando estadísticas...</p>
+            </div>
+
+            <!-- FILTROS -->
+            <div class="glass-card p-4 flex flex-wrap items-center gap-2">
+                <div class="flex items-center gap-1.5" id="rangoPills">
+                    <button class="hist-filter activo" data-rango="all">Todo</button>
+                    <button class="hist-filter" data-rango="today">Hoy</button>
+                    <button class="hist-filter" data-rango="7d">7 días</button>
+                    <button class="hist-filter" data-rango="30d">30 días</button>
+                </div>
+                <div class="w-px h-6 bg-white/10 mx-1"></div>
+                <select id="filtroCuenta" class="hist-filter bg-[#0d1016] cursor-pointer">
+                    <option value="">Todas las cuentas</option>
+                </select>
+                <select id="filtroSymbol" class="hist-filter bg-[#0d1016] cursor-pointer">
+                    <option value="">Todos los símbolos</option>
+                </select>
+                <select id="filtroEstado" class="hist-filter bg-[#0d1016] cursor-pointer">
+                    <option value="">Abiertas y cerradas</option>
+                    <option value="ABIERTA">Solo abiertas</option>
+                    <option value="CERRADA">Solo cerradas</option>
+                </select>
+            </div>
+
+            <!-- TABLA -->
+            <div class="glass-card overflow-hidden">
+                <div class="overflow-x-auto">
+                <table class="w-full text-left text-sm">
+                    <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                        <tr>
+                            <th class="px-5 py-4 font-semibold">Cuenta</th>
+                            <th class="px-5 py-4 font-semibold">Ticket</th>
+                            <th class="px-5 py-4 font-semibold">Symbol</th>
+                            <th class="px-5 py-4 font-semibold">Direction</th>
+                            <th class="px-5 py-4 font-semibold">Entry</th>
+                            <th class="px-5 py-4 font-semibold">Exit</th>
+                            <th class="px-5 py-4 font-semibold">Volume</th>
+                            <th class="px-5 py-4 font-semibold">Open Time</th>
+                            <th class="px-5 py-4 font-semibold">Close Time</th>
+                            <th class="px-5 py-4 font-semibold">Commission</th>
+                            <th class="px-5 py-4 font-semibold">Swap</th>
+                            <th class="px-5 py-4 font-semibold">Profit</th>
+                            <th class="px-5 py-4 font-semibold">Net Profit</th>
+                            <th class="px-5 py-4 font-semibold">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="filas" class="divide-y divide-white/5 text-gray-300">
+                        <tr><td colspan="14" class="px-6 py-16 text-center text-nlt-accent animate-pulse">Cargando...</td></tr>
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const db = NLT.supabase;
+        let TODAS = [];   // dataset completo (últimas 500 ops del usuario), nunca se pisa
+        let filtro = { rango: 'all', cuenta: '', symbol: '', estado: '' };
+
+        function fmtMoney(v) {
+            if (v === null || v === undefined) return '—';
+            const n = Number(v);
+            return (n >= 0 ? '+' : '') + '$' + n.toFixed(2);
+        }
+        function colorMoney(v) {
+            if (v === null || v === undefined) return 'text-gray-500';
+            return Number(v) > 0 ? 'text-nlt-success' : Number(v) < 0 ? 'text-nlt-danger' : 'text-gray-400';
+        }
+        function fmtFecha(iso) {
+            if (!iso) return '—';
+            return new Date(iso).toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+        }
+        function netProfit(op) {
+            // profit ya viene del broker (sin swap/comisión incluidos, salvo el
+            // motor local que ya los suma -- ver tickerall_copier_engine.py /
+            // mt5api_copier_engine.py / NLT_Copier/main.py). Sumar acá swap+
+            // commission SOLO si existen como campos separados evita contar
+            // doble cuando el motor local ya los integró en profit.
+            if (op.profit === null || op.profit === undefined) return null;
+            const extra = (op.commission !== null && op.commission !== undefined ? Number(op.commission) : 0) +
+                          (op.swap !== null && op.swap !== undefined ? Number(op.swap) : 0);
+            // Si el motor local ya sumó swap+commission dentro de profit (no hay
+            // columnas separadas en esas filas), extra queda en 0 y net=profit.
+            return Number(op.profit) + extra;
+        }
+
+        function aplicarFiltros() {
+            const ahora = Date.now();
+            return TODAS.filter(op => {
+                if (filtro.cuenta && op.cuenta_id !== filtro.cuenta) return false;
+                if (filtro.symbol && op.symbol !== filtro.symbol) return false;
+                if (filtro.estado && op.estado !== filtro.estado) return false;
+                if (filtro.rango !== 'all') {
+                    const dias = filtro.rango === 'today' ? 1 : filtro.rango === '7d' ? 7 : 30;
+                    const desde = ahora - dias * 86400000;
+                    if (new Date(op.fecha_apertura).getTime() < desde) return false;
+                }
+                return true;
+            });
+        }
+
+        function renderStats(lista) {
+            const box = document.getElementById('statsBox');
+            const cerradas = lista.filter(op => op.estado === 'CERRADA' && op.profit !== null && op.profit !== undefined);
+            const ganadoras = cerradas.filter(op => Number(op.profit) > 0);
+            const perdedoras = cerradas.filter(op => Number(op.profit) < 0);
+            const breakEven = cerradas.filter(op => Number(op.profit) === 0);
+
+            const totalGanado = ganadoras.reduce((s, op) => s + Number(op.profit), 0);
+            const totalPerdido = perdedoras.reduce((s, op) => s + Number(op.profit), 0); // negativo
+            const netTotal = cerradas.reduce((s, op) => s + (netProfit(op) ?? 0), 0);
+            const avgWin = ganadoras.length ? totalGanado / ganadoras.length : null;
+            const avgLoss = perdedoras.length ? totalPerdido / perdedoras.length : null;
+            const profitFactor = totalPerdido !== 0 ? Math.abs(totalGanado / totalPerdido) : (totalGanado > 0 ? Infinity : null);
+            const winRate = cerradas.length ? (ganadoras.length / cerradas.length * 100) : null;
+
+            const totalVolumen = lista.reduce((s, op) => s + Number(op.volumen || 0), 0);
+            const avgVolumen = lista.length ? totalVolumen / lista.length : 0;
+            const mejor = cerradas.length ? cerradas.reduce((a, b) => Number(a.profit) > Number(b.profit) ? a : b) : null;
+            const peor = cerradas.length ? cerradas.reduce((a, b) => Number(a.profit) < Number(b.profit) ? a : b) : null;
+
+            const tiles = [
+                ['Total Trades', lista.length, 'text-white'],
+                ['Winning', ganadoras.length, 'text-nlt-success'],
+                ['Losing', perdedoras.length, 'text-nlt-danger'],
+                ['Break Even', breakEven.length, 'text-gray-400'],
+                ['Win Rate', winRate === null ? '—' : winRate.toFixed(1) + '%', 'text-white'],
+                ['Total Profit', fmtMoney(totalGanado), 'text-nlt-success'],
+                ['Total Loss', fmtMoney(totalPerdido), 'text-nlt-danger'],
+                ['Net Profit', fmtMoney(netTotal), colorMoney(netTotal)],
+                ['Avg Win', avgWin === null ? '—' : fmtMoney(avgWin), 'text-nlt-success'],
+                ['Avg Loss', avgLoss === null ? '—' : fmtMoney(avgLoss), 'text-nlt-danger'],
+                ['Profit Factor', profitFactor === null ? '—' : (profitFactor === Infinity ? '∞' : profitFactor.toFixed(2)), 'text-white'],
+                ['Total Volume', totalVolumen.toFixed(2) + ' lots', 'text-white'],
+                ['Avg Volume', avgVolumen.toFixed(2) + ' lots', 'text-white'],
+                ['Best Trade', mejor ? fmtMoney(mejor.profit) + ' (' + mejor.symbol + ')' : '—', 'text-nlt-success'],
+                ['Worst Trade', peor ? fmtMoney(peor.profit) + ' (' + peor.symbol + ')' : '—', 'text-nlt-danger'],
+            ];
+            box.innerHTML = tiles.map(([label, valor, color]) => `
+                <div class="glass-card p-4">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">${label}</p>
+                    <p class="text-lg font-bold ${color} truncate">${valor}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderTabla(lista) {
+            const tbody = document.getElementById('filas');
+            if (!lista.length) {
+                tbody.innerHTML = `
+                    <tr><td colspan="14" class="px-6 py-16 text-center">
+                        <i class="ph ph-clock-counter-clockwise text-3xl text-gray-600 block mb-3"></i>
+                        <p class="text-gray-400 font-medium">No hay operaciones para este filtro.</p>
+                    </td></tr>`;
+                return;
+            }
+            tbody.innerHTML = lista.map(op => {
+                const abierta = op.estado === 'ABIERTA';
+                const badge = abierta
+                    ? '<span class="w-2 h-2 rounded-full bg-yellow-500 animate-pulse inline-block mr-2"></span>Abierta'
+                    : '<span class="w-2 h-2 rounded-full bg-green-500 inline-block mr-2"></span>Cerrada';
+                const tipoColor = op.tipo === 'BUY' ? 'text-blue-400 bg-blue-500/10' : 'text-red-400 bg-red-500/10';
+                const net = netProfit(op);
+                return `
+                    <tr class="hover:bg-white/5 transition-colors">
+                        <td class="px-5 py-4 text-gray-400 whitespace-nowrap">${op.login_numero}</td>
+                        <td class="px-5 py-4 font-mono text-gray-500">#${op.ticket}</td>
+                        <td class="px-5 py-4 font-bold text-white whitespace-nowrap">${op.symbol}</td>
+                        <td class="px-5 py-4"><span class="font-bold px-2 py-1 rounded ${tipoColor}">${op.tipo}</span></td>
+                        <td class="px-5 py-4 text-gray-300">${op.precio_apertura ?? '—'}</td>
+                        <td class="px-5 py-4 text-gray-300">${op.precio_cierre ?? '—'}</td>
+                        <td class="px-5 py-4">${op.volumen}</td>
+                        <td class="px-5 py-4 text-gray-500 whitespace-nowrap">${fmtFecha(op.fecha_apertura)}</td>
+                        <td class="px-5 py-4 text-gray-500 whitespace-nowrap">${fmtFecha(op.fecha_cierre)}</td>
+                        <td class="px-5 py-4 ${colorMoney(op.commission)}">${op.commission != null ? fmtMoney(op.commission) : '—'}</td>
+                        <td class="px-5 py-4 ${colorMoney(op.swap)}">${op.swap != null ? fmtMoney(op.swap) : '—'}</td>
+                        <td class="px-5 py-4 font-semibold ${colorMoney(op.profit)}">${fmtMoney(op.profit)}</td>
+                        <td class="px-5 py-4 font-semibold ${colorMoney(net)}">${fmtMoney(net)}</td>
+                        <td class="px-5 py-4 whitespace-nowrap">${badge}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function renderTodo() {
+            const filtradas = aplicarFiltros();
+            renderStats(filtradas);
+            renderTabla(filtradas);
+        }
+
+        function poblarFiltrosDinamicos() {
+            const cuentas = [...new Map(TODAS.map(op => [op.cuenta_id, op.login_numero])).entries()];
+            const selCuenta = document.getElementById('filtroCuenta');
+            selCuenta.innerHTML = '<option value="">Todas las cuentas</option>' +
+                cuentas.map(([id, login]) => `<option value="${id}">${login}</option>`).join('');
+
+            const symbols = [...new Set(TODAS.map(op => op.symbol))].sort();
+            const selSymbol = document.getElementById('filtroSymbol');
+            selSymbol.innerHTML = '<option value="">Todos los símbolos</option>' +
+                symbols.map(s => `<option value="${s}">${s}</option>`).join('');
+        }
+
+        async function cargarHistorial(userId) {
+            const { data, error } = await db.from('historial_operaciones')
+                .select('*').eq('user_id', userId)
+                .order('fecha_apertura', { ascending: false }).limit(500);
+
+            if (error) {
+                document.getElementById('filas').innerHTML = `<tr><td colspan="14" class="px-6 py-16 text-center text-nlt-danger">Error: ${error.message}</td></tr>`;
+                document.getElementById('statsBox').innerHTML = `<p class="text-xs text-nlt-danger col-span-full">Error cargando estadísticas.</p>`;
+                return;
+            }
+
+            TODAS = data || [];
+            poblarFiltrosDinamicos();
+            renderTodo();
+        }
+
+        // --- Wiring de filtros ---
+        document.querySelectorAll('#rangoPills .hist-filter').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('#rangoPills .hist-filter').forEach(b => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                filtro.rango = btn.getAttribute('data-rango');
+                renderTodo();
+            });
+        });
+        document.getElementById('filtroCuenta').addEventListener('change', (e) => { filtro.cuenta = e.target.value; renderTodo(); });
+        document.getElementById('filtroSymbol').addEventListener('change', (e) => { filtro.symbol = e.target.value; renderTodo(); });
+        document.getElementById('filtroEstado').addEventListener('change', (e) => { filtro.estado = e.target.value; renderTodo(); });
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'historial', seccion: 'cfd' });
+            await cargarHistorial(session.user.id);
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
+        init();
+    </script>
+
+</body>
+</html>

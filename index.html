@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT | The Next Level of Trading</title>
+    <meta name="description" content="NLT Trading Ecosystem -- copiado de operaciones, herramientas, noticias y comunidad para operadores de alto nivel, en una sola plataforma.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- GSAP -- animaciones de scroll/entrada/contadores. CDN, sin build step,
+         consistente con el resto del sitio (Tailwind/Supabase también van por CDN). -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: { nlt: { bg: '#080A0F', surface: '#11151C', accent: '#4378FF', dark: '#11151c', success: '#22C55E', border: 'rgba(255,255,255,0.06)' } }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        .glow-button:hover { box-shadow: 0 0 36px rgba(67, 120, 255, 0.6); }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .module-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease, box-shadow 0.4s ease; }
+        .module-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.35); box-shadow: 0 24px 60px -20px rgba(67, 120, 255, 0.35); }
+        .module-card .icon-wrap { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease; }
+        .module-card:hover .icon-wrap { transform: scale(1.08) rotate(-4deg); }
+        [data-reveal] { opacity: 0; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <!-- Fondo ambiental sutil -->
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[700px] h-[500px] bg-blue-500/5 blur-[160px] rounded-full pointer-events-none z-0"></div>
+
+    <!-- NAV -->
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3">
+                <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8">
+                <span class="font-semibold text-base tracking-tight">NLT</span>
+            </a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="#modulos" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <button id="nav-ecosystem" class="hover:text-white transition-colors cursor-pointer">Red en vivo</button>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 min-h-screen flex flex-col items-center justify-center px-6 text-center pt-20">
+        <div id="hero-badge" class="inline-flex items-center gap-2 px-5 py-1.5 rounded-full border border-blue-500/20 bg-blue-900/10 text-[10px] font-bold text-gray-300 tracking-[0.2em] uppercase mb-10">
+            <span class="w-1.5 h-1.5 rounded-full bg-nlt-accent shadow-[0_0_8px_#4378FF]"></span>
+            NLT Trading Ecosystem
+        </div>
+
+        <h1 id="hero-title" class="text-5xl md:text-8xl font-extrabold tracking-tight mb-6 max-w-5xl leading-[1.02]">
+            The Next Level<br>of Trading.
+        </h1>
+
+        <p id="hero-sub" class="text-gray-400 text-lg md:text-xl max-w-2xl mb-12 font-medium leading-relaxed">
+            Copiado de operaciones, herramientas de riesgo, noticias de mercado y comunidad -- todo en una sola plataforma, para operadores que no tienen tiempo que perder.
+        </p>
+
+        <div id="hero-cta" class="flex flex-col sm:flex-row items-center gap-4">
+            <button id="btn-login" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button flex items-center gap-3 cursor-pointer">
+                <svg class="w-4 h-4" viewBox="0 0 24 24"><path fill="#ffffff" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/><path fill="#ffffff" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.19v3.15C3.17 21.36 7.23 24 12 24z"/><path fill="#ffffff" d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.19C.43 8.12 0 9.87 0 11.7c0 1.83.43 3.58 1.19 5.12l4.09-2.55z"/><path fill="#ffffff" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.23 0 3.17 2.64 1.19 6.58l4.09 3.15c.95-2.83 3.6-4.98 6.72-4.98z"/></svg>
+                Comenzar
+            </button>
+            <a href="ecosystem.html" id="btn-ecosystem" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all cursor-pointer inline-flex items-center justify-center">
+                Explorar ecosistema
+            </a>
+        </div>
+
+        <div id="authError" class="hidden max-w-xl mt-6 px-5 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm relative z-10"></div>
+
+        <div class="absolute bottom-10 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 text-gray-600 animate-bounce">
+            <span class="text-[10px] uppercase tracking-widest">Scroll</span>
+            <i class="ph ph-arrow-down text-sm"></i>
+        </div>
+    </section>
+
+    <!-- MÓDULOS -->
+    <section id="modulos" class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-32">
+        <div class="text-center mb-16" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">El ecosistema NLT</p>
+            <h2 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05]">Todo lo que necesitás.<br>En un solo lugar.</h2>
+        </div>
+
+        <div id="modulesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </section>
+
+    <!-- STATS -->
+    <section class="relative z-10 max-w-5xl mx-auto px-6 md:px-10 pb-32">
+        <div class="glass-card p-10 md:p-14 grid grid-cols-1 sm:grid-cols-3 gap-10 text-center" data-reveal>
+            <div>
+                <p class="text-4xl md:text-5xl font-extrabold text-white"><span id="statMercados" data-count="2">0</span></p>
+                <p class="text-[11px] uppercase tracking-widest text-gray-500 mt-2">Mercados integrados (CFD/Forex + Futuros)</p>
+            </div>
+            <div>
+                <p class="text-4xl md:text-5xl font-extrabold text-nlt-accent"><span id="statLatMs" data-count="15">0</span>ms</p>
+                <p class="text-[11px] uppercase tracking-widest text-gray-500 mt-2">Latencia de copiado objetivo</p>
+            </div>
+            <div>
+                <p class="text-4xl md:text-5xl font-extrabold text-nlt-success"><span id="statUptime" data-count="24">0</span>/7</p>
+                <p class="text-[11px] uppercase tracking-widest text-gray-500 mt-2">Motor de copiado activo</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 text-center pb-32" data-reveal>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Llevá tu operativa al siguiente nivel.</h3>
+        <p class="text-gray-400 mb-10 max-w-xl mx-auto">Conectá tu cuenta maestra y empezá a operar en minutos, no en días.</p>
+        <button id="btn-login-2" class="px-9 py-4 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">
+            Comenzar ahora
+        </button>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2">
+                <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-5 h-5 opacity-70">
+                <span>NLT Trading Ecosystem © 2026</span>
+            </div>
+            <div class="flex items-center gap-6">
+                <a href="plans.html" class="hover:text-gray-300 transition-colors">Planes</a>
+                <span>Infraestructura institucional de trading algorítmico</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL ECOSISTEMA (visualización en vivo -- ilustrativa) -->
+    <div id="ecosystemModal" class="fixed inset-0 z-50 hidden">
+        <div id="ecosystemBackdrop" class="absolute inset-0 bg-black/85 backdrop-blur-sm"></div>
+        <div class="relative z-10 h-full flex flex-col">
+            <div class="flex items-center justify-between px-6 md:px-10 py-6 shrink-0">
+                <div class="text-left">
+                    <h2 class="text-lg md:text-2xl font-bold text-white tracking-tight">Red de Copiado en Vivo</h2>
+                    <p class="text-xs text-gray-500 mt-1">Visualización ilustrativa de la capacidad de la infraestructura NLT.</p>
+                </div>
+                <button id="btn-ecosystem-close" class="w-10 h-10 shrink-0 rounded-full border border-gray-700 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500 transition-all cursor-pointer">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                </button>
+            </div>
+            <canvas id="ecosystemCanvas" class="flex-1 w-full"></canvas>
+            <div class="grid grid-cols-3 gap-4 px-6 md:px-10 pb-8 max-w-3xl mx-auto w-full shrink-0">
+                <div class="text-center">
+                    <p class="text-2xl md:text-3xl font-bold text-nlt-accent" id="statCuentas">0</p>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mt-1">Cuentas en la red</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl md:text-3xl font-bold text-white" id="statOps">0</p>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mt-1">Órdenes copiadas hoy</p>
+                </div>
+                <div class="text-center">
+                    <p class="text-2xl md:text-3xl font-bold text-nlt-success" id="statLatencia">0<span class="text-sm">ms</span></p>
+                    <p class="text-[10px] uppercase tracking-widest text-gray-500 mt-1">Latencia promedio</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulos: render desde NLT.NLT_MODULES (fuente única, la reutiliza el Dashboard) -->
+    <script>
+        (function () {
+            function tarjeta(m) {
+                const disponible = m.status === 'live';
+                const wrapTag = disponible ? 'a' : 'div';
+                const hrefAttr = disponible ? `href="${m.href}"` : '';
+                return `
+                    <${wrapTag} ${hrefAttr} class="module-card glass-card p-8 flex flex-col relative overflow-hidden group ${disponible ? 'cursor-pointer' : 'opacity-60'}" data-reveal>
+                        ${!disponible ? '<span class="absolute top-5 right-5 text-[9px] font-bold uppercase tracking-widest text-gray-500 border border-gray-700 rounded-full px-2.5 py-1">Próximamente</span>' : ''}
+                        <div class="icon-wrap w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+                            <i class="ph-fill ${m.icono}"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2 tracking-tight">${m.nombre}</h3>
+                        <p class="text-sm text-gray-400 leading-relaxed flex-1">${m.descripcion}</p>
+                        ${disponible ? `<span class="mt-6 inline-flex items-center gap-2 text-xs font-bold text-nlt-accent uppercase tracking-wider">Entrar <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i></span>` : ''}
+                    </${wrapTag}>
+                `;
+            }
+
+            function render() {
+                const grid = document.getElementById('modulesGrid');
+                if (!grid || !window.NLT) return;
+                grid.innerHTML = window.NLT.NLT_MODULES.map(tarjeta).join('');
+                if (window.gsap && window.ScrollTrigger) animarReveal();
+            }
+
+            function animarReveal() {
+                gsap.registerPlugin(ScrollTrigger);
+                document.querySelectorAll('[data-reveal]').forEach((el) => {
+                    gsap.to(el, {
+                        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+                        scrollTrigger: { trigger: el, start: 'top 85%' },
+                    });
+                    gsap.set(el, { y: 24 });
+                });
+            }
+
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', render);
+            } else {
+                render();
+            }
+        })();
+    </script>
+
+    <!-- Animación de entrada del hero + contadores -->
+    <script>
+        window.addEventListener('load', () => {
+            if (!window.gsap) return;
+            const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+            tl.fromTo('#hero-badge', { opacity: 0, y: 16, filter: 'blur(6px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7 })
+              .fromTo('#hero-title', { opacity: 0, y: 28, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9 }, '-=0.4')
+              .fromTo('#hero-sub', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.5')
+              .fromTo('#hero-cta', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.5');
+
+            if (window.ScrollTrigger) {
+                gsap.registerPlugin(ScrollTrigger);
+                document.querySelectorAll('[data-count]').forEach((el) => {
+                    const target = parseFloat(el.getAttribute('data-count'));
+                    ScrollTrigger.create({
+                        trigger: el, start: 'top 90%', once: true,
+                        onEnter: () => gsap.fromTo(el, { textContent: 0 }, {
+                            textContent: target, duration: 1.4, ease: 'power2.out', snap: { textContent: 1 },
+                        }),
+                    });
+                });
+            }
+        });
+    </script>
+
+    <script>
+        // Captura de referido (?ref=CODIGO) -- se guarda en localStorage y se
+        // atribuye recién cuando el usuario efectivamente crea su cuenta (ver
+        // ensurePerfil() en nlt-shared.js), nunca acá directo: este script no
+        // sabe si el código es válido, eso lo valida el backend. No pisa un
+        // código ya guardado (el primer link que alguien clickeó gana).
+        (function capturarReferido() {
+            const codigo = new URLSearchParams(window.location.search).get('ref');
+            if (!codigo) return;
+            if (localStorage.getItem('nlt_pending_ref')) return;
+            localStorage.setItem('nlt_pending_ref', JSON.stringify({ codigo: codigo.trim().toUpperCase(), ts: Date.now() }));
+        })();
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (window.NLT) {
+                const authError = window.NLT.getAuthRedirectError();
+                if (authError) {
+                    const box = document.getElementById('authError');
+                    box.textContent = 'No se pudo iniciar sesión: ' + authError;
+                    box.classList.remove('hidden');
+                }
+            }
+
+            // Auth global NLT: un solo chequeo de sesión de Supabase (la misma
+            // que usa requireSession() en las páginas autenticadas) decide si
+            // el header y los CTA dicen "Comenzar" o llevan directo al
+            // Dashboard -- nunca una segunda sesión ni un login aparte.
+            await NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+            await NLT.mountAuthAwareCTA(['btn-login', 'btn-login-2'], { loggedInLabel: 'Ir al Dashboard' });
+        });
+    </script>
+
+    <script>
+        (function () {
+            const btnOpenNav = document.getElementById('nav-ecosystem');
+            const modal = document.getElementById('ecosystemModal');
+            const backdrop = document.getElementById('ecosystemBackdrop');
+            const btnClose = document.getElementById('btn-ecosystem-close');
+            const canvas = document.getElementById('ecosystemCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let animId = null;
+            let spawnTimer = null;
+            let nodes = [];
+            let particles = [];
+            let center = { x: 0, y: 0 };
+            let statOps = 0;
+
+            function buildNodes() {
+                nodes = [];
+                const count = 140;
+                const maxRadius = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.44;
+                for (let i = 0; i < count; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const radius = (0.25 + Math.random() * 0.75) * maxRadius;
+                    nodes.push({
+                        x: center.x + Math.cos(angle) * radius,
+                        y: center.y + Math.sin(angle) * radius,
+                        pulse: Math.random() * Math.PI * 2,
+                    });
+                }
+            }
+
+            function resize() {
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = canvas.clientWidth * dpr;
+                canvas.height = canvas.clientHeight * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+                buildNodes();
+            }
+
+            function spawnParticle() {
+                if (nodes.length === 0) return;
+                const target = nodes[Math.floor(Math.random() * nodes.length)];
+                particles.push({ target, t: 0, speed: 0.012 + Math.random() * 0.014 });
+                statOps++;
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+                ctx.strokeStyle = 'rgba(67,120,255,0.08)';
+                ctx.lineWidth = 1;
+                nodes.forEach((n) => {
+                    ctx.beginPath();
+                    ctx.moveTo(center.x, center.y);
+                    ctx.lineTo(n.x, n.y);
+                    ctx.stroke();
+                });
+
+                nodes.forEach((n) => {
+                    n.pulse += 0.02;
+                    const r = 2 + Math.sin(n.pulse) * 1;
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(200,215,255,0.55)';
+                    ctx.fill();
+                });
+
+                particles.forEach((p) => {
+                    p.t += p.speed;
+                    const x = center.x + (p.target.x - center.x) * p.t;
+                    const y = center.y + (p.target.y - center.y) * p.t;
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = '#4378FF';
+                    ctx.shadowColor = '#4378FF';
+                    ctx.shadowBlur = 8;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+                particles = particles.filter((p) => p.t < 1);
+
+                const centerPulse = 10 + Math.sin(Date.now() / 300) * 3;
+                const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, centerPulse * 2.5);
+                grad.addColorStop(0, 'rgba(67,120,255,0.9)');
+                grad.addColorStop(1, 'rgba(67,120,255,0)');
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, centerPulse * 2.5, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, 7, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+
+                animId = requestAnimationFrame(draw);
+            }
+
+            function open() {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                resize();
+
+                const statCuentas = nodes.length + Math.floor(Math.random() * 400) + 1800;
+                statOps = Math.floor(Math.random() * 3000) + 8000;
+                document.getElementById('statCuentas').textContent = statCuentas.toLocaleString('es');
+                document.getElementById('statOps').textContent = statOps.toLocaleString('es');
+                document.getElementById('statLatencia').innerHTML = (6 + Math.floor(Math.random() * 6)) + '<span class="text-sm">ms</span>';
+
+                draw();
+                spawnTimer = setInterval(() => {
+                    spawnParticle();
+                    spawnParticle();
+                    document.getElementById('statOps').textContent = statOps.toLocaleString('es');
+                }, 180);
+            }
+
+            function close() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+                cancelAnimationFrame(animId);
+                clearInterval(spawnTimer);
+                particles = [];
+            }
+
+            if (btnOpenNav) btnOpenNav.addEventListener('click', open);
+            btnClose.addEventListener('click', close);
+            backdrop.addEventListener('click', close);
+            window.addEventListener('resize', () => {
+                if (!modal.classList.contains('hidden')) resize();
+            });
+        })();
+    </script>
+</body>
+</html>

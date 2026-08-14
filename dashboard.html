@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Visión General</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        nlt: { bg: '#080A0F', surface: '#11151C', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .glow-text { text-shadow: 0 0 16px rgba(67, 120, 255, 0.4); }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR (contenido inyectado por NLT.mountSidebar -- ver assets/js/nlt-shared.js) -->
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col h-full">
+        <header class="h-24 flex items-center justify-between px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-2xl font-bold tracking-tight">Visión General</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <div class="flex items-center gap-5">
+                <!-- LE QUITAMOS EL ONCLICK Y LE PUSIMOS UN ID "btn-salir" -->
+                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">
+                    Cerrar Sesión
+                </button>
+                <div class="px-3 py-1.5 rounded-full bg-nlt-success/10 border border-nlt-success/20 flex items-center gap-2">
+                    <span class="w-1.5 h-1.5 rounded-full bg-nlt-success animate-pulse"></span>
+                    <span class="text-[11px] font-semibold text-nlt-success uppercase">Sistema Activo</span>
+                </div>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+            <div>
+                <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">NLT Platform</p>
+                <div id="moduleStrip" class="flex items-center gap-3 overflow-x-auto pb-1"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-6 flex justify-between items-center">
+                    <div>
+                        <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Volumen Hoy</p>
+                        <div class="flex items-baseline gap-2"><h2 class="text-4xl font-bold text-nlt-accent glow-text" id="metricVolumen">—</h2><span class="text-sm text-gray-500">Lotes</span></div>
+                        <p class="text-[11px] text-gray-600 mt-1" id="metricVolumenNota">Sin operaciones copiadas hoy todavía</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300"><i class="ph ph-stack text-2xl"></i></div>
+                </div>
+                <div class="glass-card p-6 flex justify-between items-center">
+                    <div>
+                        <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Cuentas Destino</p>
+                        <div class="flex items-baseline gap-1"><h2 class="text-4xl font-bold text-white" id="metricCuentasUsadas">0</h2><span class="text-xl text-gray-500">/ <span id="metricCuentasLimite">2</span></span></div>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300"><i class="ph ph-plugs-connected text-2xl"></i></div>
+                </div>
+                <div class="glass-card p-6 flex justify-between items-center">
+                    <div>
+                        <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Tasa de Éxito</p>
+                        <h2 class="text-4xl font-bold text-white" id="metricTasaExito">—</h2>
+                        <p class="text-[11px] text-gray-600 mt-1" id="metricTasaExitoNota">Sin operaciones cerradas todavía</p>
+                    </div>
+                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-500"><i class="ph-fill ph-check-circle text-2xl"></i></div>
+                </div>
+            </div>
+
+            <div id="marketAlertsWidget"></div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                <div class="glass-card p-7">
+                    <h3 class="text-sm font-semibold text-white tracking-wide mb-4">Añadir Destino</h3>
+                    <form id="copierForm" class="space-y-3">
+                        <select id="proveedor" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent">
+                            <option value="tickerall">TickerAll (sin instalación)</option>
+                            <option value="local">Terminal local</option>
+                        </select>
+                        <input type="number" id="login" required class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent" placeholder="ID de Cuenta (Login)">
+                        <input type="password" id="password" required class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent" placeholder="Contraseña de Trading">
+                        <input type="text" id="server" list="mt5Servers" required class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent" placeholder="Servidor (empieza a escribir para ver sugerencias)"
+                            autocomplete="off">
+                        <button type="submit" class="w-full mt-4 px-6 py-3.5 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Sincronizar Esclava</button>
+                    </form>
+                    <div id="statusMsg" class="mt-3 text-center text-xs hidden p-2 rounded-lg font-medium"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        const db = NLT.supabase;
+        let sesionActual = null;
+        let miSuscripcion = null; // { plan, status, max_accounts, cuentas_actuales, cuentas_disponibles } -- real, del backend
+
+        async function cargarMetricas() {
+            try {
+                miSuscripcion = await NLT_API.miSuscripcion();
+            } catch (err) {
+                console.error('Error cargando suscripción:', err);
+            }
+            const limite = miSuscripcion ? miSuscripcion.max_accounts : 0;
+            const usadas = miSuscripcion ? miSuscripcion.cuentas_actuales : 0;
+            document.getElementById('metricCuentasUsadas').textContent = usadas;
+            document.getElementById('metricCuentasLimite').textContent = limite;
+            const labelEl = document.getElementById('userPlanLabel');
+            if (labelEl) {
+                labelEl.textContent = (miSuscripcion && miSuscripcion.plan && miSuscripcion.status === 'active') ? miSuscripcion.plan : 'Sin plan activo';
+            }
+
+            const inicioHoy = new Date();
+            inicioHoy.setHours(0, 0, 0, 0);
+            const { data: ops } = await db.from('historial_operaciones')
+                .select('volumen, estado, profit, fecha_apertura')
+                .eq('user_id', sesionActual.user.id)
+                .gte('fecha_apertura', inicioHoy.toISOString());
+
+            const volumenHoy = (ops || []).reduce((sum, op) => sum + Number(op.volumen), 0);
+            document.getElementById('metricVolumen').textContent = volumenHoy > 0 ? volumenHoy.toFixed(2) : '—';
+            document.getElementById('metricVolumenNota').textContent = volumenHoy > 0
+                ? `${(ops || []).length} operaciones copiadas hoy`
+                : 'Sin operaciones copiadas hoy todavía';
+
+            const cerradas = (ops || []).filter(op => op.estado === 'CERRADA' && op.profit !== null);
+            if (cerradas.length > 0) {
+                const ganadoras = cerradas.filter(op => Number(op.profit) > 0).length;
+                const tasa = (ganadoras / cerradas.length) * 100;
+                document.getElementById('metricTasaExito').textContent = tasa.toFixed(1) + '%';
+                document.getElementById('metricTasaExitoNota').textContent = `${ganadoras}/${cerradas.length} operaciones ganadoras hoy`;
+            } else {
+                document.getElementById('metricTasaExito').textContent = '—';
+                document.getElementById('metricTasaExitoNota').textContent = 'Sin operaciones cerradas todavía';
+            }
+        }
+
+        function fmtCountdownWidget(mins) {
+            if (mins < 0) return null;
+            const h = Math.floor(mins / 60), m = mins % 60;
+            if (h > 24) return `en ${Math.floor(h / 24)}d`;
+            return h > 0 ? `⏱ ${h}h ${m}min` : `⏱ ${m} min`;
+        }
+
+        let _nextHighImpactTs = null;
+
+        async function cargarMarketAlerts() {
+            const box = document.getElementById('marketAlertsWidget');
+            try {
+                const [next, hoy, status] = await Promise.all([
+                    NLT_API.calendarProximoAltoImpacto(),
+                    NLT_API.calendarEventos({ from: new Date().toISOString().slice(0, 10), to: new Date().toISOString().slice(0, 10) }),
+                    NLT_API.calendarStatus(),
+                ]);
+                const altoImpactoHoy = (hoy || []).filter(e => e.impact === 'HIGH').length;
+                _nextHighImpactTs = next ? new Date(next.event_time_utc).getTime() : null;
+                const fuenteTag = status && status.using_mock
+                    ? '<span class="text-[9px] text-amber-500 font-bold ml-2">DEMO DATA</span>'
+                    : '<span class="text-[9px] text-nlt-success font-bold ml-2">LIVE</span>';
+
+                box.innerHTML = `
+                <div class="glass-card p-6 flex items-center justify-between gap-4 flex-wrap">
+                    <div class="flex items-center gap-4">
+                        <div class="w-11 h-11 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0"><i class="ph-fill ph-megaphone text-xl"></i></div>
+                        <div>
+                            <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">NLT Market Alerts ${fuenteTag}</p>
+                            ${next
+                                ? `<p class="text-sm text-white font-semibold">${next.event_name} <span class="text-gray-500 font-normal">(${next.currency || ''})</span> <span id="marketAlertCountdown" class="text-nlt-accent font-bold ml-1">${fmtCountdownWidget(Math.round((_nextHighImpactTs - Date.now()) / 60000)) || ''}</span></p>`
+                                : `<p class="text-sm text-gray-500">Sin eventos de alto impacto próximos.</p>`
+                            }
+                            <p class="text-[11px] text-gray-600 mt-0.5">${altoImpactoHoy} evento${altoImpactoHoy === 1 ? '' : 's'} de alto impacto hoy</p>
+                        </div>
+                    </div>
+                    <a href="news.html#calendario" class="text-xs font-semibold text-nlt-accent hover:underline shrink-0">Ver Calendario →</a>
+                </div>`;
+            } catch (err) {
+                console.error('No se pudo cargar NLT Market Alerts:', err);
+                box.innerHTML = `<div class="glass-card p-5 text-xs text-gray-500 flex items-center gap-2"><i class="ph ph-cloud-warning text-amber-500"></i> Calendar temporarily unavailable</div>`;
+            }
+        }
+        setInterval(() => {
+            const el = document.getElementById('marketAlertCountdown');
+            if (el && _nextHighImpactTs) el.textContent = fmtCountdownWidget(Math.round((_nextHighImpactTs - Date.now()) / 60000)) || '';
+        }, 1000);
+
+        async function init() {
+            sesionActual = await NLT.requireSession();
+            if (!sesionActual) return;
+
+            await NLT.mountSidebar(sesionActual, { activo: 'dashboard', seccion: 'cfd' });
+            document.getElementById('moduleStrip').innerHTML = NLT.renderModuleStrip('copy');
+
+            await NLT.ensurePerfil(sesionActual);
+            await cargarMetricas();
+            await cargarMarketAlerts();
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        NLT.injectServerDatalist();
+        document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
+
+        // Evento para Agregar Cuenta Destino
+        document.getElementById('copierForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgBox = document.getElementById('statusMsg');
+            msgBox.classList.remove('hidden');
+            msgBox.className = "mt-3 text-center text-xs p-2 rounded-lg bg-blue-500/10 text-blue-400 border border-blue-500/20";
+            msgBox.textContent = "Verificando conexión...";
+
+            try {
+                const login = document.getElementById('login').value;
+                const password = document.getElementById('password').value;
+                const server = document.getElementById('server').value;
+                const proveedor = document.getElementById('proveedor').value;
+
+                if (!sesionActual) {
+                    msgBox.className = "mt-3 text-center text-xs p-2 rounded-lg bg-nlt-danger/10 text-nlt-danger border border-nlt-danger/20";
+                    msgBox.textContent = "❌ Error: Sesión expirada.";
+                    return;
+                }
+
+                // Aviso rápido en el cliente con el dato real ya cargado (mejor UX),
+                // pero quien de verdad lo impide es el backend (ver NLT_API
+                // app/services/account_limits.py) -- esto es solo un atajo visual.
+                if (miSuscripcion && miSuscripcion.cuentas_actuales >= miSuscripcion.max_accounts) {
+                    msgBox.className = "mt-3 text-center text-xs p-2 rounded-lg bg-nlt-danger/10 text-nlt-danger border border-nlt-danger/20";
+                    msgBox.textContent = "❌ Límite de cuentas de tu plan alcanzado. Mejora tu plan en Suscripción.";
+                    return;
+                }
+
+                msgBox.textContent = proveedor === 'tickerall' ? "Conectando vía TickerAll (puede tardar ~1 min)..." : "Sincronizando cuenta...";
+
+                const datos = {
+                    tipo_cuenta: 'DESTINO',
+                    login_numero: parseInt(login),
+                    password: password,
+                    broker_server: server,
+                    riesgo_porcentaje: 1.0,
+                };
+
+                if (proveedor === 'tickerall') {
+                    await NLT_API.crearCuentaTickerAll(datos);
+                } else {
+                    await NLT_API.crearCuentaLocal(datos);
+                }
+
+                msgBox.className = "mt-3 text-center text-xs p-2 rounded-lg bg-nlt-success/10 text-nlt-success border border-nlt-success/20";
+                msgBox.textContent = "✅ Cuenta conectada.";
+                document.getElementById('copierForm').reset();
+                await cargarMetricas();
+            } catch (err) {
+                msgBox.className = "mt-3 text-center text-xs p-2 rounded-lg bg-nlt-danger/10 text-nlt-danger border border-nlt-danger/20";
+                msgBox.textContent = "❌ Error crítico: " + err.message;
+            }
+        });
+
+        init();
+        setInterval(() => { if (sesionActual) cargarMetricas(); }, 20000);
+        setInterval(() => { if (sesionActual) cargarMarketAlerts(); }, 60000);
+    </script>
+</body>
+</html>

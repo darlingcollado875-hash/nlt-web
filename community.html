@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Community</title>
+    <meta name="description" content="Where NLT traders learn, share and grow together.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', surface: '#11151C', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 16px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.7); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .chip { padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.04); transition: all .15s; cursor: pointer; white-space: nowrap; border: 1px solid transparent; }
+        .chip:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .chip.activo { color: #4378FF; background: rgba(67,120,255,0.12); border-color: rgba(67,120,255,0.25); }
+        .post-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; color: #fff; }
+        .post-input:focus { outline: none; border-color: rgba(67,120,255,0.5); }
+        .react-btn { padding: 5px 10px; border-radius: 999px; font-size: 12px; background: rgba(255,255,255,0.03); border: 1px solid transparent; cursor: pointer; transition: all .12s; }
+        .react-btn:hover { background: rgba(255,255,255,0.07); }
+        .react-btn.activo { background: rgba(67,120,255,0.15); border-color: rgba(67,120,255,0.3); }
+        .official-badge { display: inline-flex; align-items: center; gap: 4px; color: #4378FF; font-size: 10.5px; font-weight: 700; }
+        .type-tab { padding: 7px 13px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #9CA6B4; cursor: pointer; }
+        .type-tab.activo { color: #fff; background: rgba(67,120,255,0.15); }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-3xl mx-auto px-5 md:px-0 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="community.html" class="flex items-center gap-3">
+                <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8">
+                <span class="font-semibold text-base tracking-tight hidden sm:inline">NLT Community</span>
+            </a>
+            <div class="flex items-center gap-2">
+                <div id="notifBellBox" class="relative hidden">
+                    <button id="btn-notif" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-300 relative">
+                        <i class="ph ph-bell text-lg"></i>
+                        <span id="notifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-nlt-danger text-white text-[9px] font-bold flex items-center justify-center"></span>
+                    </button>
+                    <div id="notifPanel" class="hidden absolute right-0 top-11 w-80 max-h-96 overflow-y-auto glass-card p-3 z-50"></div>
+                </div>
+                <div id="headerCTA"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="relative z-10 pt-28 md:pt-32 pb-24 px-5 md:px-0 max-w-3xl mx-auto">
+
+        <!-- Perfil view -->
+        <div id="vistaPerfil" class="hidden"></div>
+
+        <!-- Feed view -->
+        <div id="vistaFeed">
+            <div class="text-center mb-8">
+                <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Where NLT traders learn, share and grow together.</h1>
+            </div>
+
+            <div id="joinBanner" class="hidden glass-card p-6 mb-6 text-center">
+                <i class="ph-fill ph-users-three text-2xl text-nlt-accent mb-2"></i>
+                <p class="font-bold text-white mb-1">Join the NLT Community</p>
+                <p class="text-xs text-gray-500 mb-4">Suscribite a cualquier producto NLT para publicar, comentar y reaccionar.</p>
+                <button id="btn-become-member" class="px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Become a Member</button>
+            </div>
+
+            <div id="composerBox" class="hidden glass-card p-5 mb-6">
+                <div class="flex items-center gap-1.5 mb-4 overflow-x-auto">
+                    <button data-type="text" class="type-tab activo">Text</button>
+                    <button data-type="analysis" class="type-tab">Analysis</button>
+                    <button data-type="result" class="type-tab">Result</button>
+                    <button data-type="question" class="type-tab">Question</button>
+                    <button data-type="education" class="type-tab">Education</button>
+                </div>
+                <textarea id="cpBody" placeholder="Share something with the community..." rows="3" class="post-input mb-3"></textarea>
+                <div id="cpExtraFields" class="hidden space-y-3 mb-3"></div>
+                <div id="cpImagePreview" class="hidden mb-3"><img id="cpImageImg" class="rounded-xl max-h-56 object-cover"></div>
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <div class="flex items-center gap-2">
+                        <label class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 cursor-pointer" title="Agregar imagen">
+                            <i class="ph ph-image"></i><input type="file" id="cpImageInput" accept="image/*" class="hidden">
+                        </label>
+                        <label class="flex items-center gap-1.5 text-[11px] text-gray-500 cursor-pointer"><input type="checkbox" id="cpPublic" checked> Público</label>
+                    </div>
+                    <button id="btn-publicar" class="px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Publish</button>
+                </div>
+                <p id="composerMsg" class="mt-2 text-xs hidden"></p>
+            </div>
+
+            <div id="chipsBox" class="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
+                <button data-filtro="all" class="chip activo">All</button>
+                <button data-filtro="analysis" class="chip">Analysis</button>
+                <button data-filtro="result" class="chip">Results</button>
+                <button data-filtro="education" class="chip">Education</button>
+                <button data-filtro="question" class="chip">Questions</button>
+                <button data-filtro="trending" class="chip">Trending</button>
+            </div>
+
+            <div id="feedBox" class="space-y-4">
+                <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando comunidad...</p>
+            </div>
+        </div>
+
+        <p class="text-[11px] text-gray-600 text-center max-w-xl mx-auto pt-10">El contenido de la comunidad es generado por sus miembros. No representa asesoría financiera de NLT ni garantiza resultados de trading.</p>
+    </main>
+
+    <script>
+        let sesionActual = null;
+        let esMiembro = false;
+        let miPerfil = null;
+        let filtroActivo = 'all';
+        let tipoComposer = 'text';
+        let imagenSeleccionada = null;
+        let feedCache = [];
+
+        const REACCIONES = [
+            { tipo: 'heart', emoji: '❤️' }, { tipo: 'fire', emoji: '🔥' }, { tipo: 'thumbsup', emoji: '👍' },
+            { tipo: 'chart', emoji: '📈' }, { tipo: 'clap', emoji: '👏' },
+        ];
+        const TYPE_LABEL = { text: 'Post', image: 'Post', analysis: 'Trading Analysis', result: 'Trading Result', question: 'Question', education: 'Education' };
+
+        function iniciales(nombre) { return (nombre || '??').slice(0, 2).toUpperCase(); }
+        function esc(texto) {
+            // Escapa a mano (no via textContent/innerHTML) porque ese truco NO
+            // escapa comillas -- y varios usos de esc() interpolan dentro de
+            // atributos (value="...") donde una comilla sin escapar permite
+            // inyectar atributos/eventos arbitrarios.
+            return String(texto ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function formatearBody(texto) {
+            // Escapa HTML primero (nunca confiar en contenido generado por usuarios), y
+            // recién sobre el texto ya escapado habilita saltos de línea y el único
+            // patrón de link permitido: [texto](tools.html#...) hacia herramientas NLT --
+            // nunca hacia una URL externa arbitraria, para no abrir una puerta de phishing.
+            const escapado = esc(texto);
+            return escapado
+                .replace(/\n/g, '<br>')
+                .replace(/\[([^\[\]]{1,80})\]\(((?:tools|community|academy|calculators|news)\.html[^\s()]*)\)/g,
+                    '<a href="$2" class="text-nlt-accent underline">$1</a>');
+        }
+        function tiempoRelativo(iso) {
+            const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+            if (diff < 60) return 'ahora';
+            if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+            if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+            return `${Math.floor(diff / 86400)}d`;
+        }
+
+        // --- Composer ---
+        document.querySelectorAll('.type-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                tipoComposer = btn.getAttribute('data-type');
+                renderCamposExtra();
+            });
+        });
+
+        function renderCamposExtra() {
+            const box = document.getElementById('cpExtraFields');
+            if (tipoComposer === 'analysis') {
+                box.classList.remove('hidden');
+                box.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <input id="anInstrument" placeholder="Instrument (EURUSD)" class="post-input">
+                        <select id="anDirection" class="post-input"><option value="LONG">LONG</option><option value="SHORT">SHORT</option></select>
+                        <input id="anTimeframe" placeholder="Timeframe (M15)" class="post-input">
+                        <input id="anEntry" type="number" step="any" placeholder="Entry" class="post-input">
+                        <input id="anSL" type="number" step="any" placeholder="Stop Loss" class="post-input">
+                        <input id="anTP" type="number" step="any" placeholder="Take Profit" class="post-input">
+                        <input id="anRisk" type="number" step="any" placeholder="Risk %" class="post-input">
+                        <input id="anSession" placeholder="Session (New York)" class="post-input">
+                    </div>
+                `;
+            } else if (tipoComposer === 'result') {
+                box.classList.remove('hidden');
+                box.innerHTML = `
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-2">
+                        <input id="reInstrument" placeholder="Instrument" class="post-input">
+                        <select id="reOutcome" class="post-input"><option value="WIN">WIN</option><option value="LOSS">LOSS</option><option value="BREAKEVEN">BREAKEVEN</option></select>
+                        <input id="reRMultiple" type="number" step="any" placeholder="R Multiple" class="post-input">
+                        <input id="rePnl" type="number" step="any" placeholder="P&L (opcional)" class="post-input">
+                    </div>
+                `;
+            } else if (tipoComposer === 'question') {
+                box.classList.remove('hidden');
+                box.innerHTML = `
+                    <div>
+                        <p class="text-[10px] text-gray-600 uppercase tracking-wider mb-1.5">Adjuntar herramienta (opcional)</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            <button type="button" class="btn-insertar-tool chip" data-href="tools.html#lot-size" data-label="Lot Size Calculator">🔧 Lot Size</button>
+                            <button type="button" class="btn-insertar-tool chip" data-href="tools.html#risk-calculator" data-label="Risk Calculator">🔧 Risk</button>
+                            <button type="button" class="btn-insertar-tool chip" data-href="tools.html#rr-calculator" data-label="Risk/Reward Calculator">🔧 Risk/Reward</button>
+                            <button type="button" class="btn-insertar-tool chip" data-href="tools.html#margin-calculator" data-label="Margin Calculator">🔧 Margin</button>
+                        </div>
+                    </div>
+                `;
+                box.querySelectorAll('.btn-insertar-tool').forEach(b => b.addEventListener('click', () => {
+                    const body = document.getElementById('cpBody');
+                    const link = `[Open ${b.getAttribute('data-label')}](${b.getAttribute('data-href')})`;
+                    body.value = body.value ? `${body.value}\n\n${link}` : link;
+                }));
+            } else {
+                box.classList.add('hidden');
+                box.innerHTML = '';
+            }
+        }
+
+        document.getElementById('cpImageInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const msg = document.getElementById('composerMsg');
+            msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-gray-400'; msg.textContent = 'Subiendo imagen...';
+            try {
+                const r = await NLT_API.communitySubirImagen(file);
+                imagenSeleccionada = r.url;
+                document.getElementById('cpImageImg').src = r.url;
+                document.getElementById('cpImagePreview').classList.remove('hidden');
+                msg.classList.add('hidden');
+            } catch (err) {
+                msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+            }
+        });
+
+        document.getElementById('btn-publicar').addEventListener('click', async () => {
+            const msg = document.getElementById('composerMsg');
+            const body = document.getElementById('cpBody').value.trim();
+            const datos = { type: tipoComposer, body: body || null, image_url: imagenSeleccionada, is_public: document.getElementById('cpPublic').checked };
+            if (tipoComposer === 'analysis') {
+                Object.assign(datos, {
+                    instrument: document.getElementById('anInstrument').value.trim().toUpperCase() || null,
+                    direction: document.getElementById('anDirection').value,
+                    timeframe: document.getElementById('anTimeframe').value.trim() || null,
+                    entry: parseFloat(document.getElementById('anEntry').value) || null,
+                    stop_loss: parseFloat(document.getElementById('anSL').value) || null,
+                    take_profit: parseFloat(document.getElementById('anTP').value) || null,
+                    risk_percent: parseFloat(document.getElementById('anRisk').value) || null,
+                    session: document.getElementById('anSession').value.trim() || null,
+                });
+            } else if (tipoComposer === 'result') {
+                Object.assign(datos, {
+                    result_instrument: document.getElementById('reInstrument').value.trim().toUpperCase() || null,
+                    result_outcome: document.getElementById('reOutcome').value,
+                    r_multiple: parseFloat(document.getElementById('reRMultiple').value) || null,
+                    pnl: document.getElementById('rePnl').value ? parseFloat(document.getElementById('rePnl').value) : null,
+                });
+            }
+            const btn = document.getElementById('btn-publicar');
+            btn.disabled = true;
+            msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-gray-400'; msg.textContent = 'Publicando...';
+            try {
+                await NLT_API.communityCrearPost(datos);
+                document.getElementById('cpBody').value = '';
+                imagenSeleccionada = null;
+                document.getElementById('cpImagePreview').classList.add('hidden');
+                document.getElementById('cpImageInput').value = '';
+                renderCamposExtra();
+                msg.classList.add('hidden');
+                await cargarFeed();
+            } catch (err) {
+                msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        // --- Filtros ---
+        document.querySelectorAll('.chip').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chip').forEach(b => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                filtroActivo = btn.getAttribute('data-filtro');
+                cargarFeed();
+            });
+        });
+
+        document.getElementById('btn-become-member').addEventListener('click', () => { window.location.href = 'plans.html'; });
+
+        // --- Render post ---
+        function bloqueAnalysis(p) {
+            return `
+                <div class="glass-item p-4 mb-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Instrument</p><p class="font-bold text-white">${esc(p.instrument) || '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Direction</p><p class="font-bold ${p.direction === 'LONG' ? 'text-nlt-success' : 'text-nlt-danger'}">${esc(p.direction) || '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Entry</p><p class="text-white">${p.entry ?? '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Stop Loss</p><p class="text-white">${p.stop_loss ?? '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Take Profit</p><p class="text-white">${p.take_profit ?? '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Risk</p><p class="text-white">${p.risk_percent != null ? p.risk_percent + '%' : '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Timeframe</p><p class="text-white">${esc(p.timeframe) || '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Session</p><p class="text-white">${esc(p.session) || '-'}</p></div>
+                </div>
+                <p class="text-[10px] text-gray-600 mb-3">Shared by a community member. Not financial advice.</p>
+            `;
+        }
+        function bloqueResult(p) {
+            const colores = { WIN: 'text-nlt-success', LOSS: 'text-nlt-danger', BREAKEVEN: 'text-gray-400' };
+            return `
+                <div class="glass-item p-4 mb-3 grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Instrument</p><p class="font-bold text-white">${esc(p.result_instrument) || '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">Outcome</p><p class="font-bold ${colores[p.result_outcome] || ''}">${esc(p.result_outcome) || '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">R Multiple</p><p class="text-white">${p.r_multiple ?? '-'}</p></div>
+                    <div><p class="text-gray-600 uppercase tracking-wider text-[9px] mb-0.5">P&L</p><p class="text-white">${p.pnl != null ? '$' + p.pnl : '-'}</p></div>
+                </div>
+                <p class="text-[10px] text-gray-600 mb-3">Resultado compartido por un miembro -- no garantiza resultados futuros.</p>
+            `;
+        }
+
+        function postCardHTML(p) {
+            const esOficial = p._oficial;
+            return `
+            <div class="glass-card p-5" data-post-id="${p.id}">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex items-center gap-2.5">
+                        ${esOficial
+                            ? `<div class="w-9 h-9 rounded-full bg-nlt-accent/15 flex items-center justify-center"><img src="assets/img/nlt-mark.svg" class="w-5 h-5"></div>
+                               <div><p class="text-sm font-bold text-white">NLT Official <i class="ph-fill ph-seal-check text-nlt-accent"></i></p><span class="official-badge">${p.category}</span></div>`
+                            : `<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white">${iniciales(p.author_display_name)}</div>
+                               <div><p class="text-sm font-semibold text-white btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}">${esc(p.author_display_name)}</p><p class="text-[10px] text-gray-500">@${esc(p.author_username)} · ${tiempoRelativo(p.created_at)} · ${TYPE_LABEL[p.type] || ''}</p></div>`
+                        }
+                    </div>
+                    ${!esOficial ? `<button class="btn-report text-gray-600 hover:text-gray-400 cursor-pointer" data-post-id="${p.id}" title="Reportar"><i class="ph ph-flag"></i></button>` : ''}
+                </div>
+                ${esOficial ? `<p class="font-bold text-white mb-1">${esc(p.title)}</p>` : ''}
+                ${p.type === 'analysis' ? bloqueAnalysis(p) : ''}
+                ${p.type === 'result' ? bloqueResult(p) : ''}
+                ${(p.body || esOficial) ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body || '')}</p>` : ''}
+                ${p.image_url ? `<img src="${p.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
+                ${!esOficial ? `
+                    <div class="flex items-center justify-between pt-3 border-t border-white/5">
+                        <div class="flex items-center gap-1.5">
+                            ${REACCIONES.map(r => `<button class="react-btn btn-react ${(p.my_reactions || []).includes(r.tipo) ? 'activo' : ''}" data-post-id="${p.id}" data-tipo="${r.tipo}">${r.emoji} ${p.reaction_counts && p.reaction_counts[r.tipo] ? p.reaction_counts[r.tipo] : ''}</button>`).join('')}
+                        </div>
+                        <button class="btn-toggle-comments text-xs text-gray-500 hover:text-white cursor-pointer flex items-center gap-1" data-post-id="${p.id}"><i class="ph ph-chat-circle"></i> ${p.comments_count || 0}</button>
+                    </div>
+                    <div id="comments-${p.id}" class="hidden mt-4 pt-4 border-t border-white/5 space-y-3"></div>
+                ` : ''}
+            </div>`;
+        }
+
+        function wirePostCards(container) {
+            container.querySelectorAll('.btn-react').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!esMiembro) { alert('Necesitás ser miembro de NLT para reaccionar.'); return; }
+                    try {
+                        await NLT_API.communityReaccionar(btn.getAttribute('data-post-id'), btn.getAttribute('data-tipo'));
+                        await cargarFeed();
+                    } catch (err) { alert('Error: ' + err.message); }
+                });
+            });
+            container.querySelectorAll('.btn-toggle-comments').forEach(btn => {
+                btn.addEventListener('click', () => alternarComentarios(btn.getAttribute('data-post-id')));
+            });
+            container.querySelectorAll('.btn-report').forEach(btn => {
+                btn.addEventListener('click', () => reportarPost(btn.getAttribute('data-post-id')));
+            });
+            container.querySelectorAll('.btn-ver-perfil').forEach(el => {
+                el.addEventListener('click', () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; });
+            });
+        }
+
+        async function reportarPost(postId) {
+            const razones = { '1': 'spam', '2': 'scam', '3': 'harassment', '4': 'financial_misinformation', '5': 'illegal_activity', '6': 'other' };
+            const eleccion = prompt('Motivo del reporte:\n1) Spam\n2) Scam\n3) Harassment\n4) Financial misinformation\n5) Illegal activity\n6) Other\n\nEscribí un número:');
+            if (!eleccion || !razones[eleccion.trim()]) return;
+            try {
+                await NLT_API.communityReportarPost(postId, razones[eleccion.trim()]);
+                alert('Gracias -- el equipo de NLT va a revisar este contenido.');
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        async function alternarComentarios(postId) {
+            const box = document.getElementById(`comments-${postId}`);
+            const oculto = box.classList.contains('hidden');
+            box.classList.toggle('hidden');
+            if (oculto) await cargarComentarios(postId);
+        }
+
+        async function cargarComentarios(postId) {
+            const box = document.getElementById(`comments-${postId}`);
+            box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando...</p>';
+            try {
+                const comentarios = await NLT_API.communityComentarios(postId);
+                box.innerHTML = comentarios.map(c => `
+                    <div class="flex items-start gap-2.5" data-comment-id="${c.id}">
+                        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0">${iniciales(c.author_display_name)}</div>
+                        <div class="flex-1 min-w-0 glass-item px-3 py-2">
+                            <p class="text-xs font-semibold text-white">${esc(c.author_display_name)} <span class="text-gray-600 font-normal">· ${tiempoRelativo(c.created_at)}</span></p>
+                            <p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p>
+                        </div>
+                        ${c.is_own ? `<button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}"><i class="ph ph-trash text-xs"></i></button>` : ''}
+                    </div>
+                `).join('') || '<p class="text-xs text-gray-600">Sé el primero en comentar.</p>';
+
+                box.querySelectorAll('.btn-borrar-comentario').forEach(b => b.addEventListener('click', async () => {
+                    if (!confirm('¿Eliminar este comentario?')) return;
+                    await NLT_API.communityBorrarComentario(b.getAttribute('data-comment-id'));
+                    await cargarComentarios(postId);
+                    await cargarFeed();
+                }));
+
+                if (esMiembro) {
+                    box.insertAdjacentHTML('beforeend', `
+                        <div class="flex items-center gap-2 pt-2">
+                            <input id="newComment-${postId}" placeholder="Escribí un comentario..." class="post-input flex-1">
+                            <button class="btn-enviar-comentario px-4 py-2 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer" data-post-id="${postId}">Enviar</button>
+                        </div>
+                    `);
+                    box.querySelector('.btn-enviar-comentario').addEventListener('click', async () => {
+                        const input = document.getElementById(`newComment-${postId}`);
+                        if (!input.value.trim()) return;
+                        try {
+                            await NLT_API.communityCrearComentario(postId, input.value.trim());
+                            input.value = '';
+                            await cargarComentarios(postId);
+                            await cargarFeed();
+                        } catch (err) { alert('Error: ' + err.message); }
+                    });
+                }
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        // --- Feed ---
+        async function cargarFeed() {
+            const box = document.getElementById('feedBox');
+            box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando comunidad...</p>';
+            try {
+                const tipo = ['all', 'trending'].includes(filtroActivo) ? null : filtroActivo;
+                const [posts, oficiales] = await Promise.all([
+                    NLT_API.communityFeed({ tipo }), NLT_API.communityOficiales(),
+                ]);
+                let items = [...oficiales.map(o => ({ ...o, _oficial: true })), ...posts];
+                if (filtroActivo === 'trending') {
+                    items = items.filter(i => !i._oficial).sort((a, b) => (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count));
+                } else {
+                    items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                }
+                feedCache = items;
+                if (!items.length) {
+                    box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10">Todavía no hay publicaciones -- ¡sé el primero!</p>';
+                    return;
+                }
+                box.innerHTML = items.map(postCardHTML).join('');
+                wirePostCards(box);
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error cargando la comunidad: ${err.message}</p>`;
+            }
+        }
+
+        // --- Perfil ---
+        async function mostrarPerfil(username) {
+            document.getElementById('vistaFeed').classList.add('hidden');
+            const box = document.getElementById('vistaPerfil');
+            box.classList.remove('hidden');
+            box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando perfil...</p>';
+            try {
+                const [perfil, posts] = await Promise.all([NLT_API.communityPerfilPublico(username), NLT_API.communityPostsDePerfil(username)]);
+                box.innerHTML = `
+                    <button id="btn-volver-feed" class="text-xs text-gray-500 hover:text-white mb-6 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver al feed</button>
+                    <div class="glass-card p-6 mb-6 text-center">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold text-white mx-auto mb-3">${iniciales(perfil.display_name)}</div>
+                        <p class="text-lg font-bold text-white">${esc(perfil.display_name)}</p>
+                        <p class="text-xs text-gray-500 mb-2">@${esc(perfil.username)}</p>
+                        ${perfil.bio ? `<p class="text-sm text-gray-400 max-w-md mx-auto mb-3">${esc(perfil.bio)}</p>` : ''}
+                        <p class="text-[11px] text-gray-600">Miembro desde ${new Date(perfil.created_at).toLocaleDateString()} · ${perfil.posts_count} publicaciones</p>
+                        ${perfil.is_own ? `<button id="btn-editar-perfil" class="mt-4 px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer">Editar perfil</button>` : ''}
+                    </div>
+                    <div id="perfilEditBox" class="hidden glass-card p-6 mb-6"></div>
+                    <div id="perfilPostsBox" class="space-y-4"></div>
+                `;
+                document.getElementById('btn-volver-feed').addEventListener('click', () => {
+                    window.history.pushState({}, '', 'community.html');
+                    box.classList.add('hidden');
+                    document.getElementById('vistaFeed').classList.remove('hidden');
+                });
+                const postsBox = document.getElementById('perfilPostsBox');
+                postsBox.innerHTML = posts.length ? posts.map(postCardHTML).join('') : '<p class="text-sm text-gray-500 text-center py-6">Sin publicaciones públicas todavía.</p>';
+                wirePostCards(postsBox);
+
+                if (perfil.is_own) {
+                    document.getElementById('btn-editar-perfil').addEventListener('click', () => mostrarFormEdicionPerfil(perfil));
+                }
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Perfil no encontrado.</p>`;
+            }
+        }
+
+        function mostrarFormEdicionPerfil(perfil) {
+            const box = document.getElementById('perfilEditBox');
+            box.classList.remove('hidden');
+            box.innerHTML = `
+                <h3 class="text-sm font-semibold text-white mb-3">Editar perfil</h3>
+                <div class="space-y-3 mb-3">
+                    <input id="epDisplayName" placeholder="Nombre visible" value="${esc(perfil.display_name)}" class="post-input">
+                    <input id="epUsername" placeholder="Username" value="${esc(perfil.username)}" class="post-input">
+                    <textarea id="epBio" placeholder="Bio" rows="2" class="post-input">${esc(perfil.bio || '')}</textarea>
+                    <label class="flex items-center gap-1.5 text-xs text-gray-400"><input type="checkbox" id="epActivityPublic" ${perfil.show_activity_public ? 'checked' : ''}> Mostrar mi actividad públicamente</label>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="btn-guardar-perfil" class="px-4 py-2 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
+                    <p id="perfilMsg" class="text-xs hidden"></p>
+                </div>
+            `;
+            document.getElementById('btn-guardar-perfil').addEventListener('click', async () => {
+                const msg = document.getElementById('perfilMsg');
+                msg.classList.remove('hidden'); msg.className = 'text-xs text-gray-400'; msg.textContent = 'Guardando...';
+                try {
+                    await NLT_API.communityActualizarPerfil({
+                        display_name: document.getElementById('epDisplayName').value.trim(),
+                        username: document.getElementById('epUsername').value.trim().toLowerCase(),
+                        bio: document.getElementById('epBio').value.trim() || null,
+                        show_activity_public: document.getElementById('epActivityPublic').checked,
+                    });
+                    msg.className = 'text-xs text-nlt-success'; msg.textContent = '✓ Guardado';
+                    setTimeout(() => mostrarPerfil(document.getElementById('epUsername').value.trim().toLowerCase()), 700);
+                } catch (err) {
+                    msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+                }
+            });
+        }
+
+        // --- Notificaciones ---
+        async function cargarNotifBadge() {
+            try {
+                const { count } = await NLT_API.communityNoLeidas();
+                const badge = document.getElementById('notifBadge');
+                if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.classList.remove('hidden'); }
+                else badge.classList.add('hidden');
+            } catch (_) {}
+        }
+
+        document.getElementById('btn-notif').addEventListener('click', async () => {
+            const panel = document.getElementById('notifPanel');
+            panel.classList.toggle('hidden');
+            if (panel.classList.contains('hidden')) return;
+            panel.innerHTML = '<p class="text-xs text-gray-500 animate-pulse p-3">Cargando...</p>';
+            try {
+                const notifs = await NLT_API.communityNotificaciones();
+                panel.innerHTML = notifs.length
+                    ? notifs.map(n => `<div class="p-2.5 rounded-lg ${n.read ? '' : 'bg-nlt-accent/5'} text-xs text-gray-300 mb-1">${n.message}<p class="text-[10px] text-gray-600 mt-0.5">${tiempoRelativo(n.created_at)}</p></div>`).join('')
+                    : '<p class="text-xs text-gray-500 p-3">Sin notificaciones todavía.</p>';
+                await NLT_API.communityMarcarTodasLeidas();
+                cargarNotifBadge();
+            } catch (err) {
+                panel.innerHTML = `<p class="text-xs text-nlt-danger p-3">Error: ${err.message}</p>`;
+            }
+        });
+
+        // --- Init ---
+        async function init() {
+            sesionActual = await NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+
+            const params = new URLSearchParams(window.location.search);
+            const usernameParam = params.get('u');
+
+            if (sesionActual) {
+                try {
+                    esMiembro = (await NLT_API.communityAcceso()).has_member_access;
+                } catch (_) {
+                    esMiembro = false;
+                }
+                if (esMiembro) {
+                    try {
+                        miPerfil = await NLT_API.communityMiPerfil();
+                        document.getElementById('notifBellBox').classList.remove('hidden');
+                        cargarNotifBadge();
+                    } catch (_) {}
+                }
+            }
+
+            if (esMiembro) {
+                document.getElementById('composerBox').classList.remove('hidden');
+                renderCamposExtra();
+            } else {
+                document.getElementById('joinBanner').classList.remove('hidden');
+            }
+
+            if (usernameParam) {
+                await mostrarPerfil(usernameParam);
+            } else {
+                document.getElementById('vistaFeed').classList.remove('hidden');
+                await cargarFeed();
+            }
+        }
+        init();
+    </script>
+</body>
+</html>

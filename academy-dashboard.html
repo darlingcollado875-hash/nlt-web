@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Academia | NLT Academy</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script src="assets/js/nlt-certificate.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', surface: '#11151C', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 16px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.7); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .nav-tab { padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #9CA3AF; transition: all .2s; cursor: pointer; }
+        .nav-tab:hover { color: #fff; }
+        .nav-tab.activo { color: #fff; background: rgba(67,120,255,0.15); }
+        .lesson-row { transition: all .15s; }
+        .lesson-row:not(.locked):hover { background: rgba(255,255,255,0.04); }
+        .milestone-dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); }
+        .milestone-dot.hecho { background: #4378FF; }
+    </style>
+</head>
+<body class="min-h-screen">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <!-- HEADER -->
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between gap-4">
+            <a href="academy-dashboard.html" class="flex items-center gap-3 shrink-0">
+                <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8">
+                <span class="font-semibold text-base tracking-tight hidden sm:inline">NLT Academy</span>
+            </a>
+            <nav id="navTabs" class="hidden md:flex items-center gap-1 bg-white/5 rounded-full p-1">
+                <button data-vista="dashboard" class="nav-tab activo">Mi Academia</button>
+                <button data-vista="certificados" class="nav-tab">Certificados</button>
+            </nav>
+            <div class="flex items-center gap-2 md:gap-3 shrink-0">
+                <a href="calculators.html" title="NLT Calculators" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="ph ph-calculator"></i></a>
+                <a href="news.html" title="Economic Calendar" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="ph ph-calendar-dots"></i></a>
+                <div id="communityLinks" class="hidden sm:flex items-center gap-2"></div>
+                <div class="hidden sm:flex items-center gap-2 pl-1">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white" id="userAvatarInitial">·</div>
+                    <button id="btn-salir" class="text-xs text-gray-500 hover:text-white transition-colors cursor-pointer">Salir</button>
+                </div>
+            </div>
+        </div>
+        <nav class="md:hidden flex items-center gap-1 px-4 pb-3">
+            <button data-vista="dashboard" class="nav-tab activo">Mi Academia</button>
+            <button data-vista="certificados" class="nav-tab">Certificados</button>
+        </nav>
+    </header>
+
+    <main class="relative z-10 pt-28 md:pt-32 pb-24 px-5 md:px-10 max-w-6xl mx-auto">
+
+        <!-- CARGANDO -->
+        <div id="vistaCargando" class="py-24 text-center">
+            <p class="text-sm text-gray-500 animate-pulse">Cargando tu Academia...</p>
+        </div>
+
+        <!-- SIN ACCESO -->
+        <div id="vistaSinAcceso" class="hidden py-16 max-w-lg mx-auto text-center">
+            <div class="glass-card p-10">
+                <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
+                <h2 class="text-xl font-bold text-white mb-2">Necesitás una suscripción activa</h2>
+                <p id="sinAccesoMotivo" class="text-sm text-gray-500 mb-6">Todavía no tenés acceso a NLT Academy.</p>
+                <a href="academy.html#suscribite" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Ver suscripción</a>
+                <button id="btn-ver-certificados-sin-acceso" class="block mx-auto mt-4 text-xs text-gray-500 hover:text-white transition-colors cursor-pointer">Ya tengo certificados ganados -- verlos</button>
+            </div>
+        </div>
+
+        <!-- DASHBOARD -->
+        <div id="subvistaDashboard" class="hidden space-y-6">
+            <div id="continueLearningBox"></div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div class="glass-card p-6 md:col-span-2">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs text-gray-500 uppercase tracking-wider">Progreso general</p>
+                        <p id="progresoGeneralTexto" class="text-xs text-gray-400">0 / 0 clases</p>
+                    </div>
+                    <div class="h-2.5 bg-white/5 rounded-full overflow-hidden mb-4">
+                        <div id="progresoGeneralBar" class="h-full bg-nlt-accent transition-all" style="width:0%"></div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <div class="milestone-dot" data-hito="25"></div>
+                        <div class="milestone-dot" data-hito="50"></div>
+                        <div class="milestone-dot" data-hito="75"></div>
+                        <div class="milestone-dot" data-hito="100"></div>
+                        <p class="text-[10px] text-gray-600 ml-2">25% · 50% · 75% · 100%</p>
+                    </div>
+                </div>
+                <div class="glass-card p-6">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Certificados</p>
+                    <div id="certMiniStrip" class="flex items-center gap-2 mb-3"></div>
+                    <button id="btn-ver-certificados" class="text-xs text-nlt-accent hover:underline cursor-pointer">Ver todos →</button>
+                </div>
+            </div>
+
+            <div>
+                <h2 class="text-sm font-bold text-white uppercase tracking-wider mb-3">Módulos</h2>
+                <div id="modulosBox" class="space-y-3"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div class="glass-card p-6">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">Comunidad</p>
+                    <div id="comunidadBox" class="space-y-2">
+                        <p class="text-xs text-gray-600">El admin todavía no configuró los links de comunidad.</p>
+                    </div>
+                </div>
+                <div class="glass-card p-6">
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-3">NLT Tools</p>
+                    <div class="space-y-2">
+                        <a href="calculators.html" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"><i class="ph ph-calculator text-nlt-accent"></i> Lot Size / Futures Calculator</a>
+                        <a href="news.html" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"><i class="ph ph-calendar-dots text-nlt-accent"></i> Economic Calendar</a>
+                    </div>
+                </div>
+            </div>
+
+            <p class="text-[11px] text-gray-600 text-center max-w-xl mx-auto pt-4">NLT Academy es contenido educativo. No constituye asesoría financiera ni garantiza resultados de trading.</p>
+        </div>
+
+        <!-- LECCIÓN -->
+        <div id="subvistaClase" class="hidden space-y-5">
+            <button id="btn-volver-dashboard" class="text-xs text-gray-500 hover:text-white transition-colors flex items-center gap-1.5 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mi Academia</button>
+            <div id="claseContenido"></div>
+        </div>
+
+        <!-- CERTIFICADOS -->
+        <div id="subvistaCertificados" class="hidden space-y-6">
+            <div>
+                <h2 class="text-2xl font-bold tracking-tight mb-1">Mis certificados</h2>
+                <p class="text-sm text-gray-500">Los 3 certificados de NLT Academy -- se desbloquean a medida que avanzás.</p>
+            </div>
+            <div id="certificadosGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
+            <div id="certificadoDetalle" class="hidden max-w-4xl mx-auto"></div>
+        </div>
+
+    </main>
+
+    <script>
+        let sesionActual = null;
+        let cursoActual = null;
+        let certDefsCache = [];
+        let certEmitidosCache = [];
+        let leccionActualId = null;
+        let quizPendienteLeccionId = null;
+
+        function mostrarVista(nombre) {
+            document.getElementById('subvistaDashboard').classList.toggle('hidden', nombre !== 'dashboard');
+            document.getElementById('subvistaClase').classList.toggle('hidden', nombre !== 'clase');
+            document.getElementById('subvistaCertificados').classList.toggle('hidden', nombre !== 'certificados');
+            document.querySelectorAll('.nav-tab').forEach(b => b.classList.toggle('activo', b.getAttribute('data-vista') === nombre));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+        document.querySelectorAll('.nav-tab').forEach(b => b.addEventListener('click', () => {
+            const v = b.getAttribute('data-vista');
+            mostrarVista(v);
+            if (v === 'certificados') cargarCertificados();
+            if (v === 'dashboard' && cursoActual) cargarDashboard();
+        }));
+        document.getElementById('btn-ver-certificados').addEventListener('click', () => { mostrarVista('certificados'); cargarCertificados(); });
+        document.getElementById('btn-ver-certificados-sin-acceso').addEventListener('click', () => {
+            document.getElementById('vistaSinAcceso').classList.add('hidden');
+            document.getElementById('navTabs').classList.remove('hidden');
+            document.querySelectorAll('nav.md\\:hidden').forEach(n => n.classList.remove('hidden'));
+            mostrarVista('certificados');
+            cargarCertificados();
+        });
+        document.getElementById('btn-volver-dashboard').addEventListener('click', () => { mostrarVista('dashboard'); cargarDashboard(); });
+
+        function pillMilestone(percent) {
+            document.querySelectorAll('.milestone-dot').forEach(d => {
+                const hito = parseInt(d.getAttribute('data-hito'));
+                d.classList.toggle('hecho', percent >= hito);
+            });
+        }
+
+        function renderContinueLearning(cl) {
+            const box = document.getElementById('continueLearningBox');
+            if (!cl || !cl.lesson_id) {
+                box.innerHTML = `
+                    <div class="glass-card p-8 text-center">
+                        <i class="ph-fill ph-confetti text-3xl text-nlt-accent mb-2"></i>
+                        <p class="text-lg font-bold text-white">¡Completaste todo el contenido publicado!</p>
+                        <p class="text-sm text-gray-500 mt-1">Revisá tus certificados o esperá a que se publiquen nuevas clases.</p>
+                    </div>`;
+                return;
+            }
+            box.innerHTML = `
+                <div class="glass-card p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5">
+                    <div>
+                        <p class="text-xs text-nlt-accent font-bold uppercase tracking-widest mb-2">Continuar aprendiendo</p>
+                        <p class="text-xl font-bold text-white">${cl.lesson_title}</p>
+                        <p class="text-sm text-gray-500 mt-1">${cl.module_title}</p>
+                    </div>
+                    <button id="btn-continuar" class="shrink-0 px-7 py-3 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Continuar →</button>
+                </div>`;
+            document.getElementById('btn-continuar').addEventListener('click', () => abrirLeccion(cl.lesson_id));
+        }
+
+        function renderModulos(curso) {
+            const box = document.getElementById('modulosBox');
+            box.innerHTML = curso.modules.map(m => `
+                <div class="glass-card p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="font-semibold text-white">${m.title}</p>
+                        <p class="text-xs text-gray-500">${Math.round(m.progress_percent)}%</p>
+                    </div>
+                    <div class="h-1.5 bg-white/5 rounded-full overflow-hidden mb-4">
+                        <div class="h-full bg-nlt-accent" style="width:${m.progress_percent}%"></div>
+                    </div>
+                    <div class="space-y-1">
+                        ${m.lessons.length ? m.lessons.map(l => `
+                            <div data-lesson-id="${l.id}" class="lesson-row ${l.locked ? 'locked opacity-40' : 'cursor-pointer'} flex items-center gap-3 px-3 py-2.5 rounded-xl">
+                                <i class="ph-fill ${l.completed ? 'ph-check-circle text-nlt-success' : l.locked ? 'ph-lock-simple text-gray-600' : 'ph-play-circle text-nlt-accent'} text-lg"></i>
+                                <span class="text-sm ${l.completed ? 'text-gray-400' : 'text-gray-200'} flex-1">${l.title}</span>
+                                ${l.has_quiz ? '<i class="ph ph-exam text-xs text-gray-600" title="Incluye quiz"></i>' : ''}
+                            </div>
+                        `).join('') : '<p class="text-xs text-gray-600 px-3 py-2">Sin clases publicadas todavía en este módulo.</p>'}
+                    </div>
+                </div>
+            `).join('');
+            box.querySelectorAll('.lesson-row:not(.locked)').forEach(row => {
+                row.addEventListener('click', () => abrirLeccion(row.getAttribute('data-lesson-id')));
+            });
+        }
+
+        function renderComunidad(settings) {
+            const box = document.getElementById('comunidadBox');
+            const links = [];
+            if (settings.discord_url) links.push(`<a href="${settings.discord_url}" target="_blank" rel="noopener" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"><i class="ph-fill ph-discord-logo text-indigo-400"></i> Discord de NLT Academy</a>`);
+            if (settings.whatsapp_url) links.push(`<a href="${settings.whatsapp_url}" target="_blank" rel="noopener" class="flex items-center gap-2 text-sm text-gray-300 hover:text-white transition-colors"><i class="ph-fill ph-whatsapp-logo text-green-400"></i> Comunidad de WhatsApp</a>`);
+            const communityHeader = document.getElementById('communityLinks');
+            if (links.length) {
+                box.innerHTML = links.join('');
+                communityHeader.innerHTML = (settings.discord_url ? `<a href="${settings.discord_url}" target="_blank" rel="noopener" title="Discord" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white"><i class="ph-fill ph-discord-logo"></i></a>` : '')
+                    + (settings.whatsapp_url ? `<a href="${settings.whatsapp_url}" target="_blank" rel="noopener" title="WhatsApp" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white"><i class="ph-fill ph-whatsapp-logo"></i></a>` : '');
+            }
+        }
+
+        function renderCertMiniStrip(defs) {
+            document.getElementById('certMiniStrip').innerHTML = defs.map(d => `
+                <div title="${d.title}" class="w-9 h-9 rounded-full flex items-center justify-center border ${d.unlocked ? 'bg-nlt-success/10 border-nlt-success/30 text-nlt-success' : 'bg-white/5 border-white/10 text-gray-600'}">
+                    <i class="ph-fill ${d.unlocked ? 'ph-seal-check' : 'ph-lock-simple'} text-sm"></i>
+                </div>
+            `).join('');
+        }
+
+        async function cargarDashboard() {
+            try {
+                const [curso, cl, settings] = await Promise.all([
+                    NLT_API.academyCurso(), NLT_API.academyContinueLearning(), NLT_API.academySettings(),
+                ]);
+                cursoActual = curso;
+                renderContinueLearning(cl);
+                document.getElementById('progresoGeneralTexto').textContent = `${curso.lessons_completed} / ${curso.lessons_total} clases`;
+                document.getElementById('progresoGeneralBar').style.width = `${curso.overall_progress_percent}%`;
+                pillMilestone(curso.overall_progress_percent);
+                renderModulos(curso);
+                renderComunidad(settings);
+                if (certDefsCache.length) renderCertMiniStrip(certDefsCache);
+                else NLT_API.academyCertificados().then(defs => { certDefsCache = defs; renderCertMiniStrip(defs); }).catch(() => {});
+            } catch (err) {
+                document.getElementById('modulosBox').innerHTML = `<p class="text-xs text-nlt-danger">Error cargando tu Academia: ${err.message}</p>`;
+            }
+        }
+
+        // --- Lección / player ---
+        async function abrirLeccion(lessonId) {
+            leccionActualId = lessonId;
+            mostrarVista('clase');
+            const box = document.getElementById('claseContenido');
+            box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando clase...</p>';
+            try {
+                if (!cursoActual) cursoActual = await NLT_API.academyCurso();
+                let leccion = null, moduloDeLeccion = null;
+                for (const m of cursoActual.modules) {
+                    const l = m.lessons.find(x => x.id === lessonId);
+                    if (l) { leccion = l; moduloDeLeccion = m; break; }
+                }
+                if (!leccion) { box.innerHTML = '<p class="text-xs text-nlt-danger">Clase no encontrada.</p>'; return; }
+                renderLeccion(leccion, moduloDeLeccion);
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        function _navegacionLeccion(moduloActual, leccionId) {
+            const todas = cursoActual.modules.flatMap(m => m.lessons.map(l => ({ ...l, moduleTitle: m.title })));
+            const idx = todas.findIndex(l => l.id === leccionId);
+            return { prev: idx > 0 ? todas[idx - 1] : null, next: idx < todas.length - 1 ? todas[idx + 1] : null };
+        }
+
+        function renderLeccion(leccion, modulo) {
+            const box = document.getElementById('claseContenido');
+            const nav = _navegacionLeccion(modulo, leccion.id);
+            box.innerHTML = `
+                <div class="glass-card p-6 md:p-8">
+                    <p class="text-xs text-nlt-accent font-bold uppercase tracking-widest mb-2">${modulo.title}</p>
+                    <h1 class="text-2xl font-bold text-white mb-4">${leccion.title}</h1>
+
+                    <div class="rounded-2xl overflow-hidden bg-black/40 mb-5 aspect-video flex items-center justify-center" id="videoBox">
+                        ${leccion.video_url
+                            ? `<video id="lessonVideo" src="${leccion.video_url}" controls class="w-full h-full"></video>`
+                            : `<div class="text-center p-10"><i class="ph ph-video-camera-slash text-3xl text-gray-700 mb-2"></i><p class="text-xs text-gray-600">Video próximamente</p></div>`}
+                    </div>
+
+                    ${leccion.description ? `<p class="text-sm text-gray-400 leading-relaxed mb-5">${leccion.description}</p>` : ''}
+
+                    <div class="mb-5">
+                        <div class="flex items-center justify-between mb-1.5">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wider">Progreso de video</p>
+                            <p class="text-[10px] text-gray-500" id="videoProgTexto">${Math.round(leccion.video_progress_percent || 0)}% (mínimo ${leccion.min_watch_percent}%)</p>
+                        </div>
+                        <div class="h-1.5 bg-white/5 rounded-full overflow-hidden"><div id="videoProgBar" class="h-full bg-nlt-accent transition-all" style="width:${leccion.video_progress_percent || 0}%"></div></div>
+                    </div>
+
+                    ${leccion.pdf_url ? `<a href="${leccion.pdf_url}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 text-sm text-nlt-accent hover:underline mb-5"><i class="ph-fill ph-file-pdf"></i> Descargar material (PDF)</a>` : ''}
+
+                    ${leccion.completed ? `<div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-nlt-success/10 text-nlt-success text-xs font-semibold mb-5"><i class="ph-fill ph-check-circle"></i> Clase completada</div>` : ''}
+
+                    <div id="quizContainer"></div>
+
+                    <div class="flex items-center justify-between pt-5 mt-5 border-t border-white/5">
+                        <button id="btn-leccion-prev" class="px-4 py-2 rounded-xl text-xs font-semibold ${nav.prev ? 'bg-white/5 hover:bg-white/10 text-gray-300 cursor-pointer' : 'bg-white/[0.02] text-gray-700 cursor-not-allowed'}" ${nav.prev ? '' : 'disabled'}>← Anterior</button>
+                        <button id="btn-leccion-next" class="px-4 py-2 rounded-xl text-xs font-semibold ${(nav.next && !nav.next.locked) ? 'bg-nlt-accent text-white cursor-pointer' : 'bg-white/[0.02] text-gray-700 cursor-not-allowed'}" ${(nav.next && !nav.next.locked) ? '' : 'disabled'}>Siguiente →</button>
+                    </div>
+                </div>
+            `;
+
+            if (nav.prev) document.getElementById('btn-leccion-prev').addEventListener('click', () => abrirLeccion(nav.prev.id));
+            if (nav.next && !nav.next.locked) document.getElementById('btn-leccion-next').addEventListener('click', () => abrirLeccion(nav.next.id));
+
+            const video = document.getElementById('lessonVideo');
+            if (video) {
+                let ultimoEnviado = leccion.video_progress_percent || 0;
+                video.addEventListener('timeupdate', () => {
+                    if (!video.duration) return;
+                    const pct = Math.min(100, Math.round((video.currentTime / video.duration) * 100));
+                    if (pct > ultimoEnviado + 4 || pct === 100) {
+                        ultimoEnviado = pct;
+                        document.getElementById('videoProgTexto').textContent = `${pct}% (mínimo ${leccion.min_watch_percent}%)`;
+                        document.getElementById('videoProgBar').style.width = `${pct}%`;
+                        enviarProgresoVideo(leccion.id, pct);
+                    }
+                });
+            }
+
+            if (leccion.has_quiz && (leccion.video_progress_percent || 0) >= leccion.min_watch_percent) {
+                cargarQuizDeLeccion(leccion.id);
+            } else if (leccion.has_quiz) {
+                document.getElementById('quizContainer').innerHTML = `<p class="text-xs text-gray-600 border border-dashed border-white/10 rounded-xl p-4">Mirá al menos el ${leccion.min_watch_percent}% del video para desbloquear el quiz de esta clase.</p>`;
+            }
+        }
+
+        async function enviarProgresoVideo(lessonId, pct) {
+            try {
+                const r = await NLT_API.academyActualizarProgreso(lessonId, pct);
+                if (r.new_certificates && r.new_certificates.length) {
+                    r.new_certificates.forEach(c => mostrarToastCertificado(c));
+                }
+                // cursoActual queda desactualizado (locked/completed/progress de
+                // esta y otras clases) hasta que se refresca -- sin esto, una
+                // clase sin quiz que se completa solo con video nunca reflejaba
+                // el desbloqueo de la siguiente hasta navegar fuera y volver.
+                cursoActual = await NLT_API.academyCurso();
+                // Refresca el quiz-gate si justo se cruzó el mínimo.
+                if (leccionActualId === lessonId) {
+                    const leccion = cursoActual.modules.flatMap(m => m.lessons).find(l => l.id === lessonId);
+                    if (leccion && pct >= leccion.min_watch_percent && leccion.has_quiz && !document.getElementById('quizForm')) {
+                        cargarQuizDeLeccion(lessonId);
+                    }
+                    // No se re-renderiza toda la clase acá a propósito -- eso
+                    // recrearía el <video> y cortaría la reproducción en curso.
+                    // Solo se actualiza el botón "Siguiente" (nav ya calculada
+                    // contra el cursoActual fresco) y el badge de completada.
+                    if (r.lesson_completed) {
+                        const nav = _navegacionLeccion(null, lessonId);
+                        const btnNext = document.getElementById('btn-leccion-next');
+                        if (btnNext && nav.next && !nav.next.locked) {
+                            btnNext.disabled = false;
+                            btnNext.className = 'px-4 py-2 rounded-xl text-xs font-semibold bg-nlt-accent text-white cursor-pointer';
+                        }
+                        if (!document.getElementById('leccionCompletadaBadge')) {
+                            const badgeHtml = `<div id="leccionCompletadaBadge" class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-nlt-success/10 text-nlt-success text-xs font-semibold mb-5"><i class="ph-fill ph-check-circle"></i> Clase completada</div>`;
+                            document.getElementById('quizContainer').insertAdjacentHTML('beforebegin', badgeHtml);
+                        }
+                    }
+                }
+            } catch (err) { /* silencioso -- no interrumpe la reproducción */ }
+        }
+
+        function mostrarToastCertificado(c) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-6 right-6 z-50 glass-card p-5 max-w-xs animate-pulse';
+            toast.innerHTML = `<p class="text-xs text-nlt-accent font-bold uppercase tracking-widest mb-1">¡Nuevo certificado!</p><p class="text-sm font-semibold text-white">${c.title}</p>`;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+
+        async function cargarQuizDeLeccion(lessonId) {
+            const box = document.getElementById('quizContainer');
+            box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando quiz...</p>';
+            try {
+                const quiz = await NLT_API.academyObtenerQuiz(lessonId);
+                renderQuizForm(quiz, lessonId);
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">No se pudo cargar el quiz: ${err.message}</p>`;
+            }
+        }
+
+        function renderQuizForm(quiz, lessonId) {
+            const box = document.getElementById('quizContainer');
+            box.innerHTML = `
+                <div id="quizForm" class="border-t border-white/5 pt-5">
+                    <p class="text-sm font-bold text-white mb-1">Quiz de la clase</p>
+                    <p class="text-xs text-gray-500 mb-4">Necesitás ${quiz.passing_score_percent}% para aprobar.</p>
+                    <div class="space-y-5">
+                        ${quiz.questions.map((q, qi) => `
+                            <div>
+                                <p class="text-sm text-gray-200 mb-2">${qi + 1}. ${q.question}</p>
+                                <div class="space-y-1.5">
+                                    ${q.options.map((op, oi) => `
+                                        <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                                            <input type="radio" name="q-${q.id}" value="${oi}"> ${op}
+                                        </label>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <button id="btn-enviar-quiz" class="mt-5 px-6 py-2.5 rounded-xl bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar respuestas</button>
+                    <div id="quizResultado" class="mt-4"></div>
+                </div>
+            `;
+            document.getElementById('btn-enviar-quiz').addEventListener('click', async () => {
+                const answers = {};
+                quiz.questions.forEach(q => {
+                    const sel = document.querySelector(`input[name="q-${q.id}"]:checked`);
+                    if (sel) answers[q.id] = parseInt(sel.value);
+                });
+                if (Object.keys(answers).length !== quiz.questions.length) { alert('Respondé todas las preguntas.'); return; }
+                const btn = document.getElementById('btn-enviar-quiz');
+                btn.disabled = true;
+                btn.textContent = 'Enviando...';
+                try {
+                    const resultado = await NLT_API.academyEnviarQuiz(lessonId, answers);
+                    // Refresca cursoActual ANTES de renderizar: renderResultadoQuiz
+                    // programa un setTimeout que vuelve a abrirLeccion() usando
+                    // cursoActual -- si no está fresco todavía en ese momento,
+                    // el player reabre mostrando el estado viejo (no completada).
+                    cursoActual = await NLT_API.academyCurso();
+                    renderResultadoQuiz(resultado, quiz);
+                } catch (err) {
+                    document.getElementById('quizResultado').innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+                    btn.disabled = false;
+                    btn.textContent = 'Enviar respuestas';
+                }
+            });
+        }
+
+        function renderResultadoQuiz(resultado, quiz) {
+            const box = document.getElementById('quizResultado');
+            box.innerHTML = `
+                <div class="p-4 rounded-xl ${resultado.passed ? 'bg-nlt-success/10 border border-nlt-success/20' : 'bg-nlt-danger/10 border border-nlt-danger/20'}">
+                    <p class="text-sm font-bold ${resultado.passed ? 'text-nlt-success' : 'text-nlt-danger'}">${resultado.passed ? '¡Aprobado!' : 'No alcanzaste el mínimo'} -- ${Math.round(resultado.score_percent)}%</p>
+                    ${resultado.lesson_completed ? '<p class="text-xs text-gray-400 mt-1">Clase marcada como completada.</p>' : '<p class="text-xs text-gray-400 mt-1">Podés volver a intentarlo.</p>'}
+                </div>
+                <div class="mt-3 space-y-2">
+                    ${quiz.questions.map((q, qi) => resultado.explanations && resultado.explanations[q.id] ? `<p class="text-[11px] text-gray-500"><span class="text-gray-400 font-semibold">${qi + 1}.</span> ${resultado.explanations[q.id]}</p>` : '').join('')}
+                </div>
+            `;
+            if (resultado.lesson_completed) {
+                setTimeout(() => abrirLeccion(leccionActualId), 1200);
+            }
+        }
+
+        // --- Certificados ---
+        function renderCertificados(defs, emitidos) {
+            const box = document.getElementById('certificadosGrid');
+            const porDefId = {};
+            emitidos.forEach(c => { porDefId[c.certificate_code] = c; });
+            box.innerHTML = defs.map(d => {
+                const emitido = emitidos.find(e => e.title === d.title);
+                return `
+                <div class="glass-card p-6 flex flex-col ${d.unlocked ? '' : 'opacity-70'}">
+                    <i class="ph-fill ${d.unlocked ? 'ph-seal-check text-nlt-success' : 'ph-lock-simple text-gray-600'} text-3xl mb-3"></i>
+                    <p class="font-bold text-white mb-1">${d.title}</p>
+                    <p class="text-xs text-gray-500 mb-4 flex-1">${d.description || ''}</p>
+                    ${d.unlocked
+                        ? `<button data-code="${emitido ? emitido.certificate_code : ''}" class="btn-ver-certificado px-4 py-2 rounded-xl bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Ver certificado</button>`
+                        : `<div><div class="h-1.5 bg-white/5 rounded-full overflow-hidden mb-2"><div class="h-full bg-nlt-accent" style="width:${d.progress_percent}%"></div></div><p class="text-[10px] text-gray-600">${d.unlock_hint || ''}</p></div>`
+                    }
+                </div>`;
+            }).join('');
+            box.querySelectorAll('.btn-ver-certificado').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const code = btn.getAttribute('data-code');
+                    const cert = emitidos.find(e => e.certificate_code === code);
+                    if (cert) mostrarDetalleCertificado(cert);
+                });
+            });
+        }
+
+        function mostrarDetalleCertificado(cert) {
+            const box = document.getElementById('certificadoDetalle');
+            box.classList.remove('hidden');
+            const def = certDefsCache.find(d => d.title === cert.title);
+            const certNodeBox = document.createElement('div');
+            NLT_CERT.render(certNodeBox, {
+                title: cert.title, slug: cert.slug, student_name: cert.student_name,
+                certificate_code: cert.certificate_code, issued_at: cert.issued_at,
+                verification_url: cert.verification_url, description: def ? def.description : null,
+            });
+            box.innerHTML = '';
+            box.appendChild(certNodeBox);
+
+            const acciones = document.createElement('div');
+            acciones.className = 'flex flex-wrap items-center justify-center gap-3 mt-6';
+            acciones.innerHTML = `
+                <button id="btn-descargar-certificado" class="px-5 py-2.5 rounded-xl bg-nlt-accent text-white text-xs font-semibold cursor-pointer"><i class="ph-fill ph-download-simple"></i> Descargar (PDF)</button>
+                <a href="${cert.verification_url}" target="_blank" rel="noopener" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold"><i class="ph ph-link"></i> Link de verificación</a>
+                <button id="btn-cerrar-certificado" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold cursor-pointer">Cerrar</button>
+            `;
+            box.appendChild(acciones);
+
+            document.getElementById('btn-descargar-certificado').addEventListener('click', () => window.print());
+            document.getElementById('btn-cerrar-certificado').addEventListener('click', () => box.classList.add('hidden'));
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+
+        async function cargarCertificados() {
+            const box = document.getElementById('certificadosGrid');
+            box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse col-span-full">Cargando certificados...</p>';
+            try {
+                const [defs, emitidos] = await Promise.all([NLT_API.academyCertificados(), NLT_API.academyCertificadosEmitidos()]);
+                certDefsCache = defs;
+                certEmitidosCache = emitidos;
+                renderCertificados(defs, emitidos);
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger col-span-full">Error: ${err.message}</p>`;
+            }
+        }
+
+        // --- Init ---
+        async function init() {
+            sesionActual = await NLT.requireSession();
+            if (!sesionActual) return;
+            document.getElementById('userAvatarInitial').textContent = (sesionActual.user.email || '??').slice(0, 2).toUpperCase();
+            NLT.bindLogoutButton('btn-salir');
+
+            document.getElementById('vistaCargando').classList.add('hidden');
+
+            let access;
+            try {
+                access = await NLT_API.academyAccess();
+            } catch (err) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                document.getElementById('sinAccesoMotivo').textContent = 'No se pudo verificar tu acceso: ' + err.message;
+                return;
+            }
+
+            if (!access.has_access) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                document.getElementById('sinAccesoMotivo').textContent = access.reason || 'Todavía no tenés una suscripción activa a NLT Academy.';
+                return;
+            }
+
+            document.getElementById('navTabs').classList.remove('hidden');
+            mostrarVista('dashboard');
+            await cargarDashboard();
+        }
+        init();
+    </script>
+</body>
+</html>

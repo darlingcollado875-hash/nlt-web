@@ -1,0 +1,23 @@
+# Cloudflare Pages usa el mismo formato de _redirects que Netlify (from, to,
+# status, soporte de :splat) -- este archivo es el equivalente exacto de los
+# [[redirects]] de netlify.toml, para cuando el sitio se sirva desde
+# Cloudflare Pages en vez de Netlify. netlify.toml se deja intacto (sigue
+# siendo el deploy real hasta que se migre de verdad).
+
+# Proxy del tokenizador de Pay2Commerce (bug real de tokenizer.js v1.0.0:
+# usa URLs relativas en vez de absolutas -- ver el comentario largo en
+# netlify.toml para el detalle completo).
+/public/payment-config/*  https://app.pay2commerce.net/public/payment-config/:splat  200
+/api/v1/tokens  https://app.pay2commerce.net/api/v1/tokens  200
+
+# Rutas limpias para los portales del ecosistema (sin ".html").
+/ecosystem  /ecosystem.html  200
+/copy-system  /copy-system.html  200
+/indicator  /indicator.html  200
+/plans  /plans.html  200
+/academy  /academy.html  200
+/news  /news.html  200
+/calculators  /calculators.html  200
+/tools  /tools.html  200
+/community  /community.html  200
+/verify/:code  /verify.html?code=:code  200

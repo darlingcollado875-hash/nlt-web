@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Copy System | Copiado de operaciones en tiempo real</title>
+    <meta name="description" content="Copiá operaciones automáticamente entre tu cuenta maestra y tus cuentas destino -- CFDs, Forex y Futuros, con gestión de riesgo real.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        details summary { cursor: pointer; list-style: none; }
+        details summary::-webkit-details-marker { display: none; }
+        details[open] .faq-icon { transform: rotate(45deg); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 pt-44 pb-24 px-6 max-w-5xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-nlt-success/20 bg-nlt-success/10 text-[10px] font-bold text-nlt-success tracking-[0.2em] uppercase mb-8" data-reveal>
+            <span class="w-1.5 h-1.5 rounded-full bg-nlt-success animate-pulse"></span> Producto en vivo
+        </div>
+        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>NLT Copy System</h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>
+            Conectá tu cuenta maestra y tus cuentas destino, y dejá que cada operación se copie sola -- lotaje proporcional al balance real de cada cuenta, en CFDs/Forex y Futuros.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
+            <button id="btn-comenzar" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar</button>
+            <a href="#como-funciona" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all">Cómo funciona</a>
+        </div>
+    </section>
+
+    <!-- CÓMO FUNCIONA -->
+    <section id="como-funciona" class="relative z-10 max-w-6xl mx-auto px-6 py-20">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">El proceso</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Cómo funciona</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">1</div>
+                <h3 class="font-bold text-white mb-2">Conectás tu maestra</h3>
+                <p class="text-sm text-gray-400">Vinculás la cuenta que vas a operar -- MT5, sin instalar nada.</p>
+            </div>
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">2</div>
+                <h3 class="font-bold text-white mb-2">Agregás destinos</h3>
+                <p class="text-sm text-gray-400">Cada cuenta destino se suma con su propio balance y multiplicador.</p>
+            </div>
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">3</div>
+                <h3 class="font-bold text-white mb-2">Operás normal</h3>
+                <p class="text-sm text-gray-400">Cada operación en la maestra se copia sola, con lotaje proporcional al balance real.</p>
+            </div>
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">4</div>
+                <h3 class="font-bold text-white mb-2">Seguís todo</h3>
+                <p class="text-sm text-gray-400">Historial, logs y estado de conexión de cada cuenta, en tiempo real.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CARACTERÍSTICAS -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-scales text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Lotaje proporcional real</h3>
+                <p class="text-sm text-gray-400">El tamaño de cada copia se calcula según el balance real de cada cuenta destino, no un multiplicador ciego.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-lightning text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Copiado en tiempo real</h3>
+                <p class="text-sm text-gray-400">Eventos de la cuenta maestra se propagan en segundos a cada destino conectado.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-arrows-clockwise text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Reconexión automática</h3>
+                <p class="text-sm text-gray-400">Si una cuenta se desconecta y volvés a conectarla, el copiado se retoma solo -- sin reiniciar nada.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-currency-circle-dollar text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">CFDs/Forex y Futuros</h3>
+                <p class="text-sm text-gray-400">Dos mercados, dos motores dedicados -- nunca se mezclan cuentas ni datos entre ellos.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-eye text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Historial y logs</h3>
+                <p class="text-sm text-gray-400">Cada operación copiada queda registrada -- símbolo, dirección, tamaño, resultado.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-shield-check text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Sin instalar nada</h3>
+                <p class="text-sm text-gray-400">Nada que instalar en tu PC -- todo corre en la infraestructura de NLT.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PLANES -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 py-20">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Precios</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Planes de Copy System</h2>
+        </div>
+        <div id="planesGrid" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-5">
+            <p class="text-sm text-gray-500 col-span-full text-center animate-pulse">Cargando planes...</p>
+        </div>
+        <p class="text-center mt-8"><a href="plans.html" class="text-sm text-nlt-accent font-semibold hover:underline">Ver comparación completa de planes →</a></p>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="relative z-10 max-w-3xl mx-auto px-6 py-20">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Preguntas frecuentes</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">FAQ</h2>
+        </div>
+        <div class="space-y-3">
+            <details class="glass-card p-6 group" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white"><span>¿Necesito instalar algo en mi computadora?</span><i class="ph ph-plus faq-icon transition-transform"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">No. Tanto la conexión de cuentas como el motor de copiado corren en la infraestructura de NLT -- no instalás nada en tu PC.</p>
+            </details>
+            <details class="glass-card p-6 group" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white"><span>¿Cómo se calcula el tamaño de cada copia?</span><i class="ph ph-plus faq-icon transition-transform"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">Proporcional al balance real de cada cuenta destino respecto a la maestra, multiplicado por el multiplicador que configures por cuenta.</p>
+            </details>
+            <details class="glass-card p-6 group" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white"><span>¿Qué pasa si una cuenta se desconecta?</span><i class="ph ph-plus faq-icon transition-transform"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">El sistema la detecta y te avisa. Al reconectarla, el copiado se retoma automáticamente -- no hace falta reiniciar nada de tu lado.</p>
+            </details>
+            <details class="glass-card p-6 group" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white"><span>¿Cuántas cuentas destino puedo conectar?</span><i class="ph ph-plus faq-icon transition-transform"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">Depende de tu plan -- ver la comparación completa en la página de Planes.</p>
+            </details>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 text-center py-24" data-reveal>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Empezá a copiar operaciones hoy.</h3>
+        <button id="btn-comenzar-2" class="px-9 py-4 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar ahora</button>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script>
+        // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        NLT.mountAuthAwareCTA(['btn-comenzar', 'btn-comenzar-2'], { loggedInLabel: 'Ir al Dashboard' });
+
+        (async function () {
+            const grid = document.getElementById('planesGrid');
+            try {
+                const planes = await NLT_API.planesPorProducto('copy_system');
+                grid.innerHTML = planes.map((p) => `
+                    <div class="glass-card p-6 flex flex-col ${p.popular ? 'border-nlt-accent/40' : ''}" data-reveal>
+                        ${p.popular ? '<span class="text-[9px] font-bold uppercase tracking-widest text-nlt-accent mb-2">Más elegido</span>' : ''}
+                        <h3 class="font-bold text-white text-lg mb-1">${p.nombre}</h3>
+                        <p class="text-2xl font-extrabold text-white mb-4">$${p.precio_mensual}<span class="text-xs text-gray-500 font-medium">/mes</span></p>
+                        <ul class="text-xs text-gray-400 space-y-2 mb-6 flex-1">${(p.features || []).slice(0, 4).map(f => `<li class="flex items-start gap-2"><i class="ph-fill ph-check text-nlt-success mt-0.5"></i>${f}</li>`).join('')}</ul>
+                    </div>
+                `).join('');
+                if (window.gsap && window.ScrollTrigger) {
+                    document.querySelectorAll('#planesGrid [data-reveal]').forEach((el) => {
+                        gsap.set(el, { opacity: 0, y: 24 });
+                        gsap.to(el, { opacity: 1, y: 0, duration: 0.7, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+                    });
+                }
+            } catch (err) {
+                grid.innerHTML = `<p class="text-sm text-gray-500 col-span-full text-center">No se pudieron cargar los planes ahora mismo.</p>`;
+            }
+        })();
+
+        if (window.gsap && window.ScrollTrigger) {
+            gsap.registerPlugin(ScrollTrigger);
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                if (el.closest('#planesGrid')) return;
+                gsap.set(el, { y: 24 });
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Affiliate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        nlt: { bg: '#080A0F', surface: '#11151C', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255, 255, 255, 0.05)' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .glow-text { text-shadow: 0 0 16px rgba(67, 120, 255, 0.4); }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 flex flex-col h-full">
+        <header class="h-24 flex items-center justify-between px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <div>
+                <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-widest mb-0.5">NLT Affiliate</p>
+                <h1 class="text-2xl font-bold tracking-tight">Programa de Afiliados</h1>
+            </div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+
+            <!-- Todavía no es afiliado -->
+            <div id="panelRegistro" class="hidden max-w-xl mx-auto text-center py-16">
+                <div class="w-16 h-16 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mx-auto mb-6 text-nlt-accent text-3xl">
+                    <i class="ph-fill ph-share-network"></i>
+                </div>
+                <h2 class="text-2xl font-bold mb-3">Convertite en afiliado NLT</h2>
+                <p class="text-sm text-gray-400 mb-8 leading-relaxed">Compartí tu link único, sumá referidos y ganá comisiones reales por cada venta que generes en el ecosistema NLT.</p>
+                <button id="btn-convertirme" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm cursor-pointer">Quiero ser afiliado</button>
+                <p id="registroError" class="text-xs text-nlt-danger mt-4 hidden"></p>
+            </div>
+
+            <!-- Panel de afiliado -->
+            <div id="panelAfiliado" class="hidden space-y-8">
+
+                <!-- Código + link -->
+                <div class="glass-card p-8">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Mi código</p>
+                    <p id="miCodigo" class="text-3xl font-bold text-nlt-accent glow-text mb-5 font-mono">—</p>
+
+                    <p class="text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1">Mi enlace</p>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <code id="miLink" class="text-sm text-gray-300 bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 flex-1 min-w-0 truncate">—</code>
+                        <button id="btn-copiar-link" class="px-5 py-2.5 rounded-lg bg-nlt-accent text-white text-xs font-bold uppercase tracking-wider cursor-pointer shrink-0 inline-flex items-center gap-2">
+                            <i class="ph-bold ph-copy"></i> Copiar enlace
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats -->
+                <div class="grid grid-cols-2 md:grid-cols-5 gap-5">
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">👥 Referidos</p>
+                        <p class="text-2xl font-bold" id="statReferidos">—</p>
+                    </div>
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">💰 Ventas</p>
+                        <p class="text-2xl font-bold" id="statVentas">—</p>
+                    </div>
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">💵 Comisiones</p>
+                        <p class="text-2xl font-bold" id="statComisiones">—</p>
+                    </div>
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">⏳ Pendientes</p>
+                        <p class="text-2xl font-bold text-yellow-400" id="statPendientes">—</p>
+                    </div>
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">✅ Pagadas</p>
+                        <p class="text-2xl font-bold text-nlt-success" id="statPagadas">—</p>
+                    </div>
+                </div>
+
+                <!-- Tabla de comisiones -->
+                <div>
+                    <h3 class="text-sm font-bold mb-3 text-gray-300">Historial de comisiones</h3>
+                    <div class="glass-card overflow-hidden">
+                        <div class="overflow-x-auto">
+                        <table class="w-full text-left text-sm min-w-[700px]">
+                            <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                                <tr>
+                                    <th class="px-5 py-3 font-semibold">Cliente</th>
+                                    <th class="px-5 py-3 font-semibold">Producto</th>
+                                    <th class="px-5 py-3 font-semibold">Venta</th>
+                                    <th class="px-5 py-3 font-semibold">Comisión</th>
+                                    <th class="px-5 py-3 font-semibold">Estado</th>
+                                    <th class="px-5 py-3 font-semibold">Fecha</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaComisiones" class="divide-y divide-white/5 text-gray-300"></tbody>
+                        </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Método de pago + payouts -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="glass-card p-6">
+                        <h3 class="text-sm font-bold mb-4 text-gray-300">Método de pago</h3>
+                        <form id="formMetodoPago" class="space-y-3">
+                            <select id="metodoPago" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm">
+                                <option value="paypal">PayPal</option>
+                                <option value="bank_transfer">Transferencia bancaria</option>
+                                <option value="usdt">USDT</option>
+                                <option value="other">Otro</option>
+                            </select>
+                            <input id="metodoPagoDetalle" placeholder="Email de PayPal" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm">
+                            <button type="submit" class="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 text-sm font-semibold cursor-pointer transition-colors">Guardar método</button>
+                        </form>
+                        <p id="metodoPagoMsg" class="text-xs text-nlt-success mt-2 hidden">Método de pago guardado.</p>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <h3 class="text-sm font-bold mb-1 text-gray-300">Solicitar retiro</h3>
+                        <p class="text-xs text-gray-500 mb-4">Saldo disponible: <span id="saldoDisponible" class="text-white font-semibold">$0.00</span></p>
+                        <form id="formPayout" class="flex gap-3">
+                            <input id="montoPayout" type="number" step="0.01" min="0" placeholder="Monto" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm">
+                            <button type="submit" id="btn-solicitar-payout" class="px-5 py-2.5 rounded-lg bg-nlt-accent text-white text-sm font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Solicitar</button>
+                        </form>
+                        <p id="payoutMsg" class="text-xs mt-2 hidden"></p>
+                        <div id="listaPayouts" class="mt-4 space-y-1.5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let sesionActual = null;
+        let miAfiliado = null;
+
+        const METODO_PLACEHOLDER = {
+            paypal: 'Email de PayPal', bank_transfer: 'Banco, titular y número de cuenta',
+            usdt: 'Dirección de wallet (aclará la red, ej. TRC20)', other: 'Detalle del método',
+        };
+
+        function mostrarPanelRegistro() {
+            document.getElementById('panelRegistro').classList.remove('hidden');
+            document.getElementById('panelAfiliado').classList.add('hidden');
+        }
+
+        function mostrarPanelAfiliado() {
+            document.getElementById('panelRegistro').classList.add('hidden');
+            document.getElementById('panelAfiliado').classList.remove('hidden');
+            document.getElementById('miCodigo').textContent = miAfiliado.codigo_principal || '—';
+            document.getElementById('miLink').textContent = miAfiliado.link || '—';
+            if (miAfiliado.metodo_pago_config && miAfiliado.metodo_pago_config.metodo) {
+                document.getElementById('metodoPago').value = miAfiliado.metodo_pago_config.metodo;
+                document.getElementById('metodoPagoDetalle').value = miAfiliado.metodo_pago_config.detalle || '';
+            }
+            document.getElementById('metodoPagoDetalle').placeholder = METODO_PLACEHOLDER[document.getElementById('metodoPago').value];
+        }
+
+        async function cargarStats() {
+            try {
+                const s = await NLT_API.afiliadoMisStats();
+                document.getElementById('statReferidos').textContent = s.referidos;
+                document.getElementById('statVentas').textContent = '$' + s.ventas_total.toFixed(2);
+                document.getElementById('statComisiones').textContent = '$' + (s.comisiones_pending + s.comisiones_approved + s.comisiones_paid).toFixed(2);
+                document.getElementById('statPendientes').textContent = '$' + s.comisiones_pending.toFixed(2);
+                document.getElementById('statPagadas').textContent = '$' + s.comisiones_paid.toFixed(2);
+                document.getElementById('saldoDisponible').textContent = '$' + s.saldo_disponible.toFixed(2);
+                document.getElementById('btn-solicitar-payout').disabled = s.saldo_disponible <= 0;
+            } catch (err) {
+                console.error('Error cargando stats de afiliado:', err.message);
+            }
+        }
+
+        async function cargarComisiones() {
+            const tbody = document.getElementById('tablaComisiones');
+            try {
+                const comisiones = await NLT_API.afiliadoMisComisiones();
+                if (!comisiones.length) {
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-8 text-center text-gray-500">Todavía no tenés ventas atribuidas. Compartí tu enlace para empezar a generar comisiones.</td></tr>';
+                    return;
+                }
+                const badge = (estado) => ({
+                    PENDING: 'bg-yellow-500/10 text-yellow-400', APPROVED: 'bg-nlt-accent/10 text-nlt-accent',
+                    PAID: 'bg-nlt-success/10 text-nlt-success', REJECTED: 'bg-nlt-danger/10 text-nlt-danger', CANCELLED: 'bg-gray-500/10 text-gray-400',
+                }[estado] || 'bg-gray-500/10 text-gray-400');
+                tbody.innerHTML = comisiones.map(c => `
+                    <tr>
+                        <td class="px-5 py-3">${c.cliente || 'Cliente NLT'}</td>
+                        <td class="px-5 py-3 capitalize">${c.producto.replace('_', ' ')}</td>
+                        <td class="px-5 py-3">$${c.monto_venta.toFixed(2)}</td>
+                        <td class="px-5 py-3 font-semibold">$${c.monto_comision.toFixed(2)}</td>
+                        <td class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badge(c.estado)}">${c.estado}</span></td>
+                        <td class="px-5 py-3 text-gray-500">${new Date(c.created_at).toLocaleDateString('es')}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="px-5 py-8 text-center text-nlt-danger">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function cargarPayouts() {
+            const box = document.getElementById('listaPayouts');
+            try {
+                const payouts = await NLT_API.afiliadoMisPayouts();
+                box.innerHTML = payouts.length ? payouts.map(p => `
+                    <p class="text-xs text-gray-400">$${p.monto.toFixed(2)} -- <span class="font-semibold">${p.estado}</span> -- ${new Date(p.solicitado_en).toLocaleDateString('es')}</p>
+                `).join('') : '<p class="text-xs text-gray-600">Sin solicitudes de retiro todavía.</p>';
+            } catch (err) {
+                box.innerHTML = '';
+            }
+        }
+
+        async function cargarPerfilAfiliado() {
+            try {
+                miAfiliado = await NLT_API.afiliadoMiPerfil();
+                mostrarPanelAfiliado();
+                await Promise.all([cargarStats(), cargarComisiones(), cargarPayouts()]);
+            } catch (err) {
+                mostrarPanelRegistro();
+            }
+        }
+
+        document.getElementById('btn-convertirme').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-convertirme');
+            const errorBox = document.getElementById('registroError');
+            errorBox.classList.add('hidden');
+            btn.disabled = true;
+            btn.textContent = 'Creando tu cuenta de afiliado...';
+            try {
+                miAfiliado = await NLT_API.afiliadoRegistrarme();
+                await cargarPerfilAfiliado();
+            } catch (err) {
+                errorBox.textContent = 'No se pudo crear tu cuenta de afiliado: ' + err.message;
+                errorBox.classList.remove('hidden');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Quiero ser afiliado';
+            }
+        });
+
+        document.getElementById('btn-copiar-link').addEventListener('click', () => {
+            if (!miAfiliado || !miAfiliado.link) return;
+            navigator.clipboard.writeText(miAfiliado.link);
+            const btn = document.getElementById('btn-copiar-link');
+            const original = btn.innerHTML;
+            btn.innerHTML = '<i class="ph-bold ph-check"></i> Copiado';
+            setTimeout(() => { btn.innerHTML = original; }, 1500);
+        });
+
+        document.getElementById('metodoPago').addEventListener('change', (e) => {
+            document.getElementById('metodoPagoDetalle').placeholder = METODO_PLACEHOLDER[e.target.value] || 'Detalle';
+        });
+
+        document.getElementById('formMetodoPago').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const metodo = document.getElementById('metodoPago').value;
+            const detalle = document.getElementById('metodoPagoDetalle').value.trim();
+            const msg = document.getElementById('metodoPagoMsg');
+            try {
+                miAfiliado = await NLT_API.afiliadoActualizarMetodoPago(metodo, { detalle });
+                msg.textContent = 'Método de pago guardado.';
+                msg.className = 'text-xs text-nlt-success mt-2';
+                msg.classList.remove('hidden');
+                setTimeout(() => msg.classList.add('hidden'), 2500);
+            } catch (err) {
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'text-xs text-nlt-danger mt-2';
+                msg.classList.remove('hidden');
+            }
+        });
+
+        document.getElementById('formPayout').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const monto = parseFloat(document.getElementById('montoPayout').value);
+            const msg = document.getElementById('payoutMsg');
+            if (!monto || monto <= 0) return;
+            try {
+                await NLT_API.afiliadoSolicitarPayout(monto);
+                msg.textContent = 'Retiro solicitado -- el equipo NLT lo va a revisar.';
+                msg.className = 'text-xs text-nlt-success mt-2';
+                msg.classList.remove('hidden');
+                document.getElementById('montoPayout').value = '';
+                await Promise.all([cargarStats(), cargarPayouts()]);
+            } catch (err) {
+                msg.textContent = 'Error: ' + err.message;
+                msg.className = 'text-xs text-nlt-danger mt-2';
+                msg.classList.remove('hidden');
+            }
+        });
+
+        async function init() {
+            sesionActual = await NLT.requireSession();
+            if (!sesionActual) return;
+            await NLT.mountSidebar(sesionActual, { activo: 'afiliado', seccion: 'cfd' });
+            await NLT.ensurePerfil(sesionActual);
+            await cargarPerfilAfiliado();
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        init();
+    </script>
+</body>
+</html>

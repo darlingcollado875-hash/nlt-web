@@ -1,0 +1,7 @@
+# Equivalente Cloudflare Pages de los [[headers]] de netlify.toml -- evita
+# que Cloudflare sirva HTML cacheado tras cada deploy (mismo motivo que en
+# Netlify: los .html referencian nlt-shared.js/nlt-api-client.js por nombre
+# fijo, sin hash de versión, así que sin esto un usuario podría quedarse con
+# una versión vieja del HTML apuntando a lógica JS ya cambiada).
+/*.html
+  Cache-Control: no-cache

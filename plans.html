@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT | Planes</title>
+    <meta name="description" content="Todos los planes de NLT -- Copy System, Indicator, Academy -- en un solo lugar.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .plan-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease; }
+        .plan-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
+                <a href="indicator.html" class="hover:text-white transition-colors">Indicator</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <section class="relative z-10 pt-44 pb-16 px-6 max-w-4xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>Precios</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>Todos los planes de NLT.</h1>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto" data-reveal>Un solo lugar para ver lo que ofrece cada producto del ecosistema.</p>
+    </section>
+
+    <main id="contenido" class="relative z-10 max-w-6xl mx-auto px-6 pb-24 space-y-24">
+        <p class="text-center text-sm text-gray-500 animate-pulse">Cargando planes...</p>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script>
+        const NOMBRE_PRODUCTO = {
+            copy_system: { titulo: 'NLT Copy System', href: 'copy-system.html', desc: 'Copiado de operaciones en tiempo real, CFDs/Forex y Futuros.' },
+            indicator: { titulo: 'NLT Indicator', href: 'indicator.html', desc: 'Herramientas y señales para TradingView.' },
+            academy: { titulo: 'NLT Academy', href: 'academy.html', desc: 'Educación estructurada de trading.' },
+            community: { titulo: 'NLT Community', href: null, desc: 'Comunidad NLT. Próximamente.' },
+        };
+
+        function precioTexto(p) {
+            if (p.billing_period === 'one_time') return `$${p.precio_mensual}<span class="text-xs text-gray-500 font-medium"> pago único</span>`;
+            if (p.billing_period === 'yearly') return `$${p.precio_mensual}<span class="text-xs text-gray-500 font-medium">/año</span>`;
+            return `$${p.precio_mensual}<span class="text-xs text-gray-500 font-medium">/mes</span>`;
+        }
+
+        function tarjetaPlan(p) {
+            return `
+                <div class="plan-card glass-card p-7 flex flex-col ${p.popular ? 'border-nlt-accent/40' : ''}" data-reveal>
+                    ${p.popular ? '<span class="text-[9px] font-bold uppercase tracking-widest text-nlt-accent mb-2">Más elegido</span>' : ''}
+                    <h3 class="font-bold text-white text-lg mb-1">${p.nombre}</h3>
+                    ${p.descripcion ? `<p class="text-xs text-gray-500 mb-3">${p.descripcion}</p>` : ''}
+                    <p class="text-3xl font-extrabold text-white mb-5">${precioTexto(p)}</p>
+                    <ul class="text-xs text-gray-400 space-y-2 flex-1">
+                        ${(p.features || []).map(f => `<li class="flex items-start gap-2"><i class="ph-fill ph-check text-nlt-success mt-0.5 shrink-0"></i>${f}</li>`).join('') || '<li class="text-gray-600">-</li>'}
+                        ${p.max_cuentas ? `<li class="flex items-start gap-2"><i class="ph-fill ph-check text-nlt-success mt-0.5 shrink-0"></i>Hasta ${p.max_cuentas} cuentas</li>` : ''}
+                    </ul>
+                </div>
+            `;
+        }
+
+        function seccionProducto(producto, planes) {
+            const info = NOMBRE_PRODUCTO[producto] || { titulo: producto, href: null, desc: '' };
+            const gridCols = planes.length >= 5 ? 'md:grid-cols-3 xl:grid-cols-5' : planes.length === 3 ? 'md:grid-cols-3' : 'md:grid-cols-2';
+            return `
+                <div>
+                    <div class="flex items-end justify-between mb-8" data-reveal>
+                        <div>
+                            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight">${info.titulo}</h2>
+                            <p class="text-sm text-gray-500 mt-1">${info.desc}</p>
+                        </div>
+                        ${info.href ? `<a href="${info.href}" class="text-xs font-bold text-nlt-accent uppercase tracking-wider hover:underline whitespace-nowrap">Conocer más →</a>` : ''}
+                    </div>
+                    <div class="grid grid-cols-1 ${gridCols} gap-5">${planes.map(tarjetaPlan).join('')}</div>
+                </div>
+            `;
+        }
+
+        (async function () {
+            const contenido = document.getElementById('contenido');
+            try {
+                const planes = await NLT_API.planesTodos();
+                const porProducto = {};
+                for (const p of planes) (porProducto[p.producto] = porProducto[p.producto] || []).push(p);
+
+                const orden = ['copy_system', 'indicator', 'academy', 'community'];
+                const secciones = orden.filter(p => porProducto[p]?.length).map(p => seccionProducto(p, porProducto[p]));
+                contenido.innerHTML = secciones.join('') || '<p class="text-center text-sm text-gray-500">Sin planes publicados todavía.</p>';
+
+                if (window.gsap && window.ScrollTrigger) {
+                    gsap.registerPlugin(ScrollTrigger);
+                    document.querySelectorAll('[data-reveal]').forEach((el) => {
+                        gsap.set(el, { y: 24 });
+                        gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+                    });
+                }
+            } catch (err) {
+                contenido.innerHTML = `<p class="text-center text-sm text-nlt-danger">No se pudieron cargar los planes: ${err.message}</p>`;
+            }
+        })();
+
+        // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+
+        if (window.gsap && window.ScrollTrigger) {
+            gsap.registerPlugin(ScrollTrigger);
+            document.querySelectorAll('section [data-reveal]').forEach((el) => {
+                gsap.set(el, { y: 24 });
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+            });
+        }
+    </script>
+</body>
+</html>

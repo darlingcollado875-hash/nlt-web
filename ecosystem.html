@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT | El Ecosistema</title>
+    <meta name="description" content="Qué es NLT, nuestra visión y todos los productos que estamos construyendo -- una sola plataforma de trading.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .timeline-dot { box-shadow: 0 0 0 4px rgba(67,120,255,0.15); }
+
+        /* --- NLT Supreme portal --- */
+        .supreme-glow-ring { box-shadow: 0 0 0 1px rgba(67,120,255,0.15), 0 0 60px rgba(67,120,255,0.12); }
+        .supreme-eyebrow { letter-spacing: 0.25em; }
+        #supremePanel { background: linear-gradient(180deg, rgba(11,14,22,0.98) 0%, rgba(8,10,16,0.99) 100%); }
+
+        .status-chip { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 12px 14px; }
+        .status-chip .label { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
+        .status-chip .value { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; font-family: 'SFMono-Regular', Consolas, monospace; }
+
+        .dev-chip { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .dev-chip .tag { font-size: 8px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #4378FF; background: rgba(67,120,255,0.1); border-radius: 999px; padding: 3px 8px; white-space: nowrap; }
+
+        .candle-bar { width: 5px; border-radius: 2px; transform-origin: bottom; animation: candleBreathe 3.6s ease-in-out infinite; }
+        @keyframes candleBreathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(var(--candle-scale, 1.08)); } }
+
+        #supremeTicker { transition: opacity 0.4s ease; }
+        .ticker-fade { opacity: 0; }
+
+        .signal-tag { position: absolute; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease, transform 0.5s ease; transform: translateY(4px); }
+        .signal-tag.show { opacity: 1; transform: translateY(0); }
+        .signal-buy { color: #22C55E; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); }
+        .signal-sell { color: #F87171; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); }
+
+        @keyframes engineSpin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3">
+                <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8">
+                <span class="font-semibold text-base tracking-tight">NLT</span>
+            </a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="index.html#modulos" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 pt-44 pb-24 px-6 max-w-5xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>El ecosistema NLT</p>
+        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>
+            No construimos un copiador.<br>Construimos una plataforma.
+        </h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed" data-reveal>
+            NLT nació como infraestructura de copiado de operaciones. Hoy es el punto de partida de un ecosistema completo para el operador que quiere todo lo que necesita en un solo lugar, con una sola cuenta.
+        </p>
+    </section>
+
+    <!-- QUÉ ES NLT -->
+    <section class="relative z-10 max-w-5xl mx-auto px-6 py-20">
+        <div class="glass-card p-10 md:p-14" data-reveal>
+            <h2 class="text-2xl md:text-3xl font-bold tracking-tight mb-6">¿Qué es NLT?</h2>
+            <p class="text-gray-400 leading-relaxed mb-4">
+                NLT (Next Level Trading) es una infraestructura institucional de trading algorítmico, hoy centrada en <strong class="text-white">NLT Copy System</strong>: copiado de operaciones en tiempo real entre una cuenta maestra y sus cuentas destino, sobre CFDs/Forex y Futuros, con gestión de riesgo y ejecución propia.
+            </p>
+            <p class="text-gray-400 leading-relaxed">
+                A partir de ahí estamos construyendo el resto del ecosistema -- herramientas, noticias de mercado, educación y comunidad -- todo bajo una misma cuenta, un mismo sistema de suscripciones y una misma experiencia.
+            </p>
+        </div>
+    </section>
+
+    <!-- VISIÓN -->
+    <section class="relative z-10 max-w-5xl mx-auto px-6 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="glass-card p-10" data-reveal>
+                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+                    <i class="ph-fill ph-compass"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-3">Nuestra visión</h3>
+                <p class="text-sm text-gray-400 leading-relaxed">Que un trader entre a NLT una vez al día y encuentre ahí todo lo que necesita para operar, analizar, gestionar riesgo y automatizar sus cuentas -- sin saltar entre diez herramientas distintas.</p>
+            </div>
+            <div class="glass-card p-10" data-reveal>
+                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+                    <i class="ph-fill ph-stack"></i>
+                </div>
+                <h3 class="text-lg font-bold mb-3">Cómo se conecta todo</h3>
+                <p class="text-sm text-gray-400 leading-relaxed">Una sola cuenta NLT (Google), un solo sistema de suscripciones, un mismo Dashboard como centro. Cada producto es un módulo del mismo ecosistema, nunca una app aparte.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRODUCTOS -->
+    <section class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-20">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Los productos</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Todo lo que estamos construyendo</h2>
+        </div>
+        <div id="modulesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </section>
+
+    <!-- COMING NEXT -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 py-20">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Lo que viene</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Coming Next</h2>
+        </div>
+        <div class="relative space-y-6">
+            <div class="absolute left-[27px] top-3 bottom-3 w-px bg-gradient-to-b from-nlt-success/40 via-nlt-accent/30 to-transparent" aria-hidden="true"></div>
+
+            <div class="relative glass-card p-8 flex items-start gap-6 border-nlt-success/20" data-reveal>
+                <div class="w-3 h-3 rounded-full bg-nlt-success mt-2 shrink-0 timeline-dot relative z-10"></div>
+                <div>
+                    <div class="flex items-center gap-3 mb-2"><h3 class="font-bold text-white">NLT Ecosystem</h3><span class="px-2 py-0.5 rounded-full bg-nlt-success/10 text-nlt-success text-[10px] font-bold uppercase">Current</span></div>
+                    <p class="text-sm text-gray-400">Copy System (CFD/Forex + Futuros), Indicator, Academy, Community, Trading Tools, News + Economic Calendar, Calculators, Media Library -- todo en tu misma cuenta NLT.</p>
+                </div>
+            </div>
+
+            <div class="relative glass-card p-8 flex items-start gap-6" data-reveal>
+                <div class="w-3 h-3 rounded-full bg-nlt-accent mt-2 shrink-0 timeline-dot relative z-10 animate-pulse"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-3 mb-2 flex-wrap"><h3 class="font-bold text-white flex items-center gap-2"><span>🤖</span> NLT Supreme</h3><span class="px-2 py-0.5 rounded-full bg-nlt-accent/10 text-nlt-accent text-[10px] font-bold uppercase">In Development</span></div>
+                    <p class="text-sm text-gray-400 mb-4">El sistema automatizado de NLT -- operativa sistemática con gestión de riesgo, pensado para capital propio y cuentas de fondeo.</p>
+                    <button id="btn-abrir-supreme" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-nlt-accent uppercase tracking-wider hover:gap-3.5 transition-all cursor-pointer">
+                        Conocer NLT Supreme <i class="ph-bold ph-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div class="relative glass-card p-8 flex items-start gap-6 opacity-80" data-reveal>
+                <div class="w-3 h-3 rounded-full bg-nlt-accent/50 mt-2 shrink-0 relative z-10"></div>
+                <div>
+                    <div class="flex items-center gap-3 mb-2"><h3 class="font-bold text-white flex items-center gap-2"><span>📈</span> NLT Futures Copier</h3><span class="px-2 py-0.5 rounded-full bg-gray-700/50 text-gray-400 text-[10px] font-bold uppercase">Coming Soon</span></div>
+                    <p class="text-sm text-gray-400">Copy trading para cuentas de Futures próximamente.</p>
+                </div>
+            </div>
+
+            <div class="relative glass-card p-8 flex items-start gap-6 opacity-50" data-reveal>
+                <div class="w-3 h-3 rounded-full bg-gray-700 mt-2 shrink-0 relative z-10"></div>
+                <div>
+                    <div class="flex items-center gap-3 mb-2"><h3 class="font-bold text-white flex items-center gap-2"><span>📱</span> NLT Mobile App</h3><span class="px-2 py-0.5 rounded-full bg-gray-700/50 text-gray-400 text-[10px] font-bold uppercase">Future</span></div>
+                    <p class="text-sm text-gray-400">Tu ecosistema NLT, en tu bolsillo.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- VIDEOS (contenido real desde el CMS -- ver /ecosystem-content) -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 py-12">
+        <div id="videosBox"></div>
+    </section>
+
+    <!-- CTA -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 text-center py-24" data-reveal>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Empezá por Copy System.</h3>
+        <p class="text-gray-400 mb-10 max-w-xl mx-auto">El resto del ecosistema se va a ir activando en tu misma cuenta, a medida que lo construimos.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <a href="copy-system.html" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button">Conocer Copy System</a>
+            <a href="plans.html" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all">Ver planes</a>
+        </div>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="index.html" class="hover:text-gray-300 transition-colors">Volver al inicio</a>
+        </div>
+    </footer>
+
+    <!-- PORTAL NLT SUPREME (ilustrativo -- el bot todavía está en desarrollo, ningún dato acá es una operación real) -->
+    <div id="supremeModal" class="fixed inset-0 z-[100] hidden bg-black/85 backdrop-blur-sm">
+        <div id="supremeScroll" class="h-full overflow-y-auto">
+            <div class="min-h-full flex items-start justify-center px-4 py-10 md:py-16">
+                <div id="supremePanel" class="supreme-modal-panel relative w-full max-w-5xl supreme-glow-ring rounded-3xl overflow-hidden border border-white/10">
+                    <button id="btn-supreme-close" type="button" class="absolute top-5 right-5 z-30 w-10 h-10 shrink-0 rounded-full border border-gray-700 bg-black/40 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500 transition-all cursor-pointer">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
+                    </button>
+
+                    <!-- HERO / ENGINE -->
+                    <div class="relative px-6 md:px-14 pt-14 md:pt-16 pb-10 text-center border-b border-white/5 overflow-hidden">
+                        <div class="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[520px] h-[360px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+                        <p class="supreme-eyebrow relative text-[10px] font-bold text-nlt-accent uppercase mb-5" data-supreme-reveal>El sistema automatizado de NLT</p>
+                        <h2 class="relative text-4xl md:text-6xl font-extrabold tracking-tight mb-4" data-supreme-reveal>NLT SUPREME</h2>
+                        <p class="relative text-gray-400 text-base md:text-lg max-w-lg mx-auto" data-supreme-reveal>Automatiza tu operativa. Mantén el control de tu riesgo.</p>
+
+                        <div class="relative mx-auto mt-8 w-full max-w-[280px] aspect-square" data-supreme-reveal>
+                            <canvas id="supremeCanvas" class="w-full h-full"></canvas>
+                            <div class="absolute inset-x-0 bottom-[6%] flex items-center justify-center pointer-events-none">
+                                <span class="text-[9px] font-bold tracking-[0.3em] text-nlt-accent/70">SUPREME ENGINE</span>
+                            </div>
+                            <span id="supremeSignalTag" class="signal-tag signal-buy top-3 right-2">BUY</span>
+                        </div>
+
+                        <div class="relative mt-2 flex items-center justify-center gap-2.5 text-[11px] font-mono text-gray-300" data-supreme-reveal>
+                            <span class="w-1.5 h-1.5 rounded-full bg-nlt-accent animate-pulse"></span>
+                            <span id="supremeTicker">MARKET SCANNING</span>
+                        </div>
+
+                        <div id="supremeCandles" class="relative mt-6 flex items-end justify-center gap-[3px] h-14 mx-auto max-w-xs" data-supreme-reveal></div>
+
+                        <div class="relative mt-9 grid grid-cols-2 md:grid-cols-5 gap-2.5 max-w-3xl mx-auto text-left" data-supreme-reveal>
+                            <div class="status-chip"><p class="label">Market Scanner</p><p class="value text-nlt-success">● ONLINE</p></div>
+                            <div class="status-chip"><p class="label">Market Data</p><p class="value text-gray-200">STREAMING</p></div>
+                            <div class="status-chip"><p class="label">AI / Engine</p><p class="value text-gray-200">ANALYZING</p></div>
+                            <div class="status-chip"><p class="label">Risk Engine</p><p class="value text-gray-200">ACTIVE</p></div>
+                            <div class="status-chip col-span-2 md:col-span-1"><p class="label">Status</p><p class="value text-gray-500">COMING SOON</p></div>
+                        </div>
+                    </div>
+
+                    <!-- CONTENIDO -->
+                    <div class="px-6 md:px-14 py-12 space-y-14">
+
+                        <div data-supreme-reveal>
+                            <p class="text-gray-300 leading-relaxed max-w-2xl">Un bot de trading diseñado para operar de forma automatizada bajo una lógica estructurada de mercado y gestión de riesgo.</p>
+                            <p class="text-gray-500 italic text-sm mt-3">"Construido para traders que buscan llevar la automatización al siguiente nivel."</p>
+
+                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-7">
+                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">💰</span><span class="text-xs font-semibold text-gray-300">Capital propio</span></div>
+                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">🏦</span><span class="text-xs font-semibold text-gray-300">Fondeo / Prop Firms</span></div>
+                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">📊</span><span class="text-xs font-semibold text-gray-300">Distintas condiciones</span></div>
+                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">⚙️</span><span class="text-xs font-semibold text-gray-300">Operativa automatizada</span></div>
+                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">🛡️</span><span class="text-xs font-semibold text-gray-300">Gestión de riesgo</span></div>
+                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">📈</span><span class="text-xs font-semibold text-gray-300">Ejecución sistemática</span></div>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-5" data-supreme-reveal>
+                            <div class="glass-card p-8">
+                                <div class="w-11 h-11 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-5 text-xl">💰</div>
+                                <h3 class="font-bold text-white mb-2.5">Capital propio</h3>
+                                <p class="text-sm text-gray-400 leading-relaxed">Pensado para operar tu propio capital, automatizando la ejecución de operaciones siguiendo los parámetros que vos configures.</p>
+                            </div>
+                            <div class="glass-card p-8">
+                                <div class="w-11 h-11 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-5 text-xl">🏦</div>
+                                <h3 class="font-bold text-white mb-2.5">Cuentas de fondeo</h3>
+                                <p class="text-sm text-gray-400 leading-relaxed mb-3">Diseñado también pensando en traders con cuentas de fondeo, donde la gestión de riesgo, los límites y los parámetros configurables son clave.</p>
+                                <p class="text-[11px] text-gray-600 leading-relaxed">La compatibilidad depende de las condiciones y reglas de cada proveedor -- no garantizamos que una prop firm en particular permita su uso.</p>
+                            </div>
+                        </div>
+
+                        <div data-supreme-reveal>
+                            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-5">En desarrollo</p>
+                            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Automatización de entradas y salidas</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Gestión de riesgo configurable</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Control de lotaje</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Stop Loss / Take Profit</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Parámetros adaptables</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Protección ante condiciones no deseadas</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Dashboard de monitoreo</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Historial y estadísticas</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip"><span class="text-sm text-gray-300">Integración con el ecosistema NLT</span><span class="tag">Dev</span></div>
+                                <div class="dev-chip sm:col-span-2 lg:col-span-1"><span class="text-sm text-gray-300">Operar otros mercados a futuro</span><span class="tag">Dev</span></div>
+                            </div>
+                        </div>
+
+                        <p class="text-[11px] text-gray-600 leading-relaxed border-t border-white/5 pt-7" data-supreme-reveal>
+                            NLT Supreme está en desarrollo. No se presentan rentabilidades garantizadas ni se promete ningún resultado -- toda la operativa automatizada conlleva riesgo real de pérdida de capital.
+                        </p>
+
+                        <div class="text-center pt-2" data-supreme-reveal>
+                            <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">NLT SUPREME</h3>
+                            <p class="text-nlt-accent text-xs font-bold uppercase tracking-widest mb-4">Próximamente</p>
+                            <p class="text-gray-400 max-w-md mx-auto mb-8">Estamos construyendo la próxima generación de automatización para traders.</p>
+                            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <button id="btn-supreme-notify" type="button" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer inline-flex items-center gap-2">
+                                    <i class="ph-bold ph-bell-ringing"></i> Avísame cuando esté disponible
+                                </button>
+                                <button id="btn-supreme-back" type="button" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all cursor-pointer">Volver al ecosistema NLT</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function () {
+            function tarjeta(m) {
+                const disponible = m.status === 'live';
+                const wrapTag = disponible ? 'a' : 'div';
+                const hrefAttr = disponible ? `href="${m.href}"` : '';
+                return `
+                    <${wrapTag} ${hrefAttr} class="glass-card p-8 flex flex-col relative overflow-hidden group ${disponible ? 'cursor-pointer hover:border-nlt-accent/30' : 'opacity-60'} transition-all" data-reveal>
+                        ${!disponible ? '<span class="absolute top-5 right-5 text-[9px] font-bold uppercase tracking-widest text-gray-500 border border-gray-700 rounded-full px-2.5 py-1">Próximamente</span>' : ''}
+                        <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+                            <i class="ph-fill ${m.icono}"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-white mb-2 tracking-tight">${m.nombre}</h3>
+                        <p class="text-sm text-gray-400 leading-relaxed flex-1">${m.descripcion}</p>
+                        ${disponible ? `<span class="mt-6 inline-flex items-center gap-2 text-xs font-bold text-nlt-accent uppercase tracking-wider">Entrar <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i></span>` : ''}
+                    </${wrapTag}>
+                `;
+            }
+            function render() {
+                const grid = document.getElementById('modulesGrid');
+                if (!grid || !window.NLT) return;
+                grid.innerHTML = window.NLT.NLT_MODULES.map(tarjeta).join('');
+                animarReveal();
+            }
+            function animarReveal() {
+                if (!window.gsap || !window.ScrollTrigger) return;
+                gsap.registerPlugin(ScrollTrigger);
+                document.querySelectorAll('[data-reveal]').forEach((el) => {
+                    gsap.set(el, { y: 24 });
+                    gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%' } });
+                });
+            }
+            if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
+            else render();
+        })();
+
+        // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+
+        (async function () {
+            const box = document.getElementById('videosBox');
+            try {
+                const videos = await NLT_API.contenidoEcosistema('videos');
+                if (!videos.length) {
+                    box.innerHTML = `
+                        <div class="glass-card p-10 text-center border-dashed border-white/10" data-reveal>
+                            <i class="ph ph-play-circle text-4xl text-gray-600 mb-4"></i>
+                            <h3 class="text-lg font-bold text-white mb-2">Videos del ecosistema</h3>
+                            <p class="text-sm text-gray-500">Todavía no hay videos cargados -- esta sección se activa desde el panel de administración apenas se suban los primeros.</p>
+                        </div>
+                    `;
+                } else {
+                    box.innerHTML = `
+                        <div class="text-center mb-8" data-reveal>
+                            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Video</p>
+                            <h2 class="text-3xl font-extrabold tracking-tight">Ecosistema en video</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            ${videos.map(v => `
+                                <div class="glass-card p-6" data-reveal>
+                                    ${v.titulo ? `<h3 class="font-bold text-white mb-3">${v.titulo}</h3>` : ''}
+                                    <div class="aspect-video rounded-xl overflow-hidden bg-black/40"><iframe src="${v.contenido}" class="w-full h-full" frameborder="0" allowfullscreen></iframe></div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                box.innerHTML = '';  // sin bloquear la página si el CMS falla -- la sección simplemente no aparece
+            }
+            if (window.gsap && window.ScrollTrigger) {
+                document.querySelectorAll('#videosBox [data-reveal]').forEach((el) => {
+                    gsap.set(el, { y: 24, opacity: 0 });
+                    gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+                });
+            }
+        })();
+    </script>
+
+    <!-- Portal NLT Supreme: apertura/cierre, motor visual (canvas), velas, ticker de estado y botón de aviso (preparado, sin backend todavía). -->
+    <script>
+        (function () {
+            const btnOpen = document.getElementById('btn-abrir-supreme');
+            const modal = document.getElementById('supremeModal');
+            const scrollWrap = document.getElementById('supremeScroll');
+            const panel = document.getElementById('supremePanel');
+            const btnClose = document.getElementById('btn-supreme-close');
+            const btnBack = document.getElementById('btn-supreme-back');
+            const canvas = document.getElementById('supremeCanvas');
+            if (!btnOpen || !modal || !canvas) return;
+            const ctx = canvas.getContext('2d');
+
+            // --- Motor visual: núcleo pulsante + anillo rotando + nodos fijos
+            // conectados por líneas finas + partículas viajando en ambos
+            // sentidos (entrada = datos de mercado, salida = señal de
+            // ejecución) -- mismo lenguaje visual que el modal "Red de Copiado
+            // en Vivo" de index.html, adaptado a un solo motor central en vez
+            // de una red de cuentas. 100% ilustrativo, ningún dato real.
+            let animId = null, spawnTimer = null, tickerTimer = null, signalTimer = null;
+            let nodes = [], particles = [], center = { x: 0, y: 0 }, ringAngle = 0;
+
+            function buildNodes() {
+                nodes = [];
+                const count = 8;
+                const radius = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.42;
+                for (let i = 0; i < count; i++) {
+                    const angle = (i / count) * Math.PI * 2;
+                    nodes.push({ x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius, pulse: Math.random() * Math.PI * 2 });
+                }
+            }
+
+            function resizeCanvas() {
+                const dpr = window.devicePixelRatio || 1;
+                canvas.width = canvas.clientWidth * dpr;
+                canvas.height = canvas.clientHeight * dpr;
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
+                buildNodes();
+            }
+
+            function spawnParticle() {
+                if (!nodes.length) return;
+                const node = nodes[Math.floor(Math.random() * nodes.length)];
+                const inbound = Math.random() < 0.68; // más datos entrando que señales saliendo
+                particles.push({ node, t: 0, inbound, speed: 0.014 + Math.random() * 0.012 });
+            }
+
+            function draw() {
+                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+
+                ctx.strokeStyle = 'rgba(67,120,255,0.07)';
+                ctx.lineWidth = 1;
+                nodes.forEach((n) => { ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(n.x, n.y); ctx.stroke(); });
+
+                ringAngle += 0.0045;
+                const ringRadius = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.46;
+                ctx.save();
+                ctx.translate(center.x, center.y);
+                ctx.rotate(ringAngle);
+                ctx.setLineDash([2, 11]);
+                ctx.beginPath();
+                ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(67,120,255,0.3)';
+                ctx.lineWidth = 1.3;
+                ctx.stroke();
+                ctx.restore();
+                ctx.setLineDash([]);
+
+                nodes.forEach((n) => {
+                    n.pulse += 0.02;
+                    const r = 2.2 + Math.sin(n.pulse) * 1;
+                    ctx.beginPath();
+                    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+                    ctx.fillStyle = 'rgba(200,215,255,0.5)';
+                    ctx.fill();
+                });
+
+                particles.forEach((p) => {
+                    p.t += p.speed;
+                    const from = p.inbound ? p.node : center;
+                    const to = p.inbound ? center : p.node;
+                    const x = from.x + (to.x - from.x) * p.t;
+                    const y = from.y + (to.y - from.y) * p.t;
+                    const color = p.inbound ? '67,120,255' : '34,197,94';
+                    ctx.beginPath();
+                    ctx.arc(x, y, 2.4, 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(${color},1)`;
+                    ctx.shadowColor = `rgba(${color},0.9)`;
+                    ctx.shadowBlur = 7;
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                });
+                particles = particles.filter((p) => p.t < 1);
+
+                const corePulse = 9 + Math.sin(Date.now() / 320) * 3;
+                const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, corePulse * 2.6);
+                grad.addColorStop(0, 'rgba(67,120,255,0.9)');
+                grad.addColorStop(1, 'rgba(67,120,255,0)');
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, corePulse * 2.6, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffffff';
+                ctx.fill();
+
+                animId = requestAnimationFrame(draw);
+            }
+
+            // --- Velas ilustrativas (CSS, respiran con keyframes -- ver
+            // .candle-bar en el <style>) -- se generan una sola vez por
+            // apertura, nunca pretenden ser datos de mercado reales.
+            function renderCandles() {
+                const box = document.getElementById('supremeCandles');
+                if (!box) return;
+                const total = 20;
+                let html = '';
+                for (let i = 0; i < total; i++) {
+                    const up = Math.random() < 0.6;
+                    const h = 14 + Math.random() * 42;
+                    const scale = (1.04 + Math.random() * 0.1).toFixed(2);
+                    const delay = (Math.random() * 2.4).toFixed(2);
+                    const color = up ? 'background:#22C55E;opacity:.75' : 'background:#F87171;opacity:.6';
+                    html += `<div class="candle-bar" style="height:${h}px;${color};--candle-scale:${scale};animation-delay:${delay}s"></div>`;
+                }
+                box.innerHTML = html;
+            }
+
+            // --- Ticker de estado (texto rotativo, solo visual) ---
+            const TICKER_STATES = ['MARKET SCANNING', 'ANALYZING', 'SIGNAL DETECTED', 'RISK CHECK', 'EXECUTION READY'];
+            function runTicker() {
+                const el = document.getElementById('supremeTicker');
+                if (!el) return;
+                let i = 0;
+                tickerTimer = setInterval(() => {
+                    el.classList.add('ticker-fade');
+                    setTimeout(() => {
+                        i = (i + 1) % TICKER_STATES.length;
+                        el.textContent = TICKER_STATES[i];
+                        el.classList.remove('ticker-fade');
+                    }, 400);
+                }, 2400);
+            }
+
+            // --- Tag flotante BUY/SELL, aparece brevemente cada tanto ---
+            function runSignalTag() {
+                const tag = document.getElementById('supremeSignalTag');
+                if (!tag) return;
+                signalTimer = setInterval(() => {
+                    const buy = Math.random() < 0.5;
+                    tag.textContent = buy ? 'BUY' : 'SELL';
+                    tag.classList.toggle('signal-buy', buy);
+                    tag.classList.toggle('signal-sell', !buy);
+                    tag.classList.add('show');
+                    setTimeout(() => tag.classList.remove('show'), 1900);
+                }, 5200);
+            }
+
+            function open() {
+                modal.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                resizeCanvas();
+                renderCandles();
+                draw();
+                spawnTimer = setInterval(spawnParticle, 420);
+                runTicker();
+                runSignalTag();
+
+                if (window.gsap) {
+                    gsap.set(panel, { opacity: 0, y: 24, scale: 0.97 });
+                    gsap.set('[data-supreme-reveal]', { opacity: 0, y: 14 });
+                    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+                    tl.to(panel, { opacity: 1, y: 0, scale: 1, duration: 0.55 })
+                      .to('[data-supreme-reveal]', { opacity: 1, y: 0, duration: 0.55, stagger: 0.06 }, '-=0.25');
+                }
+            }
+
+            function close() {
+                modal.classList.add('hidden');
+                document.body.style.overflow = '';
+                cancelAnimationFrame(animId);
+                clearInterval(spawnTimer);
+                clearInterval(tickerTimer);
+                clearInterval(signalTimer);
+                particles = [];
+                scrollWrap.scrollTop = 0;
+            }
+
+            btnOpen.addEventListener('click', open);
+            btnClose.addEventListener('click', close);
+            if (btnBack) btnBack.addEventListener('click', close);
+            scrollWrap.addEventListener('click', (e) => { if (e.target === scrollWrap || e.target.parentElement === scrollWrap) close(); });
+            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
+            window.addEventListener('resize', () => { if (!modal.classList.contains('hidden')) resizeCanvas(); });
+
+            // --- "Avísame cuando esté disponible" -- sin sistema de
+            // notificaciones todavía, así que solo deja constancia local de
+            // interés (localStorage) y muestra el botón como confirmado.
+            // TODO: cuando exista el endpoint real (ej. NLT_API.notificarmeSupreme()),
+            // reemplazar el guardado local por una llamada real al backend.
+            const NOTIFY_KEY = 'nlt_supreme_notify_interes';
+            const btnNotify = document.getElementById('btn-supreme-notify');
+            function actualizarBotonNotify() {
+                if (!btnNotify) return;
+                if (localStorage.getItem(NOTIFY_KEY) === '1') {
+                    btnNotify.innerHTML = '<i class="ph-fill ph-check-circle"></i> Te vamos a avisar';
+                    btnNotify.classList.add('opacity-70');
+                    btnNotify.disabled = true;
+                }
+            }
+            if (btnNotify) {
+                btnNotify.addEventListener('click', () => {
+                    localStorage.setItem(NOTIFY_KEY, '1');
+                    actualizarBotonNotify();
+                });
+                actualizarBotonNotify();
+            }
+        })();
+    </script>
+</body>
+</html>

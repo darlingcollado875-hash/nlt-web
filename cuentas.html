@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Cuentas Destino</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        nlt: {
+                            bg: '#080A0F',
+                            surface: '#11151C',
+                            accent: '#4378FF',
+                            success: '#22C55E',
+                            danger: '#EF4444',
+                            border: 'rgba(255, 255, 255, 0.05)'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card {
+            background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%);
+            backdrop-filter: blur(24px);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 24px;
+        }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR (contenido inyectado por NLT.mountSidebar -- ver assets/js/nlt-shared.js) -->
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col h-full">
+        <header class="h-24 flex items-center justify-between px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-2xl font-bold tracking-tight">Cuentas Sincronizadas</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">
+                Cerrar Sesión
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+            <div class="glass-card p-6">
+                <h3 class="text-sm font-bold text-white mb-4">Conectar cuenta nueva</h3>
+                <form id="formCuenta" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+                    <div class="md:col-span-1">
+                        <label class="block text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">Proveedor</label>
+                        <select id="proveedor" class="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <option value="tickerall">TickerAll (sin instalación)</option>
+                            <option value="local">Terminal local</option>
+                        </select>
+                    </div>
+                    <input type="number" id="login" required placeholder="Login (Ej: 123456)" class="md:col-span-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    <input type="password" id="password" required placeholder="Contraseña" class="md:col-span-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    <input type="text" id="server" list="mt5Servers" required autocomplete="off" placeholder="Servidor" class="md:col-span-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    <button type="submit" class="md:col-span-1 w-full py-3 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Conectar</button>
+                </form>
+                <p id="formMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
+            </div>
+
+            <div id="listaCuentas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <p class="text-sm text-nlt-accent animate-pulse col-span-full">Cargando datos desde el servidor...</p>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function cargarCuentas() {
+            const container = document.getElementById('listaCuentas');
+
+            try {
+                const todas = await NLT_API.listarCuentas();
+                const data = todas.filter(c => c.tipo_cuenta === 'DESTINO');
+
+                if (!data || data.length === 0) {
+                    container.innerHTML = `<div class="col-span-full p-8 border border-dashed border-white/20 rounded-2xl text-center"><p class="text-gray-400">No tienes cuentas destino sincronizadas.</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = data.map(c => {
+                    const tieneBalance = c.balance_actual !== null && c.balance_actual !== undefined && c.estado === 'CONECTADA';
+                    const sinInstalacion = c.proveedor === 'MT5API_DEV' || c.proveedor === 'TICKERALL';
+                    return `
+                    <div class="glass-card p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="px-2.5 py-1 rounded-md bg-nlt-accent/10 border border-nlt-accent/20 text-[10px] text-nlt-accent font-bold tracking-widest uppercase">Destino${sinInstalacion ? ' · Sin instalación' : ''}</span>
+                                ${NLT.renderEstadoBadge(c.estado)}
+                            </div>
+                            <h3 class="text-2xl font-bold text-white tracking-tight">${c.login_numero}</h3>
+                            <p class="text-xs text-gray-400 mt-1 uppercase tracking-wider font-medium">${c.broker_server}</p>
+                            <p class="text-lg font-bold ${tieneBalance ? 'text-white' : 'text-gray-600'} mt-3">
+                                ${tieneBalance ? '$' + Number(c.balance_actual).toLocaleString('es', { minimumFractionDigits: 2 }) : 'Sin verificar'}
+                            </p>
+                        </div>
+                        <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
+                            ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
+                                <button onclick="mostrarReconexion('${c.id}')" id="btnReconectar-${c.id}" class="text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer flex items-center gap-2">
+                                    <i class="ph-bold ph-arrows-clockwise"></i> Reconectar
+                                </button>
+                            ` : '<span></span>'}
+                            <button onclick="borrar('${c.id}')" class="text-xs font-semibold text-nlt-danger hover:text-red-300 transition-colors cursor-pointer flex items-center gap-2">
+                                <i class="ph-bold ph-trash"></i> Desvincular
+                            </button>
+                        </div>
+                        ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
+                            <div id="reconexion-${c.id}" class="hidden mt-3 pt-3 border-t border-white/5">
+                                <p class="text-[11px] text-gray-500 mb-2">La sesión se enfrió del lado de TickerAll -- ingresá la contraseña para reconectarla:</p>
+                                <div class="flex gap-2">
+                                    <input type="password" id="passReconexion-${c.id}" placeholder="Contraseña" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-orange-500 outline-none">
+                                    <button onclick="reconectarTickerAll('${c.id}')" class="px-3 py-2 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-semibold hover:bg-orange-500/30 transition-all">Confirmar</button>
+                                </div>
+                                <p id="msgReconexion-${c.id}" class="text-[11px] mt-2 hidden"></p>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+                }).join('');
+
+            } catch (err) {
+                container.innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function borrar(id) {
+            if(!confirm("¿Desvincular esta cuenta permanentemente?")) return;
+            try {
+                await NLT_API.borrarCuenta(id);
+                location.reload();
+            } catch (err) {
+                alert("Error al borrar: " + err.message);
+            }
+        }
+
+        function mostrarReconexion(id) {
+            document.getElementById(`reconexion-${id}`).classList.remove('hidden');
+            document.getElementById(`btnReconectar-${id}`).classList.add('hidden');
+            document.getElementById(`passReconexion-${id}`).focus();
+        }
+
+        async function reconectarTickerAll(id) {
+            const input = document.getElementById(`passReconexion-${id}`);
+            const msg = document.getElementById(`msgReconexion-${id}`);
+            const password = input.value;
+            if (!password) {
+                msg.classList.remove('hidden');
+                msg.className = 'text-[11px] mt-2 text-nlt-danger';
+                msg.textContent = 'Escribí la contraseña antes de confirmar.';
+                return;
+            }
+            msg.classList.remove('hidden');
+            msg.className = 'text-[11px] mt-2 text-gray-400';
+            msg.textContent = 'Reconectando...';
+            try {
+                await NLT_API.reconectarTickerAll(id, password);
+                msg.className = 'text-[11px] mt-2 text-nlt-success';
+                msg.textContent = '¡Cuenta reconectada!';
+                setTimeout(() => location.reload(), 800);
+            } catch (err) {
+                msg.className = 'text-[11px] mt-2 text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        document.getElementById('formCuenta').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('formMsg');
+            msg.classList.remove('hidden');
+            msg.className = "mt-3 text-xs p-3 rounded-lg bg-blue-500/10 text-blue-400";
+            msg.textContent = "Conectando...";
+
+            const datos = {
+                tipo_cuenta: 'DESTINO',
+                login_numero: parseInt(document.getElementById('login').value),
+                password: document.getElementById('password').value,
+                broker_server: document.getElementById('server').value,
+                riesgo_porcentaje: 1.0,
+            };
+            const proveedor = document.getElementById('proveedor').value;
+
+            try {
+                if (proveedor === 'tickerall') {
+                    await NLT_API.crearCuentaTickerAll(datos);
+                } else {
+                    await NLT_API.crearCuentaLocal(datos);
+                }
+                msg.className = "mt-3 text-xs p-3 rounded-lg bg-green-500/10 text-green-500";
+                msg.textContent = "¡Cuenta conectada!";
+                setTimeout(() => location.reload(), 1000);
+            } catch (err) {
+                msg.className = "mt-3 text-xs p-3 rounded-lg bg-red-500/10 text-red-500";
+                msg.textContent = "Error: " + err.message;
+            }
+        });
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'cuentas', seccion: 'cfd' });
+            await cargarCuentas();
+            setInterval(cargarCuentas, 20000);
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        NLT.injectServerDatalist();
+        document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
+
+        init();
+    </script>
+</body>
+</html>

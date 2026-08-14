@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verificar certificado | NLT Academy</title>
+    <meta name="description" content="Verificá la autenticidad de un certificado de NLT Academy.">
+    <meta name="robots" content="noindex">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="assets/js/nlt-certificate.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', danger: '#EF4444' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+    </style>
+</head>
+<body class="flex items-center justify-center px-6 py-16">
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <div class="relative z-10 w-full max-w-3xl">
+        <div class="flex items-center justify-center gap-3 mb-8">
+            <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8">
+            <span class="font-semibold text-base tracking-tight">NLT Academy -- Verificación</span>
+        </div>
+
+        <div id="resultBox" class="glass-card p-10 text-center">
+            <p class="text-sm text-gray-500 animate-pulse">Verificando certificado...</p>
+        </div>
+
+        <p class="text-center mt-8"><a href="academy.html" class="text-xs text-gray-500 hover:text-white transition-colors">Volver a NLT Academy</a></p>
+    </div>
+
+    <script>
+        const BASE_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
+            ? 'http://127.0.0.1:8091'
+            : 'https://increasing-sends-jun-assumes.trycloudflare.com';
+
+        function getCode() {
+            const parts = window.location.pathname.split('/').filter(Boolean);
+            const fromPath = parts.length && parts[0] !== 'verify.html' ? parts[parts.length - 1] : null;
+            const fromQuery = new URLSearchParams(window.location.search).get('code');
+            return fromQuery || fromPath || '';
+        }
+
+        async function verificar() {
+            const box = document.getElementById('resultBox');
+            const code = getCode();
+            if (!code) {
+                box.innerHTML = `<i class="ph-fill ph-question text-4xl text-gray-600 mb-3"></i><p class="text-white font-semibold">Falta el código de certificado.</p>`;
+                return;
+            }
+            try {
+                const resp = await fetch(`${BASE_URL}/academy/verify/${encodeURIComponent(code)}`);
+                const data = await resp.json();
+                if (!data.valid) {
+                    box.innerHTML = `
+                        <i class="ph-fill ph-x-circle text-4xl text-nlt-danger mb-3"></i>
+                        <p class="text-white font-semibold mb-1">Certificado no encontrado</p>
+                        <p class="text-xs text-gray-500">El código <span class="font-mono">${code}</span> no corresponde a ningún certificado emitido por NLT Academy.</p>
+                    `;
+                    return;
+                }
+                box.className = 'w-full';
+                box.innerHTML = `
+                    <div class="flex items-center justify-center gap-2 mb-6">
+                        <i class="ph-fill ph-seal-check text-nlt-success text-xl"></i>
+                        <p class="text-xs text-nlt-success font-bold uppercase tracking-widest">Certificado verificado -- auténtico</p>
+                    </div>
+                    <div id="certHolder"></div>
+                `;
+                NLT_CERT.render(document.getElementById('certHolder'), {
+                    title: data.title, slug: data.slug, student_name: data.student_name,
+                    certificate_code: data.certificate_code, issued_at: data.issued_at,
+                    verification_url: window.location.href, description: data.description,
+                });
+            } catch (err) {
+                box.innerHTML = `<i class="ph-fill ph-warning-circle text-4xl text-yellow-400 mb-3"></i><p class="text-white font-semibold">No se pudo verificar ahora mismo.</p><p class="text-xs text-gray-500 mt-1">${err.message}</p>`;
+            }
+        }
+        verificar();
+    </script>
+</body>
+</html>

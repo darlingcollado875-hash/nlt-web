@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Configuración Futures</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255, 255, 255, 0.05)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 flex flex-col h-full">
+        <header class="h-24 flex items-center justify-between px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-2xl font-bold tracking-tight">Configuración Futures</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+            <div class="glass-card p-6">
+                <h2 class="text-sm font-bold text-white mb-1">Proveedor</h2>
+                <p class="text-xs text-gray-500 mb-4">Determina qué conector ejecuta las operaciones de Futures -- se configura por variable de entorno (FUTURES_PROVIDER) en el backend, no desde acá, para evitar cambiar de proveedor real por accidente.</p>
+                <div id="proveedorBox" class="glass-item p-4"><p class="text-sm text-gray-400 animate-pulse">Cargando...</p></div>
+            </div>
+
+            <div class="glass-card p-6">
+                <h2 class="text-sm font-bold text-white mb-1">Multiplicador por cuenta</h2>
+                <p class="text-xs text-gray-500 mb-4">El sizing base ya es proporcional al balance de cada cuenta (contratos_destino = contratos_master × balance_destino/balance_master, redondeado a entero). El multiplicador es un ajuste adicional opcional por cuenta -- se edita desde "Mis cuentas" en cada tarjeta.</p>
+                <div id="multiplicadoresBox" class="space-y-2"><p class="text-sm text-gray-500">Cargando cuentas...</p></div>
+            </div>
+
+            <div class="glass-card p-6 border-orange-500/20">
+                <h2 class="text-sm font-bold text-orange-400 mb-1">Pendiente de proveedor real (Tradovate)</h2>
+                <p class="text-xs text-gray-500 mb-3">Estas opciones existen conceptualmente pero no se activan hasta tener confirmación oficial y credenciales de Tradovate -- no se inventan valores ni comportamientos que el proveedor real no haya confirmado.</p>
+                <ul class="space-y-2 text-xs text-gray-400">
+                    <li class="flex items-center gap-2"><i class="ph ph-clock text-orange-400"></i> Modo demo/sandbox vs producción -- pendiente de credenciales reales</li>
+                    <li class="flex items-center gap-2"><i class="ph ph-clock text-orange-400"></i> Reconexión automática con refresh token -- pendiente de confirmar si Tradovate lo soporta</li>
+                    <li class="flex items-center gap-2"><i class="ph ph-clock text-orange-400"></i> Límites de cuentas conectadas por API key -- pendiente de respuesta de Tradovate (ver mensaje ya enviado)</li>
+                    <li class="flex items-center gap-2"><i class="ph ph-clock text-orange-400"></i> Gestión de riesgo por cuenta (drawdown máximo, stop diario) -- a definir cuando el copiador esté probado contra el proveedor real</li>
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function cargarProveedor() {
+            const box = document.getElementById('proveedorBox');
+            try {
+                const { provider } = await NLT_API.futuresProveedor();
+                box.innerHTML = provider === 'MOCK'
+                    ? `<p class="text-sm text-orange-300"><i class="ph-fill ph-flask"></i> <strong>MOCK</strong> -- entorno de simulación, ninguna cuenta es real todavía.</p>`
+                    : `<p class="text-sm text-nlt-success"><i class="ph-fill ph-check-circle"></i> <strong>${provider}</strong> -- proveedor real conectado.</p>`;
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function cargarMultiplicadores() {
+            const box = document.getElementById('multiplicadoresBox');
+            try {
+                const cuentas = await NLT_API.futuresListarCuentas();
+                if (!cuentas.length) {
+                    box.innerHTML = `<p class="text-sm text-gray-500">No tenés cuentas Futures todavía -- conectá una desde el Dashboard.</p>`;
+                    return;
+                }
+                box.innerHTML = cuentas.map(c => `
+                    <div class="glass-item p-3 flex items-center justify-between">
+                        <div>
+                            <span class="text-xs font-bold text-nlt-accent uppercase mr-2">${c.tipo_cuenta}</span>
+                            <span class="text-sm text-white">${c.nombre_cuenta}</span>
+                        </div>
+                        <span class="text-sm font-bold text-white">x${c.multiplicador}</span>
+                    </div>
+                `).join('');
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'futuros-config', seccion: 'futures' });
+            document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('futures');
+            await Promise.all([cargarProveedor(), cargarMultiplicadores()]);
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        init();
+    </script>
+</body>
+</html>

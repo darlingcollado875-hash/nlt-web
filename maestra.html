@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Cuenta Maestra</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', danger: '#EF4444' } } } }
+        }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col p-10 overflow-y-auto">
+        <header class="flex justify-between items-center mb-10 pb-6 border-b border-white/5">
+            <h1 class="text-2xl font-bold">Configuración Maestra</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">
+                Cerrar Sesión
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <!-- Formulario de la Maestra -->
+            <div class="glass-card p-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center text-yellow-500"><i class="ph-fill ph-crown text-xl"></i></div>
+                    <h3 class="text-lg font-bold">Vincular Maestra</h3>
+                </div>
+                <form id="maestraForm" class="space-y-4">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-2">Proveedor de conexión</label>
+                        <select id="proveedor" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <option value="tickerall">TickerAll (sin instalación)</option>
+                            <option value="local">Terminal local</option>
+                        </select>
+                    </div>
+                    <input type="number" id="login" required class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none" placeholder="Login ID (Ej: 123456)">
+                    <input type="password" id="password" required class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none" placeholder="Contraseña Principal">
+                    <input type="text" id="server" list="mt5Servers" required class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none" placeholder="Servidor (empieza a escribir para ver sugerencias)"
+                        autocomplete="off">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-2">Riesgo por operación (% del balance de cada Destino)</label>
+                        <input type="number" id="riesgo" required min="0.1" max="100" step="0.1" value="1" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none" placeholder="Ej: 1 = arriesga 1% del balance por operación">
+                    </div>
+                    <button type="submit" class="w-full py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Definir como Maestra</button>
+                </form>
+                <div id="statusMsg" class="mt-4 text-center text-xs hidden p-3 rounded-lg"></div>
+            </div>
+
+            <!-- Mostrar Maestra Actual -->
+            <div class="glass-card p-8 border border-yellow-500/20">
+                <h3 class="text-sm font-semibold text-gray-400 mb-6 uppercase tracking-wider">Cuenta Activa Actual</h3>
+                <div id="maestraActiva">
+                    <p class="text-gray-500 text-sm animate-pulse">Buscando cuenta en el servidor...</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let sesionActual = null;
+        let maestraActualId = null;
+
+        async function init() {
+            sesionActual = await NLT.requireSession();
+            if (!sesionActual) return;
+            await NLT.mountSidebar(sesionActual, { activo: 'maestra', seccion: 'cfd' });
+            cargarMaestra();
+        }
+
+        async function cargarMaestra() {
+            const todas = await NLT_API.listarCuentas();
+            const data = todas.filter(c => c.tipo_cuenta === 'MAESTRA');
+            const container = document.getElementById('maestraActiva');
+            maestraActualId = (data && data.length > 0) ? data[0].id : null;
+
+            if (data && data.length > 0) {
+                const c = data[0];
+                const tieneBalance = c.balance_actual !== null && c.balance_actual !== undefined && c.estado === 'CONECTADA';
+                const badgeEstado = NLT.renderEstadoBadge(c.estado);
+                container.innerHTML = `
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-3xl font-bold text-white">${c.login_numero}</h2>
+                        ${badgeEstado}
+                    </div>
+                    <p class="text-sm text-gray-400 uppercase tracking-widest mb-4">${c.broker_server}${(c.proveedor === 'MT5API_DEV' || c.proveedor === 'TICKERALL') ? ' · Sin instalación' : ''}</p>
+                    <div class="p-4 rounded-xl bg-black/20 border border-white/5 mb-4">
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Balance verificado</p>
+                        ${tieneBalance
+                            ? `<p class="text-2xl font-bold text-white">$${Number(c.balance_actual).toLocaleString('es', { minimumFractionDigits: 2 })}</p>`
+                            : `<p class="text-sm text-gray-500">Sin verificar todavía — se actualiza cuando el motor de ejecución se conecta a esta cuenta.</p>`
+                        }
+                    </div>
+                    <div class="p-4 rounded-xl bg-black/20 border border-white/5 mb-6">
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Riesgo por operación</p>
+                        <p class="text-2xl font-bold text-white">${c.riesgo_porcentaje ?? 1}% <span class="text-xs text-gray-500 font-normal">del balance de cada Destino</span></p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
+                            <button onclick="mostrarReconexion('${c.id}')" id="btnReconectar-${c.id}" class="text-xs text-orange-400 hover:text-orange-300 flex items-center gap-2"><i class="ph-bold ph-arrows-clockwise"></i> Reconectar</button>
+                        ` : ''}
+                        <button onclick="borrar('${c.id}')" class="text-xs text-red-400 hover:text-red-300 flex items-center gap-2"><i class="ph-bold ph-trash"></i> Eliminar Maestra</button>
+                    </div>
+                    ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
+                        <div id="reconexion-${c.id}" class="hidden mt-4 pt-4 border-t border-white/5">
+                            <p class="text-[11px] text-gray-500 mb-2">La sesión se enfrió del lado de TickerAll -- ingresá la contraseña para reconectarla:</p>
+                            <div class="flex gap-2">
+                                <input type="password" id="passReconexion-${c.id}" placeholder="Contraseña" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-orange-500 outline-none">
+                                <button onclick="reconectarTickerAll('${c.id}')" class="px-3 py-2 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-semibold hover:bg-orange-500/30 transition-all">Confirmar</button>
+                            </div>
+                            <p id="msgReconexion-${c.id}" class="text-[11px] mt-2 hidden"></p>
+                        </div>
+                    ` : ''}
+                `;
+                document.getElementById('login').value = c.login_numero;
+                document.getElementById('server').value = c.broker_server;
+                document.getElementById('riesgo').value = c.riesgo_porcentaje ?? 1;
+            } else {
+                container.innerHTML = `<p class="text-gray-500 text-sm">No hay cuenta maestra configurada.</p>`;
+            }
+        }
+
+        document.getElementById('maestraForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msgBox = document.getElementById('statusMsg');
+            msgBox.classList.remove('hidden'); msgBox.className = "mt-4 text-center text-xs p-3 rounded-lg bg-blue-500/10 text-blue-400";
+            msgBox.textContent = "Guardando...";
+
+            const datos = {
+                tipo_cuenta: 'MAESTRA',
+                login_numero: parseInt(document.getElementById('login').value),
+                password: document.getElementById('password').value,
+                broker_server: document.getElementById('server').value,
+                riesgo_porcentaje: parseFloat(document.getElementById('riesgo').value),
+            };
+            const proveedor = document.getElementById('proveedor').value;
+
+            try {
+                // Si ya existe una maestra, se borra primero -- NLT_API no
+                // tiene "actualizar", así se evita tener dos maestras a la vez.
+                if (maestraActualId) {
+                    await NLT_API.borrarCuenta(maestraActualId);
+                }
+                if (proveedor === 'tickerall') {
+                    await NLT_API.crearCuentaTickerAll({ ...datos });
+                } else if (proveedor === 'mt5api') {
+                    await NLT_API.crearCuentaMT5API({ ...datos, mode: 'trade' });
+                } else {
+                    await NLT_API.crearCuentaLocal(datos);
+                }
+                msgBox.className = "mt-4 text-center text-xs p-3 rounded-lg bg-green-500/10 text-green-500";
+                msgBox.textContent = "¡Cuenta Maestra configurada!";
+                setTimeout(() => location.reload(), 1000);
+            } catch (err) {
+                msgBox.className = "mt-4 text-center text-xs p-3 rounded-lg bg-red-500/10 text-red-500";
+                msgBox.textContent = "Error: " + err.message;
+            }
+        });
+
+        async function borrar(id) {
+            try {
+                await NLT_API.borrarCuenta(id);
+                location.reload();
+            } catch (err) {
+                alert("Error al borrar: " + err.message);
+            }
+        }
+
+        function mostrarReconexion(id) {
+            document.getElementById(`reconexion-${id}`).classList.remove('hidden');
+            document.getElementById(`btnReconectar-${id}`).classList.add('hidden');
+            document.getElementById(`passReconexion-${id}`).focus();
+        }
+
+        async function reconectarTickerAll(id) {
+            const input = document.getElementById(`passReconexion-${id}`);
+            const msg = document.getElementById(`msgReconexion-${id}`);
+            const password = input.value;
+            if (!password) {
+                msg.classList.remove('hidden');
+                msg.className = 'text-[11px] mt-2 text-nlt-danger';
+                msg.textContent = 'Escribí la contraseña antes de confirmar.';
+                return;
+            }
+            msg.classList.remove('hidden');
+            msg.className = 'text-[11px] mt-2 text-gray-400';
+            msg.textContent = 'Reconectando...';
+            try {
+                await NLT_API.reconectarTickerAll(id, password);
+                msg.className = 'text-[11px] mt-2 text-nlt-success';
+                msg.textContent = '¡Cuenta reconectada!';
+                setTimeout(() => location.reload(), 800);
+            } catch (err) {
+                msg.className = 'text-[11px] mt-2 text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        NLT.injectServerDatalist();
+        document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
+
+        init();
+        setInterval(() => { if (sesionActual) cargarMaestra(); }, 20000);
+    </script>
+</body>
+</html>

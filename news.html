@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT News | Noticias de mercado y calendario económico</title>
+    <meta name="description" content="NLT News -- noticias de mercado y calendario económico, dentro del mismo ecosistema NLT.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* --- NLT Economic Calendar --- */
+        .cal-filter-pill { padding: 0.5rem 1rem; border-radius: 9999px; font-size: 0.75rem; font-weight: 600; border: 1px solid rgba(255,255,255,0.08); color: #9ca3af; background: rgba(255,255,255,0.02); transition: all .15s ease; cursor: pointer; white-space: nowrap; }
+        .cal-filter-pill:hover { color: #fff; border-color: rgba(255,255,255,0.18); }
+        .cal-filter-pill.active { background: #4378FF; border-color: #4378FF; color: #fff; }
+        .cal-impact-chip { padding: 0.4rem 0.8rem; border-radius: 9999px; font-size: 0.7rem; font-weight: 700; border: 1px solid rgba(255,255,255,0.08); cursor: pointer; opacity: 0.4; transition: all .15s ease; }
+        .cal-impact-chip.active { opacity: 1; }
+        .cal-event-card { border-left: 3px solid rgba(255,255,255,0.08); }
+        .cal-event-card[data-impact="HIGH"] { border-left-color: #EF4444; }
+        .cal-event-card[data-impact="MEDIUM"] { border-left-color: #F97316; }
+        .cal-event-card[data-impact="LOW"] { border-left-color: #EAB308; }
+        .cal-badge-live { color: #22C55E; }
+        .cal-badge-demo { color: #F59E0B; }
+        .cal-sheet-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 60; opacity: 0; pointer-events: none; transition: opacity .2s ease; }
+        .cal-sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+        .cal-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 61; background: #0d1016; border-top: 1px solid rgba(255,255,255,0.08); border-radius: 24px 24px 0 0; padding: 1.5rem; transform: translateY(100%); transition: transform .25s ease; max-height: 80vh; overflow-y: auto; }
+        .cal-sheet.open { transform: translateY(0); }
+        @media (min-width: 768px) { .cal-sheet-backdrop, .cal-sheet { display: none; } }
+        .cal-intel-banner { border-radius: 12px; padding: 0.75rem 1rem; font-size: 0.75rem; line-height: 1.4; display: flex; gap: 0.5rem; align-items: flex-start; }
+        .cal-intel-caution { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); color: #FBBF24; }
+        .cal-intel-highrisk { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); color: #F87171; }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="#noticias" class="hover:text-white transition-colors">Noticias</a>
+                <a href="#calendario" class="hover:text-white transition-colors">Calendario</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 pt-44 pb-20 px-6 max-w-5xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-nlt-success/20 bg-nlt-success/10 text-[10px] font-bold text-nlt-success tracking-[0.2em] uppercase mb-8" data-reveal>
+            <span class="w-1.5 h-1.5 rounded-full bg-nlt-success animate-pulse"></span> Módulo en vivo
+        </div>
+        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>NLT News</h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>Noticias de mercado y calendario económico, dentro de la misma cuenta que ya usás en el resto de NLT.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
+            <button id="btn-comenzar" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar</button>
+            <a href="#noticias" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all">Ver noticias</a>
+        </div>
+    </section>
+
+    <!-- NOTICIAS -->
+    <section id="noticias" class="relative z-10 max-w-5xl mx-auto px-6 py-16">
+        <div class="text-center mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Mercado</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Noticias recientes</h2>
+        </div>
+        <div id="noticiasBox" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <p class="text-sm text-gray-500 col-span-full text-center animate-pulse">Cargando noticias...</p>
+        </div>
+    </section>
+
+    <!-- NLT ECONOMIC CALENDAR -->
+    <section id="calendario" class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+        <div class="text-center mb-4" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Calendario</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-3">NLT Economic Calendar</h2>
+            <p class="text-gray-400">Stay ahead of the market</p>
+        </div>
+        <div class="flex items-center justify-center gap-2 mb-10 text-[11px] font-semibold" data-reveal>
+            <span id="calDataSourceBadge" class="inline-flex items-center gap-1.5"></span>
+        </div>
+
+        <!-- NEXT HIGH IMPACT -->
+        <div id="calNextHighImpact" class="mb-8" data-reveal></div>
+
+        <!-- FILTROS (desktop inline) -->
+        <div class="hidden md:flex flex-wrap items-center gap-3 mb-6" data-reveal>
+            <div class="relative">
+                <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                <input type="text" id="calBuscar" placeholder="CPI, NFP, FOMC, GDP..." class="cal-filter-pill bg-[#0d1016] pl-8 w-44">
+            </div>
+            <div class="flex items-center gap-2" id="calRangoPills">
+                <button class="cal-filter-pill active" data-rango="today">Hoy</button>
+                <button class="cal-filter-pill" data-rango="tomorrow">Mañana</button>
+                <button class="cal-filter-pill" data-rango="week">Esta semana</button>
+            </div>
+            <input type="date" id="calFechaCustom" class="cal-filter-pill bg-transparent" style="color-scheme: dark;">
+            <select id="calMoneda" class="cal-filter-pill bg-[#0d1016] cursor-pointer">
+                <option value="">Todas las monedas</option>
+                <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+                <option value="JPY">JPY</option><option value="CAD">CAD</option><option value="AUD">AUD</option>
+                <option value="NZD">NZD</option><option value="CHF">CHF</option>
+            </select>
+            <div class="flex items-center gap-1.5" id="calImpactChips">
+                <button class="cal-impact-chip active text-yellow-400 border-yellow-500/30" data-impact="LOW">🟡 LOW</button>
+                <button class="cal-impact-chip active text-orange-400 border-orange-500/30" data-impact="MEDIUM">🟠 MEDIUM</button>
+                <button class="cal-impact-chip active text-red-400 border-red-500/30" data-impact="HIGH">🔴 HIGH</button>
+            </div>
+            <select id="calTimezone" class="cal-filter-pill bg-[#0d1016] cursor-pointer ml-auto">
+                <option value="auto">Hora local</option>
+                <option value="ny">New York (ET)</option>
+                <option value="london">London (GMT/BST)</option>
+                <option value="utc">UTC</option>
+            </select>
+        </div>
+
+        <!-- FILTROS (mobile trigger) -->
+        <div class="flex md:hidden items-center justify-between gap-3 mb-6" data-reveal>
+            <button id="calAbrirFiltros" class="cal-filter-pill flex items-center gap-2"><i class="ph ph-sliders-horizontal"></i> Filtros</button>
+            <select id="calTimezoneMobile" class="cal-filter-pill bg-[#0d1016] cursor-pointer">
+                <option value="auto">Hora local</option>
+                <option value="ny">New York</option>
+                <option value="london">London</option>
+                <option value="utc">UTC</option>
+            </select>
+        </div>
+        <div class="md:hidden relative mb-6" data-reveal>
+            <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+            <input type="text" id="calBuscarMobile" placeholder="Buscar evento (CPI, NFP, FOMC...)" class="cal-filter-pill bg-[#0d1016] pl-8 w-full">
+        </div>
+
+        <!-- Estado no disponible (fallback gracioso) -->
+        <div id="calUnavailable" class="glass-card p-8 text-center border-dashed border-amber-500/20 mb-6 hidden">
+            <i class="ph ph-cloud-warning text-3xl text-amber-500 mb-3"></i>
+            <p class="text-sm text-amber-400 font-semibold">Calendar temporarily unavailable</p>
+            <p class="text-xs text-gray-500 mt-1">No se pudo actualizar el calendario en este momento. Mostrando los últimos datos disponibles.</p>
+        </div>
+
+        <div id="calEventos" class="space-y-4" data-reveal>
+            <p class="text-sm text-gray-500 text-center animate-pulse py-10">Cargando calendario...</p>
+        </div>
+
+        <p class="text-[11px] text-gray-600 text-center max-w-2xl mx-auto mt-8 leading-relaxed">NLT Economic Calendar is provided for informational and educational purposes only. Economic releases can cause significant market volatility. NLT does not recommend or guarantee any trading decision.</p>
+    </section>
+
+    <!-- Bottom sheet de filtros (mobile) -->
+    <div id="calSheetBackdrop" class="cal-sheet-backdrop"></div>
+    <div id="calSheet" class="cal-sheet">
+        <div class="flex items-center justify-between mb-5">
+            <h4 class="font-bold text-white">Filtros</h4>
+            <button id="calCerrarFiltros" class="text-gray-500"><i class="ph ph-x text-xl"></i></button>
+        </div>
+        <p class="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-2">Rango</p>
+        <div class="flex flex-wrap gap-2 mb-5" id="calRangoPillsMobile">
+            <button class="cal-filter-pill active" data-rango="today">Hoy</button>
+            <button class="cal-filter-pill" data-rango="tomorrow">Mañana</button>
+            <button class="cal-filter-pill" data-rango="week">Esta semana</button>
+        </div>
+        <input type="date" id="calFechaCustomMobile" class="cal-filter-pill bg-transparent w-full mb-5" style="color-scheme: dark;">
+        <p class="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-2">Moneda</p>
+        <select id="calMonedaMobile" class="cal-filter-pill bg-[#0d1016] w-full mb-5">
+            <option value="">Todas las monedas</option>
+            <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
+            <option value="JPY">JPY</option><option value="CAD">CAD</option><option value="AUD">AUD</option>
+            <option value="NZD">NZD</option><option value="CHF">CHF</option>
+        </select>
+        <p class="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-2">Impacto</p>
+        <div class="flex flex-wrap gap-2 mb-6" id="calImpactChipsMobile">
+            <button class="cal-impact-chip active text-yellow-400 border-yellow-500/30" data-impact="LOW">🟡 LOW</button>
+            <button class="cal-impact-chip active text-orange-400 border-orange-500/30" data-impact="MEDIUM">🟠 MEDIUM</button>
+            <button class="cal-impact-chip active text-red-400 border-red-500/30" data-impact="HIGH">🔴 HIGH</button>
+        </div>
+        <button id="calAplicarFiltros" class="w-full py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm">Aplicar filtros</button>
+    </div>
+
+    <!-- QUÉ VA A INCLUIR -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">La visión</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Qué va a incluir</h2>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-newspaper text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Noticias de mercado</h3>
+                <p class="text-sm text-gray-400">Actualizaciones relevantes para tu operativa, publicadas directo desde NLT.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-calendar-dots text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Calendario económico</h3>
+                <p class="text-sm text-gray-400">Eventos que mueven el mercado, en un solo lugar dentro de tu cuenta NLT.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-link text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Conectado a todo NLT</h3>
+                <p class="text-sm text-gray-400">Misma cuenta, mismo Dashboard -- sin crear otro usuario ni otra sesión.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 text-center py-24" data-reveal>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Sumate a NLT News.</h3>
+        <button id="btn-comenzar-2" class="px-9 py-4 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar ahora</button>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script>
+        // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        NLT.mountAuthAwareCTA(['btn-comenzar', 'btn-comenzar-2'], { loggedInLabel: 'Ir al Dashboard' });
+
+        (async function () {
+            const box = document.getElementById('noticiasBox');
+            try {
+                const items = await NLT_API.contenidoEcosistema('news');
+                if (!items.length) {
+                    box.innerHTML = `
+                        <div class="glass-card p-10 text-center border-dashed border-white/10 col-span-full" data-reveal>
+                            <i class="ph ph-newspaper text-4xl text-gray-600 mb-4"></i>
+                            <h3 class="text-lg font-bold text-white mb-2">Todavía no hay noticias cargadas</h3>
+                            <p class="text-sm text-gray-500">Esta sección se activa desde el panel de administración apenas se publique la primera.</p>
+                        </div>
+                    `;
+                } else {
+                    box.innerHTML = items.map(it => `
+                        <div class="glass-card p-6" data-reveal>
+                            ${it.created_at ? `<p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">${new Date(it.created_at).toLocaleDateString()}</p>` : ''}
+                            ${it.titulo ? `<h3 class="font-bold text-white text-lg mb-2">${it.titulo}</h3>` : ''}
+                            ${it.tipo === 'imagen' && it.contenido ? `<img src="${it.contenido}" alt="${it.titulo || ''}" class="rounded-xl mb-3 w-full">` : ''}
+                            ${it.tipo === 'texto' && it.contenido ? `<p class="text-sm text-gray-400 leading-relaxed">${it.contenido}</p>` : ''}
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                box.innerHTML = '';  // sin bloquear la página si el CMS falla
+            }
+            if (window.gsap && window.ScrollTrigger) {
+                document.querySelectorAll('#noticiasBox [data-reveal]').forEach((el) => {
+                    gsap.set(el, { y: 24, opacity: 0 });
+                    gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+                });
+            }
+        })();
+
+        if (window.gsap && window.ScrollTrigger) {
+            gsap.registerPlugin(ScrollTrigger);
+            document.querySelectorAll('section [data-reveal]').forEach((el) => {
+                if (el.closest('#noticiasBox')) return;
+                gsap.set(el, { y: 24 });
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+            });
+        }
+    </script>
+
+    <!-- NLT Economic Calendar -- lógica -->
+    <script>
+    (function () {
+        const BANDERAS = { USD: '🇺🇸', EUR: '🇪🇺', GBP: '🇬🇧', JPY: '🇯🇵', CAD: '🇨🇦', AUD: '🇦🇺', NZD: '🇳🇿', CHF: '🇨🇭' };
+        const IMPACTO_EMOJI = { LOW: '🟡', MEDIUM: '🟠', HIGH: '🔴' };
+
+        const estado = {
+            rango: 'today',
+            fechaCustom: null,
+            moneda: '',
+            busqueda: '',
+            impactos: new Set(['LOW', 'MEDIUM', 'HIGH']),
+            timezone: localStorage.getItem('nlt_calendar_tz') || 'auto',
+            eventos: [],          // último lote cargado con éxito (fallback si falla un refresh)
+            nextHighImpact: null,
+            cargoAlgunaVez: false,
+        };
+
+        function isoLocal(d) { return d.toISOString().slice(0, 10); }
+
+        function rangoFechas() {
+            if (estado.fechaCustom) return { from: estado.fechaCustom, to: estado.fechaCustom };
+            const hoy = new Date();
+            if (estado.rango === 'tomorrow') {
+                const t = new Date(hoy); t.setDate(t.getDate() + 1);
+                return { from: isoLocal(t), to: isoLocal(t) };
+            }
+            if (estado.rango === 'week') {
+                const fin = new Date(hoy); fin.setDate(fin.getDate() + 7);
+                return { from: isoLocal(hoy), to: isoLocal(fin) };
+            }
+            return { from: isoLocal(hoy), to: isoLocal(hoy) };
+        }
+
+        function tzIana(tz) {
+            return tz === 'ny' ? 'America/New_York' : tz === 'london' ? 'Europe/London' : tz === 'utc' ? 'UTC' : undefined;
+        }
+
+        function fmtHora(iso) {
+            const d = new Date(iso);
+            return new Intl.DateTimeFormat('es', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: tzIana(estado.timezone) }).format(d);
+        }
+        function fmtFecha(iso) {
+            const d = new Date(iso);
+            return new Intl.DateTimeFormat('es', { day: '2-digit', month: 'short', timeZone: tzIana(estado.timezone) }).format(d);
+        }
+
+        function fmtCountdown(minutesLeftLive) {
+            if (minutesLeftLive < 0) return null;
+            const h = Math.floor(minutesLeftLive / 60);
+            const m = minutesLeftLive % 60;
+            if (h > 24) return `en ${Math.floor(h / 24)}d`;
+            if (h > 0) return `⏱ ${h}h ${m}min`;
+            return `⏱ ${m} min`;
+        }
+
+        function riesgoClase(risk_state) {
+            if (risk_state === 'HIGH_RISK') return 'cal-intel-highrisk';
+            if (risk_state === 'CAUTION' || risk_state === 'POST_EVENT' || risk_state === 'RELEASED') return 'cal-intel-caution';
+            return '';
+        }
+
+        function tarjetaEvento(ev, destacar) {
+            const ts = new Date(ev.event_time_utc).getTime();
+            const minsLive = Math.round((ts - Date.now()) / 60000);
+            const released = minsLive < 0;
+            const countdown = !released ? fmtCountdown(minsLive) : null;
+            const banderaMoneda = BANDERAS[ev.currency] || '🏳️';
+
+            return `
+            <div class="glass-card cal-event-card p-5 md:p-6 ${destacar ? 'ring-1 ring-nlt-accent/40' : ''}" data-impact="${ev.impact}" data-event-id="${ev.id}" data-ts="${ts}">
+                <div class="flex items-start justify-between gap-4 mb-3">
+                    <div class="flex items-center gap-3">
+                        <div class="text-center">
+                            <p class="text-lg font-bold text-white leading-none cal-hora">${fmtHora(ev.event_time_utc)}</p>
+                            <p class="text-[10px] text-gray-500 mt-1 cal-fecha">${fmtFecha(ev.event_time_utc)}</p>
+                        </div>
+                        <div class="h-8 w-px bg-white/10"></div>
+                        <div>
+                            <p class="text-xs text-gray-400 flex items-center gap-1.5">${banderaMoneda} <span class="font-semibold text-gray-300">${ev.currency || '—'}</span> ${ev.country ? `<span class="text-gray-600">· ${ev.country}</span>` : ''}</p>
+                            <p class="font-bold text-white text-sm mt-0.5">${ev.event_name}</p>
+                        </div>
+                    </div>
+                    <span class="text-[10px] font-bold px-2.5 py-1 rounded-full border border-white/10 whitespace-nowrap">${IMPACTO_EMOJI[ev.impact] || ''} ${ev.impact}</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-center py-3 border-y border-white/5 mb-3">
+                    <div><p class="text-[9px] uppercase tracking-wider text-gray-600 font-bold mb-1">Previous</p><p class="text-sm font-semibold text-gray-300">${ev.previous_value ?? '—'}</p></div>
+                    <div><p class="text-[9px] uppercase tracking-wider text-gray-600 font-bold mb-1">Forecast</p><p class="text-sm font-semibold text-gray-300">${ev.forecast_value ?? '—'}</p></div>
+                    <div><p class="text-[9px] uppercase tracking-wider text-gray-600 font-bold mb-1">Actual</p><p class="text-sm font-semibold ${ev.actual_value ? 'text-nlt-accent' : 'text-gray-600'}">${ev.actual_value ?? '—'}</p></div>
+                </div>
+                <div class="flex items-center justify-between">
+                    ${released
+                        ? `<span class="text-[11px] font-bold text-nlt-success flex items-center gap-1"><i class="ph-fill ph-check-circle"></i> RELEASED</span>`
+                        : `<span class="text-[11px] font-semibold text-gray-500 cal-countdown">${countdown || ''}</span>`
+                    }
+                    <span class="text-[10px] text-gray-600">${ev.data_source === 'MOCK' ? 'DEMO' : 'LIVE'}</span>
+                </div>
+                ${ev.risk_message ? `<div class="cal-intel-banner ${riesgoClase(ev.risk_state)} mt-3"><i class="ph-fill ph-shield-warning mt-0.5"></i><span><strong>NLT News Intelligence:</strong> ${ev.risk_message}</span></div>` : ''}
+            </div>`;
+        }
+
+        function renderNextHighImpact() {
+            const box = document.getElementById('calNextHighImpact');
+            const ev = estado.nextHighImpact;
+            if (!ev) { box.innerHTML = ''; return; }
+            const ts = new Date(ev.event_time_utc).getTime();
+            const minsLive = Math.round((ts - Date.now()) / 60000);
+            box.innerHTML = `
+            <div class="glass-card p-6 md:p-8 border border-red-500/20" data-ts="${ts}" id="calNextCard">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div>
+                        <p class="text-[10px] font-bold text-red-400 uppercase tracking-[0.2em] mb-2">🔴 Next High Impact</p>
+                        <p class="text-xl font-extrabold text-white">${BANDERAS[ev.currency] || ''} ${ev.event_name}</p>
+                        <p class="text-sm text-gray-400 mt-1">${fmtFecha(ev.event_time_utc)} · ${fmtHora(ev.event_time_utc)} (${estado.timezone === 'auto' ? 'hora local' : estado.timezone.toUpperCase()})</p>
+                    </div>
+                    <div class="text-center md:text-right">
+                        <p class="text-2xl font-extrabold text-nlt-accent cal-countdown-big">${fmtCountdown(minsLive) || '✓ RELEASED'}</p>
+                        <a href="#calendario" onclick="document.querySelector('[data-event-id]')?.scrollIntoView({behavior:'smooth'})" class="text-xs text-gray-400 hover:text-white underline underline-offset-2">Ver evento</a>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function aplicarFiltrosLocales(lista) {
+            const q = estado.busqueda.trim().toLowerCase();
+            return lista.filter(ev =>
+                estado.impactos.has(ev.impact) &&
+                (!estado.moneda || ev.currency === estado.moneda) &&
+                (!q || ev.event_name.toLowerCase().includes(q))
+            );
+        }
+
+        function render() {
+            const box = document.getElementById('calEventos');
+            const filtrados = aplicarFiltrosLocales(estado.eventos);
+            if (!filtrados.length) {
+                box.innerHTML = `<div class="glass-card p-10 text-center border-dashed border-white/10"><i class="ph ph-calendar-x text-3xl text-gray-600 mb-3"></i><p class="text-sm text-gray-500">No hay eventos para este filtro.</p></div>`;
+                return;
+            }
+            box.innerHTML = filtrados.map(ev => tarjetaEvento(ev)).join('');
+            renderNextHighImpact();
+        }
+
+        function actualizarBadgeFuente(status) {
+            const el = document.getElementById('calDataSourceBadge');
+            if (!status) { el.innerHTML = ''; return; }
+            if (status.using_mock) {
+                el.innerHTML = `<span class="cal-badge-demo">● DEMO DATA</span><span class="text-gray-600">— datos de demostración, no son precios ni eventos de mercado reales</span>`;
+            } else {
+                el.innerHTML = `<span class="cal-badge-live">● LIVE DATA</span><span class="text-gray-600">— fuente: ${status.provider}</span>`;
+            }
+        }
+
+        async function cargar() {
+            const { from, to } = rangoFechas();
+            try {
+                const [eventos, next, status] = await Promise.all([
+                    NLT_API.calendarEventos({ from, to }),
+                    NLT_API.calendarProximoAltoImpacto(),
+                    NLT_API.calendarStatus(),
+                ]);
+                estado.eventos = eventos;
+                estado.nextHighImpact = next;
+                estado.cargoAlgunaVez = true;
+                document.getElementById('calUnavailable').classList.add('hidden');
+                actualizarBadgeFuente(status);
+                render();
+            } catch (err) {
+                console.error('Calendar fetch failed:', err);
+                if (!estado.cargoAlgunaVez) {
+                    document.getElementById('calEventos').innerHTML = '';
+                }
+                document.getElementById('calUnavailable').classList.remove('hidden');
+                // Si ya había datos cargados antes, se dejan tal cual en pantalla (degradación, no ruptura).
+            }
+        }
+
+        function actualizarCountdownsEnVivo() {
+            document.querySelectorAll('#calEventos [data-ts]').forEach(card => {
+                const ts = parseInt(card.dataset.ts, 10);
+                const mins = Math.round((ts - Date.now()) / 60000);
+                const span = card.querySelector('.cal-countdown');
+                if (span && mins >= 0) span.textContent = fmtCountdown(mins) || '';
+            });
+            const nextCard = document.getElementById('calNextCard');
+            if (nextCard) {
+                const ts = parseInt(nextCard.dataset.ts, 10);
+                const mins = Math.round((ts - Date.now()) / 60000);
+                const big = nextCard.querySelector('.cal-countdown-big');
+                if (big) big.textContent = mins >= 0 ? (fmtCountdown(mins) || '') : '✓ RELEASED';
+            }
+        }
+
+        // --- Filtros: wiring desktop + mobile (mismos controles, dos ubicaciones) ---
+        function wireRangoPills(contenedorId) {
+            document.querySelectorAll(`#${contenedorId} .cal-filter-pill`).forEach(btn => {
+                btn.addEventListener('click', () => {
+                    document.querySelectorAll(`#${contenedorId} .cal-filter-pill`).forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    estado.rango = btn.dataset.rango;
+                    estado.fechaCustom = null;
+                    document.getElementById('calFechaCustom').value = '';
+                    document.getElementById('calFechaCustomMobile').value = '';
+                    cargar();
+                });
+            });
+        }
+        wireRangoPills('calRangoPills');
+        wireRangoPills('calRangoPillsMobile');
+
+        ['calFechaCustom', 'calFechaCustomMobile'].forEach(id => {
+            document.getElementById(id).addEventListener('change', (e) => {
+                if (!e.target.value) return;
+                estado.fechaCustom = e.target.value;
+                cargar();
+            });
+        });
+
+        ['calMoneda', 'calMonedaMobile'].forEach(id => {
+            document.getElementById(id).addEventListener('change', (e) => {
+                estado.moneda = e.target.value;
+                document.getElementById('calMoneda').value = estado.moneda;
+                document.getElementById('calMonedaMobile').value = estado.moneda;
+                render();
+            });
+        });
+
+        ['calBuscar', 'calBuscarMobile'].forEach(id => {
+            document.getElementById(id).addEventListener('input', (e) => {
+                estado.busqueda = e.target.value;
+                document.getElementById('calBuscar').value = estado.busqueda;
+                document.getElementById('calBuscarMobile').value = estado.busqueda;
+                render();
+            });
+        });
+
+        function wireImpactChips(contenedorId) {
+            document.querySelectorAll(`#${contenedorId} .cal-impact-chip`).forEach(chip => {
+                chip.addEventListener('click', () => {
+                    const impacto = chip.dataset.impact;
+                    if (estado.impactos.has(impacto)) { estado.impactos.delete(impacto); } else { estado.impactos.add(impacto); }
+                    document.querySelectorAll(`.cal-impact-chip[data-impact="${impacto}"]`).forEach(c => c.classList.toggle('active', estado.impactos.has(impacto)));
+                    render();
+                });
+            });
+        }
+        wireImpactChips('calImpactChips');
+        wireImpactChips('calImpactChipsMobile');
+
+        ['calTimezone', 'calTimezoneMobile'].forEach(id => {
+            document.getElementById(id).value = estado.timezone;
+            document.getElementById(id).addEventListener('change', (e) => {
+                estado.timezone = e.target.value;
+                localStorage.setItem('nlt_calendar_tz', estado.timezone);
+                document.getElementById('calTimezone').value = estado.timezone;
+                document.getElementById('calTimezoneMobile').value = estado.timezone;
+                render();
+            });
+        });
+
+        // Bottom sheet (mobile)
+        const sheet = document.getElementById('calSheet');
+        const backdrop = document.getElementById('calSheetBackdrop');
+        function abrirSheet() { sheet.classList.add('open'); backdrop.classList.add('open'); }
+        function cerrarSheet() { sheet.classList.remove('open'); backdrop.classList.remove('open'); }
+        document.getElementById('calAbrirFiltros').addEventListener('click', abrirSheet);
+        document.getElementById('calCerrarFiltros').addEventListener('click', cerrarSheet);
+        backdrop.addEventListener('click', cerrarSheet);
+        document.getElementById('calAplicarFiltros').addEventListener('click', cerrarSheet);
+
+        cargar();
+        setInterval(cargar, 60000);       // refresco de datos cada 60s (la cache del backend igual solo se actualiza según sync_interval_minutes)
+        setInterval(actualizarCountdownsEnVivo, 1000);  // countdown en vivo sin recargar
+    })();
+    </script>
+</body>
+</html>

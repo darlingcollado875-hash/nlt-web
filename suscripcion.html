@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Suscripción</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', surface: '#11151C', accent: '#4378FF', success: '#22C55E', danger: '#EF4444' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl shrink-0"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col p-10 overflow-y-auto">
+        <header class="flex justify-between items-center mb-8 pb-6 border-b border-white/5">
+            <h1 class="text-2xl font-bold">Suscripción</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-4 py-2 rounded-lg transition-colors cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="max-w-6xl mx-auto w-full space-y-10">
+
+            <!-- Plan actual -->
+            <div id="miPlanBox" class="glass-card p-6">
+                <p class="text-sm text-gray-400 animate-pulse">Cargando tu suscripción...</p>
+            </div>
+
+            <!-- Tarjetas de planes -->
+            <div>
+                <h2 class="text-lg font-bold mb-4">Planes</h2>
+                <div id="planCards" class="grid grid-cols-1 md:grid-cols-3 xl:grid-cols-5 gap-5">
+                    <p class="text-sm text-gray-500 col-span-full">Cargando planes...</p>
+                </div>
+            </div>
+
+            <!-- Tabla comparativa -->
+            <div>
+                <h2 class="text-lg font-bold mb-4">Comparar planes</h2>
+                <div class="glass-card overflow-x-auto">
+                    <table class="w-full text-left text-sm min-w-[700px]">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr id="tablaCompHead"><th class="px-5 py-3 font-semibold">Característica</th></tr>
+                        </thead>
+                        <tbody id="tablaCompBody" class="divide-y divide-white/5 text-gray-300"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Checkout -->
+            <div id="checkoutBox" class="hidden glass-card p-8 max-w-xl"></div>
+        </div>
+    </main>
+
+    <script>
+        let sesionActual = null;
+        let planesCache = [];
+        let subActual = null;
+        let cuponValidado = null; // { code, discount_percentage } o null
+
+        const FEATURE_ROWS = [
+            { label: 'Cuentas MT5', get: p => p.max_cuentas },
+            { label: 'Copiado automático', get: () => true },
+            { label: 'Multiplicador de lotaje', get: p => ['TRADER', 'PRO', 'ELITE', 'BUSINESS'].includes(p.id) },
+            { label: 'Gestión de riesgo', get: p => ['TRADER', 'PRO', 'ELITE', 'BUSINESS'].includes(p.id) },
+            { label: 'Filtros de símbolos', get: p => ['TRADER', 'PRO', 'ELITE', 'BUSINESS'].includes(p.id) },
+            { label: 'Logs detallados', get: p => ['PRO', 'ELITE', 'BUSINESS'].includes(p.id) },
+            { label: 'Prioridad de ejecución', get: p => ['PRO', 'ELITE', 'BUSINESS'].includes(p.id) },
+            { label: 'Soporte prioritario', get: p => ['PRO', 'ELITE', 'BUSINESS'].includes(p.id) },
+        ];
+
+        function renderPlanes(planes) {
+            document.getElementById('planCards').innerHTML = planes.map(p => {
+                const esActual = subActual && subActual.plan === p.id && subActual.status === 'active';
+                return `
+                <div class="glass-card p-6 relative flex flex-col ${p.popular ? 'border border-nlt-accent/50' : ''} ${esActual ? 'ring-1 ring-nlt-success/50' : ''}">
+                    ${p.popular ? '<div class="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-1 bg-nlt-accent rounded-full text-[10px] font-bold uppercase tracking-widest">Más Popular</div>' : ''}
+                    ${esActual ? '<div class="inline-block px-2.5 py-1 bg-nlt-success/20 border border-nlt-success/30 rounded-full text-nlt-success text-[10px] font-bold uppercase tracking-widest mb-3 w-fit">Plan Activo</div>' : ''}
+                    <h3 class="text-lg font-extrabold text-white">${p.nombre}</h3>
+                    <p class="text-3xl font-bold text-white mt-2 mb-1">$${p.precio_mensual.toFixed(2)}<span class="text-xs text-gray-500 font-normal">/mes</span></p>
+                    <p class="text-xs text-gray-500 mb-4">${p.max_cuentas} cuentas MT5</p>
+                    <ul class="space-y-1.5 mb-6 flex-1">
+                        ${p.features.map(f => `<li class="text-xs text-gray-300 flex items-start gap-2"><i class="ph-fill ph-check-circle text-nlt-accent text-sm mt-0.5"></i> ${f}</li>`).join('')}
+                    </ul>
+                    <button data-plan="${p.id}" class="btn-comenzar w-full py-2.5 rounded-xl ${p.popular ? 'bg-nlt-accent hover:bg-blue-500' : 'bg-white/10 hover:bg-white/20'} font-semibold text-sm transition-all" ${esActual ? 'disabled' : ''}>
+                        ${esActual ? 'Tu plan actual' : 'Comenzar ahora'}
+                    </button>
+                </div>`;
+            }).join('');
+
+            document.querySelectorAll('.btn-comenzar:not([disabled])').forEach(btn => {
+                btn.addEventListener('click', () => abrirCheckout(btn.getAttribute('data-plan')));
+            });
+        }
+
+        function renderTablaComparativa(planes) {
+            document.getElementById('tablaCompHead').innerHTML =
+                '<th class="px-5 py-3 font-semibold">Característica</th>' +
+                planes.map(p => `<th class="px-5 py-3 font-semibold text-center">${p.nombre}</th>`).join('');
+
+            document.getElementById('tablaCompBody').innerHTML = FEATURE_ROWS.map(row => `
+                <tr>
+                    <td class="px-5 py-3 text-gray-400">${row.label}</td>
+                    ${planes.map(p => {
+                        const v = row.get(p);
+                        const celda = typeof v === 'number' ? v : (v ? '<i class="ph-fill ph-check text-nlt-success"></i>' : '<i class="ph ph-minus text-gray-600"></i>');
+                        return `<td class="px-5 py-3 text-center">${celda}</td>`;
+                    }).join('')}
+                </tr>
+            `).join('');
+        }
+
+        function renderMiPlan() {
+            const box = document.getElementById('miPlanBox');
+            if (!subActual || subActual.status !== 'active' || !subActual.plan) {
+                box.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Sin suscripción activa</p>
+                            <p class="text-sm text-gray-400">Elegí un plan abajo para empezar a copiar operaciones.</p>
+                        </div>
+                    </div>`;
+                return;
+            }
+            const plan = planesCache.find(p => p.id === subActual.plan);
+            box.innerHTML = `
+                <div class="flex items-center justify-between flex-wrap gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Plan actual</p>
+                        <p class="text-2xl font-bold text-white">${plan ? plan.nombre : subActual.plan} <span class="text-nlt-success text-xs font-semibold uppercase ml-2">Activo</span></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Cuentas</p>
+                        <p class="text-lg font-bold text-white">${subActual.cuentas_actuales} / ${subActual.max_accounts} <span class="text-xs text-gray-500 font-normal">(${subActual.cuentas_disponibles} disponibles)</span></p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Precio</p>
+                        <p class="text-lg font-bold text-white">$${(subActual.price || 0).toFixed(2)} USD/mes</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Próximo cobro</p>
+                        <p class="text-lg font-bold text-white">${subActual.next_billing_date ? new Date(subActual.next_billing_date).toLocaleDateString() : '-'}</p>
+                    </div>
+                </div>`;
+        }
+
+        function abrirCheckout(planId) {
+            cuponValidado = null;
+            const plan = planesCache.find(p => p.id === planId);
+            const box = document.getElementById('checkoutBox');
+            box.classList.remove('hidden');
+            box.innerHTML = `
+                <h3 class="text-lg font-bold mb-1">Checkout</h3>
+                <p class="text-xs text-gray-500 mb-6">Revisá el resumen antes de pagar.</p>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-gray-400">Plan</span>
+                    <span class="font-bold text-white">${plan.nombre}</span>
+                </div>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-sm text-gray-400">Precio</span>
+                    <span class="font-bold text-white" id="chkPrecio">$${plan.precio_mensual.toFixed(2)}/mes</span>
+                </div>
+                <div class="flex gap-2 mb-2">
+                    <input type="text" id="chkCupon" placeholder="Código de cupón (opcional)" class="flex-1 bg-black/20 border border-white/5 rounded-xl px-4 py-2.5 text-sm focus:border-nlt-accent outline-none uppercase">
+                    <button id="chkAplicarCupon" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-semibold transition-all">Aplicar</button>
+                </div>
+                <p id="chkCuponMsg" class="text-xs mb-4 hidden"></p>
+                <div id="chkResumenDescuento" class="hidden">
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-sm text-gray-400">Cupón</span>
+                        <span class="font-bold text-white" id="chkCuponCodigo"></span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span class="text-sm text-gray-400">Descuento</span>
+                        <span class="font-bold text-nlt-success" id="chkDescuento"></span>
+                    </div>
+                </div>
+                <div class="border-t border-white/10 pt-4 mb-6">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-white">Primer pago</span>
+                        <span class="text-2xl font-bold text-white" id="chkTotal">$${plan.precio_mensual.toFixed(2)} USD</span>
+                    </div>
+                    <p class="text-[11px] text-gray-500 mt-1">Precio recurrente: $${plan.precio_mensual.toFixed(2)} USD/mes (el descuento del cupón solo aplica al primer pago).</p>
+                </div>
+                <button id="chkPagar" class="w-full py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Pagar con tarjeta</button>
+                <p id="chkMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
+            `;
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            document.getElementById('chkAplicarCupon').addEventListener('click', async () => {
+                const code = document.getElementById('chkCupon').value.trim();
+                const msg = document.getElementById('chkCuponMsg');
+                if (!code) return;
+                msg.classList.remove('hidden');
+                msg.className = 'text-xs mb-4 text-gray-400';
+                msg.textContent = 'Validando...';
+                try {
+                    const r = await NLT_API.validarCupon(code, planId);
+                    if (!r.valido) {
+                        cuponValidado = null;
+                        msg.className = 'text-xs mb-4 text-nlt-danger';
+                        msg.textContent = r.motivo || 'Cupón inválido';
+                        actualizarResumen(plan, null);
+                        return;
+                    }
+                    cuponValidado = { code: code.toUpperCase(), discount_percentage: r.discount_percentage };
+                    msg.className = 'text-xs mb-4 text-nlt-success';
+                    msg.textContent = `¡Cupón aplicado! ${r.discount_percentage}% de descuento en el primer pago.`;
+                    actualizarResumen(plan, cuponValidado);
+                } catch (err) {
+                    msg.className = 'text-xs mb-4 text-nlt-danger';
+                    msg.textContent = 'Error: ' + err.message;
+                }
+            });
+
+            document.getElementById('chkPagar').addEventListener('click', async () => {
+                const btn = document.getElementById('chkPagar');
+                const msg = document.getElementById('chkMsg');
+                btn.disabled = true;
+                btn.textContent = 'Creando orden...';
+                msg.classList.remove('hidden');
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-blue-500/10 text-blue-400';
+                msg.textContent = 'Un momento...';
+                try {
+                    const orden = await NLT_API.crearOrden(planId, 'monthly', cuponValidado ? cuponValidado.code : null);
+
+                    if (!orden.payment_available) {
+                        // Nunca se muestra el error técnico crudo del backend --
+                        // solo el mensaje seguro que ya viene calculado ahí.
+                        btn.disabled = true;
+                        btn.textContent = 'Pagos no disponibles';
+                        msg.className = 'mt-3 text-xs p-3 rounded-lg bg-yellow-500/10 text-yellow-400';
+                        msg.textContent = orden.payment_unavailable_reason || 'Pagos temporalmente no disponibles mientras se completa la configuración del proveedor.';
+                        return;
+                    }
+
+                    msg.classList.add('hidden');
+                    await mostrarFormularioTarjeta(orden);
+                } catch (err) {
+                    btn.disabled = false;
+                    btn.textContent = 'Pagar con tarjeta';
+                    msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-danger/10 text-nlt-danger';
+                    msg.textContent = 'Error: ' + err.message;
+                }
+            });
+        }
+
+        // --- Checkout real vía el tokenizador oficial de Pay2Commerce (P2C.tokenize) ---
+        // Documentación oficial de Pay2Commerce (confirmada por su soporte):
+        // el script tokeniza la tarjeta en el navegador y devuelve un
+        // payment_method_id permanente -- NLT_API nunca recibe el número de
+        // tarjeta. Reemplaza el flujo anterior (Accept.js manejado a mano),
+        // que quedaba dando PAYMENT_METHOD_DECLINED de forma persistente.
+        function cargarTokenizerJs() {
+            if (window.P2C) return Promise.resolve();
+            if (window._p2cTokenizerPromise) return window._p2cTokenizerPromise;
+            window._p2cTokenizerPromise = new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://app.pay2commerce.net/api/v1/tokenizer.js';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('No se pudo cargar el módulo de pago seguro.'));
+                document.head.appendChild(s);
+            });
+            return window._p2cTokenizerPromise;
+        }
+
+        async function mostrarFormularioTarjeta(orden) {
+            const box = document.getElementById('checkoutBox');
+            box.innerHTML = `
+                <h3 class="text-lg font-bold mb-1">Pagar con tarjeta</h3>
+                <p class="text-xs text-gray-500 mb-6">Orden ${orden.order_id} -- $${orden.final_amount.toFixed(2)} USD. Tu tarjeta se procesa de forma segura, nunca pasa por los servidores de NLT.</p>
+                <div class="space-y-3">
+                    <input type="text" id="tcNombre" placeholder="Nombre en la tarjeta" autocomplete="cc-name" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    <input type="text" id="tcNumero" placeholder="Número de tarjeta" autocomplete="cc-number" inputmode="numeric" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    <div class="grid grid-cols-3 gap-3">
+                        <input type="text" id="tcMes" placeholder="MM" autocomplete="cc-exp-month" inputmode="numeric" maxlength="2" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <input type="text" id="tcAnio" placeholder="AAAA" autocomplete="cc-exp-year" inputmode="numeric" maxlength="4" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <input type="text" id="tcCvv" placeholder="CVV" autocomplete="cc-csc" inputmode="numeric" maxlength="4" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    </div>
+                    <p class="text-[11px] text-gray-500 pt-2">Dirección de facturación (el banco la puede pedir para validar la tarjeta)</p>
+                    <input type="text" id="tcDireccion" placeholder="Calle y número" autocomplete="address-line1" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="tcCiudad" placeholder="Ciudad" autocomplete="address-level2" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <input type="text" id="tcCodigoPostal" placeholder="Código postal" autocomplete="postal-code" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" id="tcEstado" placeholder="Estado/Provincia" autocomplete="address-level1" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <select id="tcPais" autocomplete="country" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <option value="DO">República Dominicana</option>
+                            <option value="US">Estados Unidos</option>
+                            <option value="CA">Canadá</option>
+                            <option value="CO">Colombia</option>
+                            <option value="ES">España</option>
+                            <option value="FR">Francia</option>
+                            <option value="IT">Italia</option>
+                            <option value="MX">México</option>
+                            <option value="PR">Puerto Rico</option>
+                        </select>
+                    </div>
+                </div>
+                <button id="tcPagar" class="w-full mt-5 py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Confirmar pago de $${orden.final_amount.toFixed(2)}</button>
+                <p id="tcMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
+            `;
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            let checkoutConfig;
+            try {
+                [checkoutConfig] = await Promise.all([NLT_API.checkoutConfig(orden.order_id), cargarTokenizerJs()]);
+            } catch (err) {
+                const msg = document.getElementById('tcMsg');
+                msg.classList.remove('hidden');
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-danger/10 text-nlt-danger';
+                msg.textContent = 'No se pudo iniciar el pago: ' + err.message;
+                document.getElementById('tcPagar').disabled = true;
+                return;
+            }
+
+            document.getElementById('tcPagar').addEventListener('click', () => {
+                const btn = document.getElementById('tcPagar');
+                const msg = document.getElementById('tcMsg');
+                const mostrarError = (texto) => {
+                    btn.disabled = false;
+                    btn.textContent = `Confirmar pago de $${orden.final_amount.toFixed(2)}`;
+                    msg.classList.remove('hidden');
+                    msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-danger/10 text-nlt-danger';
+                    msg.textContent = texto;
+                };
+
+                const numero = document.getElementById('tcNumero').value.replace(/\s+/g, '');
+                const mes = document.getElementById('tcMes').value.trim().padStart(2, '0');
+                const anio = document.getElementById('tcAnio').value.trim();
+                const cvv = document.getElementById('tcCvv').value.trim();
+                const nombre = document.getElementById('tcNombre').value.trim();
+                const direccion = {
+                    address: document.getElementById('tcDireccion').value.trim(),
+                    city: document.getElementById('tcCiudad').value.trim(),
+                    zip: document.getElementById('tcCodigoPostal').value.trim(),
+                    state: document.getElementById('tcEstado').value.trim(),
+                    country: document.getElementById('tcPais').value,
+                };
+                if (!numero || !mes || !anio || !cvv) {
+                    mostrarError('Completá todos los datos de la tarjeta.');
+                    return;
+                }
+                if (!direccion.address || !direccion.city || !direccion.zip) {
+                    mostrarError('Completá la dirección de facturación (calle, ciudad y código postal).');
+                    return;
+                }
+
+                btn.disabled = true;
+                btn.textContent = 'Procesando...';
+                msg.classList.add('hidden');
+
+                const [firstName, ...resto] = (nombre || 'Cliente NLT').split(' ');
+                const lastName = resto.join(' ') || firstName;
+
+                (async () => {
+                    let resultado;
+                    try {
+                        resultado = await P2C.tokenize({
+                            publishableKey: checkoutConfig.publishable_key,
+                            merchantId: checkoutConfig.merchant_id,
+                            customerId: checkoutConfig.customer_id,
+                            card: { number: numero, month: mes, year: anio, cvv },
+                            billing: {
+                                first_name: firstName, last_name: lastName,
+                                address: direccion.address, city: direccion.city,
+                                state: direccion.state, zip: direccion.zip, country: direccion.country,
+                            },
+                        });
+                    } catch (err) {
+                        mostrarError(err instanceof P2C.Error ? err.message : 'No se pudo procesar la tarjeta. Intentá de nuevo.');
+                        return;
+                    }
+                    try {
+                        await NLT_API.pagarOrden(orden.order_id, resultado.payment_method_id);
+                        msg.classList.remove('hidden');
+                        msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-success/10 text-nlt-success';
+                        msg.textContent = '¡Pago confirmado! Redirigiendo...';
+                        setTimeout(() => { window.location.href = `pago-confirmado.html?order=${encodeURIComponent(orden.order_id)}`; }, 1200);
+                    } catch (err) {
+                        mostrarError(err.message);
+                    }
+                })();
+            });
+        }
+
+        function actualizarResumen(plan, cupon) {
+            const resumenBox = document.getElementById('chkResumenDescuento');
+            if (!cupon) {
+                resumenBox.classList.add('hidden');
+                document.getElementById('chkTotal').textContent = `$${plan.precio_mensual.toFixed(2)} USD`;
+                return;
+            }
+            const descuento = Math.round(plan.precio_mensual * (cupon.discount_percentage / 100) * 100) / 100;
+            const total = Math.round((plan.precio_mensual - descuento) * 100) / 100;
+            resumenBox.classList.remove('hidden');
+            document.getElementById('chkCuponCodigo').textContent = cupon.code;
+            document.getElementById('chkDescuento').textContent = `-$${descuento.toFixed(2)} (${cupon.discount_percentage}%)`;
+            document.getElementById('chkTotal').textContent = `$${total.toFixed(2)} USD`;
+        }
+
+        async function init() {
+            sesionActual = await NLT.requireSession();
+            if (!sesionActual) return;
+
+            try {
+                [planesCache, subActual] = await Promise.all([NLT_API.listarPlanes(), NLT_API.miSuscripcion()]);
+                await NLT.mountSidebar(sesionActual, { activo: 'suscripcion', seccion: 'cfd', planLabel: (subActual && subActual.plan && subActual.status === 'active') ? subActual.plan : 'Sin plan activo' });
+                renderMiPlan();
+                renderPlanes(planesCache);
+                renderTablaComparativa(planesCache);
+            } catch (err) {
+                document.getElementById('planCards').innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error cargando planes: ${err.message}</p>`;
+            }
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
+        init();
+    </script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+[build]
+  publish = "."
+
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+# --- Proxy del tokenizador de Pay2Commerce ---------------------------------
+# Bug real y confirmado en su tokenizer.js (v1.0.0): las llamadas internas
+# que hace ("Step 1: Get processor config" y "Step 4: Exchange OTS for
+# permanent payment_method_id") usan URLs RELATIVAS
+# (fetch('/public/payment-config/...') y fetch('/api/v1/tokens')) en vez de
+# apuntar a su propio dominio -- cuando su script corre embebido en un sitio
+# de terceros (el uso que ellos mismos documentan), esas peticiones pegan
+# contra el dominio del embebedor en vez del de Pay2Commerce, y su script
+# revienta parseando la página de error 404 como si fuera JSON
+# ("Unexpected token '<'... is not valid JSON"). Reportado a su soporte.
+#
+# Mientras lo corrigen de su lado, estos dos redirects actúan como proxy: a
+# fetch() relativo que caiga acá, Netlify se lo reenvía a
+# app.pay2commerce.net y devuelve la respuesta real -- el tokenizador nunca
+# se entera de que hubo un salto de por medio.
+[[redirects]]
+  from = "/public/payment-config/*"
+  to = "https://app.pay2commerce.net/public/payment-config/:splat"
+  status = 200
+  force = true
+
+[[redirects]]
+  from = "/api/v1/tokens"
+  to = "https://app.pay2commerce.net/api/v1/tokens"
+  status = 200
+  force = true
+
+# Rutas limpias para los portales del ecosistema (URLs de producto sin
+# ".html", solo aplican en el deploy de Netlify -- en preview local hay que
+# seguir usando el nombre de archivo directo, ej. ecosystem.html).
+[[redirects]]
+  from = "/ecosystem"
+  to = "/ecosystem.html"
+  status = 200
+
+[[redirects]]
+  from = "/copy-system"
+  to = "/copy-system.html"
+  status = 200
+
+[[redirects]]
+  from = "/indicator"
+  to = "/indicator.html"
+  status = 200
+
+[[redirects]]
+  from = "/plans"
+  to = "/plans.html"
+  status = 200
+
+[[redirects]]
+  from = "/academy"
+  to = "/academy.html"
+  status = 200
+
+[[redirects]]
+  from = "/news"
+  to = "/news.html"
+  status = 200
+
+[[redirects]]
+  from = "/calculators"
+  to = "/calculators.html"
+  status = 200
+
+[[redirects]]
+  from = "/tools"
+  to = "/tools.html"
+  status = 200
+
+[[redirects]]
+  from = "/community"
+  to = "/community.html"
+  status = 200
+
+[[redirects]]
+  from = "/verify/:code"
+  to = "/verify.html?code=:code"
+  status = 200

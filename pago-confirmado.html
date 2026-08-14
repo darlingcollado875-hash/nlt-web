@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Pago confirmado</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-6">
+    <div class="glass-card p-10 max-w-md w-full text-center">
+        <div class="w-16 h-16 rounded-full bg-nlt-success/10 border border-nlt-success/20 flex items-center justify-center mx-auto mb-6">
+            <i class="ph-fill ph-check-circle text-3xl text-nlt-success"></i>
+        </div>
+        <h1 class="text-xl font-bold mb-2">¡Pago confirmado!</h1>
+        <p id="subtitulo" class="text-sm text-gray-400 mb-6">Tu plan está activo.</p>
+
+        <div id="detalleBox" class="bg-black/20 border border-white/5 rounded-xl p-5 text-left mb-6">
+            <p class="text-xs text-gray-500 animate-pulse">Cargando...</p>
+        </div>
+
+        <a href="dashboard.html" class="inline-block w-full py-3 rounded-xl bg-nlt-accent hover:bg-blue-500 font-semibold text-sm transition-all">Ir al Dashboard</a>
+    </div>
+
+    <script>
+        async function init() {
+            const sesion = await NLT.requireSession();
+            if (!sesion) return;
+
+            const params = new URLSearchParams(window.location.search);
+            const orderId = params.get('order');
+            const box = document.getElementById('detalleBox');
+            if (!orderId) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">No se especificó ninguna orden.</p>`;
+                return;
+            }
+
+            try {
+                const [orden, sub] = await Promise.all([NLT_API.obtenerOrden(orderId), NLT_API.miSuscripcion()]);
+                if (orden.status !== 'paid') {
+                    window.location.href = `pago-pendiente.html?order=${encodeURIComponent(orderId)}`;
+                    return;
+                }
+                document.getElementById('subtitulo').textContent = `Tu plan ${orden.plan} está activo.`;
+                box.innerHTML = `
+                    <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Cuentas MT5 disponibles</p>
+                    <p class="text-2xl font-bold text-white mb-4">${sub.max_accounts}</p>
+                    <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Order ID</p>
+                    <p class="text-sm font-mono text-white">${orden.order_id}</p>
+                `;
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+        init();
+    </script>
+</body>
+</html>

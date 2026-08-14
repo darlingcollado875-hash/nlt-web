@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Configuración</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', surface: '#11151C' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR -->
+    <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl shrink-0"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col p-10 overflow-y-auto">
+        <header class="flex justify-between items-center mb-10 pb-6 border-b border-white/5">
+            <h1 class="text-2xl font-bold">Ajustes de Plataforma</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-4 py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
+                <i class="ph-bold ph-sign-out"></i> Cerrar Sesión
+            </button>
+        </header>
+
+        <div class="grid grid-cols-1 max-w-2xl gap-8">
+            <div class="glass-card p-8">
+                <h3 class="text-lg font-bold mb-6 text-white border-b border-white/5 pb-4">Detalles del Perfil</h3>
+                <div class="space-y-5">
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-2">Correo Electrónico (Google Auth)</label>
+                        <input type="text" id="emailInput" disabled class="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-300 cursor-not-allowed" value="Cargando...">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-gray-400 mb-2">UID de Sistema</label>
+                        <input type="text" id="uidInput" disabled class="w-full bg-black/40 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-500 font-mono cursor-not-allowed" value="...">
+                    </div>
+                </div>
+            </div>
+
+            <div id="adminBox" class="glass-card p-8 hidden border border-yellow-500/20">
+                <h3 class="text-lg font-bold mb-2 text-yellow-400 flex items-center gap-2"><i class="ph-fill ph-shield-star"></i> Acceso Admin</h3>
+                <p class="text-xs text-gray-500 mb-6">Tu cuenta tiene permisos de administrador: acceso ilimitado y capacidad de asignar planes a otros usuarios.</p>
+                <a href="admin.html" class="inline-block px-6 py-3 rounded-xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-sm font-semibold hover:bg-yellow-500/20 transition-colors">
+                    Ir al Panel Admin
+                </a>
+            </div>
+
+            <div class="glass-card p-8">
+                <h3 class="text-lg font-bold mb-2 text-red-400">Zona de Peligro</h3>
+                <p class="text-xs text-gray-500 mb-6">Acciones destructivas que afectan tu cuenta operativa.</p>
+
+                <button id="btn-salir-2" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-semibold hover:bg-red-500/20 transition-colors">
+                    Cerrar Sesión Global
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        async function cargarDatosPerfil() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'configuracion', seccion: 'cfd' });
+
+            document.getElementById('emailInput').value = session.user.email;
+            document.getElementById('uidInput').value = session.user.id;
+
+            if (NLT.isAdmin(session)) {
+                document.getElementById('adminBox').classList.remove('hidden');
+            }
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        NLT.bindLogoutButton('btn-salir-2');
+        document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
+
+        cargarDatosPerfil();
+    </script>
+</body>
+</html>

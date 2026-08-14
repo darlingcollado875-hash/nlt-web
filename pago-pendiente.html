@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Pago en verificación</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+    </style>
+</head>
+<body class="h-screen flex items-center justify-center p-6">
+    <div class="glass-card p-10 max-w-md w-full text-center">
+        <div class="w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center mx-auto mb-6">
+            <i class="ph-fill ph-hourglass-medium text-3xl text-yellow-400"></i>
+        </div>
+        <h1 class="text-xl font-bold mb-2">Pago en proceso de verificación</h1>
+        <p class="text-sm text-gray-400 mb-6">Estamos verificando tu pago. Tu plan se activará una vez que el pago haya sido confirmado.</p>
+
+        <div id="ordenBox" class="bg-black/20 border border-white/5 rounded-xl p-5 text-left mb-6">
+            <p class="text-xs text-gray-500 animate-pulse">Cargando datos de la orden...</p>
+        </div>
+
+        <p class="text-xs text-gray-500 mb-6">Si el proveedor de pagos te pide una referencia o concepto de pago, usá el Order ID de arriba.</p>
+
+        <a href="dashboard.html" class="inline-block w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 font-semibold text-sm transition-all">Ir al Dashboard</a>
+    </div>
+
+    <script>
+        async function init() {
+            const sesion = await NLT.requireSession();
+            if (!sesion) return;
+
+            const params = new URLSearchParams(window.location.search);
+            const orderId = params.get('order');
+            const box = document.getElementById('ordenBox');
+            if (!orderId) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">No se especificó ninguna orden.</p>`;
+                return;
+            }
+
+            try {
+                const orden = await NLT_API.obtenerOrden(orderId);
+                if (orden.status === 'paid') {
+                    window.location.href = `pago-confirmado.html?order=${encodeURIComponent(orderId)}`;
+                    return;
+                }
+                box.innerHTML = `
+                    <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Referencia de pago</p>
+                    <p class="text-lg font-mono font-bold text-white mb-4">${orden.order_id}</p>
+                    <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Importe</p>
+                    <p class="text-lg font-bold text-white mb-4">$${orden.final_amount.toFixed(2)} ${orden.currency}</p>
+                    <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Estado</p>
+                    <p class="text-sm font-bold text-yellow-400 uppercase">Pendiente</p>
+                `;
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+        init();
+    </script>
+</body>
+</html>

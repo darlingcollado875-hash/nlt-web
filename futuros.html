@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Trading Copier | Futuros</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        nlt: {
+                            bg: '#080A0F', surface: '#11151C', accent: '#4378FF',
+                            success: '#22C55E', danger: '#EF4444',
+                            border: 'rgba(255, 255, 255, 0.05)',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <!-- SIDEBAR (contenido inyectado por NLT.mountSidebar -- ver assets/js/nlt-shared.js) -->
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <!-- CONTENIDO -->
+    <main class="flex-1 flex flex-col h-full">
+        <header class="h-24 flex items-center justify-between px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-2xl font-bold tracking-tight">Futuros</h1>
+            <div id="marketToggle" class="flex gap-2"></div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">
+                Cerrar Sesión
+            </button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+
+            <!-- Banner de proveedor -->
+            <div id="bannerProveedor" class="glass-card p-4 flex items-center gap-3 border-orange-500/30">
+                <i class="ph-fill ph-flask text-orange-400 text-xl"></i>
+                <p class="text-sm text-orange-300">Cargando proveedor activo...</p>
+            </div>
+
+            <!-- Mis cuentas -->
+            <div id="seccion-cuentas">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold">Mis cuentas Futures</h2>
+                </div>
+                <div class="glass-card p-6 mb-6">
+                    <h3 class="text-sm font-bold text-white mb-4">Agregar cuenta</h3>
+                    <form id="formCuentaFutures" class="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
+                        <div>
+                            <label class="block text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">Tipo</label>
+                            <select id="fTipoCuenta" class="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm focus:border-nlt-accent outline-none">
+                                <option value="MASTER">Master</option>
+                                <option value="SLAVE">Slave</option>
+                            </select>
+                        </div>
+                        <input type="text" id="fNombreCuenta" required placeholder="Nombre (ej: Master Futures 1)" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <input type="number" id="fMultiplicador" step="0.1" value="1.0" placeholder="Multiplicador" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <button type="submit" class="w-full py-3 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Conectar</button>
+                    </form>
+                    <p id="formCuentaMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
+                </div>
+                <div id="listaCuentasFutures" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <p class="text-sm text-nlt-accent animate-pulse col-span-full">Cargando cuentas...</p>
+                </div>
+            </div>
+
+            <!-- Operaciones / Copias (simulador MOCK) -->
+            <div id="seccion-operaciones">
+                <h2 class="text-lg font-bold mb-4">Operaciones abiertas / Simular copia (MOCK)</h2>
+                <div class="glass-card p-6 mb-6">
+                    <p class="text-xs text-gray-500 mb-4">Mientras no haya conector real de Tradovate, esto simula lo que en producción dispararía el propio broker -- abrí una operación en una cuenta MASTER acá y confirmá que se copia sola a sus SLAVES configuradas.</p>
+                    <form id="formSimular" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
+                        <div class="md:col-span-2">
+                            <label class="block text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">Cuenta Master</label>
+                            <select id="sCuenta" class="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm focus:border-nlt-accent outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">Símbolo</label>
+                            <select id="sSymbol" class="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm focus:border-nlt-accent outline-none"></select>
+                        </div>
+                        <div>
+                            <label class="block text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">Lado</label>
+                            <select id="sSide" class="w-full bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm focus:border-nlt-accent outline-none">
+                                <option value="BUY">LONG (BUY)</option>
+                                <option value="SELL">SHORT (SELL)</option>
+                            </select>
+                        </div>
+                        <input type="number" id="sQuantity" value="1" min="1" placeholder="Contratos" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <button type="submit" class="w-full py-3 rounded-xl bg-nlt-success/80 font-semibold text-sm hover:bg-nlt-success transition-all">Abrir (MOCK)</button>
+                    </form>
+                    <p id="formSimularMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
+                </div>
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Relación Master → Slaves (todas tus cuentas)</h3>
+                <div id="listaRelacionMasterSlaves" class="space-y-4 mb-8">
+                    <p class="text-sm text-gray-500">Cargando relación de copiado...</p>
+                </div>
+
+                <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Posiciones por cuenta (seleccionada)</h3>
+                <div id="listaPosiciones" class="space-y-3">
+                    <p class="text-sm text-gray-500">Seleccioná una cuenta arriba para ver sus posiciones abiertas.</p>
+                </div>
+            </div>
+
+            <!-- Historial -->
+            <div id="seccion-historial">
+                <h2 class="text-lg font-bold mb-4">Historial</h2>
+                <div class="glass-card overflow-x-auto">
+                    <table class="w-full text-left text-sm min-w-[700px]">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">Contrato</th>
+                                <th class="px-5 py-3 font-semibold">Dirección</th>
+                                <th class="px-5 py-3 font-semibold">Contratos</th>
+                                <th class="px-5 py-3 font-semibold">Entrada</th>
+                                <th class="px-5 py-3 font-semibold">Salida</th>
+                                <th class="px-5 py-3 font-semibold">P&L</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaHistorial" class="divide-y divide-white/5 text-gray-300">
+                            <tr><td class="px-5 py-3 text-gray-500" colspan="6">Seleccioná una cuenta en "Mis cuentas" para ver su historial.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Logs -->
+            <div id="seccion-logs">
+                <h2 class="text-lg font-bold mb-4">Logs</h2>
+                <div id="listaLogs" class="glass-card p-4 font-mono text-xs text-gray-400 space-y-1 max-h-80 overflow-y-auto">
+                    <p class="text-gray-600">Seleccioná una cuenta para ver sus eventos.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        let sesionActual = null;
+        let cuentasCache = [];
+        let cuentaSeleccionadaId = null;
+
+        function badgeEstadoFutures(estado) {
+            const map = {
+                PENDIENTE: { emoji: '🟡', texto: 'En cola...', clase: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' },
+                CONECTADA: { emoji: '🟢', texto: 'Conectada', clase: 'bg-green-500/10 text-green-400 border-green-500/20' },
+                SESION_FRIA: { emoji: '🟠', texto: 'Necesita reconexión', clase: 'bg-orange-500/10 text-orange-400 border-orange-500/20' },
+                DESCONECTADA: { emoji: '🔴', texto: 'Desconectada', clase: 'bg-red-500/10 text-red-400 border-red-500/20' },
+                ERROR_CONEXION: { emoji: '🔴', texto: 'Error de conexión', clase: 'bg-red-500/10 text-red-400 border-red-500/20' },
+            };
+            const info = map[estado] || { emoji: '🔴', texto: estado || 'Desconocido', clase: 'bg-red-500/10 text-red-400 border-red-500/20' };
+            return `<span class="px-3 py-1 ${info.clase} text-xs font-bold rounded-full border">${info.emoji} ${info.texto}</span>`;
+        }
+
+        async function cargarProveedor() {
+            const banner = document.getElementById('bannerProveedor');
+            try {
+                const { provider } = await NLT_API.futuresProveedor();
+                if (provider === 'MOCK') {
+                    banner.innerHTML = `<i class="ph-fill ph-flask text-orange-400 text-xl"></i><p class="text-sm text-orange-300"><strong>Modo simulación (MOCK)</strong> -- ninguna cuenta ni operación acá es real. Es el entorno de prueba mientras se conecta el proveedor real (Tradovate).</p>`;
+                } else {
+                    banner.innerHTML = `<i class="ph-fill ph-check-circle text-nlt-success text-xl"></i><p class="text-sm text-nlt-success"><strong>Proveedor real conectado: ${provider}</strong></p>`;
+                }
+            } catch (err) {
+                banner.innerHTML = `<p class="text-sm text-nlt-danger">Error consultando el proveedor: ${err.message}</p>`;
+            }
+        }
+
+        async function cargarContratos() {
+            const select = document.getElementById('sSymbol');
+            try {
+                const contratos = await NLT_API.futuresContratos();
+                select.innerHTML = contratos.map(c => `<option value="${c.contract_symbol}">${c.contract_symbol} (${c.exchange})</option>`).join('');
+            } catch (err) {
+                select.innerHTML = `<option value="">Error: ${err.message}</option>`;
+            }
+        }
+
+        async function cargarCuentas() {
+            const container = document.getElementById('listaCuentasFutures');
+            const selectSimular = document.getElementById('sCuenta');
+            try {
+                cuentasCache = await NLT_API.futuresListarCuentas();
+
+                selectSimular.innerHTML = cuentasCache.filter(c => c.tipo_cuenta === 'MASTER').map(c => `<option value="${c.id}">${c.nombre_cuenta}</option>`).join('') || '<option value="">Sin cuentas Master</option>';
+
+                if (!cuentasCache.length) {
+                    container.innerHTML = `<div class="col-span-full p-8 border border-dashed border-white/20 rounded-2xl text-center"><p class="text-gray-400">No tenés cuentas Futures todavía.</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = cuentasCache.map(c => `
+                    <div class="glass-card p-6 flex flex-col justify-between cursor-pointer hover:border-nlt-accent/30 transition-all" onclick="seleccionarCuenta('${c.id}')">
+                        <div>
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="px-2.5 py-1 rounded-md bg-nlt-accent/10 border border-nlt-accent/20 text-[10px] text-nlt-accent font-bold tracking-widest uppercase">${c.tipo_cuenta}</span>
+                                ${badgeEstadoFutures(c.estado)}
+                            </div>
+                            <h3 class="text-xl font-bold text-white tracking-tight">${c.nombre_cuenta}</h3>
+                            <p class="text-xs text-gray-400 mt-1 uppercase tracking-wider font-medium">${c.proveedor} · x${c.multiplicador}</p>
+                            <p class="text-lg font-bold text-white mt-3">${c.balance_actual != null ? '$' + Number(c.balance_actual).toLocaleString('es', { minimumFractionDigits: 2 }) : 'Sin verificar'}</p>
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-white/5 flex justify-between items-center" onclick="event.stopPropagation()">
+                            ${c.estado === 'SESION_FRIA' ? `<button onclick="reconectarFutures('${c.id}')" class="text-xs font-semibold text-orange-400 hover:text-orange-300 flex items-center gap-2"><i class="ph-bold ph-arrows-clockwise"></i> Reconectar</button>` : `<button onclick="enfriarFutures('${c.id}')" class="text-xs font-semibold text-gray-500 hover:text-orange-400 flex items-center gap-2"><i class="ph-bold ph-snowflake"></i> Simular desconexión</button>`}
+                            <button onclick="borrarFutures('${c.id}')" class="text-xs font-semibold text-nlt-danger hover:text-red-300 flex items-center gap-2"><i class="ph-bold ph-trash"></i> Borrar</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function seleccionarCuenta(id) {
+            cuentaSeleccionadaId = id;
+            await Promise.all([cargarPosiciones(id), cargarHistorial(id), cargarLogs(id)]);
+            document.getElementById('seccion-operaciones').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        async function cargarPosiciones(id) {
+            const container = document.getElementById('listaPosiciones');
+            container.innerHTML = `<p class="text-sm text-nlt-accent animate-pulse">Cargando posiciones...</p>`;
+            try {
+                const posiciones = await NLT_API.futuresPosiciones(id);
+                if (!posiciones.length) {
+                    container.innerHTML = `<p class="text-sm text-gray-500">Sin posiciones abiertas en esta cuenta.</p>`;
+                    return;
+                }
+                container.innerHTML = posiciones.map(p => `
+                    <div class="glass-item p-4 flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-white">${p.contract_symbol} <span class="text-xs ${p.direction === 'LONG' ? 'text-nlt-success' : 'text-nlt-danger'} font-bold uppercase">${p.direction}</span></p>
+                            <p class="text-xs text-gray-500">${p.contracts} contrato(s) @ ${p.precio_entrada} · SL: ${p.stop_loss ?? '-'} · TP: ${p.take_profit ?? '-'}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="modificarFutures('${id}', '${p.ticket}')" class="text-xs px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20">Modificar SL/TP</button>
+                            <button onclick="cerrarFutures('${id}', '${p.ticket}')" class="text-xs px-3 py-1.5 rounded-lg bg-nlt-danger/20 text-nlt-danger hover:bg-nlt-danger/30">Cerrar</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function cargarRelacionMasterSlaves() {
+            const container = document.getElementById('listaRelacionMasterSlaves');
+            if (!cuentasCache.length) {
+                container.innerHTML = `<p class="text-sm text-gray-500">No tenés cuentas Futures todavía.</p>`;
+                return;
+            }
+            try {
+                const slaves = cuentasCache.filter(c => c.tipo_cuenta !== 'MASTER');
+
+                const [posicionesPorCuenta, eventosPorSlave] = await Promise.all([
+                    Promise.all(cuentasCache.map(c => NLT_API.futuresPosiciones(c.id).then(ps => ps.map(p => ({ ...p, _cuenta: c }))).catch(() => []))),
+                    Promise.all(slaves.map(c => NLT_API.futuresEventos(c.id).then(es => es.map(e => ({ ...e, _cuenta: c }))).catch(() => []))),
+                ]);
+
+                const posiciones = posicionesPorCuenta.flat();
+                const eventosFallidos = eventosPorSlave.flat().filter(e => ['COPIA_FALLIDA', 'COPIA_OMITIDA'].includes(e.tipo_evento));
+
+                if (!posiciones.length && !eventosFallidos.length) {
+                    container.innerHTML = `<p class="text-sm text-gray-500">Sin posiciones abiertas en ninguna cuenta todavía. Abrí una operación en una cuenta Master para ver acá su relación con las Slaves.</p>`;
+                    return;
+                }
+
+                const grupos = {};
+                for (const p of posiciones) {
+                    const clave = p.ticket_maestra || p.ticket;
+                    (grupos[clave] = grupos[clave] || []).push(p);
+                }
+
+                const filaHtml = (p, esMaster) => `
+                    <div class="flex flex-wrap items-center justify-between gap-2 py-2 ${esMaster ? '' : 'pl-6 border-l-2 border-white/10 ml-2'}">
+                        <div class="flex items-center gap-3">
+                            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${esMaster ? 'bg-nlt-accent/20 text-nlt-accent' : 'bg-white/10 text-gray-300'}">${esMaster ? 'MASTER' : 'SLAVE'}</span>
+                            <span class="text-sm text-white font-semibold">${p._cuenta.nombre_cuenta}</span>
+                            <span class="text-xs ${p.direction === 'LONG' ? 'text-nlt-success' : 'text-nlt-danger'} font-bold uppercase">${p.direction}</span>
+                            <span class="text-xs text-gray-400">${p.contract_symbol}</span>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs text-gray-400">
+                            <span>${p.contracts} contrato(s)</span>
+                            <span>@ ${p.precio_entrada ?? '-'}</span>
+                            <span>SL ${p.stop_loss ?? '-'} / TP ${p.take_profit ?? '-'}</span>
+                            <span class="px-2 py-0.5 rounded-full bg-green-500/10 text-green-400 font-bold">Ejecutada</span>
+                        </div>
+                    </div>`;
+
+                const bloques = Object.entries(grupos).map(([ticketMaestra, filas]) => {
+                    const master = filas.find(f => f._cuenta.tipo_cuenta === 'MASTER');
+                    if (!master) return '';
+                    const copias = filas.filter(f => f._cuenta.tipo_cuenta !== 'MASTER');
+                    const fallidas = eventosFallidos.filter(e => String(e.detalle?.ticket_maestra) === String(ticketMaestra));
+
+                    const fallidasHtml = fallidas.map(e => `
+                        <div class="flex flex-wrap items-center justify-between gap-2 py-2 pl-6 border-l-2 border-red-500/30 ml-2">
+                            <div class="flex items-center gap-3">
+                                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/10 text-nlt-danger">SLAVE</span>
+                                <span class="text-sm text-white font-semibold">${e._cuenta.nombre_cuenta}</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full bg-red-500/10 text-nlt-danger text-xs font-bold">${e.tipo_evento === 'COPIA_OMITIDA' ? 'Omitida: ' + (e.detalle?.motivo || 'sin detalle') : 'Error: ' + (e.detalle?.mensaje || e.detalle?.codigo || 'sin detalle')}</span>
+                        </div>`).join('');
+
+                    return `
+                        <div class="glass-card p-5">
+                            ${filaHtml(master, true)}
+                            <div class="mt-1 divide-y divide-white/5">
+                                ${copias.map(c => filaHtml(c, false)).join('')}
+                                ${fallidasHtml}
+                                ${(!copias.length && !fallidas.length) ? '<p class="text-xs text-gray-600 pl-6 py-2">Sin copias todavía en cuentas Slave.</p>' : ''}
+                            </div>
+                        </div>`;
+                }).filter(Boolean).join('');
+
+                container.innerHTML = bloques || `<p class="text-sm text-gray-500">Sin posiciones abiertas en cuentas Master todavía.</p>`;
+            } catch (err) {
+                container.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function cargarHistorial(id) {
+            const tabla = document.getElementById('tablaHistorial');
+            try {
+                const historial = await NLT_API.futuresHistorial(id);
+                if (!historial.length) {
+                    tabla.innerHTML = `<tr><td class="px-5 py-3 text-gray-500" colspan="6">Sin operaciones cerradas todavía.</td></tr>`;
+                    return;
+                }
+                tabla.innerHTML = historial.map(h => `
+                    <tr>
+                        <td class="px-5 py-3">${h.contract_symbol}</td>
+                        <td class="px-5 py-3">${h.direction}</td>
+                        <td class="px-5 py-3">${h.contracts}</td>
+                        <td class="px-5 py-3">${h.precio_entrada ?? '-'}</td>
+                        <td class="px-5 py-3">${h.precio_salida ?? '-'}</td>
+                        <td class="px-5 py-3 ${(h.pnl || 0) >= 0 ? 'text-nlt-success' : 'text-nlt-danger'} font-bold">${h.pnl != null ? '$' + h.pnl.toFixed(2) : '-'}</td>
+                    </tr>
+                `).join('');
+            } catch (err) {
+                tabla.innerHTML = `<tr><td class="px-5 py-3 text-nlt-danger" colspan="6">Error: ${err.message}</td></tr>`;
+            }
+        }
+
+        async function cargarLogs(id) {
+            const container = document.getElementById('listaLogs');
+            try {
+                const eventos = await NLT_API.futuresEventos(id);
+                if (!eventos.length) {
+                    container.innerHTML = `<p class="text-gray-600">Sin eventos todavía.</p>`;
+                    return;
+                }
+                container.innerHTML = eventos.map(e => `<p><span class="text-gray-600">${new Date(e.creado_en).toLocaleString('es')}</span> <span class="text-nlt-accent">${e.tipo_evento}</span> ${e.detalle ? JSON.stringify(e.detalle) : ''}</p>`).join('');
+            } catch (err) {
+                container.innerHTML = `<p class="text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        async function reconectarFutures(id) {
+            try {
+                await NLT_API.futuresReconectar(id);
+                await cargarCuentas();
+            } catch (err) {
+                alert('Error al reconectar: ' + err.message);
+            }
+        }
+
+        async function enfriarFutures(id) {
+            try {
+                await NLT_API.futuresMockEnfriar(id);
+                alert('Sesión enfriada (simulado) -- el chequeo de salud del motor la va a marcar como "Necesita reconexión" en los próximos segundos.');
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function borrarFutures(id) {
+            if (!confirm('¿Borrar esta cuenta Futures?')) return;
+            try {
+                await NLT_API.futuresBorrarCuenta(id);
+                await cargarCuentas();
+            } catch (err) {
+                alert('Error al borrar: ' + err.message);
+            }
+        }
+
+        async function modificarFutures(cuentaId, ticket) {
+            const sl = prompt('Nuevo Stop Loss (dejar vacío para no cambiar):');
+            const tp = prompt('Nuevo Take Profit (dejar vacío para no cambiar):');
+            try {
+                const datos = {};
+                if (sl) datos.stop_loss = parseFloat(sl);
+                if (tp) datos.take_profit = parseFloat(tp);
+                await NLT_API.futuresMockModificar(cuentaId, ticket, datos);
+                await Promise.all([cargarPosiciones(cuentaId), cargarRelacionMasterSlaves()]);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function cerrarFutures(cuentaId, ticket) {
+            if (!confirm('¿Cerrar esta posición?')) return;
+            try {
+                await NLT_API.futuresMockCerrar(cuentaId, ticket);
+                await Promise.all([cargarPosiciones(cuentaId), cargarHistorial(cuentaId), cargarRelacionMasterSlaves()]);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        document.getElementById('formCuentaFutures').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('formCuentaMsg');
+            msg.classList.remove('hidden');
+            msg.className = 'mt-3 text-xs p-3 rounded-lg bg-blue-500/10 text-blue-400';
+            msg.textContent = 'Conectando...';
+            try {
+                await NLT_API.futuresCrearCuenta({
+                    tipo_cuenta: document.getElementById('fTipoCuenta').value,
+                    nombre_cuenta: document.getElementById('fNombreCuenta').value,
+                    multiplicador: parseFloat(document.getElementById('fMultiplicador').value) || 1.0,
+                });
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-green-500/10 text-green-500';
+                msg.textContent = '¡Cuenta conectada!';
+                document.getElementById('formCuentaFutures').reset();
+                await cargarCuentas();
+            } catch (err) {
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-red-500/10 text-red-500';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        });
+
+        document.getElementById('formSimular').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('formSimularMsg');
+            const cuentaId = document.getElementById('sCuenta').value;
+            if (!cuentaId) {
+                msg.classList.remove('hidden');
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-red-500/10 text-red-500';
+                msg.textContent = 'Creá primero una cuenta Master.';
+                return;
+            }
+            msg.classList.remove('hidden');
+            msg.className = 'mt-3 text-xs p-3 rounded-lg bg-blue-500/10 text-blue-400';
+            msg.textContent = 'Abriendo operación simulada...';
+            try {
+                await NLT_API.futuresMockAbrir(cuentaId, {
+                    symbol: document.getElementById('sSymbol').value,
+                    side: document.getElementById('sSide').value,
+                    quantity: parseInt(document.getElementById('sQuantity').value, 10),
+                });
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-green-500/10 text-green-500';
+                msg.textContent = '¡Operación abierta! El motor de copiado la va a propagar a las cuentas Slave en los próximos segundos -- mirá "Relación Master → Slaves" más abajo.';
+                await cargarPosiciones(cuentaId);
+                setTimeout(cargarRelacionMasterSlaves, 1500);
+                setTimeout(cargarRelacionMasterSlaves, 4000);
+            } catch (err) {
+                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-red-500/10 text-red-500';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        });
+
+        async function init() {
+            sesionActual = await NLT.requireSession();
+            if (!sesionActual) return;
+            await NLT.mountSidebar(sesionActual, { activo: 'futuros-cuentas', seccion: 'futures' });
+            document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('futures');
+            await Promise.all([cargarProveedor(), cargarContratos(), cargarCuentas()]);
+            await cargarRelacionMasterSlaves();
+            setInterval(cargarRelacionMasterSlaves, 15000);
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        init();
+    </script>
+</body>
+</html>

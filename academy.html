@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NLT Academy | Educación de trading estructurada</title>
+    <meta name="description" content="NLT Academy -- cursos y lecciones estructuradas para llevar tu operativa al siguiente nivel, dentro del mismo ecosistema NLT.">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js"></script>
+    <script src="assets/js/nlt-api-client.js"></script>
+    <script>
+        tailwind.config = { theme: { extend: { fontFamily: { sans: ['Inter', 'sans-serif'] }, colors: { nlt: { bg: '#080A0F', accent: '#4378FF', success: '#22C55E', danger: '#EF4444', border: 'rgba(255,255,255,0.06)' } } } } }
+    </script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="#que-incluye" class="hover:text-white transition-colors">Qué incluye</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 pt-44 pb-20 px-6 max-w-5xl mx-auto text-center">
+        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-nlt-accent/20 bg-nlt-accent/10 text-[10px] font-bold text-nlt-accent tracking-[0.2em] uppercase mb-8" data-reveal>
+            <span class="w-1.5 h-1.5 rounded-full bg-nlt-accent animate-pulse"></span> Acceso anticipado
+        </div>
+        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>NLT Academy</h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>
+            Educación de trading estructurada, dentro de la misma cuenta NLT que ya usás para Copy System e Indicator. Cursos, lecciones y comunidad de aprendizaje -- construyéndose ahora mismo.
+        </p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
+            <button id="btn-comenzar" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar</button>
+            <a href="#que-incluye" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all">Qué va a incluir</a>
+        </div>
+    </section>
+
+    <!-- QUÉ ES -->
+    <section class="relative z-10 max-w-5xl mx-auto px-6 py-8">
+        <div class="glass-card p-10 md:p-14" data-reveal>
+            <h2 class="text-2xl md:text-3xl font-bold tracking-tight mb-6">¿Qué es NLT Academy?</h2>
+            <p class="text-gray-400 leading-relaxed mb-4">
+                NLT Academy es el módulo de educación del ecosistema NLT: un espacio pensado para llevar tu operativa del nivel en el que estás hoy al siguiente, con contenido estructurado en vez de información suelta.
+            </p>
+            <p class="text-gray-400 leading-relaxed">
+                Es la misma cuenta que ya usás en el resto de NLT -- sin crear un usuario nuevo, sin otra sesión, sin otra app. Activar Academy es simplemente sumar un producto más a tu cuenta.
+            </p>
+        </div>
+    </section>
+
+    <!-- QUÉ VA A INCLUIR -->
+    <section id="que-incluye" class="relative z-10 max-w-6xl mx-auto px-6 py-16">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">La visión</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Qué va a incluir</h2>
+            <p class="text-gray-500 text-sm mt-4 max-w-xl mx-auto">Esto es lo que estamos construyendo. El contenido interno (cursos, lecciones, videos) se va a ir activando por etapas -- no prometemos un catálogo que todavía no existe.</p>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-graduation-cap text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Cursos estructurados</h3>
+                <p class="text-sm text-gray-400">Rutas de aprendizaje organizadas por módulo y lección, no videos sueltos sin orden.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-play-circle text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Lecciones en video</h3>
+                <p class="text-sm text-gray-400">Contenido audiovisual directo, pensado para operadores reales, no teoría genérica.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-chart-line-up text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Seguimiento de progreso</h3>
+                <p class="text-sm text-gray-400">Tu avance queda guardado en tu cuenta NLT, módulo por módulo.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-seal-check text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Certificados</h3>
+                <p class="text-sm text-gray-400">Reconocimiento al completar rutas de aprendizaje dentro de la Academy.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-users-three text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Comunidad de aprendizaje</h3>
+                <p class="text-sm text-gray-400">Un espacio para aprender junto a otros traders del mismo ecosistema.</p>
+            </div>
+            <div class="glass-card p-8" data-reveal>
+                <i class="ph-fill ph-link text-2xl text-nlt-accent mb-4"></i>
+                <h3 class="font-bold text-white mb-2">Conectado a todo NLT</h3>
+                <p class="text-sm text-gray-400">Misma cuenta, mismo Dashboard -- lo que aprendés se conecta con Copy System e Indicator.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- BENEFICIOS -->
+    <section class="relative z-10 max-w-5xl mx-auto px-6 py-8">
+        <div class="glass-card p-10 md:p-14" data-reveal>
+            <h2 class="text-2xl md:text-3xl font-bold tracking-tight mb-6">Por qué activarla ahora</h2>
+            <ul class="space-y-4 text-gray-400 text-sm leading-relaxed">
+                <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle text-nlt-success mt-0.5 shrink-0"></i>Precio de acceso anticipado -- se activa una sola vez, antes de que el catálogo completo esté disponible.</li>
+                <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle text-nlt-success mt-0.5 shrink-0"></i>Formás parte de la comunidad de aprendizaje desde el día uno.</li>
+                <li class="flex items-start gap-3"><i class="ph-fill ph-check-circle text-nlt-success mt-0.5 shrink-0"></i>Acceso automático a medida que se publiquen los primeros módulos -- sin pasos extra.</li>
+            </ul>
+        </div>
+    </section>
+
+    <!-- PRECIO / SUSCRIPCIÓN -->
+    <section id="suscribite" class="relative z-10 max-w-3xl mx-auto px-6 py-16">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4 text-center" data-reveal>Suscripción</p>
+        <div id="precioBox" data-reveal>
+            <p class="text-sm text-gray-500 animate-pulse text-center">Cargando...</p>
+        </div>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-mark.svg" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script>
+        let sesionActual = null;
+        let planAcademy = null;
+
+        function irALoginAcademy() {
+            const urlDestino = new URL('academy.html#suscribite', window.location.href).toString();
+            NLT.supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
+        }
+
+        function precioTexto(p) {
+            return p.billing_period === 'one_time' ? `$${p.precio_mensual} pago único` : `$${p.precio_mensual}/mes`;
+        }
+
+        // --- Tokenizador oficial de Pay2Commerce (P2C.tokenize) -- mismo
+        // mecanismo ya en producción en suscripcion.html: la tarjeta se
+        // tokeniza en el navegador, NLT_API nunca recibe el número real. ---
+        function cargarTokenizerJs() {
+            if (window.P2C) return Promise.resolve();
+            if (window._p2cTokenizerPromise) return window._p2cTokenizerPromise;
+            window._p2cTokenizerPromise = new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://app.pay2commerce.net/api/v1/tokenizer.js';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('No se pudo cargar el módulo de pago seguro.'));
+                document.head.appendChild(s);
+            });
+            return window._p2cTokenizerPromise;
+        }
+
+        function renderYaSuscrito(access) {
+            const box = document.getElementById('precioBox');
+            box.innerHTML = `
+                <div class="glass-card p-10 max-w-md mx-auto text-center">
+                    <i class="ph-fill ph-seal-check text-4xl text-nlt-success mb-3"></i>
+                    <p class="text-xl font-bold text-white mb-1">Ya sos parte de NLT Academy</p>
+                    <p class="text-sm text-gray-500 mb-6">${access.next_billing_date ? 'Próximo cobro: ' + new Date(access.next_billing_date).toLocaleDateString() : ''}</p>
+                    <a href="academy-dashboard.html" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button">Ir a mi Academia</a>
+                </div>
+            `;
+        }
+
+        function renderPrecioCard(plan) {
+            const box = document.getElementById('precioBox');
+            box.innerHTML = `
+                <div class="glass-card p-10 max-w-sm mx-auto text-center">
+                    <p class="text-5xl font-extrabold text-white mb-2">$${plan.precio_mensual}<span class="text-sm text-gray-500 font-medium"> ${plan.billing_period === 'monthly' ? '/mes' : ''}</span></p>
+                    <p class="text-sm text-gray-500 mb-6">${plan.nombre} -- Academy + Community + NLT Tools + Economic Calendar</p>
+                    <button id="btn-suscribirme" class="w-full py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">${sesionActual ? 'Suscribirme' : 'Comenzar ahora'}</button>
+                    <p id="precioMsg" class="mt-3 text-xs hidden p-3 rounded-lg text-left"></p>
+                </div>
+            `;
+            document.getElementById('btn-suscribirme').addEventListener('click', () => {
+                if (!sesionActual) { irALoginAcademy(); return; }
+                abrirCheckoutAcademy(plan);
+            });
+        }
+
+        function abrirCheckoutAcademy(plan) {
+            const box = document.getElementById('precioBox');
+            box.innerHTML = `
+                <div class="glass-card p-8 max-w-md mx-auto">
+                    <h3 class="text-lg font-bold mb-1">Pagar con tarjeta</h3>
+                    <p class="text-xs text-gray-500 mb-6">${plan.nombre} -- $${plan.precio_mensual}/mes. Tu tarjeta se procesa de forma segura, nunca pasa por los servidores de NLT.</p>
+                    <div class="space-y-3">
+                        <input type="text" id="acNombre" placeholder="Nombre en la tarjeta" autocomplete="cc-name" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <input type="text" id="acNumero" placeholder="Número de tarjeta" autocomplete="cc-number" inputmode="numeric" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <div class="grid grid-cols-3 gap-3">
+                            <input type="text" id="acMes" placeholder="MM" autocomplete="cc-exp-month" inputmode="numeric" maxlength="2" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <input type="text" id="acAnio" placeholder="AAAA" autocomplete="cc-exp-year" inputmode="numeric" maxlength="4" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <input type="text" id="acCvv" placeholder="CVV" autocomplete="cc-csc" inputmode="numeric" maxlength="4" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        </div>
+                        <p class="text-[11px] text-gray-500 pt-2">Dirección de facturación</p>
+                        <input type="text" id="acDireccion" placeholder="Calle y número" autocomplete="address-line1" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="acCiudad" placeholder="Ciudad" autocomplete="address-level2" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <input type="text" id="acCodigoPostal" placeholder="Código postal" autocomplete="postal-code" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <input type="text" id="acEstado" placeholder="Estado/Provincia" autocomplete="address-level1" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                            <select id="acPais" autocomplete="country" class="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
+                                <option value="DO">República Dominicana</option>
+                                <option value="US">Estados Unidos</option>
+                                <option value="CA">Canadá</option>
+                                <option value="CO">Colombia</option>
+                                <option value="ES">España</option>
+                                <option value="MX">México</option>
+                                <option value="PR">Puerto Rico</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button id="acPagar" class="w-full mt-5 py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Confirmar pago de $${plan.precio_mensual.toFixed(2)}</button>
+                    <p id="acMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
+                </div>
+            `;
+            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            iniciarPagoAcademy(plan);
+        }
+
+        async function iniciarPagoAcademy(plan) {
+            const acMsg = document.getElementById('acMsg');
+            const setMsg = (texto, tipo) => {
+                acMsg.classList.remove('hidden');
+                acMsg.className = `mt-3 text-xs p-3 rounded-lg ${tipo === 'error' ? 'bg-nlt-danger/10 text-nlt-danger' : tipo === 'success' ? 'bg-nlt-success/10 text-nlt-success' : 'bg-blue-500/10 text-blue-400'}`;
+                acMsg.textContent = texto;
+            };
+
+            let orden, checkoutConfig;
+            try {
+                setMsg('Creando orden...', 'info');
+                orden = await NLT_API.crearOrden(plan.id, 'monthly', null);
+                if (!orden.payment_available) {
+                    document.getElementById('acPagar').disabled = true;
+                    setMsg(orden.payment_unavailable_reason || 'Pagos temporalmente no disponibles.', 'error');
+                    return;
+                }
+                [checkoutConfig] = await Promise.all([NLT_API.checkoutConfig(orden.order_id), cargarTokenizerJs()]);
+                acMsg.classList.add('hidden');
+            } catch (err) {
+                document.getElementById('acPagar').disabled = true;
+                setMsg('No se pudo iniciar el pago: ' + err.message, 'error');
+                return;
+            }
+
+            document.getElementById('acPagar').addEventListener('click', () => {
+                const btn = document.getElementById('acPagar');
+                const numero = document.getElementById('acNumero').value.replace(/\s+/g, '');
+                const mes = document.getElementById('acMes').value.trim().padStart(2, '0');
+                const anio = document.getElementById('acAnio').value.trim();
+                const cvv = document.getElementById('acCvv').value.trim();
+                const nombre = document.getElementById('acNombre').value.trim();
+                const direccion = {
+                    address: document.getElementById('acDireccion').value.trim(),
+                    city: document.getElementById('acCiudad').value.trim(),
+                    zip: document.getElementById('acCodigoPostal').value.trim(),
+                    state: document.getElementById('acEstado').value.trim(),
+                    country: document.getElementById('acPais').value,
+                };
+                if (!numero || !mes || !anio || !cvv) { setMsg('Completá todos los datos de la tarjeta.', 'error'); return; }
+                if (!direccion.address || !direccion.city || !direccion.zip) { setMsg('Completá la dirección de facturación.', 'error'); return; }
+
+                btn.disabled = true;
+                btn.textContent = 'Procesando...';
+                acMsg.classList.add('hidden');
+
+                const [firstName, ...resto] = (nombre || 'Cliente NLT').split(' ');
+                const lastName = resto.join(' ') || firstName;
+
+                (async () => {
+                    let resultado;
+                    try {
+                        resultado = await P2C.tokenize({
+                            publishableKey: checkoutConfig.publishable_key,
+                            merchantId: checkoutConfig.merchant_id,
+                            customerId: checkoutConfig.customer_id,
+                            card: { number: numero, month: mes, year: anio, cvv },
+                            billing: {
+                                first_name: firstName, last_name: lastName,
+                                address: direccion.address, city: direccion.city,
+                                state: direccion.state, zip: direccion.zip, country: direccion.country,
+                            },
+                        });
+                    } catch (err) {
+                        btn.disabled = false;
+                        btn.textContent = `Confirmar pago de $${plan.precio_mensual.toFixed(2)}`;
+                        setMsg(err instanceof P2C.Error ? err.message : 'No se pudo procesar la tarjeta. Intentá de nuevo.', 'error');
+                        return;
+                    }
+                    try {
+                        await NLT_API.pagarOrden(orden.order_id, resultado.payment_method_id);
+                        setMsg('¡Pago confirmado! Redirigiendo a tu Academia...', 'success');
+                        setTimeout(() => { window.location.href = 'academy-dashboard.html'; }, 1400);
+                    } catch (err) {
+                        btn.disabled = false;
+                        btn.textContent = `Confirmar pago de $${plan.precio_mensual.toFixed(2)}`;
+                        setMsg(err.message, 'error');
+                    }
+                })();
+            });
+        }
+
+        async function initAcademyMarketing() {
+            // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
+            sesionActual = await NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+
+            const destinoCTA = sesionActual ? 'academy-dashboard.html' : '#suscribite';
+            [['btn-comenzar', 'Comenzar'], ['btn-comenzar-2', 'Comenzar ahora']].forEach(([id, labelOut]) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                btn.onclick = (e) => {
+                    e.preventDefault();
+                    if (sesionActual) { window.location.href = 'academy-dashboard.html'; }
+                    else { document.getElementById('suscribite').scrollIntoView({ behavior: 'smooth' }); }
+                };
+            });
+
+            const box = document.getElementById('precioBox');
+            try {
+                const planes = await NLT_API.planesPorProducto('academy');
+                planAcademy = planes[0];
+                if (!planAcademy) { box.innerHTML = '<p class="text-sm text-gray-500 text-center">Precio disponible próximamente.</p>'; return; }
+
+                if (sesionActual) {
+                    const access = await NLT_API.academyAccess();
+                    if (access.has_access) { renderYaSuscrito(access); return; }
+                }
+                renderPrecioCard(planAcademy);
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-gray-500 text-center">No se pudo cargar la suscripción: ${err.message}</p>`;
+            }
+        }
+        initAcademyMarketing();
+
+        if (window.gsap && window.ScrollTrigger) {
+            gsap.registerPlugin(ScrollTrigger);
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                gsap.set(el, { y: 24 });
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+            });
+        }
+    </script>
+</body>
+</html>
