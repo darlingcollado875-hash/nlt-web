@@ -32,9 +32,28 @@
         return session.access_token;
     }
 
+    // fetch() solo tira una excepción (TypeError "Failed to fetch") cuando
+    // la conexión falla a nivel red -- nunca para una respuesta HTTP real,
+    // aunque sea un error 4xx/5xx (eso sigue de largo con resp.ok=false).
+    // Un reintento acá NO tapa errores reales de la app, solo blips de red
+    // reales: confirmado real (14/08) que esto pasa justo en la ventana de
+    // unos segundos mientras Railway termina de levantar un redeploy nuevo
+    // -- el usuario lo veía como "Failed to fetch" en Academy que se
+    // arreglaba solo al refrescar la página un momento después.
+    async function _fetchConReintento(url, opciones, intentos = 2) {
+        for (let i = 0; i < intentos; i++) {
+            try {
+                return await fetch(url, opciones);
+            } catch (err) {
+                if (i === intentos - 1) throw err;
+                await new Promise((r) => setTimeout(r, 800));
+            }
+        }
+    }
+
     async function request(path, options = {}) {
         const token = await _token();
-        const resp = await fetch(BASE_URL + path, {
+        const resp = await _fetchConReintento(BASE_URL + path, {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
