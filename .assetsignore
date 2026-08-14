@@ -1,0 +1,6 @@
+.git
+.wrangler
+.gitignore
+dev_server.py
+supabase
+wrangler.jsonc

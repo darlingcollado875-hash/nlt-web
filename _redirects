@@ -4,11 +4,18 @@
 # Cloudflare Pages en vez de Netlify. netlify.toml se deja intacto (sigue
 # siendo el deploy real hasta que se migre de verdad).
 
-# Proxy del tokenizador de Pay2Commerce (bug real de tokenizer.js v1.0.0:
-# usa URLs relativas en vez de absolutas -- ver el comentario largo en
-# netlify.toml para el detalle completo).
-/public/payment-config/*  https://app.pay2commerce.net/public/payment-config/:splat  200
-/api/v1/tokens  https://app.pay2commerce.net/api/v1/tokens  200
+# El proxy del tokenizador de Pay2Commerce (bug real de tokenizer.js v1.0.0,
+# ver el comentario largo en netlify.toml) NO se puede resolver acá --
+# confirmado real en el deploy (14/08): la plataforma actual de Cloudflare
+# (Workers con Static Assets, ya no la Pages clásica) rechaza el build
+# entero si un redirect "proxy" (status 200) apunta a una URL externa
+# absoluta -- "Proxy (200) redirects can only point to relative paths".
+# Pendiente: reimplementar este proxy como una Cloudflare Function real
+# (functions/api/v1/tokens.js + functions/public/payment-config/[[path]].js
+# con fetch() del lado servidor) cuando se retome el arreglo de pagos --
+# hasta entonces, el checkout con tarjeta vía Pay2Commerce NO va a andar
+# en este deploy de Cloudflare (sí seguía andando en Netlify, que no tiene
+# esta restricción).
 
 # Rutas limpias para los portales del ecosistema (sin ".html").
 /ecosystem  /ecosystem.html  200
