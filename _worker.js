@@ -19,6 +19,10 @@ export default {
     async fetch(request, env) {
         const url = new URL(request.url);
 
+        if (url.pathname === '/_worker_test') {
+            return new Response('WORKER_EJECUTANDO_OK', { status: 200 });
+        }
+
         if (PROXY_PREFIXES.some((p) => url.pathname.startsWith(p))) {
             const destino = UPSTREAM + url.pathname + url.search;
             const cabecerasReenviadas = new Headers(request.headers);
