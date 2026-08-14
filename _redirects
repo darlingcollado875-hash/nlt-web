@@ -17,14 +17,14 @@
 # en este deploy de Cloudflare (sí seguía andando en Netlify, que no tiene
 # esta restricción).
 
-# Rutas limpias para los portales del ecosistema (sin ".html").
-/ecosystem  /ecosystem.html  200
-/copy-system  /copy-system.html  200
-/indicator  /indicator.html  200
-/plans  /plans.html  200
-/academy  /academy.html  200
-/news  /news.html  200
-/calculators  /calculators.html  200
-/tools  /tools.html  200
-/community  /community.html  200
+# Las rutas limpias para los portales del ecosistema (/ecosystem,
+# /copy-system, /indicator, /plans, /academy, /news, /calculators, /tools,
+# /community) YA NO están acá -- confirmado real en el deploy (14/08): el
+# motor de Workers Static Assets de Cloudflare limpia las URLs .html por su
+# cuenta (mismo comportamiento, /foo.html -> redirect 307 -> /foo), y como
+# antes ACÁ TAMBIÉN reescribíamos /foo -> /foo.html, las dos redirecciones
+# se pisaban entre sí y formaban un loop infinito (confirmado con curl -L:
+# "Maximum (50) redirects followed" en cada una de esas 9 rutas). Sacarlas
+# de acá no rompe nada -- la plataforma ya hace exactamente lo mismo sola.
+
 /verify/:code  /verify.html?code=:code  200
