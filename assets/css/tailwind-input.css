@@ -1,0 +1,20 @@
+@import "tailwindcss";
+
+/* Unión de todos los tailwind.config = {...} que existían embebidos en
+   cada página (24 archivos, vía CDN Play). Algunos definían distintos
+   subconjuntos de esta misma paleta -- acá se juntan todos en un solo
+   lugar, fuente única de verdad para el build compilado. */
+@theme {
+    --font-sans: Inter, sans-serif;
+    --color-nlt-bg: #080A0F;
+    --color-nlt-surface: #11151C;
+    --color-nlt-accent: #4378FF;
+    --color-nlt-dark: #11151c;
+    --color-nlt-success: #22C55E;
+    --color-nlt-danger: #EF4444;
+    --color-nlt-warn: #F59E0B;
+    --color-nlt-border: rgba(255, 255, 255, 0.06);
+}
+
+@source "../../*.html";
+@source "../js/*.js";
