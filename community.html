@@ -314,7 +314,22 @@
             `;
         }
 
+        function adCardHTML(ad) {
+            return `
+            <div class="glass-card p-5" data-ad-id="${ad.id}">
+                <div class="flex items-center gap-2.5 mb-3">
+                    <div class="w-9 h-9 rounded-full bg-nlt-accent/15 flex items-center justify-center"><i class="ph-fill ph-megaphone text-nlt-accent"></i></div>
+                    <div><p class="text-sm font-semibold text-white">${esc(ad.advertiser_name)}</p><p class="text-[10px] text-gray-500 uppercase tracking-wider">Sponsored</p></div>
+                </div>
+                <p class="font-bold text-white mb-1">${esc(ad.title)}</p>
+                ${ad.body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${esc(ad.body).replace(/\n/g, '<br>')}</p>` : ''}
+                ${ad.image_url ? `<img src="${ad.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
+                ${ad.target_url ? `<button class="btn-ad-click w-full py-2 rounded-lg bg-nlt-accent/10 text-nlt-accent text-xs font-semibold cursor-pointer" data-ad-id="${ad.id}" data-url="${esc(ad.target_url)}">Ver más</button>` : ''}
+            </div>`;
+        }
+
         function postCardHTML(p) {
+            if (p._ad) return adCardHTML(p);
             const esOficial = p._oficial;
             return `
             <div class="glass-card p-5" data-post-id="${p.id}">
@@ -364,6 +379,21 @@
             });
             container.querySelectorAll('.btn-ver-perfil').forEach(el => {
                 el.addEventListener('click', () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; });
+            });
+            container.querySelectorAll('.btn-ad-click').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    NLT_API.communityAdClick(btn.getAttribute('data-ad-id'));
+                    window.open(btn.getAttribute('data-url'), '_blank', 'noopener');
+                });
+            });
+        }
+
+        const _adsImpresionadas = new Set();
+        function registrarImpresionesAds(ads) {
+            ads.forEach(ad => {
+                if (_adsImpresionadas.has(ad.id)) return;
+                _adsImpresionadas.add(ad.id);
+                NLT_API.communityAdImpresion(ad.id);
             });
         }
 
@@ -436,14 +466,19 @@
             box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando comunidad...</p>';
             try {
                 const tipo = ['all', 'trending'].includes(filtroActivo) ? null : filtroActivo;
-                const [posts, oficiales] = await Promise.all([
-                    NLT_API.communityFeed({ tipo }), NLT_API.communityOficiales(),
+                const [posts, oficiales, ads] = await Promise.all([
+                    NLT_API.communityFeed({ tipo }), NLT_API.communityOficiales(), NLT_API.communityAdsActivos().catch(() => []),
                 ]);
                 let items = [...oficiales.map(o => ({ ...o, _oficial: true })), ...posts];
                 if (filtroActivo === 'trending') {
                     items = items.filter(i => !i._oficial).sort((a, b) => (b.likes_count + b.comments_count) - (a.likes_count + a.comments_count));
                 } else {
                     items.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                }
+                const adsDestacados = ads.slice(0, 2).map(a => ({ ...a, _ad: true }));
+                if (adsDestacados.length) {
+                    items = [...adsDestacados, ...items];
+                    registrarImpresionesAds(adsDestacados);
                 }
                 feedCache = items;
                 if (!items.length) {
