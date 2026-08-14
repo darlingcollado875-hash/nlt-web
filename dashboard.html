@@ -33,57 +33,57 @@
 
     <!-- CONTENIDO -->
     <main class="flex-1 flex flex-col h-full">
-        <header class="h-24 flex items-center justify-between pl-20 pr-10 md:px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
-            <h1 class="text-2xl font-bold tracking-tight">Visión General</h1>
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-lg md:text-2xl font-bold tracking-tight">Visión General</h1>
             <div id="marketToggle" class="flex gap-2"></div>
-            <div class="flex items-center gap-5">
+            <div class="flex items-center gap-3 md:gap-5">
                 <!-- LE QUITAMOS EL ONCLICK Y LE PUSIMOS UN ID "btn-salir" -->
-                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-4 py-2 rounded-lg cursor-pointer">
+                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">
                     Cerrar Sesión
                 </button>
-                <div class="px-3 py-1.5 rounded-full bg-nlt-success/10 border border-nlt-success/20 flex items-center gap-2">
+                <div class="hidden sm:flex px-3 py-1.5 rounded-full bg-nlt-success/10 border border-nlt-success/20 items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-nlt-success animate-pulse"></span>
                     <span class="text-[11px] font-semibold text-nlt-success uppercase">Sistema Activo</span>
                 </div>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+        <div class="flex-1 overflow-y-auto p-5 space-y-6 md:p-10 md:space-y-8">
             <div>
                 <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">NLT Platform</p>
                 <div id="moduleStrip" class="flex items-center gap-3 overflow-x-auto pb-1"></div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="glass-card p-6 flex justify-between items-center">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="glass-card p-4 md:p-6 flex justify-between items-center">
                     <div>
                         <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Volumen Hoy</p>
-                        <div class="flex items-baseline gap-2"><h2 class="text-4xl font-bold text-nlt-accent glow-text" id="metricVolumen">—</h2><span class="text-sm text-gray-500">Lotes</span></div>
+                        <div class="flex items-baseline gap-2"><h2 class="text-3xl md:text-4xl font-bold text-nlt-accent glow-text" id="metricVolumen">—</h2><span class="text-sm text-gray-500">Lotes</span></div>
                         <p class="text-[11px] text-gray-600 mt-1" id="metricVolumenNota">Sin operaciones copiadas hoy todavía</p>
                     </div>
-                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300"><i class="ph ph-stack text-2xl"></i></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-stack text-xl md:text-2xl"></i></div>
                 </div>
-                <div class="glass-card p-6 flex justify-between items-center">
+                <div class="glass-card p-4 md:p-6 flex justify-between items-center">
                     <div>
                         <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Cuentas Destino</p>
-                        <div class="flex items-baseline gap-1"><h2 class="text-4xl font-bold text-white" id="metricCuentasUsadas">0</h2><span class="text-xl text-gray-500">/ <span id="metricCuentasLimite">2</span></span></div>
+                        <div class="flex items-baseline gap-1"><h2 class="text-3xl md:text-4xl font-bold text-white" id="metricCuentasUsadas">0</h2><span class="text-xl text-gray-500">/ <span id="metricCuentasLimite">2</span></span></div>
                     </div>
-                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300"><i class="ph ph-plugs-connected text-2xl"></i></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-plugs-connected text-xl md:text-2xl"></i></div>
                 </div>
-                <div class="glass-card p-6 flex justify-between items-center">
+                <div class="glass-card p-4 md:p-6 flex justify-between items-center">
                     <div>
                         <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Tasa de Éxito</p>
-                        <h2 class="text-4xl font-bold text-white" id="metricTasaExito">—</h2>
+                        <h2 class="text-3xl md:text-4xl font-bold text-white" id="metricTasaExito">—</h2>
                         <p class="text-[11px] text-gray-600 mt-1" id="metricTasaExitoNota">Sin operaciones cerradas todavía</p>
                     </div>
-                    <div class="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-500"><i class="ph-fill ph-check-circle text-2xl"></i></div>
+                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-500 shrink-0"><i class="ph-fill ph-check-circle text-xl md:text-2xl"></i></div>
                 </div>
             </div>
 
             <div id="marketAlertsWidget"></div>
 
-            <div class="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div class="glass-card p-7">
+            <div class="grid grid-cols-1 xl:grid-cols-3 gap-4 md:gap-8">
+                <div class="glass-card p-5 md:p-7">
                     <h3 class="text-sm font-semibold text-white tracking-wide mb-4">Añadir Destino</h3>
                     <form id="copierForm" class="space-y-3">
                         <select id="proveedor" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent">
@@ -171,9 +171,9 @@
                     : '<span class="text-[9px] text-nlt-success font-bold ml-2">LIVE</span>';
 
                 box.innerHTML = `
-                <div class="glass-card p-6 flex items-center justify-between gap-4 flex-wrap">
+                <div class="glass-card p-4 md:p-6 flex items-center justify-between gap-4 flex-wrap">
                     <div class="flex items-center gap-4">
-                        <div class="w-11 h-11 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0"><i class="ph-fill ph-megaphone text-xl"></i></div>
+                        <div class="w-10 h-10 md:w-11 md:h-11 rounded-full bg-red-500/10 flex items-center justify-center text-red-400 shrink-0"><i class="ph-fill ph-megaphone text-lg md:text-xl"></i></div>
                         <div>
                             <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-0.5">NLT Market Alerts ${fuenteTag}</p>
                             ${next
