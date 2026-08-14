@@ -462,6 +462,50 @@
         `;
     }
 
+    // El <aside id="sidebar"> de las 10 páginas de la app (dashboard,
+    // cuentas, maestra, historial, afiliado, suscripción, configuración,
+    // futuros*, admin) es un ancho FIJO de 280px -- confirmado real
+    // revisando el CSS: sin ningún breakpoint que lo reduzca. En un
+    // celular de 375px de ancho eso se come el 75% de la pantalla y deja
+    // el contenido real (dashboard.html, cuentas.html, etc.) en una tira
+    // de ~95px, imposible de usar -- coincide con "no se logra navegar"
+    // reportado en mobile. Se convierte en un drawer: fuera de pantalla
+    // por defecto en mobile (-translate-x-full) con un botón hamburguesa
+    // fijo + fondo oscuro para abrirlo/cerrarlo, y vuelve a ser el
+    // sidebar estático normal desde md: hacia arriba -- desktop queda
+    // exactamente igual que antes.
+    function _mountMobileSidebarToggle(aside) {
+        if (document.getElementById('mobileSidebarToggle')) return;
+
+        aside.classList.add('fixed', 'inset-y-0', 'left-0', 'z-50', '-translate-x-full', 'transition-transform', 'duration-300', 'md:translate-x-0', 'md:static');
+
+        const toggle = document.createElement('button');
+        toggle.id = 'mobileSidebarToggle';
+        toggle.setAttribute('aria-label', 'Abrir menú');
+        toggle.className = 'md:hidden fixed top-4 left-4 z-[60] w-11 h-11 rounded-full bg-nlt-bg/90 border border-white/10 backdrop-blur-xl flex items-center justify-center text-gray-300 hover:text-white transition-colors cursor-pointer shadow-lg';
+        toggle.innerHTML = '<i class="ph-bold ph-list text-lg"></i>';
+        document.body.appendChild(toggle);
+
+        const backdrop = document.createElement('div');
+        backdrop.id = 'mobileSidebarBackdrop';
+        backdrop.className = 'hidden md:hidden fixed inset-0 bg-black/60 z-40';
+        document.body.appendChild(backdrop);
+
+        function abrir() {
+            aside.classList.remove('-translate-x-full');
+            backdrop.classList.remove('hidden');
+            toggle.innerHTML = '<i class="ph-bold ph-x text-lg"></i>';
+        }
+        function cerrar() {
+            aside.classList.add('-translate-x-full');
+            backdrop.classList.add('hidden');
+            toggle.innerHTML = '<i class="ph-bold ph-list text-lg"></i>';
+        }
+        toggle.addEventListener('click', () => aside.classList.contains('-translate-x-full') ? abrir() : cerrar());
+        backdrop.addEventListener('click', cerrar);
+        aside.querySelectorAll('a').forEach((a) => a.addEventListener('click', cerrar));
+    }
+
     // Inserta el sidebar en <aside id="sidebar"></aside> y engancha email,
     // admin y plan -- reemplaza la lógica que cada página repetía a mano.
     // planLabel opcional: si la página ya tiene la suscripción cargada (ej.
@@ -472,6 +516,7 @@
         const aside = document.getElementById('sidebar');
         if (!aside) return;
         aside.innerHTML = renderSidebar({ activo, seccion });
+        _mountMobileSidebarToggle(aside);
 
         document.getElementById('userEmail').textContent = session.user.email;
         const avatar = document.getElementById('userAvatarInitial');
