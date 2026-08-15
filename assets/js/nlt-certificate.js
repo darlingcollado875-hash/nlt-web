@@ -88,6 +88,18 @@
                 .nlt-cert { box-shadow: none; }
                 @page { size: landscape; margin: 0; }
             }
+            /* La proporción tipo "hoja horizontal" (aspect-ratio) funciona bien
+               con ancho de sobra en desktop, pero en un celular esa misma
+               proporción da una caja mucho más baja y, con overflow:hidden,
+               el contenido (fecha, ID, QR) quedaba cortado en vez de visible.
+               Acá se deja que la altura la defina el contenido, y la fila de
+               abajo (fecha/ID -- tagline -- QR) se apila en vez de competir
+               por ancho en una sola línea. */
+            @media (max-width: 640px) {
+                .nlt-cert { aspect-ratio: auto; }
+                .nlt-cert-bottom { flex-direction: column; align-items: center; gap: 18px; text-align: center; }
+                .nlt-cert-meta { text-align: center; }
+            }
         `;
         document.head.appendChild(style);
     }
