@@ -86,7 +86,7 @@
             document.getElementById('emailInput').value = session.user.email;
             document.getElementById('uidInput').value = session.user.id;
 
-            if (NLT.isAdmin(session)) {
+            if (NLT.isGlobalAdmin(session)) {
                 document.getElementById('adminBox').classList.remove('hidden');
             }
         }

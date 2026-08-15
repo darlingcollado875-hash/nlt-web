@@ -145,6 +145,27 @@
         return body;
     }
 
+    // Como requestPublico, pero manda el token si hay una sesión activa --
+    // sin exigirla (nunca lanza por falta de sesión, a diferencia de
+    // request()). Para endpoints públicos que opcionalmente devuelven más
+    // datos a un usuario logueado (ej. perfil de comunidad: is_following/
+    // is_own solo tienen sentido si hay un viewer real).
+    async function requestConSesionOpcional(path) {
+        const headers = {};
+        try {
+            const session = await NLT.getSession();
+            if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
+        } catch (_) { /* sin sesión -- sigue como visitante público */ }
+        const resp = await _fetchConTimeout(BASE_URL + path, { headers });
+        let body = null;
+        try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
+        if (!resp.ok) {
+            const detalle = (body && body.detail) ? body.detail : `Error HTTP ${resp.status}`;
+            throw new Error(detalle);
+        }
+        return body;
+    }
+
     const NLT_API = {
         // --- cuentas (cualquier proveedor) ---
         listarCuentas: () => request('/accounts'),
@@ -404,8 +425,10 @@
         communityAdClick: (adId) => fetch(BASE_URL + `/community/ads/${adId}/click`, { method: 'POST' }).catch(() => {}),
         communityMiPerfil: () => request('/community/profile/me'),
         communityActualizarPerfil: (datos) => request('/community/profile/me', { method: 'PATCH', body: JSON.stringify(datos) }),
-        communityPerfilPublico: (username) => requestPublico(`/community/profile/${username}`),
+        communityPerfilPublico: (username) => requestConSesionOpcional(`/community/profile/${username}`),
         communityPostsDePerfil: (username) => requestPublico(`/community/profile/${username}/posts`),
+        communitySeguir: (username) => request(`/community/follow/${username}`, { method: 'POST' }),
+        communityDejarDeSeguir: (username) => request(`/community/follow/${username}`, { method: 'DELETE' }),
         communitySubirImagen: (file, onProgress) => {
             const fd = new FormData();
             fd.append('file', file);
@@ -504,6 +527,14 @@
         adminAfiliadosAprobarPayout: (id) => request(`/admin/affiliates/payouts/${id}/approve`, { method: 'POST' }),
         adminAfiliadosRechazarPayout: (id, notas_admin) => request(`/admin/affiliates/payouts/${id}/reject`, { method: 'POST', body: JSON.stringify({ notas_admin }) }),
         adminAfiliadosMarcarPagado: (id, referencia_transaccion, notas_admin) => request(`/admin/affiliates/payouts/${id}/mark-paid`, { method: 'POST', body: JSON.stringify({ referencia_transaccion, notas_admin }) }),
+
+        // --- Administración jerárquica (Global Admin) ---
+        adminMisPermisos: () => request('/admin/me/permissions'),
+        adminGlobalUsuarios: (q) => request(`/admin/global/users${q ? '?q=' + encodeURIComponent(q) : ''}`),
+        adminGlobalAdmins: () => request('/admin/global/admins'),
+        adminGlobalGuardarPermisos: (userId, permissions) => request(`/admin/global/admins/${userId}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) }),
+        adminGlobalRevocar: (userId, hard) => request(`/admin/global/admins/${userId}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
+        adminGlobalVerificar: (userId, verified) => request(`/admin/global/users/${userId}/verified`, { method: 'PUT', body: JSON.stringify({ verified }) }),
     };
 
     window.NLT_API = NLT_API;

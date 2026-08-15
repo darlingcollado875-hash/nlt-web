@@ -84,6 +84,7 @@
             <button data-seccion="community" class="tab-admin"><i class="ph-fill ph-chats-circle mr-1.5"></i>Community</button>
             <button data-seccion="futures" class="tab-admin"><i class="ph-fill ph-trend-up mr-1.5"></i>Futures</button>
             <button data-seccion="afiliados" class="tab-admin"><i class="ph-fill ph-share-network mr-1.5"></i>Affiliates</button>
+            <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
         <div class="flex-1 min-w-0 overflow-y-auto p-10 space-y-6">
@@ -242,7 +243,10 @@
                 <p class="text-xs text-gray-500 mb-3">Hoy alimenta la sección "Videos del ecosistema" -- pensado para sumar más secciones sin cambiar nada de esta pantalla.</p>
                 <div id="formNuevoContenido" class="glass-card p-6 mb-4 hidden">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        <input id="ncSeccion" value="videos" placeholder="Sección (ej. videos)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <select id="ncSeccion" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <option value="videos">videos (Ecosistema)</option>
+                            <option value="news">news (NLT News)</option>
+                        </select>
                         <select id="ncTipo" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
                             <option value="video">video</option>
                             <option value="imagen">imagen</option>
@@ -1025,6 +1029,51 @@
                 </div>
             </div>
 
+            <!-- ADMINISTRACIÓN GLOBAL (exclusivo Global Admin) -->
+            <div id="seccion-admin-global" class="seccion-admin hidden space-y-6">
+                <div>
+                    <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-shield-star text-nlt-accent"></i> Administración Global</h2>
+                    <p class="text-xs text-gray-500">Solo vos podés otorgar o revocar permisos de administrador y la insignia de verificado. Un admin secundario nunca puede modificar sus propios permisos ni crear otro admin -- esto está protegido en el backend, no solo acá.</p>
+                </div>
+
+                <div class="glass-card p-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Buscar usuario y otorgar permisos</h3>
+                    <div class="flex gap-2 mb-4">
+                        <input id="agBuscarInput" placeholder="Buscar por email..." class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm flex-1">
+                        <button id="btn-ag-buscar" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Buscar</button>
+                    </div>
+                    <div id="agResultadosBusqueda" class="space-y-2"></div>
+                </div>
+
+                <div class="glass-card p-6">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">Admins secundarios actuales</h3>
+                    <div id="agListaAdmins" class="space-y-3">
+                        <p class="text-xs text-gray-500 animate-pulse">Cargando...</p>
+                    </div>
+                </div>
+
+                <div id="agPanelPermisos" class="glass-card p-6 hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-semibold text-white" id="agPermisosTitulo">Permisos</h3>
+                        <button id="btn-ag-cerrar-panel" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph ph-x text-lg"></i></button>
+                    </div>
+                    <div id="agChecklistModulos" class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4"></div>
+                    <div class="flex gap-2">
+                        <button id="btn-ag-guardar-permisos" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar permisos</button>
+                        <button id="btn-ag-revocar" class="px-4 py-2 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer">Revocar acceso de admin</button>
+                    </div>
+
+                    <div class="border-t border-white/5 mt-5 pt-4">
+                        <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer w-fit">
+                            <input type="checkbox" id="agVerificadoCheck">
+                            <i class="ph-fill ph-check-circle text-nlt-accent"></i> Insignia de verificado (Community)
+                        </label>
+                        <button id="btn-ag-guardar-verificado" class="mt-2 px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Guardar verificado</button>
+                    </div>
+                    <p id="agPermisosMsg" class="mt-2 text-xs hidden"></p>
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -1046,11 +1095,20 @@
         }
 
         // --- Navegación por pestañas ---
-        document.querySelectorAll('.tab-admin').forEach((tab) => {
+        // A propósito .tab-admin[data-seccion], NUNCA el selector genérico
+        // .tab-admin: los sub-tabs de Calculators/Academy/Affiliates
+        // (.calc-subtab/.acad-subtab/.afil-subtab) también llevan la clase
+        // .tab-admin pero sin data-seccion -- con el selector genérico este
+        // handler los agarraba también y tab.getAttribute('data-seccion')
+        // daba null, rompiendo la pantalla entera al ocultar todo sin poder
+        // volver a mostrar nada. El guard de abajo queda como red de
+        // seguridad adicional.
+        document.querySelectorAll('.tab-admin[data-seccion]').forEach((tab) => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.tab-admin').forEach((t) => t.classList.remove('activo'));
                 tab.classList.add('activo');
                 const seccion = tab.getAttribute('data-seccion');
+                if (!seccion) return;
                 document.querySelectorAll('.seccion-admin').forEach((s) => s.classList.add('hidden'));
                 document.getElementById('seccion-' + seccion).classList.remove('hidden');
             });
@@ -3328,49 +3386,241 @@
             await cargarAfilPayouts();
         }
 
+        // --- Administración Global (exclusivo Global Admin) ---
+        let agAdminsCache = [];
+        let agUsuarioSeleccionado = null;
+
+        async function cargarAdminGlobalTodo() {
+            // Se ejecuta solo para el Global Admin (ver init()) -- fetch
+            // propio de /admin/me/permissions únicamente para obtener la
+            // lista canónica de módulos (modules) que arma el checklist de
+            // permisos; el resto de la app nunca duplica esta lista a mano.
+            try {
+                const mp = await NLT_API.adminMisPermisos();
+                _misPermisos.modules = mp.modules;
+            } catch (err) {
+                _misPermisos.modules = [];
+            }
+            await cargarListaAdmins();
+        }
+
+        async function cargarListaAdmins() {
+            const box = document.getElementById('agListaAdmins');
+            try {
+                agAdminsCache = await NLT_API.adminGlobalAdmins();
+                if (!agAdminsCache.length) {
+                    box.innerHTML = '<p class="text-xs text-gray-500">Todavía no otorgaste permisos a ningún admin secundario.</p>';
+                    return;
+                }
+                box.innerHTML = agAdminsCache.map(a => `
+                    <div class="glass-item p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-white font-semibold">${esc(a.email || a.user_id)}</p>
+                            <p class="text-xs text-gray-500">${esc(Object.entries(a.permissions).filter(([, v]) => v).map(([k]) => k).join(', ') || 'sin módulos activos')} · ${a.activo ? 'Activo' : 'Revocado'}</p>
+                        </div>
+                        <button data-action="editar-admin" data-user-id="${a.user_id}" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold hover:bg-white/20 cursor-pointer">Gestionar</button>
+                    </div>
+                `).join('');
+                box.querySelectorAll('button[data-action="editar-admin"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const admin = agAdminsCache.find(a => a.user_id === btn.getAttribute('data-user-id'));
+                        if (admin) abrirPanelPermisos(admin.user_id, admin.email, admin.permissions);
+                    });
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        function abrirPanelPermisos(userId, email, permisosActuales) {
+            agUsuarioSeleccionado = { user_id: userId, email };
+            document.getElementById('agPermisosTitulo').textContent = `Permisos de ${email || userId}`;
+            const modulos = _misPermisos.modules || [];
+            document.getElementById('agChecklistModulos').innerHTML = modulos.map(m => `
+                <label class="flex items-center gap-2 text-xs text-gray-300 bg-black/20 border border-white/5 rounded-lg px-3 py-2 cursor-pointer">
+                    <input type="checkbox" data-modulo="${m.id}" ${permisosActuales && permisosActuales[m.id] ? 'checked' : ''}>
+                    ${esc(m.label)}
+                </label>
+            `).join('');
+            document.getElementById('agPermisosMsg').classList.add('hidden');
+            document.getElementById('agVerificadoCheck').checked = false;
+            document.getElementById('agPanelPermisos').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-ag-cerrar-panel').addEventListener('click', () => {
+            document.getElementById('agPanelPermisos').classList.add('hidden');
+            agUsuarioSeleccionado = null;
+        });
+
+        document.getElementById('btn-ag-buscar').addEventListener('click', async () => {
+            const q = document.getElementById('agBuscarInput').value.trim();
+            const box = document.getElementById('agResultadosBusqueda');
+            box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Buscando...</p>';
+            try {
+                const usuarios = await NLT_API.adminGlobalUsuarios(q);
+                if (!usuarios.length) {
+                    box.innerHTML = '<p class="text-xs text-gray-500">Sin resultados.</p>';
+                    return;
+                }
+                box.innerHTML = usuarios.slice(0, 20).map(u => `
+                    <div class="flex items-center justify-between text-xs bg-black/20 rounded-lg px-3 py-2">
+                        <span class="text-gray-300">${esc(u.email)}${u.email === NLT.ADMIN_EMAIL ? ' <span class="text-yellow-400 font-bold">(Global Admin)</span>' : ''}</span>
+                        ${u.email === NLT.ADMIN_EMAIL ? '' : `<button data-action="otorgar" data-user-id="${u.user_id}" data-email="${esc(u.email)}" class="px-2.5 py-1 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer">Gestionar permisos</button>`}
+                    </div>
+                `).join('');
+                box.querySelectorAll('button[data-action="otorgar"]').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const existente = agAdminsCache.find(a => a.user_id === btn.getAttribute('data-user-id'));
+                        abrirPanelPermisos(btn.getAttribute('data-user-id'), btn.getAttribute('data-email'), existente ? existente.permissions : {});
+                    });
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        });
+        document.getElementById('agBuscarInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') document.getElementById('btn-ag-buscar').click(); });
+
+        document.getElementById('btn-ag-guardar-permisos').addEventListener('click', async () => {
+            if (!agUsuarioSeleccionado) return;
+            const msg = document.getElementById('agPermisosMsg');
+            const permissions = {};
+            document.querySelectorAll('#agChecklistModulos input[type="checkbox"]').forEach(cb => {
+                permissions[cb.getAttribute('data-modulo')] = cb.checked;
+            });
+            msg.classList.remove('hidden');
+            msg.className = 'mt-2 text-xs text-nlt-accent';
+            msg.textContent = 'Guardando...';
+            try {
+                await NLT_API.adminGlobalGuardarPermisos(agUsuarioSeleccionado.user_id, permissions);
+                msg.className = 'mt-2 text-xs text-nlt-success';
+                msg.textContent = '¡Permisos actualizados!';
+                document.getElementById('agResultadosBusqueda').innerHTML = '';
+                document.getElementById('agBuscarInput').value = '';
+                await cargarListaAdmins();
+            } catch (err) {
+                msg.className = 'mt-2 text-xs text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        });
+
+        document.getElementById('btn-ag-revocar').addEventListener('click', async () => {
+            if (!agUsuarioSeleccionado) return;
+            if (!confirm(`¿Revocar el acceso de admin de ${agUsuarioSeleccionado.email || agUsuarioSeleccionado.user_id}? Se preserva la configuración de permisos por si lo reactivás después.`)) return;
+            try {
+                await NLT_API.adminGlobalRevocar(agUsuarioSeleccionado.user_id, false);
+                document.getElementById('agPanelPermisos').classList.add('hidden');
+                agUsuarioSeleccionado = null;
+                await cargarListaAdmins();
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        });
+
+        document.getElementById('btn-ag-guardar-verificado').addEventListener('click', async () => {
+            if (!agUsuarioSeleccionado) return;
+            const btn = document.getElementById('btn-ag-guardar-verificado');
+            const verified = document.getElementById('agVerificadoCheck').checked;
+            btn.disabled = true;
+            try {
+                await NLT_API.adminGlobalVerificar(agUsuarioSeleccionado.user_id, verified);
+                btn.textContent = verified ? 'Verificado ✓' : 'Verificación quitada ✓';
+                setTimeout(() => { btn.textContent = 'Guardar verificado'; btn.disabled = false; }, 1500);
+            } catch (err) {
+                alert('Error: ' + err.message);
+                btn.disabled = false;
+            }
+        });
+
         // --- Init ---
+        // Mapea cada data-seccion (excepto "general", que hoy no es un
+        // módulo asignable -- ver plan) a los loaders que la llenan. Se usa
+        // tanto para decidir qué tabs mostrar como qué llamadas incluir en
+        // el Promise.all -- un admin secundario sin permiso ni siquiera
+        // dispara la llamada de red de un módulo que no puede usar.
+        const SECCION_LOADERS = {
+            general: [cargarStats, cargarStatsResumen],
+            usuarios: [cargarUsuarios],
+            planes: [cargarPlanes],
+            pagos: [cargarPagos],
+            indicador: [cargarIndicador],
+            contenido: [cargarContenido],
+            media: [cargarMedia],
+            calendario: [cargarCalendarSettings],
+            calculadoras: [cargarCalculatorInstruments],
+            academy: [cargarAcademyTodo],
+            tools: [cargarToolsTodo],
+            community: [cargarCommunityTodo],
+            futures: [cargarFuturesTodo],
+            afiliados: [cargarAfiliadosTodo],
+        };
+
+        let _esGlobalAdmin = false;
+        let _misPermisos = { permissions: {}, modules: [] };
+
+        function puede(modulo) {
+            return _esGlobalAdmin || !!_misPermisos.permissions[modulo];
+        }
+
         async function init() {
             const session = await NLT.requireSession();
             if (!session) return;
 
-            if (!NLT.isAdmin(session)) {
-                window.location.href = 'dashboard.html';
-                return;
+            // Short-circuit de costo cero para el Global Admin -- mismo
+            // chequeo de siempre (email === ADMIN_EMAIL), sin llamada de red
+            // extra, para que su experiencia (incluida la paralelización de
+            // abajo) quede exactamente igual que antes de este cambio. Un
+            // admin secundario (o un usuario sin ningún permiso, que no
+            // debería tener el link pero podría escribir la URL a mano)
+            // consulta sus permisos reales -- la protección real está en
+            // cada endpoint del backend, esto solo decide qué mostrar.
+            _esGlobalAdmin = NLT.isGlobalAdmin(session);
+            if (!_esGlobalAdmin) {
+                try {
+                    _misPermisos = await NLT_API.adminMisPermisos();
+                } catch (err) {
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
+                if (!Object.values(_misPermisos.permissions).some(Boolean)) {
+                    window.location.href = 'dashboard.html';
+                    return;
+                }
             }
 
-            // Las 17 llamadas de abajo llenan secciones distintas de la
-            // pantalla (sidebar, perfil, y las 15 pestañas de datos) y no
-            // dependen entre sí -- cada cargarX tiene su propio try/catch,
-            // así que si una falla no frena a las demás. Antes corrían una
-            // detrás de otra sumando sus tiempos; en paralelo, el tiempo
-            // total es el de la más lenta, no la suma de las 17.
-            await Promise.all([
+            let primerPermitido = null;
+            document.querySelectorAll('.tab-admin[data-seccion]').forEach((tab) => {
+                const seccion = tab.getAttribute('data-seccion');
+                if (puede(seccion)) {
+                    if (!primerPermitido) primerPermitido = seccion;
+                } else {
+                    tab.classList.add('hidden');
+                    document.getElementById('seccion-' + seccion)?.classList.add('hidden');
+                }
+            });
+
+            // Las llamadas de abajo llenan secciones distintas de la
+            // pantalla (sidebar, perfil, y las pestañas de datos permitidas)
+            // y no dependen entre sí -- cada cargarX tiene su propio
+            // try/catch, así que si una falla no frena a las demás. En
+            // paralelo, el tiempo total es el de la más lenta, no la suma.
+            const cargas = [
                 NLT.mountSidebar(session, { activo: 'admin', seccion: 'cfd', planLabel: 'Admin' }),
                 NLT.ensurePerfil(session),
-                cargarStats(),
-                cargarStatsResumen(),
-                cargarPagos(),
-                cargarUsuarios(),
-                cargarPlanes(),
-                cargarIndicador(),
-                cargarContenido(),
-                cargarMedia(),
-                cargarCalendarSettings(),
-                cargarCalculatorInstruments(),
-                cargarAcademyTodo(),
-                cargarToolsTodo(),
-                cargarCommunityTodo(),
-                cargarFuturesTodo(),
-                cargarAfiliadosTodo(),
-            ]);
+            ];
+            Object.entries(SECCION_LOADERS).forEach(([seccion, loaders]) => {
+                if (puede(seccion)) cargas.push(...loaders.map((fn) => fn()));
+            });
+            if (_esGlobalAdmin) cargas.push(cargarAdminGlobalTodo());
+
+            await Promise.all(cargas);
 
             const seccionHash = (window.location.hash || '').replace('#', '');
-            if (seccionHash && document.getElementById('seccion-' + seccionHash)) {
+            const seccionInicial = (seccionHash && document.getElementById('seccion-' + seccionHash) && puede(seccionHash)) ? seccionHash : primerPermitido;
+            if (seccionInicial) {
                 document.querySelectorAll('.tab-admin').forEach((t) => t.classList.remove('activo'));
                 document.querySelectorAll('.seccion-admin').forEach((s) => s.classList.add('hidden'));
-                document.getElementById('seccion-' + seccionHash).classList.remove('hidden');
-                const tabBtn = document.querySelector(`.tab-admin[data-seccion="${seccionHash}"]`);
-                if (tabBtn) tabBtn.classList.add('activo');
+                document.getElementById('seccion-' + seccionInicial)?.classList.remove('hidden');
+                document.querySelector(`.tab-admin[data-seccion="${seccionInicial}"]`)?.classList.add('activo');
             }
         }
 

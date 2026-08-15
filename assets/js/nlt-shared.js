@@ -278,6 +278,15 @@
         return !!session && session.user.email === ADMIN_EMAIL;
     }
 
+    // Nombre más preciso que isAdmin() ahora que existen admins secundarios
+    // con permisos por módulo (ver admin_permissions en el backend) --
+    // mismo criterio exacto (email === ADMIN_EMAIL), nunca depende de una
+    // fila de base de datos. isAdmin() queda intacta para no tocar sus 3
+    // usos actuales.
+    function isGlobalAdmin(session) {
+        return !!session && session.user.email === ADMIN_EMAIL;
+    }
+
     // Crea la fila de perfil del usuario si todavía no existe (plan 'free' por defecto).
     async function ensurePerfil(session) {
         const { data, error } = await supabase
@@ -716,6 +725,7 @@
         signOut,
         bindLogoutButton,
         isAdmin,
+        isGlobalAdmin,
         ensurePerfil,
         renderEstadoBadge,
         marketTypeToggleHTML,

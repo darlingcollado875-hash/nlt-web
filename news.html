@@ -251,35 +251,54 @@
 
         (async function () {
             const box = document.getElementById('noticiasBox');
-            try {
-                const items = await NLT_API.contenidoEcosistema('news');
-                if (!items.length) {
+
+            async function cargarNoticias() {
+                try {
+                    const items = await NLT_API.contenidoEcosistema('news');
+                    if (!items.length) {
+                        box.innerHTML = `
+                            <div class="glass-card p-10 text-center border-dashed border-white/10 col-span-full" data-reveal>
+                                <i class="ph ph-newspaper text-4xl text-gray-600 mb-4"></i>
+                                <h3 class="text-lg font-bold text-white mb-2">Todavía no hay noticias cargadas</h3>
+                                <p class="text-sm text-gray-500">Esta sección se activa desde el panel de administración apenas se publique la primera.</p>
+                            </div>
+                        `;
+                    } else {
+                        box.innerHTML = items.map(it => `
+                            <div class="glass-card p-6" data-reveal>
+                                ${it.created_at ? `<p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">${new Date(it.created_at).toLocaleDateString()}</p>` : ''}
+                                ${it.titulo ? `<h3 class="font-bold text-white text-lg mb-2">${it.titulo}</h3>` : ''}
+                                ${it.tipo === 'imagen' && it.contenido ? `<img src="${it.contenido}" alt="${it.titulo || ''}" class="rounded-xl mb-3 w-full">` : ''}
+                                ${it.tipo === 'texto' && it.contenido ? `<p class="text-sm text-gray-400 leading-relaxed">${it.contenido}</p>` : ''}
+                            </div>
+                        `).join('');
+                    }
+                } catch (err) {
+                    console.error('No se pudieron cargar las noticias:', err);
                     box.innerHTML = `
-                        <div class="glass-card p-10 text-center border-dashed border-white/10 col-span-full" data-reveal>
-                            <i class="ph ph-newspaper text-4xl text-gray-600 mb-4"></i>
-                            <h3 class="text-lg font-bold text-white mb-2">Todavía no hay noticias cargadas</h3>
-                            <p class="text-sm text-gray-500">Esta sección se activa desde el panel de administración apenas se publique la primera.</p>
+                        <div class="glass-card p-10 text-center border-dashed border-amber-500/20 col-span-full" data-reveal>
+                            <i class="ph ph-warning-circle text-4xl text-amber-500 mb-4"></i>
+                            <h3 class="text-lg font-bold text-white mb-2">No se pudieron cargar las noticias</h3>
+                            <p class="text-sm text-gray-500 mb-4">Hubo un problema de conexión. Probá de nuevo en unos segundos.</p>
+                            <button id="btn-reintentar-noticias" class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:bg-white/10 transition-colors cursor-pointer">Reintentar</button>
                         </div>
                     `;
-                } else {
-                    box.innerHTML = items.map(it => `
-                        <div class="glass-card p-6" data-reveal>
-                            ${it.created_at ? `<p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">${new Date(it.created_at).toLocaleDateString()}</p>` : ''}
-                            ${it.titulo ? `<h3 class="font-bold text-white text-lg mb-2">${it.titulo}</h3>` : ''}
-                            ${it.tipo === 'imagen' && it.contenido ? `<img src="${it.contenido}" alt="${it.titulo || ''}" class="rounded-xl mb-3 w-full">` : ''}
-                            ${it.tipo === 'texto' && it.contenido ? `<p class="text-sm text-gray-400 leading-relaxed">${it.contenido}</p>` : ''}
-                        </div>
-                    `).join('');
+                    document.getElementById('btn-reintentar-noticias')?.addEventListener('click', cargarNoticias);
                 }
-            } catch (err) {
-                box.innerHTML = '';  // sin bloquear la página si el CMS falla
-            }
-            if (window.gsap && window.ScrollTrigger) {
+                // Reveal inmediato y explícito (no depende del safety-net global de
+                // data-reveal) -- así el estado de error/vacío nunca queda invisible
+                // aunque el fetch resuelva tarde (cold start de Railway).
                 document.querySelectorAll('#noticiasBox [data-reveal]').forEach((el) => {
-                    gsap.set(el, { y: 24, opacity: 0 });
-                    gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+                    if (window.gsap && window.ScrollTrigger) {
+                        gsap.set(el, { y: 24, opacity: 0 });
+                        gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+                    } else {
+                        el.style.opacity = '1';
+                    }
                 });
             }
+
+            await cargarNoticias();
         })();
 
         if (window.gsap && window.ScrollTrigger) {
