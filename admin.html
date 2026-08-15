@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Admin Center</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814d">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -31,6 +31,29 @@
         .tab-admin { padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #9CA3AF; white-space: nowrap; transition: all .2s; cursor: pointer; }
         .tab-admin:hover { color: #fff; background: rgba(255,255,255,0.05); }
         .tab-admin.activo { color: #4378FF; background: rgba(67,120,255,0.1); }
+
+        /* Tablas de datos (Usuarios y las que se sumen después): en vez de
+           obligar a deslizar el dedo para ver columnas que no entran en un
+           celular, cada fila se convierte en una tarjeta apilada con la
+           etiqueta de cada columna (vía data-label) arriba del valor. En
+           md: hacia arriba vuelve a ser la tabla normal, sin ningún cambio. */
+        @media (max-width: 767px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table tr:last-child { border-bottom: none; }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #6B7280;
+                margin-bottom: 3px;
+            }
+        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -93,7 +116,7 @@
                 <h2 class="text-sm font-semibold text-white mb-3 flex items-center gap-2"><i class="ph-fill ph-users-three text-nlt-accent"></i> Usuarios</h2>
                 <p class="text-xs text-gray-500 mb-3">Asigná o quitá el plan de Copy System de cualquier usuario a mano (cortesías, pruebas, correcciones) -- sin pasar por una orden ni un pago.</p>
                 <div class="glass-card overflow-hidden">
-                    <table class="w-full text-left text-sm">
+                    <table class="responsive-table w-full text-left text-sm">
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                             <tr>
                                 <th class="px-6 py-4 font-semibold">Usuario</th>
@@ -159,7 +182,7 @@
                     </div>
                 </div>
                 <div class="glass-card overflow-x-auto">
-                    <table class="w-full text-left text-sm min-w-[900px]">
+                    <table class="responsive-table w-full text-left text-sm md:min-w-[900px]">
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                             <tr>
                                 <th class="px-5 py-3 font-semibold">Orden</th>
@@ -191,7 +214,7 @@
                     </div>
                 </div>
                 <div class="glass-card overflow-x-auto">
-                    <table class="w-full text-left text-sm min-w-[1000px]">
+                    <table class="responsive-table w-full text-left text-sm md:min-w-[1000px]">
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                             <tr>
                                 <th class="px-5 py-3 font-semibold">Cliente</th>
@@ -577,7 +600,7 @@
                 <!-- ESTUDIANTES -->
                 <div id="acadPanelEstudiantes" class="space-y-4 hidden">
                     <div class="glass-card overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[900px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[900px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Estudiante</th>
@@ -648,7 +671,7 @@
 
                     <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[820px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[820px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Usuario</th>
@@ -870,7 +893,7 @@
                     <h3 class="text-sm font-bold mb-3 text-gray-300">Todas las cuentas Futures (todos los usuarios)</h3>
                     <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[800px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[800px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Nombre</th>
@@ -915,7 +938,7 @@
                 <div id="afilPanelListado" class="space-y-4">
                     <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[760px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[760px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Afiliado</th>
@@ -964,7 +987,7 @@
                     </div>
                     <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[600px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[600px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Producto</th>
@@ -984,7 +1007,7 @@
                 <div id="afilPanelPayouts" class="space-y-4 hidden">
                     <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[760px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[760px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Afiliado</th>
@@ -1110,16 +1133,16 @@
                     const accionable = o.status === 'pending' || o.status === 'payment_verification';
                     return `
                     <tr data-order="${o.order_id}">
-                        <td class="px-5 py-3 font-mono text-xs">${o.order_id}</td>
-                        <td class="px-5 py-3">${o.plan}</td>
-                        <td class="px-5 py-3">$${o.final_amount.toFixed(2)}</td>
-                        <td class="px-5 py-3">${o.coupon_code || '-'}</td>
-                        <td class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}</td>
-                        <td class="px-5 py-3 font-semibold ${estado.clase}">${estado.texto}</td>
-                        <td class="px-5 py-3">
-                            ${accionable ? `<input type="text" placeholder="Referencia (opcional)" class="ref-input bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs w-32">` : (o.payment_reference || '-')}
+                        <td data-label="Orden" class="px-5 py-3 font-mono text-xs">${esc(o.order_id)}</td>
+                        <td data-label="Plan" class="px-5 py-3">${esc(o.plan)}</td>
+                        <td data-label="Importe" class="px-5 py-3">$${o.final_amount.toFixed(2)}</td>
+                        <td data-label="Cupón" class="px-5 py-3">${esc(o.coupon_code || '-')}</td>
+                        <td data-label="Fecha" class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td data-label="Estado" class="px-5 py-3 font-semibold ${estado.clase}">${esc(estado.texto)}</td>
+                        <td data-label="Referencia" class="px-5 py-3">
+                            ${accionable ? `<input type="text" placeholder="Referencia (opcional)" class="ref-input bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs w-full md:w-32">` : esc(o.payment_reference || '-')}
                         </td>
-                        <td class="px-5 py-3 flex gap-2">
+                        <td data-label="Acción" class="px-5 py-3 flex gap-2">
                             ${accionable ? `
                                 <button data-action="confirmar" data-order="${o.order_id}" class="px-3 py-1.5 rounded-lg bg-nlt-success/10 border border-nlt-success/20 text-nlt-success text-xs font-semibold hover:bg-nlt-success/20">Confirmar</button>
                                 <button data-action="rechazar" data-order="${o.order_id}" class="px-3 py-1.5 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold hover:bg-nlt-danger/20">Rechazar</button>
@@ -1171,11 +1194,11 @@
 
                 tbody.innerHTML = usuarios.map(u => `
                     <tr class="hover:bg-white/5 transition-colors">
-                        <td class="px-6 py-4 font-medium text-white">${u.email}${u.email === NLT.ADMIN_EMAIL ? ' <span class="text-[10px] text-yellow-400 uppercase font-bold ml-1">Admin</span>' : ''}</td>
-                        <td class="px-6 py-4 text-gray-500">${new Date(u.creado_en).toLocaleDateString()}</td>
-                        <td class="px-6 py-4 text-xs ${u.estado_suscripcion === 'active' ? 'text-nlt-success' : 'text-gray-500'}">${u.estado_suscripcion}</td>
-                        <td class="px-6 py-4">
-                            <select data-user-id="${u.user_id}" class="plan-select border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-nlt-accent">
+                        <td data-label="Usuario" class="px-6 py-4 font-medium text-white">${esc(u.email)}${u.email === NLT.ADMIN_EMAIL ? ' <span class="text-[10px] text-yellow-400 uppercase font-bold ml-1">Admin</span>' : ''}</td>
+                        <td data-label="Alta" class="px-6 py-4 text-gray-500">${new Date(u.creado_en).toLocaleDateString()}</td>
+                        <td data-label="Estado" class="px-6 py-4 text-xs ${u.estado_suscripcion === 'active' ? 'text-nlt-success' : 'text-gray-500'}">${esc(u.estado_suscripcion)}</td>
+                        <td data-label="Plan Copy System" class="px-6 py-4">
+                            <select data-user-id="${u.user_id}" class="plan-select w-full border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-nlt-accent">
                                 ${opciones}
                             </select>
                         </td>
@@ -1230,7 +1253,7 @@
                     <div>
                         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-2">${NOMBRE_PRODUCTO_ADMIN[producto] || producto}</h3>
                         <div class="glass-card overflow-x-auto">
-                            <table class="w-full text-left text-sm min-w-[800px]">
+                            <table class="responsive-table w-full text-left text-sm md:min-w-[800px]">
                                 <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                     <tr>
                                         <th class="px-4 py-3 font-semibold">ID</th>
@@ -1244,16 +1267,16 @@
                                 <tbody class="divide-y divide-white/5 text-gray-300">
                                     ${lista.map(p => `
                                         <tr data-plan-id="${p.id}">
-                                            <td class="px-4 py-3 font-mono text-xs">${p.id}</td>
-                                            <td class="px-4 py-3">${p.nombre}${p.popular ? ' <span class=\"text-[9px] text-nlt-accent font-bold uppercase\">Popular</span>' : ''}</td>
-                                            <td class="px-4 py-3">
+                                            <td data-label="ID" class="px-4 py-3 font-mono text-xs">${esc(p.id)}</td>
+                                            <td data-label="Nombre" class="px-4 py-3">${esc(p.nombre)}${p.popular ? ' <span class=\"text-[9px] text-nlt-accent font-bold uppercase\">Popular</span>' : ''}</td>
+                                            <td data-label="Precio" class="px-4 py-3">
                                                 <input type="number" step="0.01" value="${p.precio}" class="plan-precio-input bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs w-24">
                                             </td>
-                                            <td class="px-4 py-3 text-xs text-gray-500">${p.billing_period}</td>
-                                            <td class="px-4 py-3">
+                                            <td data-label="Periodo" class="px-4 py-3 text-xs text-gray-500">${esc(p.billing_period)}</td>
+                                            <td data-label="Estado" class="px-4 py-3">
                                                 <span class="text-xs font-semibold ${p.activo ? 'text-nlt-success' : 'text-gray-500'}">${p.activo ? 'Activo' : 'Inactivo'}</span>
                                             </td>
-                                            <td class="px-4 py-3 flex gap-2">
+                                            <td data-label="Acción" class="px-4 py-3 flex gap-2">
                                                 <button data-action="guardar-precio" data-plan="${p.id}" class="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-semibold hover:bg-white/20">Guardar precio</button>
                                                 <button data-action="toggle" data-plan="${p.id}" class="px-2.5 py-1 rounded-lg ${p.activo ? 'bg-nlt-danger/10 text-nlt-danger' : 'bg-nlt-success/10 text-nlt-success'} text-xs font-semibold">${p.activo ? 'Desactivar' : 'Activar'}</button>
                                             </td>
@@ -1353,17 +1376,17 @@
                     const accionable = o.status === 'pending';
                     return `
                     <tr data-order="${o.order_id}">
-                        <td class="px-5 py-3">${o.email || o.user_id}</td>
-                        <td class="px-5 py-3 font-mono text-xs">${o.plan_id}</td>
-                        <td class="px-5 py-3 text-nlt-accent">${o.tradingview_username}</td>
-                        <td class="px-5 py-3">$${o.final_amount.toFixed(2)} ${o.test_mode ? '<span class="text-[9px] text-yellow-400 font-bold uppercase ml-1">TEST</span>' : ''}</td>
-                        <td class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}</td>
-                        <td class="px-5 py-3 font-semibold ${estado.clase}">${estado.texto}</td>
-                        <td class="px-5 py-3 flex gap-2">
+                        <td data-label="Cliente" class="px-5 py-3">${esc(o.email || o.user_id)}</td>
+                        <td data-label="Plan" class="px-5 py-3 font-mono text-xs">${esc(o.plan_id)}</td>
+                        <td data-label="TradingView" class="px-5 py-3 text-nlt-accent">${esc(o.tradingview_username)}</td>
+                        <td data-label="Pago" class="px-5 py-3">$${o.final_amount.toFixed(2)} ${o.test_mode ? '<span class="text-[9px] text-yellow-400 font-bold uppercase ml-1">TEST</span>' : ''}</td>
+                        <td data-label="Fecha" class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td data-label="Estado" class="px-5 py-3 font-semibold ${estado.clase}">${esc(estado.texto)}</td>
+                        <td data-label="Acción" class="px-5 py-3 flex gap-2">
                             ${accionable ? `
                                 <button data-action="aprobar" data-order="${o.order_id}" class="px-3 py-1.5 rounded-lg bg-nlt-success/10 border border-nlt-success/20 text-nlt-success text-xs font-semibold hover:bg-nlt-success/20">Aprobar</button>
                                 <button data-action="rechazar-ind" data-order="${o.order_id}" class="px-3 py-1.5 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold hover:bg-nlt-danger/20">Rechazar</button>
-                            ` : (o.reviewed_by ? `<span class="text-[10px] text-gray-600">por ${o.reviewed_by}</span>` : '-')}
+                            ` : (o.reviewed_by ? `<span class="text-[10px] text-gray-600">por ${esc(o.reviewed_by)}</span>` : '-')}
                         </td>
                     </tr>`;
                 }).join('');
@@ -2461,12 +2484,12 @@
                 }
                 tbody.innerHTML = estudiantes.map(e => `
                     <tr class="hover:bg-white/5 transition-colors">
-                        <td class="px-5 py-3 font-medium text-white">${e.email}</td>
-                        <td class="px-5 py-3 text-xs ${e.subscription_status === 'active' ? 'text-nlt-success' : 'text-gray-500'}">${e.subscription_status}</td>
-                        <td class="px-5 py-3">${e.overall_progress_percent}% <span class="text-gray-600">(${e.lessons_completed}/${e.lessons_total})</span></td>
-                        <td class="px-5 py-3">${e.certificates_earned}</td>
-                        <td class="px-5 py-3 text-gray-500">${e.last_activity ? new Date(e.last_activity).toLocaleDateString() : '-'}</td>
-                        <td class="px-5 py-3"><button data-user-id="${e.user_id}" class="btn-ver-estudiante px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 cursor-pointer">Ver detalle</button></td>
+                        <td data-label="Estudiante" class="px-5 py-3 font-medium text-white">${esc(e.email)}</td>
+                        <td data-label="Suscripción" class="px-5 py-3 text-xs ${e.subscription_status === 'active' ? 'text-nlt-success' : 'text-gray-500'}">${esc(e.subscription_status)}</td>
+                        <td data-label="Progreso" class="px-5 py-3">${e.overall_progress_percent}% <span class="text-gray-600">(${e.lessons_completed}/${e.lessons_total})</span></td>
+                        <td data-label="Certificados" class="px-5 py-3">${e.certificates_earned}</td>
+                        <td data-label="Última actividad" class="px-5 py-3 text-gray-500">${e.last_activity ? new Date(e.last_activity).toLocaleDateString() : '-'}</td>
+                        <td data-label="Acción" class="px-5 py-3"><button data-user-id="${e.user_id}" class="btn-ver-estudiante px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 cursor-pointer">Ver detalle</button></td>
                     </tr>
                 `).join('');
                 tbody.querySelectorAll('.btn-ver-estudiante').forEach(b => b.addEventListener('click', () => verDetalleEstudianteAcademy(b.getAttribute('data-user-id'))));
@@ -2551,13 +2574,13 @@
                 }[estado] || 'bg-gray-500/10 text-gray-400');
                 tbody.innerHTML = filas.map(f => `
                     <tr>
-                        <td class="px-5 py-3 text-xs">${f.email || f.user_id}</td>
-                        <td class="px-5 py-3">${f.nivel}</td>
-                        <td class="px-5 py-3 text-xs text-gray-400">${f.tipo_acceso}</td>
-                        <td class="px-5 py-3 text-xs">${f.fecha_expiracion ? new Date(f.fecha_expiracion).toLocaleDateString('es') : 'Permanente'}</td>
-                        <td class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badgeEstado(f.estado)}">${f.estado}</span></td>
-                        <td class="px-5 py-3 text-xs text-gray-500">${f.ultimo_acceso ? new Date(f.ultimo_acceso).toLocaleDateString('es') : '—'}</td>
-                        <td class="px-5 py-3 space-x-2 whitespace-nowrap text-xs">
+                        <td data-label="Usuario" class="px-5 py-3 text-xs">${esc(f.email || f.user_id)}</td>
+                        <td data-label="Nivel" class="px-5 py-3">${esc(f.nivel)}</td>
+                        <td data-label="Tipo" class="px-5 py-3 text-xs text-gray-400">${esc(f.tipo_acceso)}</td>
+                        <td data-label="Expiración" class="px-5 py-3 text-xs">${f.fecha_expiracion ? new Date(f.fecha_expiracion).toLocaleDateString('es') : 'Permanente'}</td>
+                        <td data-label="Estado" class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badgeEstado(f.estado)}">${f.estado}</span></td>
+                        <td data-label="Último acceso" class="px-5 py-3 text-xs text-gray-500">${f.ultimo_acceso ? new Date(f.ultimo_acceso).toLocaleDateString('es') : '—'}</td>
+                        <td data-label="Acciones" class="px-5 py-3 space-x-2 whitespace-nowrap text-xs">
                             <button class="btn-acceso-extender text-nlt-accent cursor-pointer" data-id="${f.user_id}">+Días</button>
                             <button class="btn-acceso-nivel text-gray-400 hover:text-white cursor-pointer" data-id="${f.user_id}">Nivel</button>
                             ${f.estado !== 'REVOKED' ? `<button class="btn-acceso-revocar text-nlt-danger cursor-pointer" data-id="${f.user_id}">Revocar</button>` : ''}
@@ -3055,13 +3078,13 @@
 
                 document.getElementById('futTablaCuentas').innerHTML = cuentas.map(c => `
                     <tr>
-                        <td class="px-5 py-3 text-white font-semibold">${c.nombre_cuenta || '-'}</td>
-                        <td class="px-5 py-3">${c.tipo_cuenta}</td>
-                        <td class="px-5 py-3">${c.proveedor}</td>
-                        <td class="px-5 py-3">${badgeEstadoFutures(c.estado)}</td>
-                        <td class="px-5 py-3">${c.balance_actual != null ? '$' + Number(c.balance_actual).toLocaleString('es', { minimumFractionDigits: 2 }) : '-'}</td>
-                        <td class="px-5 py-3">x${c.multiplicador}</td>
-                        <td class="px-5 py-3 text-gray-500">${new Date(c.creado_en).toLocaleString('es')}</td>
+                        <td data-label="Nombre" class="px-5 py-3 text-white font-semibold">${esc(c.nombre_cuenta) || '-'}</td>
+                        <td data-label="Tipo" class="px-5 py-3">${esc(c.tipo_cuenta)}</td>
+                        <td data-label="Proveedor" class="px-5 py-3">${esc(c.proveedor)}</td>
+                        <td data-label="Estado" class="px-5 py-3">${badgeEstadoFutures(c.estado)}</td>
+                        <td data-label="Balance" class="px-5 py-3">${c.balance_actual != null ? '$' + Number(c.balance_actual).toLocaleString('es', { minimumFractionDigits: 2 }) : '-'}</td>
+                        <td data-label="Multiplicador" class="px-5 py-3">x${c.multiplicador}</td>
+                        <td data-label="Creada" class="px-5 py-3 text-gray-500">${new Date(c.creado_en).toLocaleString('es')}</td>
                     </tr>
                 `).join('') || `<tr><td class="px-5 py-3 text-gray-500" colspan="7">No hay cuentas Futures todavía.</td></tr>`;
 
@@ -3124,18 +3147,18 @@
                 }
                 tbody.innerHTML = afiliados.map(a => `
                     <tr>
-                        <td class="px-5 py-3">
-                            <p class="font-semibold text-white">${a.nombre}</p>
-                            <p class="text-xs text-gray-500">${a.email || ''}</p>
+                        <td data-label="Afiliado" class="px-5 py-3">
+                            <p class="font-semibold text-white">${esc(a.nombre)}</p>
+                            <p class="text-xs text-gray-500">${esc(a.email) || ''}</p>
                         </td>
-                        <td class="px-5 py-3 font-mono text-xs">${a.codigo_principal || '—'}</td>
-                        <td class="px-5 py-3">${a.referidos}</td>
-                        <td class="px-5 py-3">$${a.ventas_total.toFixed(2)}</td>
-                        <td class="px-5 py-3">$${a.comision_total.toFixed(2)}</td>
-                        <td class="px-5 py-3">
+                        <td data-label="Código" class="px-5 py-3 font-mono text-xs">${esc(a.codigo_principal) || '—'}</td>
+                        <td data-label="Referidos" class="px-5 py-3">${a.referidos}</td>
+                        <td data-label="Ventas" class="px-5 py-3">$${a.ventas_total.toFixed(2)}</td>
+                        <td data-label="Comisión" class="px-5 py-3">$${a.comision_total.toFixed(2)}</td>
+                        <td data-label="Estado" class="px-5 py-3">
                             <span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${a.estado === 'active' ? 'bg-nlt-success/10 text-nlt-success' : 'bg-nlt-danger/10 text-nlt-danger'}">${a.estado === 'active' ? 'Activo' : 'Suspendido'}</span>
                         </td>
-                        <td class="px-5 py-3 space-x-2 whitespace-nowrap">
+                        <td data-label="Acciones" class="px-5 py-3 space-x-2 whitespace-nowrap">
                             <button class="btn-afil-ver text-xs text-nlt-accent font-semibold cursor-pointer" data-id="${a.id}">Ver</button>
                             <button class="btn-afil-toggle text-xs text-gray-400 hover:text-white cursor-pointer" data-id="${a.id}" data-estado="${a.estado}">${a.estado === 'active' ? 'Suspender' : 'Activar'}</button>
                         </td>
@@ -3190,19 +3213,19 @@
                         <h4 class="text-xs font-bold uppercase text-gray-500 mb-2">Comisiones</h4>
                         <div class="glass-item overflow-hidden">
                             <div class="overflow-x-auto">
-                            <table class="w-full text-left text-xs min-w-[600px]">
+                            <table class="responsive-table w-full text-left text-xs md:min-w-[600px]">
                                 <thead class="bg-white/5 uppercase text-gray-500"><tr>
                                     <th class="px-4 py-2">Producto</th><th class="px-4 py-2">Venta</th><th class="px-4 py-2">Comisión</th><th class="px-4 py-2">Estado</th><th class="px-4 py-2">Fecha</th><th class="px-4 py-2">Acción</th>
                                 </tr></thead>
                                 <tbody class="divide-y divide-white/5">
                                     ${d.comisiones.length ? d.comisiones.map(c => `
                                         <tr>
-                                            <td class="px-4 py-2">${c.producto}</td>
-                                            <td class="px-4 py-2">$${c.monto_venta.toFixed(2)}</td>
-                                            <td class="px-4 py-2">$${c.monto_comision.toFixed(2)}</td>
-                                            <td class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeComision(c.estado)}">${c.estado}</span></td>
-                                            <td class="px-4 py-2 text-gray-500">${new Date(c.created_at).toLocaleDateString('es')}</td>
-                                            <td class="px-4 py-2 space-x-2">
+                                            <td data-label="Producto" class="px-4 py-2">${esc(c.producto)}</td>
+                                            <td data-label="Venta" class="px-4 py-2">$${c.monto_venta.toFixed(2)}</td>
+                                            <td data-label="Comisión" class="px-4 py-2">$${c.monto_comision.toFixed(2)}</td>
+                                            <td data-label="Estado" class="px-4 py-2"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeComision(c.estado)}">${c.estado}</span></td>
+                                            <td data-label="Fecha" class="px-4 py-2 text-gray-500">${new Date(c.created_at).toLocaleDateString('es')}</td>
+                                            <td data-label="Acción" class="px-4 py-2 space-x-2">
                                                 ${c.estado === 'PENDING' ? `<button class="btn-com-aprobar text-nlt-success cursor-pointer" data-id="${c.id}">Aprobar</button><button class="btn-com-rechazar text-nlt-danger cursor-pointer" data-id="${c.id}">Rechazar</button>` : ''}
                                             </td>
                                         </tr>
@@ -3233,11 +3256,11 @@
                 const reglas = await NLT_API.adminAfiliadosListarReglas();
                 tbody.innerHTML = reglas.map(r => `
                     <tr>
-                        <td class="px-5 py-3">${r.producto || 'Todos'}</td>
-                        <td class="px-5 py-3">${r.plan_id || 'Todo el producto'}</td>
-                        <td class="px-5 py-3">${r.tipo === 'percentage' ? '%' : 'Fijo'}</td>
-                        <td class="px-5 py-3">${r.tipo === 'percentage' ? r.valor + '%' : '$' + r.valor}</td>
-                        <td class="px-5 py-3">${r.activo ? 'Sí' : 'No'}</td>
+                        <td data-label="Producto" class="px-5 py-3">${esc(r.producto) || 'Todos'}</td>
+                        <td data-label="Plan" class="px-5 py-3">${esc(r.plan_id) || 'Todo el producto'}</td>
+                        <td data-label="Tipo" class="px-5 py-3">${r.tipo === 'percentage' ? '%' : 'Fijo'}</td>
+                        <td data-label="Valor" class="px-5 py-3">${r.tipo === 'percentage' ? r.valor + '%' : '$' + r.valor}</td>
+                        <td data-label="Activo" class="px-5 py-3">${r.activo ? 'Sí' : 'No'}</td>
                     </tr>
                 `).join('') || '<tr><td colspan="5" class="px-5 py-6 text-center text-gray-500">Sin reglas todavía.</td></tr>';
             } catch (err) {
@@ -3271,12 +3294,12 @@
                 }
                 tbody.innerHTML = payouts.map(p => `
                     <tr>
-                        <td class="px-5 py-3">${p.afiliado_nombre || '—'}</td>
-                        <td class="px-5 py-3">$${p.monto.toFixed(2)}</td>
-                        <td class="px-5 py-3">${p.metodo}</td>
-                        <td class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${p.estado === 'PAID' ? 'bg-nlt-success/10 text-nlt-success' : p.estado === 'REJECTED' ? 'bg-nlt-danger/10 text-nlt-danger' : 'bg-yellow-500/10 text-yellow-400'}">${p.estado}</span></td>
-                        <td class="px-5 py-3 text-gray-500">${new Date(p.solicitado_en).toLocaleDateString('es')}</td>
-                        <td class="px-5 py-3 space-x-2 whitespace-nowrap">
+                        <td data-label="Afiliado" class="px-5 py-3">${esc(p.afiliado_nombre) || '—'}</td>
+                        <td data-label="Monto" class="px-5 py-3">$${p.monto.toFixed(2)}</td>
+                        <td data-label="Método" class="px-5 py-3">${esc(p.metodo)}</td>
+                        <td data-label="Estado" class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${p.estado === 'PAID' ? 'bg-nlt-success/10 text-nlt-success' : p.estado === 'REJECTED' ? 'bg-nlt-danger/10 text-nlt-danger' : 'bg-yellow-500/10 text-yellow-400'}">${p.estado}</span></td>
+                        <td data-label="Solicitado" class="px-5 py-3 text-gray-500">${new Date(p.solicitado_en).toLocaleDateString('es')}</td>
+                        <td data-label="Acciones" class="px-5 py-3 space-x-2 whitespace-nowrap">
                             ${p.estado === 'PENDING' ? `<button class="btn-payout-aprobar text-nlt-accent cursor-pointer text-xs" data-id="${p.id}">Aprobar</button><button class="btn-payout-rechazar text-nlt-danger cursor-pointer text-xs" data-id="${p.id}">Rechazar</button>` : ''}
                             ${p.estado === 'APPROVED' ? `<button class="btn-payout-pagado text-nlt-success cursor-pointer text-xs" data-id="${p.id}">Marcar pagado</button>` : ''}
                         </td>

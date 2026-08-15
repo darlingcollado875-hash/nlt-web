@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Futuros</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814d">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -26,6 +26,23 @@
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
+        @media (max-width: 767px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table tr:last-child { border-bottom: none; }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #6B7280;
+                margin-bottom: 3px;
+            }
+        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -118,7 +135,7 @@
             <div id="seccion-historial">
                 <h2 class="text-lg font-bold mb-4">Historial</h2>
                 <div class="glass-card overflow-x-auto">
-                    <table class="w-full text-left text-sm min-w-[700px]">
+                    <table class="responsive-table w-full text-left text-sm md:min-w-[700px]">
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                             <tr>
                                 <th class="px-5 py-3 font-semibold">Contrato</th>
@@ -150,6 +167,12 @@
     <script src="assets/js/nlt-shared.js?v=20260814c"></script>
     <script src="assets/js/nlt-api-client.js?v=20260814"></script>
     <script>
+        function esc(texto) {
+            return String(texto ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         let sesionActual = null;
         let cuentasCache = [];
         let cuentaSeleccionadaId = null;
@@ -343,12 +366,12 @@
                 }
                 tabla.innerHTML = historial.map(h => `
                     <tr>
-                        <td class="px-5 py-3">${h.contract_symbol}</td>
-                        <td class="px-5 py-3">${h.direction}</td>
-                        <td class="px-5 py-3">${h.contracts}</td>
-                        <td class="px-5 py-3">${h.precio_entrada ?? '-'}</td>
-                        <td class="px-5 py-3">${h.precio_salida ?? '-'}</td>
-                        <td class="px-5 py-3 ${(h.pnl || 0) >= 0 ? 'text-nlt-success' : 'text-nlt-danger'} font-bold">${h.pnl != null ? '$' + h.pnl.toFixed(2) : '-'}</td>
+                        <td data-label="Contrato" class="px-5 py-3">${esc(h.contract_symbol)}</td>
+                        <td data-label="Dirección" class="px-5 py-3">${esc(h.direction)}</td>
+                        <td data-label="Contratos" class="px-5 py-3">${h.contracts}</td>
+                        <td data-label="Entrada" class="px-5 py-3">${h.precio_entrada ?? '-'}</td>
+                        <td data-label="Salida" class="px-5 py-3">${h.precio_salida ?? '-'}</td>
+                        <td data-label="P&L" class="px-5 py-3 ${(h.pnl || 0) >= 0 ? 'text-nlt-success' : 'text-nlt-danger'} font-bold">${h.pnl != null ? '$' + h.pnl.toFixed(2) : '-'}</td>
                     </tr>
                 `).join('');
             } catch (err) {

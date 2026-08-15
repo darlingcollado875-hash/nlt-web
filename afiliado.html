@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Affiliate</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814d">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -27,6 +27,23 @@
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .glow-text { text-shadow: 0 0 16px rgba(67, 120, 255, 0.4); }
+        @media (max-width: 767px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table tr:last-child { border-bottom: none; }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before {
+                content: attr(data-label);
+                display: block;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+                color: #6B7280;
+                margin-bottom: 3px;
+            }
+        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -101,7 +118,7 @@
                     <h3 class="text-sm font-bold mb-3 text-gray-300">Historial de comisiones</h3>
                     <div class="glass-card overflow-hidden">
                         <div class="overflow-x-auto">
-                        <table class="w-full text-left text-sm min-w-[700px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[700px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                                 <tr>
                                     <th class="px-5 py-3 font-semibold">Cliente</th>
@@ -154,6 +171,12 @@
     <script src="assets/js/nlt-shared.js?v=20260814c"></script>
     <script src="assets/js/nlt-api-client.js?v=20260814"></script>
     <script>
+        function esc(texto) {
+            return String(texto ?? '')
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
         let sesionActual = null;
         let miAfiliado = null;
 
@@ -208,12 +231,12 @@
                 }[estado] || 'bg-gray-500/10 text-gray-400');
                 tbody.innerHTML = comisiones.map(c => `
                     <tr>
-                        <td class="px-5 py-3">${c.cliente || 'Cliente NLT'}</td>
-                        <td class="px-5 py-3 capitalize">${c.producto.replace('_', ' ')}</td>
-                        <td class="px-5 py-3">$${c.monto_venta.toFixed(2)}</td>
-                        <td class="px-5 py-3 font-semibold">$${c.monto_comision.toFixed(2)}</td>
-                        <td class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badge(c.estado)}">${c.estado}</span></td>
-                        <td class="px-5 py-3 text-gray-500">${new Date(c.created_at).toLocaleDateString('es')}</td>
+                        <td data-label="Cliente" class="px-5 py-3">${esc(c.cliente) || 'Cliente NLT'}</td>
+                        <td data-label="Producto" class="px-5 py-3 capitalize">${esc(c.producto.replace('_', ' '))}</td>
+                        <td data-label="Venta" class="px-5 py-3">$${c.monto_venta.toFixed(2)}</td>
+                        <td data-label="Comisión" class="px-5 py-3 font-semibold">$${c.monto_comision.toFixed(2)}</td>
+                        <td data-label="Estado" class="px-5 py-3"><span class="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${badge(c.estado)}">${c.estado}</span></td>
+                        <td data-label="Fecha" class="px-5 py-3 text-gray-500">${new Date(c.created_at).toLocaleDateString('es')}</td>
                     </tr>
                 `).join('');
             } catch (err) {
