@@ -612,10 +612,15 @@
         const avatar = document.getElementById('userAvatarInitial');
         if (avatar) avatar.textContent = (session.user.email || '??').slice(0, 2).toUpperCase();
 
-        if (isAdmin(session)) {
+        function _revelarNavAdmin() {
             const navAdmin = document.getElementById('nav-admin');
+            if (!navAdmin) return;
             navAdmin.classList.remove('hidden');
             navAdmin.classList.add('flex');
+        }
+
+        if (isAdmin(session)) {
+            _revelarNavAdmin();
         }
 
         const labelEl = document.getElementById('userPlanLabel');
@@ -626,6 +631,12 @@
             try {
                 const sub = await window.NLT_API.miSuscripcion();
                 labelEl.textContent = (sub && sub.plan && sub.status === 'active') ? sub.plan : 'Sin plan activo';
+                // tiene_acceso_admin viaja en esta MISMA respuesta (piggyback
+                // en /billing/subscription, que esta pagina ya pedia) -- un
+                // admin secundario ve el link "Admin" sin sumar ningun
+                // request de red nuevo. isAdmin(session) ya cubrio al Global
+                // Admin arriba, así que esto es solo para admins secundarios.
+                if (!isAdmin(session) && sub && sub.tiene_acceso_admin) _revelarNavAdmin();
             } catch (err) {
                 labelEl.textContent = '';
             }
