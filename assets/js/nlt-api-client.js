@@ -27,9 +27,35 @@
     const BASE_URL = esLocal ? `${window.location.protocol}//127.0.0.1:8091` : 'https://nlt-api-production.up.railway.app';
 
     async function _token() {
-        const { data: { session } } = await NLT.supabase.auth.getSession();
+        // Reusa la misma sesión cacheada por nlt-shared.js -- antes esto
+        // pedía su propia sesión a Supabase en cada llamada a la API,
+        // sumado a los pedidos de requireSession()/mountPublicHeader().
+        const session = await NLT.getSession();
         if (!session) throw new Error('No hay sesión activa');
         return session.access_token;
+    }
+
+    // Sin límite de tiempo, un fetch() nunca falla por sí solo si el
+    // servidor está lento o arrancando en frío (cold start de Railway) --
+    // se queda colgado sin límite, y eso es lo que hacía que la página
+    // pareciera tardar hasta 1 minuto en cargar en mobile. AbortController
+    // le pone un techo real: pasados TIMEOUT_MS se cancela y se lanza un
+    // error normal, que ya fluye por el mismo catch que usa cada página
+    // para sus errores de red/HTTP existentes -- no es un modo de falla nuevo.
+    const FETCH_TIMEOUT_MS = 9000;
+    async function _fetchConTimeout(url, opciones = {}, timeoutMs = FETCH_TIMEOUT_MS) {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), timeoutMs);
+        try {
+            return await fetch(url, { ...opciones, signal: controller.signal });
+        } catch (err) {
+            if (err.name === 'AbortError') {
+                throw new Error('El servidor tardó demasiado en responder. Probá de nuevo en un momento.');
+            }
+            throw err;
+        } finally {
+            clearTimeout(timer);
+        }
     }
 
     // fetch() solo tira una excepción (TypeError "Failed to fetch") cuando
@@ -39,11 +65,13 @@
     // reales: confirmado real (14/08) que esto pasa justo en la ventana de
     // unos segundos mientras Railway termina de levantar un redeploy nuevo
     // -- el usuario lo veía como "Failed to fetch" en Academy que se
-    // arreglaba solo al refrescar la página un momento después.
+    // arreglaba solo al refrescar la página un momento después. Ahora
+    // también reintenta si el primer intento se cortó por timeout (ej. el
+    // cold-start de Railway sigue en curso en el primer intento).
     async function _fetchConReintento(url, opciones, intentos = 2) {
         for (let i = 0; i < intentos; i++) {
             try {
-                return await fetch(url, opciones);
+                return await _fetchConTimeout(url, opciones);
             } catch (err) {
                 if (i === intentos - 1) throw err;
                 await new Promise((r) => setTimeout(r, 800));
@@ -107,7 +135,7 @@
     // precios, así que esto NUNCA manda Authorization -- solo pega a
     // endpoints que el backend ya expone sin auth (ver billing.py::/plans*).
     async function requestPublico(path) {
-        const resp = await fetch(BASE_URL + path);
+        const resp = await _fetchConTimeout(BASE_URL + path);
         let body = null;
         try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
         if (!resp.ok) {

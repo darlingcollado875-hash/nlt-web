@@ -44,16 +44,16 @@
                 box-sizing: border-box;
             }
             .nlt-cert::before, .nlt-cert::after {
-                content: ''; position: absolute; width: 34px; height: 34px;
+                content: ''; position: absolute; width: clamp(20px, 4vw, 34px); height: clamp(20px, 4vw, 34px);
                 border: 1.5px solid rgba(59,130,246,0.55);
             }
-            .nlt-cert::before { top: 16px; left: 16px; border-right: none; border-bottom: none; }
-            .nlt-cert::after { bottom: 16px; right: 16px; border-left: none; border-top: none; }
+            .nlt-cert::before { top: clamp(8px, 1.6vw, 16px); left: clamp(8px, 1.6vw, 16px); border-right: none; border-bottom: none; }
+            .nlt-cert::after { bottom: clamp(8px, 1.6vw, 16px); right: clamp(8px, 1.6vw, 16px); border-left: none; border-top: none; }
             .nlt-cert-corner-tr, .nlt-cert-corner-bl {
-                position: absolute; width: 34px; height: 34px; border: 1.5px solid rgba(59,130,246,0.55);
+                position: absolute; width: clamp(20px, 4vw, 34px); height: clamp(20px, 4vw, 34px); border: 1.5px solid rgba(59,130,246,0.55);
             }
-            .nlt-cert-corner-tr { top: 16px; right: 16px; border-left: none; border-bottom: none; }
-            .nlt-cert-corner-bl { bottom: 16px; left: 16px; border-right: none; border-top: none; }
+            .nlt-cert-corner-tr { top: clamp(8px, 1.6vw, 16px); right: clamp(8px, 1.6vw, 16px); border-left: none; border-bottom: none; }
+            .nlt-cert-corner-bl { bottom: clamp(8px, 1.6vw, 16px); left: clamp(8px, 1.6vw, 16px); border-right: none; border-top: none; }
             .nlt-cert-frame {
                 position: absolute; inset: 10px; border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; pointer-events: none;
             }
@@ -83,9 +83,10 @@
             }
             @media print {
                 body * { visibility: hidden; }
-                .nlt-cert-wrap, .nlt-cert-wrap * { visibility: visible; }
+                .nlt-cert-wrap, .nlt-cert-wrap * { visibility: visible; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 .nlt-cert-wrap { position: fixed; inset: 0; margin: 0; padding: 24px; }
                 .nlt-cert { box-shadow: none; }
+                @page { size: landscape; margin: 0; }
             }
         `;
         document.head.appendChild(style);
@@ -126,7 +127,7 @@
                         </div>
                         <p class="nlt-cert-tagline">Elevate your standards.</p>
                         <div class="nlt-cert-qr-box">
-                            <img src="${qrUrl}" alt="QR de verificación">
+                            <img src="${qrUrl}" alt="QR de verificación" crossorigin="anonymous" onerror="this.closest('.nlt-cert-qr-box').style.display='none'">
                             <p>Verificar autenticidad</p>
                         </div>
                     </div>
@@ -139,5 +140,48 @@
         return String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     }
 
-    window.NLT_CERT = { render };
+    // Descarga real del certificado como PDF -- antes el botón "Descargar"
+    // solo llamaba a window.print(), que abre el diálogo de impresión del
+    // navegador (no una descarga real) y, sobre un diseño oscuro como este,
+    // sale mal por dos motivos conocidos de CSS de impresión: los navegadores
+    // no imprimen fondos/gradientes por defecto (texto claro sobre fondo
+    // blanco = casi invisible) y agregan su propio encabezado/pie con la URL
+    // y la fecha. Acá en cambio se rasteriza el nodo exacto que se ve en
+    // pantalla (mismos colores, misma tipografía) y se genera un PDF real
+    // que se descarga solo, sin pasar por el diálogo de impresión.
+    let _pdfLibsPromise = null;
+    function _cargarScript(src) {
+        return new Promise((resolve, reject) => {
+            const s = document.createElement('script');
+            s.src = src;
+            s.onload = resolve;
+            s.onerror = () => reject(new Error('No se pudo cargar un componente necesario para generar el PDF.'));
+            document.head.appendChild(s);
+        });
+    }
+    function _cargarLibsPDF() {
+        if (window.html2canvas && window.jspdf) return Promise.resolve();
+        if (!_pdfLibsPromise) {
+            _pdfLibsPromise = Promise.all([
+                _cargarScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js'),
+                _cargarScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js'),
+            ]);
+        }
+        return _pdfLibsPromise;
+    }
+
+    // node: el elemento con id="nltCertNode" que devuelve render(). nombreArchivo: ej. "Certificado-NLT-Academy-ABC123.pdf".
+    async function descargarPDF(node, nombreArchivo) {
+        await _cargarLibsPDF();
+        if (document.fonts && document.fonts.ready) {
+            try { await document.fonts.ready; } catch (e) { /* si falla, se sigue igual con la fuente que haya cargado */ }
+        }
+        const canvas = await window.html2canvas(node, { scale: 2, backgroundColor: '#0D1117', useCORS: true });
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
+        pdf.addImage(canvas.toDataURL('image/png'), 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(nombreArchivo || 'Certificado-NLT-Academy.pdf');
+    }
+
+    window.NLT_CERT = { render, descargarPDF };
 })();

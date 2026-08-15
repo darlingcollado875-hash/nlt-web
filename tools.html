@@ -142,18 +142,50 @@
             `;
         }
 
+        // Actualiza el ícono/clase de TODAS las instancias de este botón que
+        // estén en pantalla (el mismo tool puede aparecer a la vez en el
+        // catálogo, en Recientes y en Favoritos) sin reconstruir ninguna lista.
+        function aplicarEstadoFavorito(toolId, esFavorito) {
+            document.querySelectorAll(`.btn-favorito[data-tool-id="${toolId}"]`).forEach(b => {
+                b.classList.toggle('activa', esFavorito);
+                const icon = b.querySelector('i');
+                if (icon) icon.className = `${esFavorito ? 'ph-fill' : 'ph'} ph-star text-lg`;
+            });
+        }
+
         function wireCards(container) {
             container.querySelectorAll('.btn-favorito').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
                     if (!sesionActual) { alert('Iniciá sesión para guardar favoritos.'); return; }
                     const toolId = btn.getAttribute('data-tool-id');
+                    const tool = toolsCache.find(t => t.id === toolId);
+                    if (!tool) return;
+
+                    // Feedback optimista: la estrella cambia YA en todas sus
+                    // instancias y la sección Favoritos se actualiza de
+                    // inmediato -- antes esto esperaba la red y reconstruía
+                    // TODO el catálogo en cada click. Solo se toca Favoritos
+                    // (necesita agregar/quitar la tarjeta), nunca el catálogo
+                    // completo. Si el request falla, se revierte.
+                    const estadoAnterior = tool.is_favorite;
+                    tool.is_favorite = !estadoAnterior;
+                    aplicarEstadoFavorito(toolId, tool.is_favorite);
+                    renderFavoritosYRecientes();
+
                     try {
                         const r = await NLT_API.toolsAlternarFavorito(toolId);
-                        const tool = toolsCache.find(t => t.id === toolId);
-                        if (tool) tool.is_favorite = r.is_favorite;
-                        renderTodo();
-                    } catch (err) { alert('Error: ' + err.message); }
+                        if (r.is_favorite !== tool.is_favorite) {
+                            tool.is_favorite = r.is_favorite;
+                            aplicarEstadoFavorito(toolId, tool.is_favorite);
+                            renderFavoritosYRecientes();
+                        }
+                    } catch (err) {
+                        tool.is_favorite = estadoAnterior;
+                        aplicarEstadoFavorito(toolId, tool.is_favorite);
+                        renderFavoritosYRecientes();
+                        alert('Error: ' + err.message);
+                    }
                 });
             });
             container.querySelectorAll('.tool-card').forEach(card => {

@@ -226,7 +226,8 @@
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
 
         init();
-        setInterval(() => { if (sesionActual) cargarMaestra(); }, 20000);
+        // Se pausa solo si la pestaña queda en segundo plano.
+        NLT.pollWhileVisible(() => { if (sesionActual) cargarMaestra(); }, 20000);
     </script>
 </body>
 </html>

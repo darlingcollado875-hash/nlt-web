@@ -1031,7 +1031,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=20260814c"></script>
     <script src="assets/js/nlt-api-client.js?v=20260814"></script>
-    <script src="assets/js/nlt-certificate.js?v=20260814"></script>
+    <script src="assets/js/nlt-certificate.js?v=20260814b"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
         // comillas -- varios usos interpolan dentro de atributos donde una comilla
@@ -2447,7 +2447,7 @@
 
         async function mostrarVistaPreviaCertificado(def) {
             const box = document.getElementById('acadCertPreviewBox');
-            const { data: { session } } = await NLT.supabase.auth.getSession();
+            const session = await NLT.getSession();
             const nombre = (session && session.user.user_metadata && session.user.user_metadata.full_name)
                 || (session ? session.user.email.split('@')[0] : 'Nombre del Estudiante');
 
@@ -3338,23 +3338,31 @@
                 return;
             }
 
-            await NLT.mountSidebar(session, { activo: 'admin', seccion: 'cfd', planLabel: 'Admin' });
-            await NLT.ensurePerfil(session);
-            await cargarStats();
-            await cargarStatsResumen();
-            await cargarPagos();
-            await cargarUsuarios();
-            await cargarPlanes();
-            await cargarIndicador();
-            await cargarContenido();
-            await cargarMedia();
-            await cargarCalendarSettings();
-            await cargarCalculatorInstruments();
-            await cargarAcademyTodo();
-            await cargarToolsTodo();
-            await cargarCommunityTodo();
-            await cargarFuturesTodo();
-            await cargarAfiliadosTodo();
+            // Las 17 llamadas de abajo llenan secciones distintas de la
+            // pantalla (sidebar, perfil, y las 15 pestañas de datos) y no
+            // dependen entre sí -- cada cargarX tiene su propio try/catch,
+            // así que si una falla no frena a las demás. Antes corrían una
+            // detrás de otra sumando sus tiempos; en paralelo, el tiempo
+            // total es el de la más lenta, no la suma de las 17.
+            await Promise.all([
+                NLT.mountSidebar(session, { activo: 'admin', seccion: 'cfd', planLabel: 'Admin' }),
+                NLT.ensurePerfil(session),
+                cargarStats(),
+                cargarStatsResumen(),
+                cargarPagos(),
+                cargarUsuarios(),
+                cargarPlanes(),
+                cargarIndicador(),
+                cargarContenido(),
+                cargarMedia(),
+                cargarCalendarSettings(),
+                cargarCalculatorInstruments(),
+                cargarAcademyTodo(),
+                cargarToolsTodo(),
+                cargarCommunityTodo(),
+                cargarFuturesTodo(),
+                cargarAfiliadosTodo(),
+            ]);
 
             const seccionHash = (window.location.hash || '').replace('#', '');
             if (seccionHash && document.getElementById('seccion-' + seccionHash)) {

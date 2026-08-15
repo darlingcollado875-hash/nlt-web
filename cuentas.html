@@ -210,7 +210,8 @@
             if (!session) return;
             await NLT.mountSidebar(session, { activo: 'cuentas', seccion: 'cfd' });
             await cargarCuentas();
-            setInterval(cargarCuentas, 20000);
+            // Se pausa solo si la pestaña queda en segundo plano.
+            NLT.pollWhileVisible(cargarCuentas, 20000);
         }
 
         NLT.bindLogoutButton('btn-salir');

@@ -504,7 +504,8 @@
             document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('futures');
             await Promise.all([cargarProveedor(), cargarContratos(), cargarCuentas()]);
             await cargarRelacionMasterSlaves();
-            setInterval(cargarRelacionMasterSlaves, 15000);
+            // Se pausa solo si la pestaña queda en segundo plano.
+            NLT.pollWhileVisible(cargarRelacionMasterSlaves, 15000);
         }
 
         NLT.bindLogoutButton('btn-salir');

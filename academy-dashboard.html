@@ -157,7 +157,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=20260814c"></script>
     <script src="assets/js/nlt-api-client.js?v=20260814"></script>
-    <script src="assets/js/nlt-certificate.js?v=20260814"></script>
+    <script src="assets/js/nlt-certificate.js?v=20260814b"></script>
     <script>
         let sesionActual = null;
         let cursoActual = null;
@@ -539,13 +539,28 @@
             const acciones = document.createElement('div');
             acciones.className = 'flex flex-wrap items-center justify-center gap-3 mt-6';
             acciones.innerHTML = `
-                <button id="btn-descargar-certificado" class="px-5 py-2.5 rounded-xl bg-nlt-accent text-white text-xs font-semibold cursor-pointer"><i class="ph-fill ph-download-simple"></i> Descargar (PDF)</button>
-                <a href="${cert.verification_url}" target="_blank" rel="noopener" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold"><i class="ph ph-link"></i> Link de verificación</a>
-                <button id="btn-cerrar-certificado" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold cursor-pointer">Cerrar</button>
+                <button id="btn-descargar-certificado" class="px-5 py-2.5 rounded-xl bg-nlt-accent text-white text-xs font-semibold cursor-pointer flex items-center gap-2"><i class="ph-fill ph-download-simple"></i> Descargar (PDF)</button>
+                <a href="${cert.verification_url}" target="_blank" rel="noopener" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold flex items-center gap-2"><i class="ph ph-link"></i> Link de verificación</a>
+                <button id="btn-cerrar-certificado" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold cursor-pointer flex items-center gap-2"><i class="ph ph-x"></i> Cerrar</button>
             `;
             box.appendChild(acciones);
 
-            document.getElementById('btn-descargar-certificado').addEventListener('click', () => window.print());
+            document.getElementById('btn-descargar-certificado').addEventListener('click', async () => {
+                const btn = document.getElementById('btn-descargar-certificado');
+                const original = btn.innerHTML;
+                btn.disabled = true;
+                btn.className = btn.className.replace('cursor-pointer', 'cursor-wait opacity-70');
+                btn.innerHTML = '<i class="ph-fill ph-spinner-gap animate-spin"></i> Generando PDF...';
+                try {
+                    await NLT_CERT.descargarPDF(document.getElementById('nltCertNode'), `Certificado-NLT-Academy-${cert.certificate_code}.pdf`);
+                } catch (err) {
+                    alert('No se pudo generar el PDF: ' + err.message);
+                } finally {
+                    btn.disabled = false;
+                    btn.className = btn.className.replace('cursor-wait opacity-70', 'cursor-pointer');
+                    btn.innerHTML = original;
+                }
+            });
             document.getElementById('btn-cerrar-certificado').addEventListener('click', () => box.classList.add('hidden'));
             box.scrollIntoView({ behavior: 'smooth', block: 'center' });
         }

@@ -37,9 +37,27 @@
 
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+    // Cachea la promesa de supabase.auth.getSession() -- sin esto,
+    // requireSession(), mountPublicHeader(), mountAuthAwareCTA() y el
+    // _token() de nlt-api-client.js cada uno pedía su propia sesión a
+    // Supabase, hasta 3 veces en la misma carga de página (confirmado real
+    // en dashboard.html). Se resuelve una sola vez por carga de página y
+    // el resto reusa la misma promesa.
+    let _sessionPromise = null;
+    function _getSessionRaw() {
+        if (!_sessionPromise) {
+            _sessionPromise = supabase.auth.getSession();
+        }
+        return _sessionPromise;
+    }
+    async function getSession() {
+        const { data: { session } } = await _getSessionRaw();
+        return session;
+    }
+
     // Redirige a index.html si no hay sesión activa. Devuelve la sesión si existe.
     async function requireSession() {
-        let { data: { session }, error } = await supabase.auth.getSession();
+        let { data: { session }, error } = await _getSessionRaw();
 
         // Justo después de volver del redirect de OAuth el cliente puede tardar
         // un instante en procesar el token de la URL. Antes de expulsar al usuario,
@@ -53,6 +71,11 @@
                     resolve(s);
                 });
             });
+            // El auth-state-change trajo una sesión que la caché no tenía
+            // (típico justo después del redirect de OAuth) -- se actualiza
+            // la caché para que el resto de la página (header, sidebar,
+            // NLT_API) vea esta sesión nueva en vez de la nula original.
+            if (session) _sessionPromise = Promise.resolve({ data: { session }, error: null });
         }
 
         if (error || !session) {
@@ -108,23 +131,35 @@
     // llevan directo al Dashboard sin volver a pasar por OAuth.
     async function mountAuthAwareCTA(buttonIds, opts = {}) {
         const ids = Array.isArray(buttonIds) ? buttonIds : [buttonIds];
-        const { data: { session } } = await supabase.auth.getSession();
         const destino = opts.loggedInHref || 'dashboard.html';
 
+        // El click se conecta YA, sin esperar a Supabase -- si el usuario
+        // toca el botón antes de que la sesión resuelva, el propio handler
+        // la resuelve (reusando la misma caché) al momento del click. Nunca
+        // debe pasar que el botón exista en pantalla pero no reaccione.
         ids.forEach((id) => {
             const btn = document.getElementById(id);
             if (!btn) return;
-            if (session) {
-                btn.textContent = opts.loggedInLabel || 'Ir al Dashboard';
-                btn.onclick = (e) => { e.preventDefault(); window.location.href = destino; };
-            } else {
-                btn.textContent = opts.loggedOutLabel || btn.textContent;
-                btn.onclick = (e) => {
-                    e.preventDefault();
+            btn.onclick = async (e) => {
+                e.preventDefault();
+                const session = await getSession();
+                if (session) {
+                    window.location.href = destino;
+                } else {
                     const urlDestino = new URL(opts.redirectTo || destino, window.location.href).toString();
                     supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
-                };
-            }
+                }
+            };
+        });
+
+        // El texto del botón ("Comenzar" vs "Ir al Dashboard") sigue
+        // actualizándose de forma asíncrona una vez se conoce la sesión --
+        // eso es solo cosmético, nunca condición para que el click funcione.
+        const session = await getSession();
+        ids.forEach((id) => {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            btn.textContent = session ? (opts.loggedInLabel || 'Ir al Dashboard') : (opts.loggedOutLabel || btn.textContent);
         });
         return session;
     }
@@ -141,12 +176,35 @@
         const box = document.getElementById(ctaBoxId);
         const logo = document.getElementById(logoId);
 
-        const { data: { session } } = await supabase.auth.getSession();
+        // Se pinta y se conecta el botón "Comenzar" YA, sin esperar a
+        // Supabase -- es el estado por defecto más común (visitante
+        // anónimo) y queda clickeable desde el primer instante. Si el
+        // usuario ya tiene sesión, el click igual lo manda al Dashboard
+        // (se resuelve dentro del propio handler); si no, dispara el login.
+        // Antes esto esperaba a getSession() para recién ahí pintar CUALQUIER
+        // botón, dejando un margen real donde el botón se veía pero no hacía nada.
+        if (box) {
+            box.innerHTML = `<button id="headerLoginBtn" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-xs tracking-wide transition-all glow-button cursor-pointer">Comenzar</button>`;
+            document.getElementById('headerLoginBtn').addEventListener('click', async () => {
+                const session = await getSession();
+                if (session) {
+                    window.location.href = 'dashboard.html';
+                } else {
+                    const urlDestino = new URL(opts.redirectTo || 'dashboard.html', window.location.href).toString();
+                    supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
+                }
+            });
+            _mountMobileNavToggle(box);
+        }
+
+        const session = await getSession();
 
         if (logo) logo.setAttribute('href', session ? 'dashboard.html' : 'index.html');
-        if (!box) return session;
 
-        if (session) {
+        // Si sí hay sesión, se reemplaza el botón optimista de arriba por el
+        // header real de usuario logueado -- comportamiento visual idéntico
+        // al de antes, solo que ya no bloquea la existencia del botón.
+        if (box && session) {
             const inicial = (session.user.email || '??').slice(0, 2).toUpperCase();
             box.innerHTML = `
                 <div class="flex items-center gap-3">
@@ -159,15 +217,8 @@
             `;
             const logoutBtn = document.getElementById('headerLogoutBtn');
             if (logoutBtn) logoutBtn.addEventListener('click', () => signOut());
-        } else {
-            box.innerHTML = `<button id="headerLoginBtn" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-xs tracking-wide transition-all glow-button cursor-pointer">Comenzar</button>`;
-            const loginBtn = document.getElementById('headerLoginBtn');
-            if (loginBtn) loginBtn.addEventListener('click', () => {
-                const urlDestino = new URL(opts.redirectTo || 'dashboard.html', window.location.href).toString();
-                supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
-            });
+            _mountMobileNavToggle(box);
         }
-        _mountMobileNavToggle(box);
         return session;
     }
 
@@ -609,6 +660,10 @@
     // contenido invisible. Si sigue en opacity:0 pasado un tiempo prudencial,
     // se fuerza visible directamente, sin esperar a que GSAP decida.
     function _revealSafetyNet() {
+        // 16 de las 24 páginas no usan [data-reveal] en absoluto -- sin este
+        // corte, igual corrían querySelectorAll + getComputedStyle (fuerza
+        // recálculo de layout) dos veces por carga, sobre las 24 páginas.
+        if (!document.querySelector('[data-reveal]')) return;
         const forzarVisibles = () => {
             document.querySelectorAll('[data-reveal]').forEach((el) => {
                 if (getComputedStyle(el).opacity === '0') {
@@ -622,9 +677,40 @@
     }
     _revealSafetyNet();
 
+    // Reemplaza a setInterval(fn, ms) directo para el polling de datos en
+    // background (dashboard/cuentas/maestra/futuros/news) -- antes esos
+    // temporizadores corrían para siempre aunque el usuario cambiara de
+    // pestaña, gastando batería/CPU y red sin que nadie estuviera mirando.
+    // Se pausa solo con document.hidden===true y, al volver a estar
+    // visible, refresca una vez de inmediato (los datos pudieron quedar
+    // viejos) y retoma el intervalo normal.
+    function pollWhileVisible(fn, ms) {
+        let id = null;
+        function start() {
+            if (id !== null) return;
+            id = setInterval(fn, ms);
+        }
+        function stop() {
+            if (id === null) return;
+            clearInterval(id);
+            id = null;
+        }
+        if (!document.hidden) start();
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stop();
+            } else {
+                fn();
+                start();
+            }
+        });
+        return { stop, start };
+    }
+
     window.NLT = {
         supabase,
         ADMIN_EMAIL,
+        getSession,
         requireSession,
         getAuthRedirectError,
         signOut,
@@ -641,5 +727,6 @@
         renderModuleStrip,
         mountAuthAwareCTA,
         mountPublicHeader,
+        pollWhileVisible,
     };
 })();

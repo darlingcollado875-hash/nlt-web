@@ -566,8 +566,12 @@
         document.getElementById('calAplicarFiltros').addEventListener('click', cerrarSheet);
 
         cargar();
-        setInterval(cargar, 60000);       // refresco de datos cada 60s (la cache del backend igual solo se actualiza según sync_interval_minutes)
-        setInterval(actualizarCountdownsEnVivo, 1000);  // countdown en vivo sin recargar
+        // Se pausan solos si la pestaña queda en segundo plano.
+        NLT.pollWhileVisible(cargar, 60000);       // refresco de datos cada 60s (la cache del backend igual solo se actualiza según sync_interval_minutes)
+        // actualizarCountdownsEnVivo solo muestra minutos/horas (fmtCountdown),
+        // nunca segundos -- recorrer todas las tarjetas + sus .cal-countdown
+        // cada 1s recalculaba 60 veces por cada vez que el texto cambiaba.
+        NLT.pollWhileVisible(actualizarCountdownsEnVivo, 30000);
     })();
     });
     </script>

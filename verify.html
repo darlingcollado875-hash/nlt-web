@@ -43,11 +43,11 @@
         <p class="text-center mt-8"><a href="academy.html" class="text-xs text-gray-500 hover:text-white transition-colors">Volver a NLT Academy</a></p>
     </div>
 
-    <script src="assets/js/nlt-certificate.js?v=20260814"></script>
+    <script src="assets/js/nlt-certificate.js?v=20260814b"></script>
     <script>
         const BASE_URL = ['localhost', '127.0.0.1'].includes(window.location.hostname)
             ? 'http://127.0.0.1:8091'
-            : 'https://increasing-sends-jun-assumes.trycloudflare.com';
+            : 'https://nlt-api-production.up.railway.app';
 
         function getCode() {
             const parts = window.location.pathname.split('/').filter(Boolean);
@@ -81,11 +81,30 @@
                         <p class="text-xs text-nlt-success font-bold uppercase tracking-widest">Certificado verificado -- auténtico</p>
                     </div>
                     <div id="certHolder"></div>
+                    <div class="flex justify-center mt-6">
+                        <button id="btn-descargar-certificado" class="px-5 py-2.5 rounded-xl bg-nlt-accent text-white text-xs font-semibold cursor-pointer flex items-center gap-2"><i class="ph-fill ph-download-simple"></i> Descargar (PDF)</button>
+                    </div>
                 `;
                 NLT_CERT.render(document.getElementById('certHolder'), {
                     title: data.title, slug: data.slug, student_name: data.student_name,
                     certificate_code: data.certificate_code, issued_at: data.issued_at,
                     verification_url: window.location.href, description: data.description,
+                });
+                document.getElementById('btn-descargar-certificado').addEventListener('click', async () => {
+                    const btn = document.getElementById('btn-descargar-certificado');
+                    const original = btn.innerHTML;
+                    btn.disabled = true;
+                    btn.className = btn.className.replace('cursor-pointer', 'cursor-wait opacity-70');
+                    btn.innerHTML = '<i class="ph-fill ph-spinner-gap animate-spin"></i> Generando PDF...';
+                    try {
+                        await NLT_CERT.descargarPDF(document.getElementById('nltCertNode'), `Certificado-NLT-Academy-${data.certificate_code}.pdf`);
+                    } catch (err) {
+                        alert('No se pudo generar el PDF: ' + err.message);
+                    } finally {
+                        btn.disabled = false;
+                        btn.className = btn.className.replace('cursor-wait opacity-70', 'cursor-pointer');
+                        btn.innerHTML = original;
+                    }
                 });
             } catch (err) {
                 box.innerHTML = `<i class="ph-fill ph-warning-circle text-4xl text-yellow-400 mb-3"></i><p class="text-white font-semibold">No se pudo verificar ahora mismo.</p><p class="text-xs text-gray-500 mt-1">${err.message}</p>`;

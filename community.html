@@ -378,10 +378,27 @@
             container.querySelectorAll('.btn-react').forEach(btn => {
                 btn.addEventListener('click', async () => {
                     if (!esMiembro) { alert('Necesitás ser miembro de NLT para reaccionar.'); return; }
+                    const postId = btn.getAttribute('data-post-id');
+                    const tipo = btn.getAttribute('data-tipo');
+                    const reaccion = REACCIONES.find(r => r.tipo === tipo);
+                    const yaActivo = btn.classList.contains('activo');
+                    const countActual = parseInt(btn.textContent.trim().split(/\s+/)[1], 10) || 0;
+                    const countNuevo = yaActivo ? Math.max(0, countActual - 1) : countActual + 1;
+
+                    // Feedback optimista: el botón cambia YA, sin esperar la
+                    // red -- antes esto esperaba el request y encima recargaba
+                    // TODO el feed entero, que se sentía como que el botón no
+                    // reaccionaba. Si el request falla, se revierte solo esta tarjeta.
+                    btn.classList.toggle('activo', !yaActivo);
+                    btn.textContent = `${reaccion.emoji} ${countNuevo || ''}`.trim();
+
                     try {
-                        await NLT_API.communityReaccionar(btn.getAttribute('data-post-id'), btn.getAttribute('data-tipo'));
-                        await cargarFeed();
-                    } catch (err) { alert('Error: ' + err.message); }
+                        await NLT_API.communityReaccionar(postId, tipo);
+                    } catch (err) {
+                        btn.classList.toggle('activo', yaActivo);
+                        btn.textContent = `${reaccion.emoji} ${countActual || ''}`.trim();
+                        alert('Error: ' + err.message);
+                    }
                 });
             });
             container.querySelectorAll('.btn-toggle-comments').forEach(btn => {

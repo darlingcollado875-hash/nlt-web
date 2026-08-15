@@ -196,10 +196,15 @@
                 box.innerHTML = `<div class="glass-card p-5 text-xs text-gray-500 flex items-center gap-2"><i class="ph ph-cloud-warning text-amber-500"></i> Calendar temporarily unavailable</div>`;
             }
         }
-        setInterval(() => {
+        // El texto solo muestra minutos/horas (fmtCountdownWidget), nunca
+        // segundos -- refrescarlo cada 1s recalculaba y reescribía el DOM
+        // 60 veces por cada vez que el texto realmente cambiaba. 30s alcanza
+        // de sobra para que se sienta "en vivo", y se pausa solo si la
+        // pestaña queda en segundo plano.
+        NLT.pollWhileVisible(() => {
             const el = document.getElementById('marketAlertCountdown');
             if (el && _nextHighImpactTs) el.textContent = fmtCountdownWidget(Math.round((_nextHighImpactTs - Date.now()) / 60000)) || '';
-        }, 1000);
+        }, 30000);
 
         async function init() {
             sesionActual = await NLT.requireSession();
@@ -279,8 +284,10 @@
         });
 
         init();
-        setInterval(() => { if (sesionActual) cargarMetricas(); }, 20000);
-        setInterval(() => { if (sesionActual) cargarMarketAlerts(); }, 60000);
+        // Se pausan solos si la pestaña queda en segundo plano, y refrescan
+        // una vez de inmediato al volver a primer plano.
+        NLT.pollWhileVisible(() => { if (sesionActual) cargarMetricas(); }, 20000);
+        NLT.pollWhileVisible(() => { if (sesionActual) cargarMarketAlerts(); }, 60000);
     </script>
 </body>
 </html>
