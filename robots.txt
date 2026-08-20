@@ -1,0 +1,42 @@
+User-agent: *
+Allow: /
+
+# Paneles privados y dashboards -- requieren sesion, sin valor de busqueda
+# organica y no deben aparecer en Google (ver tambien <meta name="robots"
+# content="noindex, nofollow"> en cada uno de estos archivos).
+Disallow: /dashboard
+Disallow: /dashboard.html
+Disallow: /cuentas
+Disallow: /cuentas.html
+Disallow: /maestra
+Disallow: /maestra.html
+Disallow: /futuros
+Disallow: /futuros.html
+Disallow: /futuros-configuracion
+Disallow: /futuros-configuracion.html
+Disallow: /futuros-admin
+Disallow: /futuros-admin.html
+Disallow: /historial
+Disallow: /historial.html
+Disallow: /suscripcion
+Disallow: /suscripcion.html
+Disallow: /configuracion
+Disallow: /configuracion.html
+Disallow: /afiliado
+Disallow: /afiliado.html
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /academy-dashboard
+Disallow: /academy-dashboard.html
+
+# Paginas de flujo (post-pago, verificacion) -- sin contenido organico,
+# ligadas a una transaccion o codigo puntual del usuario.
+Disallow: /pago-confirmado
+Disallow: /pago-confirmado.html
+Disallow: /pago-pendiente
+Disallow: /pago-pendiente.html
+Disallow: /verify
+Disallow: /verify.html
+Disallow: /verify/
+
+Sitemap: https://nltnextlevel.uk/sitemap.xml
