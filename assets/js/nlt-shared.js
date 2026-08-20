@@ -527,7 +527,7 @@
         return `
             <div class="h-24 flex items-center px-8">
                 <a href="dashboard.html" class="flex items-center gap-3">
-                    <img src="assets/img/nlt-mark.svg" alt="NLT" class="w-9 h-9">
+                    <img src="assets/img/nlt-icon.png" alt="NLT" class="w-9 h-9">
                     <span class="font-semibold text-lg tracking-tight">NLT</span>
                 </a>
             </div>

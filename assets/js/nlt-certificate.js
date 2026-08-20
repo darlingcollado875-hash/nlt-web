@@ -117,7 +117,7 @@
                     <div class="nlt-cert-frame"></div>
                     <div class="nlt-cert-top">
                         <div class="nlt-cert-brand">
-                            <img src="assets/img/nlt-mark.svg" alt="NLT">
+                            <img src="assets/img/nlt-icon.png" alt="NLT">
                             <span>NLT Academy</span>
                         </div>
                         <p class="nlt-cert-eyebrow">Certificate of Completion</p>
