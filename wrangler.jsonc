@@ -1,0 +1,21 @@
+{
+  // Necesario para que exista un Worker real (worker.js) que corra ANTES de
+  // servir los archivos estaticos -- sin esto, Cloudflare sirve el sitio
+  // 100% via su configuracion de dashboard (que es como funcionaba hasta
+  // ahora), sin ningun lugar donde interceptar rutas server-side.
+  //
+  // html_handling y not_found_handling se dejan explicitos en los mismos
+  // valores que ya se observaban en produccion ANTES de este archivo
+  // (confirmado con curl: /foo.html -> redirect 307 -> /foo, y una ruta
+  // inexistente -> 404 real, nunca index.html) -- la intencion es que este
+  // archivo agregue el proxy de pagos sin cambiar nada mas del sitio.
+  "name": "nlt-web",
+  "compatibility_date": "2026-08-20",
+  "main": "worker.js",
+  "assets": {
+    "directory": "./",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none"
+  }
+}

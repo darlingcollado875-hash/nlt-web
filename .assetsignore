@@ -4,3 +4,4 @@
 dev_server.py
 supabase
 wrangler.jsonc
+worker.js
