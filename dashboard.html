@@ -57,6 +57,8 @@
                 <div id="moduleStrip" class="flex items-center gap-3 overflow-x-auto pb-1"></div>
             </div>
 
+            <div id="connectionAlertWidget"></div>
+
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
                 <div class="glass-card p-4 md:p-6 flex justify-between items-center">
                     <div>
@@ -153,6 +155,44 @@
             }
         }
 
+        // Antes esto no se mostraba en ningún lado del Dashboard -- una cuenta
+        // podía quedar SESION_FRIA días sin que nadie la notara, salvo que el
+        // usuario entrara puntualmente a Cuentas/Maestra y mirara el badge de
+        // cada tarjeta. Ahora es lo primero que se ve al loguearse.
+        async function cargarAlertaConexion() {
+            const box = document.getElementById('connectionAlertWidget');
+            try {
+                const cuentas = await NLT_API.listarCuentas();
+                const frias = (cuentas || []).filter(c => c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA'));
+                if (!frias.length) {
+                    box.innerHTML = '';
+                    return;
+                }
+                const items = frias.map(c => {
+                    const href = c.tipo_cuenta === 'MAESTRA' ? 'maestra.html' : 'cuentas.html';
+                    const etiqueta = c.tipo_cuenta === 'MAESTRA' ? 'Maestra' : 'Destino';
+                    return `<a href="${href}" class="flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-black/20 hover:bg-black/30 transition-colors">
+                        <span class="text-xs text-gray-300"><span class="font-semibold text-white">${etiqueta}</span> · Login ${c.login_numero}</span>
+                        <span class="text-[11px] font-semibold text-orange-400 flex items-center gap-1">Reconectar <i class="ph-bold ph-arrow-right"></i></span>
+                    </a>`;
+                }).join('');
+                box.innerHTML = `
+                <div class="glass-card p-4 md:p-6 border-orange-500/20">
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="w-10 h-10 md:w-11 md:h-11 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0"><i class="ph-fill ph-plugs text-lg md:text-xl"></i></div>
+                        <div>
+                            <p class="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-0.5">Reconexión necesaria</p>
+                            <p class="text-sm text-white font-semibold">${frias.length} cuenta${frias.length === 1 ? '' : 's'} con la sesión enfriada del lado del broker -- el copiador no puede operarla${frias.length === 1 ? '' : 's'} hasta que la${frias.length === 1 ? '' : 's'} reconectés.</p>
+                        </div>
+                    </div>
+                    <div class="space-y-2">${items}</div>
+                </div>`;
+            } catch (err) {
+                console.error('No se pudo chequear el estado de conexión de las cuentas:', err);
+                box.innerHTML = '';
+            }
+        }
+
         function fmtCountdownWidget(mins) {
             if (mins < 0) return null;
             const h = Math.floor(mins / 60), m = mins % 60;
@@ -221,6 +261,7 @@
                 NLT.ensurePerfil(sesionActual),
                 cargarMetricas(),
                 cargarMarketAlerts(),
+                cargarAlertaConexion(),
             ]);
         }
 
@@ -288,6 +329,7 @@
         // una vez de inmediato al volver a primer plano.
         NLT.pollWhileVisible(() => { if (sesionActual) cargarMetricas(); }, 20000);
         NLT.pollWhileVisible(() => { if (sesionActual) cargarMarketAlerts(); }, 60000);
+        NLT.pollWhileVisible(() => { if (sesionActual) cargarAlertaConexion(); }, 60000);
     </script>
 </body>
 </html>
