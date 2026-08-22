@@ -1037,6 +1037,7 @@
                     <button data-broker-tipo="providers" class="broker-subtab tab-admin activo">Providers</button>
                     <button data-broker-tipo="analytics" class="broker-subtab tab-admin">Analytics</button>
                     <button data-broker-tipo="activity" class="broker-subtab tab-admin">Activity</button>
+                    <button data-broker-tipo="sync" class="broker-subtab tab-admin">Eightcap / Tracknow</button>
                 </nav>
 
                 <div id="brokerTipo-providers" class="broker-tipo space-y-6">
@@ -1111,6 +1112,63 @@
 
                     <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Webhook Events (auditoría)</h3>
                     <div id="listaBrokerWebhookEvents" class="glass-card p-4 font-mono text-xs text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+                </div>
+
+                <div id="brokerTipo-sync" class="broker-tipo space-y-6 hidden">
+                    <div class="glass-card p-6">
+                        <div class="flex items-center justify-between flex-wrap gap-3 mb-4">
+                            <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-plugs-connected text-nlt-accent"></i> Eightcap Integration</h2>
+                            <div class="flex items-center gap-2 flex-wrap">
+                                <button data-sync="all" class="btn-broker-sync px-3 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Sync All</button>
+                                <button data-sync="registrations" class="btn-broker-sync px-3 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Sync Clients</button>
+                                <button data-sync="accounts" class="btn-broker-sync px-3 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Sync Accounts</button>
+                                <button data-sync="transactions" class="btn-broker-sync px-3 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Sync Transactions</button>
+                                <button data-sync="conversions" class="btn-broker-sync px-3 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Sync Commissions</button>
+                                <button data-sync="campaigns" class="btn-broker-sync px-3 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Sync Campaigns</button>
+                            </div>
+                        </div>
+                        <p id="brokerSyncMsg" class="text-xs mb-4 hidden"></p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div class="glass-card p-4">
+                                <p class="text-xs text-gray-500 mb-1">Connection</p>
+                                <p id="syncConnEstado" class="text-lg font-bold text-gray-400">Cargando...</p>
+                            </div>
+                            <div class="glass-card p-4">
+                                <p class="text-xs text-gray-500 mb-1">Clients</p>
+                                <p id="syncCountClients" class="text-lg font-bold text-white">-</p>
+                            </div>
+                            <div class="glass-card p-4">
+                                <p class="text-xs text-gray-500 mb-1">Accounts</p>
+                                <p id="syncCountAccounts" class="text-lg font-bold text-white">-</p>
+                            </div>
+                            <div class="glass-card p-4">
+                                <p class="text-xs text-gray-500 mb-1">Transactions</p>
+                                <p id="syncCountTransactions" class="text-lg font-bold text-white">-</p>
+                            </div>
+                            <div class="glass-card p-4">
+                                <p class="text-xs text-gray-500 mb-1">Commissions</p>
+                                <p id="syncCountCommissions" class="text-lg font-bold text-white">-</p>
+                            </div>
+                            <div class="glass-card p-4">
+                                <p class="text-xs text-gray-500 mb-1">Commission Amount</p>
+                                <p id="syncCommissionAmount" class="text-lg font-bold text-white">-</p>
+                            </div>
+                            <div class="glass-card p-4 col-span-2">
+                                <p class="text-xs text-gray-500 mb-1">Last Error</p>
+                                <p id="syncLastError" class="text-xs text-gray-400">-</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">Last Sync por recurso</h3>
+                        <div id="syncLastPorRecurso" class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs"></div>
+                    </div>
+
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">Historial de sync runs</h3>
+                        <div id="listaBrokerSyncRuns" class="font-mono text-xs text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+                    </div>
                 </div>
             </div>
 
@@ -3605,10 +3663,83 @@
             }
         });
 
+        function fmtFecha(iso) {
+            if (!iso) return '-';
+            try { return new Date(iso).toLocaleString(); } catch (e) { return iso; }
+        }
+
+        async function cargarBrokerSyncStatus() {
+            try {
+                const s = await NLT_API.adminBrokerSyncStatus();
+                const elConn = document.getElementById('syncConnEstado');
+                elConn.textContent = s.connected ? 'CONNECTED' : 'ERROR';
+                elConn.className = 'text-lg font-bold ' + (s.connected ? 'text-nlt-success' : 'text-nlt-danger');
+                document.getElementById('syncCountClients').textContent = s.counts.clients;
+                document.getElementById('syncCountAccounts').textContent = s.counts.accounts;
+                document.getElementById('syncCountTransactions').textContent = s.counts.transactions;
+                document.getElementById('syncCountCommissions').textContent = s.counts.commissions;
+                document.getElementById('syncCommissionAmount').textContent = '$' + Number(s.commission_amount).toFixed(2);
+                document.getElementById('syncLastError').textContent = s.connection_error || 'Sin errores.';
+
+                const recursoLabel = { registrations: 'Clients', accounts: 'Accounts', transactions: 'Transactions', conversions: 'Commissions', campaigns: 'Campaigns' };
+                document.getElementById('syncLastPorRecurso').innerHTML = Object.entries(s.last_sync).map(([recurso, run]) => `
+                    <div class="glass-card p-3">
+                        <p class="text-gray-500 mb-1">${recursoLabel[recurso] || recurso}</p>
+                        ${run ? `<p class="text-white">${fmtFecha(run.finished_at || run.started_at)} · <span class="${run.status === 'success' ? 'text-nlt-success' : run.status === 'error' ? 'text-nlt-danger' : 'text-gray-400'}">${esc(run.status)}</span></p>
+                                 <p class="text-gray-500">creados=${run.records_created} actualizados=${run.records_updated} omitidos=${run.records_skipped}</p>
+                                 ${run.error_message ? `<p class="text-nlt-danger">${esc(run.error_message)}</p>` : ''}` : '<p class="text-gray-600">Nunca sincronizado todavía.</p>'}
+                    </div>
+                `).join('');
+            } catch (err) {
+                document.getElementById('syncConnEstado').textContent = 'Error';
+                document.getElementById('syncLastError').textContent = err.message;
+            }
+        }
+
+        async function cargarBrokerSyncRuns() {
+            const box = document.getElementById('listaBrokerSyncRuns');
+            try {
+                const runs = await NLT_API.adminBrokerSyncRuns();
+                box.innerHTML = runs.map(r => `<p>[${esc(fmtFecha(r.started_at))}] ${esc(r.resource)} · ${esc(r.status)} · creados=${r.records_created} actualizados=${r.records_updated} omitidos=${r.records_skipped}${r.error_message ? ' · <span class="text-nlt-danger">' + esc(r.error_message) + '</span>' : ''}</p>`).join('') || '<p class="text-gray-600">Sin corridas todavía.</p>';
+            } catch (err) {
+                box.innerHTML = `<p class="text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.querySelectorAll('.btn-broker-sync').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const recurso = btn.getAttribute('data-sync');
+                const msg = document.getElementById('brokerSyncMsg');
+                btn.disabled = true;
+                msg.className = 'text-xs text-gray-400';
+                msg.textContent = `Sync ${recurso} iniciado...`;
+                msg.classList.remove('hidden');
+                try {
+                    const resp = recurso === 'all' ? await NLT_API.adminBrokerSyncAll() : await NLT_API.adminBrokerSyncRecurso(recurso);
+                    msg.className = 'text-xs text-nlt-success';
+                    if (recurso === 'all') {
+                        const partes = Object.entries(resp.resultados).map(([r, res]) => res.error ? `${r}: error` : `${r}: +${res.creados}/${res.actualizados} upd`);
+                        msg.textContent = `Sync All completo -- ${partes.join(', ')}.`;
+                    } else {
+                        msg.textContent = `Sync completo -- ${resp.creados} creados, ${resp.actualizados} actualizados, ${resp.omitidos || 0} omitidos.`;
+                    }
+                    await cargarBrokerSyncStatus();
+                    await cargarBrokerSyncRuns();
+                } catch (err) {
+                    msg.className = 'text-xs text-nlt-danger';
+                    msg.textContent = 'Error: ' + err.message;
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+
         async function cargarBrokerTodo() {
             await cargarBrokerProviders();
             await cargarBrokerAnalytics();
             await cargarBrokerActivity();
+            await cargarBrokerSyncStatus();
+            await cargarBrokerSyncRuns();
         }
 
         // --- Administración Global (exclusivo Global Admin) ---

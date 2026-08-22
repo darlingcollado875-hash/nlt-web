@@ -555,6 +555,10 @@
         adminBrokerWebhookEvents: () => request('/admin/broker/webhook-events'),
         adminBrokerAnalytics: (brokerId) => request(`/admin/broker/analytics${brokerId ? '?broker_id=' + brokerId : ''}`),
         adminBrokerSimularEvento: (eventType) => request(`/admin/broker/simulate-event?event_type=${encodeURIComponent(eventType)}`, { method: 'POST' }),
+        adminBrokerSyncStatus: () => request('/admin/broker/sync/status'),
+        adminBrokerSyncRuns: (resource) => request(`/admin/broker/sync/runs${resource ? '?resource=' + resource : ''}`),
+        adminBrokerSyncRecurso: (recurso) => request(`/admin/broker/sync/${recurso}`, { method: 'POST' }),
+        adminBrokerSyncAll: () => request('/admin/broker/sync/all', { method: 'POST' }),
     };
 
     window.NLT_API = NLT_API;
