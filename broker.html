@@ -61,6 +61,7 @@
         <p class="text-gray-400 text-lg max-w-xl mx-auto mb-10" data-reveal>Access trusted broker partners and connect your trading experience with the NLT ecosystem.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
             <button id="btn-open-account" class="glow-button px-7 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Open Trading Account</button>
+            <button id="btn-open-challenge" class="px-7 py-3.5 rounded-2xl border border-nlt-accent/30 text-nlt-accent font-semibold text-sm hover:bg-nlt-accent/10 transition-all cursor-pointer">Trading Challenges</button>
             <a href="#broker-partners" class="px-7 py-3.5 rounded-2xl border border-white/10 text-gray-300 font-semibold text-sm hover:bg-white/5 transition-all">Explore Broker</a>
         </div>
     </section>
@@ -275,9 +276,10 @@
             }
         }
 
-        async function abrirCuenta(codigo) {
+        async function abrirCuenta(codigo, campaignId) {
             try {
                 const params = {};
+                if (campaignId) params.campaign_id = campaignId;
                 const qp = new URLSearchParams(window.location.search);
                 ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'sub1', 'sub2', 'sub3', 'sub4', 'sub5', 'sub6', 'sub7', 'sub8'].forEach((campo) => {
                     const valor = qp.get(campo);
@@ -292,6 +294,7 @@
 
         document.getElementById('btn-open-account').addEventListener('click', () => abrirCuenta('eightcap'));
         document.getElementById('btn-open-account-2').addEventListener('click', () => abrirCuenta('eightcap'));
+        document.getElementById('btn-open-challenge').addEventListener('click', () => abrirCuenta('eightcap', 'challenges'));
 
         function renderEcosistemaStrip() {
             document.getElementById('ecosistemaStrip').innerHTML = NLT.renderModuleStrip('broker');
