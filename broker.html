@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Broker | Next Level Trading</title>
+    <meta name="description" content="Descubrí brokers partner de confianza y conectá tu experiencia de trading con el ecosistema NLT.">
+    <link rel="canonical" href="https://nltnextlevel.uk/broker">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .broker-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease; }
+        .broker-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
+        .step-num { width: 2.25rem; height: 2.25rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; background: rgba(67,120,255,0.12); color: #4378FF; border: 1px solid rgba(67,120,255,0.2); }
+        details.faq-item summary::-webkit-details-marker { display: none; }
+        details.faq-item[open] .faq-chevron { transform: rotate(180deg); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="relative z-10 pt-44 pb-20 px-6 max-w-4xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT Broker</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>Trade Smarter. All in One Ecosystem.</h1>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto mb-10" data-reveal>Access trusted broker partners and connect your trading experience with the NLT ecosystem.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
+            <button id="btn-open-account" class="glow-button px-7 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Open Trading Account</button>
+            <a href="#broker-partners" class="px-7 py-3.5 rounded-2xl border border-white/10 text-gray-300 font-semibold text-sm hover:bg-white/5 transition-all">Explore Broker</a>
+        </div>
+    </section>
+
+    <main class="relative z-10 max-w-6xl mx-auto px-6 pb-24 space-y-28">
+
+        <!-- Partner disclosure (siempre visible bajo el hero) -->
+        <div class="glass-card p-5 flex items-start gap-3 max-w-3xl mx-auto -mt-16" data-reveal>
+            <i class="ph-fill ph-info text-nlt-accent text-xl mt-0.5 shrink-0"></i>
+            <p id="partnerDisclosureText" class="text-xs text-gray-400 leading-relaxed">Brokerage services are provided by our independent broker partners. NLT does not hold client funds or execute trades unless expressly authorized under the applicable partnership structure.</p>
+        </div>
+
+        <!-- Why Trade Through NLT -->
+        <section>
+            <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Why Trade Through NLT</h2>
+                <p class="text-gray-400 text-sm md:text-base">Un ecosistema pensado para traders serios -- no solo un link de referido.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="glass-card p-7" data-reveal>
+                    <i class="ph-fill ph-shield-check text-nlt-accent text-2xl mb-4"></i>
+                    <h3 class="font-bold text-white mb-2">Partners de confianza</h3>
+                    <p class="text-sm text-gray-400">Solo trabajamos con brokers que cumplen los estándares que exigimos para nuestra propia comunidad.</p>
+                </div>
+                <div class="glass-card p-7" data-reveal>
+                    <i class="ph-fill ph-chart-line-up text-nlt-accent text-2xl mb-4"></i>
+                    <h3 class="font-bold text-white mb-2">Ecosistema integrado</h3>
+                    <p class="text-sm text-gray-400">Indicator, Academy, Community y Copy System, todo conectado a la misma cuenta NLT.</p>
+                </div>
+                <div class="glass-card p-7" data-reveal>
+                    <i class="ph-fill ph-rocket-launch text-nlt-accent text-2xl mb-4"></i>
+                    <h3 class="font-bold text-white mb-2">Preparado para crecer</h3>
+                    <p class="text-sm text-gray-400">Hoy es referral. Mañana, cuando esté autorizado, vas a poder ver y operar tu cuenta directo desde NLT.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Broker Partners -->
+        <section id="broker-partners">
+            <div class="flex items-end justify-between mb-8" data-reveal>
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">Broker Partners</h2>
+                    <p class="text-gray-500 text-sm">Brokers disponibles hoy y próximos partners del ecosistema.</p>
+                </div>
+            </div>
+            <div id="listaBrokers" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <p class="text-sm text-gray-500 animate-pulse col-span-full">Cargando brokers...</p>
+            </div>
+        </section>
+
+        <!-- Trading Benefits -->
+        <section>
+            <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Trading Benefits</h2>
+            </div>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div class="glass-card p-5 text-center" data-reveal><i class="ph-fill ph-globe text-nlt-accent text-xl mb-2"></i><p class="text-xs text-gray-400">Forex, CFDs, Indices y más</p></div>
+                <div class="glass-card p-5 text-center" data-reveal><i class="ph-fill ph-devices text-nlt-accent text-xl mb-2"></i><p class="text-xs text-gray-400">Plataformas MT4/MT5</p></div>
+                <div class="glass-card p-5 text-center" data-reveal><i class="ph-fill ph-lightning text-nlt-accent text-xl mb-2"></i><p class="text-xs text-gray-400">Ejecución de mercado</p></div>
+                <div class="glass-card p-5 text-center" data-reveal><i class="ph-fill ph-headset text-nlt-accent text-xl mb-2"></i><p class="text-xs text-gray-400">Soporte del broker directo</p></div>
+            </div>
+        </section>
+
+        <!-- NLT Ecosystem -->
+        <section>
+            <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">NLT Ecosystem</h2>
+                <p class="text-gray-400 text-sm md:text-base">Broker es un módulo más del ecosistema -- no reemplaza nada de lo que ya usás.</p>
+            </div>
+            <div id="ecosistemaStrip" class="flex gap-3 overflow-x-auto pb-2" data-reveal></div>
+        </section>
+
+        <!-- How It Works -->
+        <section>
+            <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">How It Works</h2>
+            </div>
+            <div class="space-y-4 max-w-2xl mx-auto">
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">1</span><p class="text-sm text-gray-300">Create your account</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">2</span><p class="text-sm text-gray-300">Complete broker verification</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">3</span><p class="text-sm text-gray-300">Fund your account directly with the broker</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">4</span><p class="text-sm text-gray-300">Trade</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">5</span><p class="text-sm text-gray-300">Connect your trading experience with NLT when supported</p></div>
+            </div>
+        </section>
+
+        <!-- Account Dashboard Preview -->
+        <section>
+            <div class="text-center max-w-2xl mx-auto mb-10" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Account Dashboard Preview</h2>
+                <p class="text-gray-400 text-sm md:text-base">Así se va a ver tu cuenta conectada dentro de NLT -- hoy, con datos de demostración.</p>
+            </div>
+            <div class="glass-card p-8 max-w-3xl mx-auto text-center" data-reveal>
+                <span class="inline-block px-3 py-1 rounded-full bg-nlt-warn/10 border border-nlt-warn/20 text-nlt-warn text-[10px] font-bold uppercase tracking-widest mb-4">Demo Data</span>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Balance</p><p class="text-lg font-bold text-white">$10,000</p></div>
+                    <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Equity</p><p class="text-lg font-bold text-white">$10,248</p></div>
+                    <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Floating P&L</p><p class="text-lg font-bold text-nlt-success">+$248</p></div>
+                    <div><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Open Positions</p><p class="text-lg font-bold text-white">2</p></div>
+                </div>
+                <a href="broker-dashboard.html" class="inline-block px-6 py-3 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent font-semibold text-sm hover:bg-nlt-accent/20 transition-all">Ver Dashboard Demo</a>
+            </div>
+        </section>
+
+        <!-- Risk Disclosure -->
+        <div class="flex items-start gap-3 p-5 rounded-xl bg-nlt-danger/10 border border-nlt-danger/20 max-w-3xl mx-auto" data-reveal>
+            <i class="ph-fill ph-warning text-nlt-danger text-xl mt-0.5 shrink-0"></i>
+            <p class="text-sm text-nlt-danger m-0">Trading Forex, CFDs and other leveraged products involves significant risk of loss and may not be suitable for all investors. Past performance is not indicative of future results.</p>
+        </div>
+
+        <!-- Partner Disclosure -->
+        <div class="flex items-start gap-3 p-5 rounded-xl bg-nlt-warn/10 border border-nlt-warn/20 max-w-3xl mx-auto" data-reveal>
+            <i class="ph-fill ph-warning text-nlt-warn text-xl mt-0.5 shrink-0"></i>
+            <p class="text-sm text-nlt-warn m-0">NLT is not a regulated broker and does not provide investment advice. Broker partners operate under their own licenses and terms.</p>
+        </div>
+
+        <!-- FAQ -->
+        <section class="max-w-3xl mx-auto">
+            <div class="text-center mb-10" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">FAQ</h2>
+            </div>
+            <div class="space-y-3">
+                <details class="faq-item glass-card p-5" data-reveal>
+                    <summary class="flex items-center justify-between cursor-pointer font-semibold text-sm text-white"><span>¿NLT ejecuta mis operaciones?</span><i class="ph-bold ph-caret-down faq-chevron transition-transform"></i></summary>
+                    <p class="text-sm text-gray-400 mt-3">No. Las operaciones las ejecuta el broker partner directamente. NLT no custodia fondos ni ejecuta trades por vos.</p>
+                </details>
+                <details class="faq-item glass-card p-5" data-reveal>
+                    <summary class="flex items-center justify-between cursor-pointer font-semibold text-sm text-white"><span>¿Dónde deposito mi dinero?</span><i class="ph-bold ph-caret-down faq-chevron transition-transform"></i></summary>
+                    <p class="text-sm text-gray-400 mt-3">Directo con el broker, nunca a través de NLT. NLT no recibe ni maneja tus depósitos o retiros.</p>
+                </details>
+                <details class="faq-item glass-card p-5" data-reveal>
+                    <summary class="flex items-center justify-between cursor-pointer font-semibold text-sm text-white"><span>¿Cuándo voy a poder operar directo desde NLT?</span><i class="ph-bold ph-caret-down faq-chevron transition-transform"></i></summary>
+                    <p class="text-sm text-gray-400 mt-3">Cuando el broker partner autorice y entregue una integración técnica oficial (Embedded). Hasta entonces, esta sección es Partner + Referral + Analytics.</p>
+                </details>
+            </div>
+        </section>
+
+        <!-- CTA final -->
+        <section class="glass-card p-10 md:p-14 text-center" data-reveal>
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-4">Ready to start?</h2>
+            <p class="text-gray-400 text-sm mb-8 max-w-lg mx-auto">Abrí tu cuenta con nuestro broker partner y sumate al ecosistema NLT.</p>
+            <button id="btn-open-account-2" class="glow-button px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Open Trading Account</button>
+        </section>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <div class="flex items-center gap-4">
+                <a href="aviso-riesgo.html" class="hover:text-gray-300 transition-colors">Aviso de Riesgo</a>
+                <a href="terminos.html" class="hover:text-gray-300 transition-colors">Términos</a>
+                <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260814"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function estadoBadge(status) {
+            const map = {
+                ACTIVE: { texto: 'Partner', clase: 'bg-nlt-success/10 text-nlt-success border-nlt-success/20' },
+                COMING_SOON: { texto: 'Coming Soon', clase: 'bg-gray-500/10 text-gray-400 border-gray-500/20' },
+                PAUSED: { texto: 'Paused', clase: 'bg-nlt-warn/10 text-nlt-warn border-nlt-warn/20' },
+                MAINTENANCE: { texto: 'Maintenance', clase: 'bg-nlt-warn/10 text-nlt-warn border-nlt-warn/20' },
+            };
+            const info = map[status] || map.COMING_SOON;
+            return `<span class="px-2.5 py-1 rounded-md ${info.clase} text-[10px] font-bold uppercase tracking-widest border">${info.texto}</span>`;
+        }
+
+        function tarjetaBroker(b) {
+            const disponible = b.status === 'ACTIVE';
+            return `
+                <div class="broker-card glass-card p-7 flex flex-col" data-reveal>
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            ${b.logo_url ? `<img src="${esc(b.logo_url)}" alt="${esc(b.nombre)}" class="w-10 h-10 rounded-lg object-cover">` : `<div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center"><i class="ph-fill ph-buildings text-gray-400"></i></div>`}
+                            <h3 class="font-bold text-white text-lg">${esc(b.nombre)}</h3>
+                        </div>
+                        ${estadoBadge(b.status)}
+                    </div>
+                    ${b.descripcion ? `<p class="text-xs text-gray-500 mb-4">${esc(b.descripcion)}</p>` : ''}
+                    <div class="flex flex-wrap gap-1.5 mb-5">
+                        ${(b.markets || []).map(m => `<span class="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400">${esc(m)}</span>`).join('')}
+                    </div>
+                    <div class="text-xs text-gray-500 space-y-1 mb-6">
+                        ${b.platform ? `<p><span class="text-gray-600">Platform:</span> ${esc(b.platform)}</p>` : ''}
+                        ${b.regulation ? `<p><span class="text-gray-600">Regulation:</span> ${esc(b.regulation)}</p>` : ''}
+                    </div>
+                    <button data-codigo="${esc(b.codigo)}" class="btn-abrir-cuenta mt-auto px-5 py-2.5 rounded-xl text-sm font-semibold transition-all ${disponible ? 'bg-nlt-accent text-white hover:bg-blue-500 cursor-pointer' : 'bg-white/5 text-gray-500 cursor-not-allowed'}" ${disponible ? '' : 'disabled'}>
+                        ${disponible ? 'Open Trading Account' : 'Coming Soon'}
+                    </button>
+                </div>
+            `;
+        }
+
+        async function cargarBrokers() {
+            const cont = document.getElementById('listaBrokers');
+            try {
+                const brokers = await NLT_API.brokerListarProviders();
+                cont.innerHTML = brokers.map(tarjetaBroker).join('') || '<p class="text-sm text-gray-500 col-span-full">Todavía no hay brokers partner configurados.</p>';
+                cont.querySelectorAll('.btn-abrir-cuenta:not([disabled])').forEach((btn) => {
+                    btn.addEventListener('click', () => abrirCuenta(btn.getAttribute('data-codigo')));
+                });
+            } catch (err) {
+                cont.innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error cargando brokers: ${err.message}</p>`;
+            }
+        }
+
+        async function abrirCuenta(codigo) {
+            try {
+                const params = {};
+                const qp = new URLSearchParams(window.location.search);
+                ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content', 'sub1', 'sub2', 'sub3', 'sub4', 'sub5', 'sub6', 'sub7', 'sub8'].forEach((campo) => {
+                    const valor = qp.get(campo);
+                    if (valor) params[campo] = valor;
+                });
+                const { url } = await NLT_API.brokerReferralLink(codigo || 'eightcap', params);
+                window.location.href = url;
+            } catch (err) {
+                alert('No se pudo abrir el link de registro: ' + err.message);
+            }
+        }
+
+        document.getElementById('btn-open-account').addEventListener('click', () => abrirCuenta('eightcap'));
+        document.getElementById('btn-open-account-2').addEventListener('click', () => abrirCuenta('eightcap'));
+
+        function renderEcosistemaStrip() {
+            document.getElementById('ecosistemaStrip').innerHTML = NLT.renderModuleStrip('broker');
+        }
+
+        cargarBrokers();
+        renderEcosistemaStrip();
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+
+        function _setupRevealBroker() {
+            if (!window.gsap || !window.ScrollTrigger) return;
+            gsap.registerPlugin(ScrollTrigger);
+            ScrollTrigger.config({ ignoreMobileResize: true });
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                gsap.set(el, { y: 24 });
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _setupRevealBroker);
+        } else {
+            _setupRevealBroker();
+        }
+    </script>
+</body>
+</html>

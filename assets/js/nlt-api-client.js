@@ -535,6 +535,26 @@
         adminGlobalGuardarPermisos: (userId, permissions) => request(`/admin/global/admins/${userId}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) }),
         adminGlobalRevocar: (userId, hard) => request(`/admin/global/admins/${userId}${hard ? '?hard=true' : ''}`, { method: 'DELETE' }),
         adminGlobalVerificar: (userId, verified) => request(`/admin/global/users/${userId}/verified`, { method: 'PUT', body: JSON.stringify({ verified }) }),
+
+        // --- NLT Broker (Broker Partner + Referral + Analytics) ---
+        brokerListarProviders: () => requestPublico('/broker/providers'),
+        brokerReferralLink: (codigo, params = {}) => requestConSesionOpcional(`/broker/providers/${codigo}/referral-link?${new URLSearchParams(params).toString()}`),
+        brokerMisCuentas: () => request('/broker/me/accounts'),
+        brokerDashboardDemo: () => request('/broker/me/dashboard-demo'),
+
+        adminBrokerListarProviders: () => request('/admin/broker/providers'),
+        adminBrokerCrearProvider: (datos) => request('/admin/broker/providers', { method: 'POST', body: JSON.stringify(datos) }),
+        adminBrokerActualizarProvider: (id, datos) => request(`/admin/broker/providers/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        adminBrokerListarCampaigns: (providerId) => request(`/admin/broker/providers/${providerId}/campaigns`),
+        adminBrokerCrearCampaign: (providerId, datos) => request(`/admin/broker/providers/${providerId}/campaigns`, { method: 'POST', body: JSON.stringify(datos) }),
+        adminBrokerActualizarCampaign: (campaignId, datos) => request(`/admin/broker/campaigns/${campaignId}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        adminBrokerRegistrations: (brokerId) => request(`/admin/broker/registrations${brokerId ? '?broker_id=' + brokerId : ''}`),
+        adminBrokerFtds: (brokerId) => request(`/admin/broker/ftds${brokerId ? '?broker_id=' + brokerId : ''}`),
+        adminBrokerCommissions: (brokerId) => request(`/admin/broker/commissions${brokerId ? '?broker_id=' + brokerId : ''}`),
+        adminBrokerTransactions: (brokerId) => request(`/admin/broker/transactions${brokerId ? '?broker_id=' + brokerId : ''}`),
+        adminBrokerWebhookEvents: () => request('/admin/broker/webhook-events'),
+        adminBrokerAnalytics: (brokerId) => request(`/admin/broker/analytics${brokerId ? '?broker_id=' + brokerId : ''}`),
+        adminBrokerSimularEvento: (eventType) => request(`/admin/broker/simulate-event?event_type=${encodeURIComponent(eventType)}`, { method: 'POST' }),
     };
 
     window.NLT_API = NLT_API;

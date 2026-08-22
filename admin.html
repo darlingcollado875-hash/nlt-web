@@ -85,6 +85,7 @@
             <button data-seccion="community" class="tab-admin"><i class="ph-fill ph-chats-circle mr-1.5"></i>Community</button>
             <button data-seccion="futures" class="tab-admin"><i class="ph-fill ph-trend-up mr-1.5"></i>Futures</button>
             <button data-seccion="afiliados" class="tab-admin"><i class="ph-fill ph-share-network mr-1.5"></i>Affiliates</button>
+            <button data-seccion="broker" class="tab-admin"><i class="ph-fill ph-briefcase mr-1.5"></i>Broker</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
@@ -1027,6 +1028,89 @@
                         </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- NLT BROKER (Broker Partner + Referral + Analytics) -->
+            <div id="seccion-broker" class="seccion-admin hidden space-y-6">
+                <nav class="flex items-center gap-2 flex-wrap">
+                    <button data-broker-tipo="providers" class="broker-subtab tab-admin activo">Providers</button>
+                    <button data-broker-tipo="analytics" class="broker-subtab tab-admin">Analytics</button>
+                    <button data-broker-tipo="activity" class="broker-subtab tab-admin">Activity</button>
+                </nav>
+
+                <div id="brokerTipo-providers" class="broker-tipo space-y-6">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-bold">Broker Providers</h2>
+                        <button id="btn-nuevo-broker-provider" class="px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer"><i class="ph-bold ph-plus"></i> Nuevo broker</button>
+                    </div>
+                    <div id="formNuevoBrokerProvider" class="glass-card p-6 hidden">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <input id="bpCodigo" placeholder="código (ej: eightcap)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="bpNombre" placeholder="Nombre" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="bpPlatform" placeholder="Platform (MT4/MT5)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <select id="bpStatus" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                                <option value="COMING_SOON">COMING_SOON</option>
+                                <option value="ACTIVE">ACTIVE</option>
+                                <option value="PAUSED">PAUSED</option>
+                                <option value="MAINTENANCE">MAINTENANCE</option>
+                            </select>
+                            <input id="bpDescripcion" placeholder="Descripción" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm md:col-span-4">
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button id="btn-guardar-broker-provider" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
+                            <button id="btn-cancelar-broker-provider" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Cancelar</button>
+                        </div>
+                        <p id="brokerProviderMsg" class="mt-2 text-xs hidden"></p>
+                    </div>
+                    <div id="listaBrokerProviders" class="space-y-3"><p class="text-sm text-gray-500">Cargando...</p></div>
+                </div>
+
+                <div id="brokerTipo-analytics" class="broker-tipo space-y-6 hidden">
+                    <h2 class="text-lg font-bold">Broker Analytics</h2>
+                    <div id="brokerAnalyticsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4"><p class="text-sm text-gray-500 col-span-full">Cargando...</p></div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="glass-card p-5">
+                            <h3 class="text-sm font-bold text-white mb-3">Por campaña (UTM Campaign)</h3>
+                            <div id="brokerPorCampana" class="space-y-2 text-sm text-gray-400"></div>
+                        </div>
+                        <div class="glass-card p-5">
+                            <h3 class="text-sm font-bold text-white mb-3">Por fuente (UTM Source)</h3>
+                            <div id="brokerPorUtmSource" class="space-y-2 text-sm text-gray-400"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="brokerTipo-activity" class="broker-tipo space-y-6 hidden">
+                    <div class="glass-card p-5 flex items-center justify-between flex-wrap gap-3">
+                        <div>
+                            <h3 class="text-sm font-bold text-white mb-1">Simulate Eightcap Event</h3>
+                            <p class="text-xs text-gray-500">Solo development -- deshabilitado si EIGHTCAP_SIMULATOR_ENABLED=false en el backend.</p>
+                        </div>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <select id="brokerSimEventType" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs">
+                                <option value="registration_created">Registration Created</option>
+                                <option value="ftd_created">FTD Created</option>
+                                <option value="commission_created">Commission Created</option>
+                                <option value="commission_updated">Commission Updated</option>
+                                <option value="transaction_created">Transaction Created</option>
+                            </select>
+                            <button id="btn-broker-simular" class="px-3 py-2 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer">Simulate</button>
+                        </div>
+                    </div>
+                    <p id="brokerSimMsg" class="text-xs hidden"></p>
+
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Registrations</h3>
+                    <div id="listaBrokerRegistrations" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">FTDs</h3>
+                    <div id="listaBrokerFtds" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Commissions</h3>
+                    <div id="listaBrokerCommissions" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Webhook Events (auditoría)</h3>
+                    <div id="listaBrokerWebhookEvents" class="glass-card p-4 font-mono text-xs text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
                 </div>
             </div>
 
@@ -3387,6 +3471,146 @@
             await cargarAfilPayouts();
         }
 
+        // --- NLT Broker (admin) ---
+
+        document.querySelectorAll('.broker-subtab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.broker-subtab').forEach(b => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                const tipo = btn.getAttribute('data-broker-tipo');
+                document.querySelectorAll('.broker-tipo').forEach(p => p.classList.toggle('hidden', p.id !== `brokerTipo-${tipo}`));
+            });
+        });
+
+        let brokerProvidersCache = [];
+
+        function brokerProviderCardHTML(b) {
+            return `
+                <div class="glass-item p-4 flex items-center justify-between flex-wrap gap-3">
+                    <div>
+                        <p class="text-sm font-semibold text-white">${esc(b.nombre)} <span class="text-xs text-gray-500">(${esc(b.codigo)})</span></p>
+                        <p class="text-xs text-gray-500">${esc(b.descripcion || '')}</p>
+                        <p class="text-[10px] text-gray-600 mt-1">Platform: ${esc(b.platform || '-')} · Status: ${esc(b.status)} · Connection: ${b.connection_enabled ? 'ON' : 'OFF'} · Trading: ${b.trading_enabled ? 'ON' : 'OFF'}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select data-broker-id="${b.id}" class="broker-status-select bg-black/20 border border-white/5 rounded-lg px-2 py-1.5 text-xs">
+                            <option value="COMING_SOON" ${b.status === 'COMING_SOON' ? 'selected' : ''}>COMING_SOON</option>
+                            <option value="ACTIVE" ${b.status === 'ACTIVE' ? 'selected' : ''}>ACTIVE</option>
+                            <option value="PAUSED" ${b.status === 'PAUSED' ? 'selected' : ''}>PAUSED</option>
+                            <option value="MAINTENANCE" ${b.status === 'MAINTENANCE' ? 'selected' : ''}>MAINTENANCE</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function cargarBrokerProviders() {
+            const cont = document.getElementById('listaBrokerProviders');
+            try {
+                brokerProvidersCache = await NLT_API.adminBrokerListarProviders();
+                cont.innerHTML = brokerProvidersCache.map(brokerProviderCardHTML).join('') || '<p class="text-sm text-gray-500">Sin brokers configurados.</p>';
+                cont.querySelectorAll('.broker-status-select').forEach((sel) => {
+                    sel.addEventListener('change', async () => {
+                        try {
+                            await NLT_API.adminBrokerActualizarProvider(sel.getAttribute('data-broker-id'), { status: sel.value });
+                            await cargarBrokerProviders();
+                        } catch (err) {
+                            alert('Error actualizando status: ' + err.message);
+                        }
+                    });
+                });
+            } catch (err) {
+                cont.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.getElementById('btn-nuevo-broker-provider').addEventListener('click', () => {
+            document.getElementById('formNuevoBrokerProvider').classList.toggle('hidden');
+        });
+        document.getElementById('btn-cancelar-broker-provider').addEventListener('click', () => {
+            document.getElementById('formNuevoBrokerProvider').classList.add('hidden');
+        });
+        document.getElementById('btn-guardar-broker-provider').addEventListener('click', async () => {
+            const msg = document.getElementById('brokerProviderMsg');
+            try {
+                await NLT_API.adminBrokerCrearProvider({
+                    codigo: document.getElementById('bpCodigo').value.trim(),
+                    nombre: document.getElementById('bpNombre').value.trim(),
+                    platform: document.getElementById('bpPlatform').value.trim() || null,
+                    status: document.getElementById('bpStatus').value,
+                    descripcion: document.getElementById('bpDescripcion').value.trim() || null,
+                });
+                msg.className = 'mt-2 text-xs text-nlt-success';
+                msg.textContent = '¡Guardado!';
+                msg.classList.remove('hidden');
+                document.getElementById('formNuevoBrokerProvider').classList.add('hidden');
+                await cargarBrokerProviders();
+            } catch (err) {
+                msg.className = 'mt-2 text-xs text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+                msg.classList.remove('hidden');
+            }
+        });
+
+        async function cargarBrokerAnalytics() {
+            const grid = document.getElementById('brokerAnalyticsGrid');
+            try {
+                const a = await NLT_API.adminBrokerAnalytics();
+                const tiles = [
+                    ['Clicks', a.clicks], ['Registrations', a.registrations], ['FTDs', a.ftds], ['FTD Conv. Rate', a.ftd_conversion_rate + '%'],
+                    ['Active Accounts', a.active_accounts], ['Trading Volume', a.trading_volume], ['Transactions', a.transactions],
+                    ['Gross Commission', '$' + a.gross_commission.toFixed(2)], ['Pending Commission', '$' + a.pending_commission.toFixed(2)], ['Paid Commission', '$' + a.paid_commission.toFixed(2)],
+                ];
+                grid.innerHTML = tiles.map(([label, valor]) => `
+                    <div class="glass-card p-4">
+                        <p class="text-[10px] uppercase tracking-wider text-gray-500 mb-1">${label}</p>
+                        <p class="text-lg font-bold text-white">${valor}</p>
+                    </div>
+                `).join('');
+                document.getElementById('brokerPorCampana').innerHTML = (a.por_campana || []).map(c => `<p class="flex justify-between"><span>${esc(c.campana)}</span><span class="font-semibold text-white">${c.registros}</span></p>`).join('') || '<p class="text-gray-600">Sin datos.</p>';
+                document.getElementById('brokerPorUtmSource').innerHTML = (a.por_utm_source || []).map(c => `<p class="flex justify-between"><span>${esc(c.utm_source)}</span><span class="font-semibold text-white">${c.registros}</span></p>`).join('') || '<p class="text-gray-600">Sin datos.</p>';
+            } catch (err) {
+                grid.innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        async function cargarBrokerActivity() {
+            try {
+                const [registrations, ftds, commissions, webhookEvents] = await Promise.all([
+                    NLT_API.adminBrokerRegistrations(), NLT_API.adminBrokerFtds(), NLT_API.adminBrokerCommissions(), NLT_API.adminBrokerWebhookEvents(),
+                ]);
+                document.getElementById('listaBrokerRegistrations').innerHTML = registrations.map(r => `<p>${esc(r.external_id)} · client_id=${esc(r.client_id || '-')} · utm_source=${esc(r.utm_source || '-')} · ${esc(r.creado_en)}</p>`).join('') || '<p class="text-gray-600">Sin registros todavía.</p>';
+                document.getElementById('listaBrokerFtds').innerHTML = ftds.map(f => `<p>${esc(f.external_id)} · client_id=${esc(f.client_id || '-')} · $${f.amount ?? '-'} ${esc(f.currency || '')}</p>`).join('') || '<p class="text-gray-600">Sin FTDs todavía.</p>';
+                document.getElementById('listaBrokerCommissions').innerHTML = commissions.map(c => `<p>order_id=${esc(c.order_id || c.external_id)} · comisión=$${c.commission_amount ?? '-'} · monto orden=$${c.amount ?? '-'} · campaña=${esc(c.campaign_name || '-')} · status=${esc(c.status || '-')}</p>`).join('') || '<p class="text-gray-600">Sin comisiones todavía.</p>';
+                document.getElementById('listaBrokerWebhookEvents').innerHTML = webhookEvents.map(w => `<p>[${esc(w.recibido_en)}] ${esc(w.event_type || '?')} event_id=${esc(w.event_id)} procesado=${w.procesado}</p>`).join('') || '<p class="text-gray-600">Sin eventos todavía.</p>';
+            } catch (err) {
+                document.getElementById('listaBrokerWebhookEvents').innerHTML = `<p class="text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.getElementById('btn-broker-simular').addEventListener('click', async () => {
+            const msg = document.getElementById('brokerSimMsg');
+            const tipo = document.getElementById('brokerSimEventType').value;
+            try {
+                await NLT_API.adminBrokerSimularEvento(tipo);
+                msg.className = 'text-xs text-nlt-success';
+                msg.textContent = `Evento ${tipo} simulado correctamente.`;
+                msg.classList.remove('hidden');
+                await cargarBrokerActivity();
+                await cargarBrokerAnalytics();
+            } catch (err) {
+                msg.className = 'text-xs text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+                msg.classList.remove('hidden');
+            }
+        });
+
+        async function cargarBrokerTodo() {
+            await cargarBrokerProviders();
+            await cargarBrokerAnalytics();
+            await cargarBrokerActivity();
+        }
+
         // --- Administración Global (exclusivo Global Admin) ---
         let agAdminsCache = [];
         let agUsuarioSeleccionado = null;
@@ -3553,6 +3777,7 @@
             community: [cargarCommunityTodo],
             futures: [cargarFuturesTodo],
             afiliados: [cargarAfiliadosTodo],
+            broker: [cargarBrokerTodo],
         };
 
         let _esGlobalAdmin = false;

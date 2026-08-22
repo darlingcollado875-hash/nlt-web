@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Broker | Dashboard</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        @media (max-width: 767px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table tr:last-child { border-bottom: none; }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 3px; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Broker</h1>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+
+            <!-- DEMO DATA banner -->
+            <div class="glass-card p-4 flex items-center gap-3 border-nlt-warn/30">
+                <i class="ph-fill ph-flask text-nlt-warn text-xl"></i>
+                <p class="text-sm text-nlt-warn"><strong>DEMO DATA</strong> -- estos datos son de demostración, ninguna cuenta ni operación acá es real todavía. Cuando exista una integración real (Eightcap Embedded), este panel va a mostrar tu cuenta conectada de verdad.</p>
+            </div>
+
+            <!-- Connect account (deshabilitado) -->
+            <div class="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-sm font-bold text-white mb-1">Connect Trading Account</h2>
+                    <p class="text-xs text-gray-500">Connect your trading account to NLT when supported.</p>
+                </div>
+                <button disabled class="px-5 py-2.5 rounded-xl bg-white/5 text-gray-500 text-sm font-semibold cursor-not-allowed shrink-0">Coming Soon</button>
+            </div>
+
+            <!-- Resumen de cuenta -->
+            <div id="seccion-resumen">
+                <h2 class="text-lg font-bold mb-4">Account Status</h2>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Balance</p><p id="statBalance" class="text-xl font-bold text-white">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Equity</p><p id="statEquity" class="text-xl font-bold text-white">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Used Margin</p><p id="statMargenUsado" class="text-xl font-bold text-white">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Available Margin</p><p id="statMargenDisponible" class="text-xl font-bold text-white">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Floating P&L</p><p id="statFloatingPnl" class="text-xl font-bold text-nlt-success">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Daily P&L</p><p id="statDailyPnl" class="text-xl font-bold text-nlt-success">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Volume</p><p id="statVolumen" class="text-xl font-bold text-white">--</p></div>
+                    <div class="glass-card p-5"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Account #</p><p id="statCuentaId" class="text-xl font-bold text-white">--</p></div>
+                </div>
+            </div>
+
+            <!-- Terminal preview -->
+            <div id="seccion-terminal">
+                <h2 class="text-lg font-bold mb-4">Terminal</h2>
+                <div class="glass-card p-6">
+                    <p class="text-xs text-gray-500 mb-4">Vista previa de la futura terminal de trading -- ninguna operación se ejecuta todavía.</p>
+                    <div class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end mb-4">
+                        <select class="bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm"><option>EURUSD</option><option>XAUUSD</option><option>GBPUSD</option></select>
+                        <div class="glass-item px-3 py-3 text-center"><p class="text-[10px] text-gray-500 uppercase">Bid</p><p class="text-sm font-bold text-white">1.0861</p></div>
+                        <div class="glass-item px-3 py-3 text-center"><p class="text-[10px] text-gray-500 uppercase">Ask</p><p class="text-sm font-bold text-white">1.0863</p></div>
+                        <div class="glass-item px-3 py-3 text-center"><p class="text-[10px] text-gray-500 uppercase">Spread</p><p class="text-sm font-bold text-white">0.2</p></div>
+                        <input type="number" placeholder="Volumen" value="0.10" step="0.01" class="bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm">
+                        <select class="bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm"><option>Market</option><option>Limit</option></select>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                        <input type="number" placeholder="Stop Loss" class="bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm">
+                        <input type="number" placeholder="Take Profit" class="bg-black/20 border border-white/5 rounded-xl px-3 py-3 text-sm">
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <button class="btn-trading-coming-soon py-3 rounded-xl bg-nlt-success/20 text-nlt-success font-semibold text-sm cursor-not-allowed">Buy</button>
+                        <button class="btn-trading-coming-soon py-3 rounded-xl bg-nlt-danger/20 text-nlt-danger font-semibold text-sm cursor-not-allowed">Sell</button>
+                    </div>
+                    <p id="tradingComingSoonMsg" class="hidden mt-3 text-xs text-nlt-warn bg-nlt-warn/10 border border-nlt-warn/20 rounded-xl p-3 flex items-start gap-2"><i class="ph-fill ph-warning mt-0.5"></i><span>Trading integration coming soon.</span></p>
+                </div>
+            </div>
+
+            <!-- Posiciones -->
+            <div id="seccion-posiciones">
+                <h2 class="text-lg font-bold mb-4">Open Positions</h2>
+                <div class="glass-card overflow-x-auto">
+                    <table class="responsive-table w-full text-left text-sm md:min-w-[700px]">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr><th class="px-5 py-3 font-semibold">Instrumento</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Volumen</th><th class="px-5 py-3 font-semibold">Entrada</th><th class="px-5 py-3 font-semibold">Actual</th><th class="px-5 py-3 font-semibold">P&L</th></tr>
+                        </thead>
+                        <tbody id="tablaPosiciones" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="6" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Órdenes pendientes -->
+            <div id="seccion-ordenes">
+                <h2 class="text-lg font-bold mb-4">Pending Orders</h2>
+                <div class="glass-card p-4" id="listaOrdenes"><p class="text-sm text-gray-500">Sin órdenes pendientes.</p></div>
+            </div>
+
+            <!-- Historial -->
+            <div id="seccion-historial">
+                <h2 class="text-lg font-bold mb-4">Trade History</h2>
+                <div class="glass-card overflow-x-auto">
+                    <table class="responsive-table w-full text-left text-sm md:min-w-[700px]">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr><th class="px-5 py-3 font-semibold">Instrumento</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Volumen</th><th class="px-5 py-3 font-semibold">Entrada</th><th class="px-5 py-3 font-semibold">Salida</th><th class="px-5 py-3 font-semibold">P&L</th></tr>
+                        </thead>
+                        <tbody id="tablaHistorial" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="6" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Depósitos / Retiros -->
+            <div id="seccion-transacciones">
+                <h2 class="text-lg font-bold mb-4">Deposits / Withdrawals</h2>
+                <div class="glass-card p-4" id="listaTransacciones"><p class="text-sm text-gray-500">Cargando...</p></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260814"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function money(n) {
+            return n == null ? '--' : '$' + Number(n).toLocaleString('es', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        async function cargarDashboard() {
+            try {
+                const data = await NLT_API.brokerDashboardDemo();
+                const c = data.account || {};
+                document.getElementById('statBalance').textContent = money(c.balance);
+                document.getElementById('statEquity').textContent = money(c.equity);
+                document.getElementById('statMargenUsado').textContent = money(c.margen_usado);
+                document.getElementById('statMargenDisponible').textContent = money(c.margen_disponible);
+                document.getElementById('statFloatingPnl').textContent = (c.floating_pnl >= 0 ? '+' : '') + money(c.floating_pnl);
+                document.getElementById('statDailyPnl').textContent = (c.daily_pnl >= 0 ? '+' : '') + money(c.daily_pnl);
+                document.getElementById('statVolumen').textContent = c.volumen ?? '--';
+                document.getElementById('statCuentaId').textContent = c.external_account_id || '--';
+
+                const posiciones = data.positions || [];
+                document.getElementById('tablaPosiciones').innerHTML = posiciones.map((p) => `
+                    <tr>
+                        <td data-label="Instrumento" class="px-5 py-3 font-semibold text-white">${esc(p.instrumento)}</td>
+                        <td data-label="Dirección" class="px-5 py-3">${esc(p.direccion)}</td>
+                        <td data-label="Volumen" class="px-5 py-3">${p.volumen}</td>
+                        <td data-label="Entrada" class="px-5 py-3">${p.precio_entrada}</td>
+                        <td data-label="Actual" class="px-5 py-3">${p.precio_actual}</td>
+                        <td data-label="P&L" class="px-5 py-3 ${p.pnl >= 0 ? 'text-nlt-success' : 'text-nlt-danger'}">${p.pnl >= 0 ? '+' : ''}${money(p.pnl)}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" class="px-5 py-3 text-gray-500">Sin posiciones abiertas.</td></tr>';
+
+                const ordenes = data.orders || [];
+                document.getElementById('listaOrdenes').innerHTML = ordenes.length
+                    ? ordenes.map((o) => `<p class="text-sm text-gray-300">${esc(JSON.stringify(o))}</p>`).join('')
+                    : '<p class="text-sm text-gray-500">Sin órdenes pendientes.</p>';
+
+                const historial = data.history || [];
+                document.getElementById('tablaHistorial').innerHTML = historial.map((h) => `
+                    <tr>
+                        <td data-label="Instrumento" class="px-5 py-3 font-semibold text-white">${esc(h.instrumento)}</td>
+                        <td data-label="Dirección" class="px-5 py-3">${esc(h.direccion)}</td>
+                        <td data-label="Volumen" class="px-5 py-3">${h.volumen}</td>
+                        <td data-label="Entrada" class="px-5 py-3">${h.precio_entrada}</td>
+                        <td data-label="Salida" class="px-5 py-3">${h.precio_salida}</td>
+                        <td data-label="P&L" class="px-5 py-3 ${h.pnl >= 0 ? 'text-nlt-success' : 'text-nlt-danger'}">${h.pnl >= 0 ? '+' : ''}${money(h.pnl)}</td>
+                    </tr>
+                `).join('') || '<tr><td colspan="6" class="px-5 py-3 text-gray-500">Sin historial.</td></tr>';
+
+                const transacciones = data.transactions || [];
+                document.getElementById('listaTransacciones').innerHTML = transacciones.map((t) => `
+                    <div class="glass-item p-3 flex items-center justify-between">
+                        <span class="text-sm text-gray-300 capitalize">${esc(t.tipo)}</span>
+                        <span class="text-sm font-bold text-white">${money(t.monto)}</span>
+                        <span class="text-xs text-gray-500">${esc(t.estado)}</span>
+                    </div>
+                `).join('') || '<p class="text-sm text-gray-500">Sin movimientos.</p>';
+            } catch (err) {
+                document.getElementById('tablaPosiciones').innerHTML = `<tr><td colspan="6" class="px-5 py-3 text-nlt-danger">Error: ${esc(err.message)}</td></tr>`;
+            }
+        }
+
+        document.querySelectorAll('.btn-trading-coming-soon').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                document.getElementById('tradingComingSoonMsg').classList.remove('hidden');
+            });
+        });
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'broker-dashboard', seccion: 'broker' });
+            await cargarDashboard();
+        }
+
+        NLT.bindLogoutButton('btn-salir');
+        init();
+    </script>
+</body>
+</html>

@@ -459,6 +459,13 @@
             id: 'academy', nombre: 'NLT Academy', status: 'live', href: 'academy.html',
             icono: 'ph-graduation-cap', descripcion: 'Cursos y lecciones estructuradas para llevar tu operativa al siguiente nivel.',
         },
+        {
+            // La landing está viva (status: 'live') aunque el trading real
+            // todavía no lo esté -- ver TRADING_ENABLED en el backend. Hoy
+            // es Broker Partner + Referral (Eightcap), no un broker propio.
+            id: 'broker', nombre: 'NLT Broker', status: 'live', href: 'broker.html',
+            icono: 'ph-briefcase', descripcion: 'Descubrí brokers partner de confianza y conectá tu experiencia de trading con el ecosistema NLT.',
+        },
     ];
 
     // --- Sidebar global (Fase 1: navegación consistente en toda la plataforma) ---
@@ -497,6 +504,13 @@
     const NAV_FUTURES_AJUSTES = [
         { id: 'futuros-config', href: 'futuros-configuracion.html', icono: 'ph-gear-six', label: 'Configuración' },
     ];
+    // NLT Broker -- broker-dashboard.html es la única página autenticada
+    // hoy (no tiene su propia página de Ajustes todavía, reusa NAV_CFD_AJUSTES
+    // porque Suscripción/Configuración son globales, no específicos de CFD).
+    const NAV_BROKER = [
+        { id: 'broker-dashboard', href: 'broker-dashboard.html', icono: 'ph-squares-four', label: 'Dashboard' },
+        { id: 'broker-landing', href: 'broker.html', icono: 'ph-briefcase', label: 'Explorar Broker' },
+    ];
 
     function _navItemHTML(item, activo) {
         const on = item.id === activo;
@@ -513,12 +527,12 @@
     // se usa un solo link de vuelta a futuros.html.
     function renderSidebar({ activo, seccion = 'cfd' } = {}) {
         const esFuturesHome = seccion === 'futures' && FUTURES_HOME_IDS.includes(activo);
-        const nav = seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
+        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
         const ajustes = seccion === 'futures' ? NAV_FUTURES_AJUSTES : NAV_CFD_AJUSTES;
-        const grupoLabel = seccion === 'futures' ? 'Futuros' : null;
+        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'futures' ? 'Futuros' : null;
         const ajustesLabel = seccion === 'futures' ? 'Ajustes Futures' : 'Ajustes';
         const adminLabel = seccion === 'futures' ? 'Administración' : 'Panel Admin';
-        const adminHref = seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
+        const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
         const adminOn = activo === 'admin' || activo === 'futuros-admin';
         const adminCls = adminOn
             ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/10'
