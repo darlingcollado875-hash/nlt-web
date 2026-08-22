@@ -59,17 +59,17 @@
         <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT Broker</p>
         <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>Trade Smarter. All in One Ecosystem.</h1>
         <p class="text-gray-400 text-lg max-w-xl mx-auto mb-10" data-reveal>Access trusted broker partners and connect your trading experience with the NLT ecosystem.</p>
-        <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
-            <button id="btn-open-account" class="glow-button px-7 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Open Trading Account</button>
-            <button id="btn-open-challenge" class="px-7 py-3.5 rounded-2xl border border-nlt-accent/30 text-nlt-accent font-semibold text-sm hover:bg-nlt-accent/10 transition-all cursor-pointer">Trading Challenges</button>
-            <a href="#broker-partners" class="px-7 py-3.5 rounded-2xl border border-white/10 text-gray-300 font-semibold text-sm hover:bg-white/5 transition-all">Explore Broker</a>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4" data-reveal>
+            <button id="btn-open-account" class="glow-button w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Open Trading Account</button>
+            <button id="btn-open-challenge" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl border border-nlt-accent/30 text-nlt-accent font-semibold text-sm hover:bg-nlt-accent/10 transition-all cursor-pointer">Trading Challenges</button>
+            <a href="#broker-partners" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl border border-white/10 text-gray-300 font-semibold text-sm hover:bg-white/5 transition-all">Explore Broker</a>
         </div>
     </section>
 
-    <main class="relative z-10 max-w-6xl mx-auto px-6 pb-24 space-y-28">
+    <main class="relative z-10 max-w-6xl mx-auto px-6 pb-24 space-y-20 md:space-y-28">
 
         <!-- Partner disclosure (siempre visible bajo el hero) -->
-        <div class="glass-card p-5 flex items-start gap-3 max-w-3xl mx-auto -mt-16" data-reveal>
+        <div class="glass-card p-5 flex items-start gap-3 max-w-3xl mx-auto mt-6 sm:-mt-16" data-reveal>
             <i class="ph-fill ph-info text-nlt-accent text-xl mt-0.5 shrink-0"></i>
             <p id="partnerDisclosureText" class="text-xs text-gray-400 leading-relaxed">Brokerage services are provided by our independent broker partners. NLT does not hold client funds or execute trades unless expressly authorized under the applicable partnership structure.</p>
         </div>
@@ -305,7 +305,13 @@
         NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
 
         function _setupRevealBroker() {
-            if (!window.gsap || !window.ScrollTrigger) return;
+            if (!window.gsap || !window.ScrollTrigger) {
+                // GSAP no cargó (CDN lento/bloqueado) -- nunca dejar el
+                // contenido invisible por un [data-reveal]{opacity:0} sin
+                // animación que lo revierta. Se muestra estático.
+                document.querySelectorAll('[data-reveal]').forEach((el) => { el.style.opacity = '1'; });
+                return;
+            }
             gsap.registerPlugin(ScrollTrigger);
             ScrollTrigger.config({ ignoreMobileResize: true });
             document.querySelectorAll('[data-reveal]').forEach((el) => {
@@ -318,6 +324,15 @@
         } else {
             _setupRevealBroker();
         }
+        // Red de seguridad adicional: si por lo que sea la animación nunca
+        // corre (script bloqueado del todo, error de red), mostrar el
+        // contenido de todas formas después de 2.5s en vez de dejarlo
+        // invisible para siempre.
+        setTimeout(() => {
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                if (getComputedStyle(el).opacity === '0') el.style.opacity = '1';
+            });
+        }, 2500);
     </script>
 </body>
 </html>
