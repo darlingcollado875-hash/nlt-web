@@ -86,6 +86,7 @@
             <button data-seccion="futures" class="tab-admin"><i class="ph-fill ph-trend-up mr-1.5"></i>Futures</button>
             <button data-seccion="afiliados" class="tab-admin"><i class="ph-fill ph-share-network mr-1.5"></i>Affiliates</button>
             <button data-seccion="broker" class="tab-admin"><i class="ph-fill ph-briefcase mr-1.5"></i>Broker</button>
+            <button data-seccion="propfirm" class="tab-admin"><i class="ph-fill ph-trophy mr-1.5"></i>Prop Firm</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
@@ -596,11 +597,14 @@
 
                 <!-- CERTIFICADOS -->
                 <div id="acadPanelCertificados" class="space-y-4 hidden">
-                    <p class="text-xs text-gray-500">Los 3 certificados son fijos -- solo se edita título y descripción, nunca se crean ni se borran. "Vista previa" muestra el diseño real con tu nombre -- no emite ni guarda ningún certificado.</p>
+                    <p class="text-xs text-gray-500">Las 6 certificaciones son fijas (LEVEL 1-5 + MASTER) -- se puede editar título, descripción, activo/inactivo y qué módulos requiere (el MASTER siempre exige el curso completo). "Vista previa" muestra el diseño real con tu nombre -- no emite ni guarda ningún certificado.</p>
                     <div id="acadCertificadosBox" class="space-y-3">
                         <p class="text-xs text-gray-500 animate-pulse">Cargando...</p>
                     </div>
                     <div id="acadCertPreviewBox" class="hidden max-w-4xl mx-auto"></div>
+
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mt-6">Certificados emitidos</h3>
+                    <div id="acadCertEmitidosBox" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-80 overflow-y-auto">Cargando...</div>
                 </div>
 
                 <!-- ESTUDIANTES -->
@@ -1169,6 +1173,78 @@
                         <h3 class="text-sm font-bold text-white mb-3">Historial de sync runs</h3>
                         <div id="listaBrokerSyncRuns" class="font-mono text-xs text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
                     </div>
+                </div>
+            </div>
+
+            <!-- NLT PROP FIRM -->
+            <div id="seccion-propfirm" class="seccion-admin hidden space-y-6">
+                <nav class="flex items-center gap-2 flex-wrap">
+                    <button data-propfirm-tipo="status" class="propfirm-subtab tab-admin activo">Status</button>
+                    <button data-propfirm-tipo="configs" class="propfirm-subtab tab-admin">Challenge Configs</button>
+                    <button data-propfirm-tipo="activity" class="propfirm-subtab tab-admin">Activity</button>
+                    <button data-propfirm-tipo="providers" class="propfirm-subtab tab-admin">Trading Providers</button>
+                </nav>
+
+                <div id="propfirmTipo-status" class="propfirm-tipo space-y-6">
+                    <div class="glass-card p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-trophy text-nlt-accent"></i> Prop Firm Provider</h2>
+                            <p id="pfProviderEstado" class="text-lg font-bold text-gray-400">Cargando...</p>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                            <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Profiles</p><p id="pfCountProfiles" class="text-lg font-bold text-white">-</p></div>
+                            <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Orders</p><p id="pfCountOrders" class="text-lg font-bold text-white">-</p></div>
+                            <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Challenges</p><p id="pfCountChallenges" class="text-lg font-bold text-white">-</p></div>
+                            <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Accounts</p><p id="pfCountAccounts" class="text-lg font-bold text-white">-</p></div>
+                            <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Payouts</p><p id="pfCountPayouts" class="text-lg font-bold text-white">-</p></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="propfirmTipo-configs" class="propfirm-tipo space-y-6 hidden">
+                    <div class="flex items-center justify-between">
+                        <h2 class="text-lg font-bold">Challenge Configs</h2>
+                        <button id="btn-nuevo-pf-config" class="px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer"><i class="ph-bold ph-plus"></i> Nuevo challenge</button>
+                    </div>
+                    <div id="formNuevoPfConfig" class="glass-card p-6 hidden">
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <input id="pfCodigo" placeholder="código (ej: 10k)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfNombre" placeholder="Nombre" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfAccountSize" type="number" placeholder="Account Size" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfPrice" type="number" placeholder="Price" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfTarget" type="number" placeholder="Target %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfMaxDaily" type="number" placeholder="Max Daily Loss %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfMaxDrawdown" type="number" placeholder="Max Drawdown %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfProfitSplit" type="number" placeholder="Profit Split %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfMinDays" type="number" placeholder="Min Trading Days" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfLeverage" placeholder="Leverage" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <input id="pfPlatform" placeholder="Platform" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <label class="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" id="pfActivo"> Activo (publicar en /propfirm)</label>
+                        </div>
+                        <div class="flex gap-2 mt-3">
+                            <button id="btn-guardar-pf-config" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
+                            <button id="btn-cancelar-pf-config" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Cancelar</button>
+                        </div>
+                        <p id="pfConfigMsg" class="mt-2 text-xs hidden"></p>
+                    </div>
+                    <div id="listaPfConfigs" class="space-y-3"><p class="text-sm text-gray-500">Cargando...</p></div>
+                </div>
+
+                <div id="propfirmTipo-activity" class="propfirm-tipo space-y-6 hidden">
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Orders</h3>
+                    <div id="listaPfOrders" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Challenges</h3>
+                    <div id="listaPfChallenges" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Accounts</h3>
+                    <div id="listaPfAccounts" class="glass-card p-4 text-sm text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+                    <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider">Webhook Events</h3>
+                    <div id="listaPfWebhookEvents" class="glass-card p-4 font-mono text-xs text-gray-400 space-y-1 max-h-64 overflow-y-auto">Cargando...</div>
+                </div>
+
+                <div id="propfirmTipo-providers" class="propfirm-tipo space-y-6 hidden">
+                    <h2 class="text-lg font-bold">Trading Providers</h2>
+                    <p class="text-xs text-gray-500">Vista unificada de Broker + Prop Firm + Futures -- nunca muestra "Connected" sin una conexión real.</p>
+                    <div id="listaTradingProviders" class="grid grid-cols-1 md:grid-cols-3 gap-4"><p class="text-sm text-gray-500 col-span-full">Cargando...</p></div>
                 </div>
             </div>
 
@@ -2340,6 +2416,10 @@
                             <p class="text-sm font-semibold text-white">${m.title}</p>
                             <span class="text-[10px] font-semibold uppercase ${m.published ? 'text-nlt-success' : 'text-gray-500'}">${m.published ? 'Publicado' : 'Borrador'}</span>
                         </div>
+                        <div class="flex items-center justify-between mb-3 text-[11px] text-gray-500">
+                            <span>Ecosystem CTA: ${m.ecosystem_cta_label ? `"${m.ecosystem_cta_label}" → ${m.ecosystem_cta_href}` : '(ninguno)'}</span>
+                            <button data-modulo-id="${m.id}" class="btn-acad-editar-cta text-nlt-accent hover:underline cursor-pointer">Editar CTA</button>
+                        </div>
                         <div class="space-y-2">
                             ${lecs.map(l => `
                                 <div class="glass-item p-3 flex items-center justify-between gap-3">
@@ -2358,6 +2438,16 @@
                 }).join('') || '<p class="text-xs text-gray-500">Sin módulos.</p>';
 
                 modBox.querySelectorAll('.btn-acad-editar-leccion').forEach(b => b.addEventListener('click', () => abrirEdicionLeccionAcademy(b.getAttribute('data-lesson-id'))));
+                modBox.querySelectorAll('.btn-acad-editar-cta').forEach(b => b.addEventListener('click', async () => {
+                    const modId = b.getAttribute('data-modulo-id');
+                    const actual = _acadModules.find(x => x.id === modId);
+                    const label = prompt('Texto del botón (vacío para quitar el CTA):', actual.ecosystem_cta_label || '');
+                    if (label === null) return;
+                    const href = label ? prompt('Link (ej: propfirm.html):', actual.ecosystem_cta_href || '') : null;
+                    if (label && href === null) return;
+                    await NLT_API.adminAcademyActualizarModulo(modId, { ecosystem_cta_label: label || null, ecosystem_cta_href: label ? href : null });
+                    await cargarAcademyContenido();
+                }));
             } catch (err) {
                 modBox.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
             }
@@ -2606,11 +2696,22 @@
             try {
                 const defs = await NLT_API.adminAcademyListarCertificados();
                 _acadCertDefsCache = defs;
+                const modulosPorId = {};
+                (_acadModules || []).forEach(m => { modulosPorId[m.id] = m.title; });
                 box.innerHTML = defs.map(d => `
                     <div class="glass-card p-5" data-cert-id="${d.id}">
-                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">${d.slug}</p>
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wider">${d.slug} · ${d.requirement_type === 'course' ? 'MASTER (curso completo)' : `LEVEL`} · ${d.issued_count} emitido(s)</p>
+                            <label class="flex items-center gap-1.5 text-[10px] text-gray-400"><input type="checkbox" class="cert-activo" ${d.activo ? 'checked' : ''}> Activo</label>
+                        </div>
                         <input class="cert-title w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm mb-2" value="${(d.title || '').replace(/"/g, '&quot;')}">
                         <textarea class="cert-desc w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm mb-3" rows="2">${d.description || ''}</textarea>
+                        ${d.requirement_type !== 'course' ? `
+                            <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">Módulos requeridos</p>
+                            <div class="grid grid-cols-2 gap-1 mb-3 max-h-32 overflow-y-auto">
+                                ${(_acadModules || []).map(m => `<label class="flex items-center gap-1.5 text-[11px] text-gray-400"><input type="checkbox" class="cert-req-modulo" value="${m.id}" ${(d.required_module_ids || []).includes(m.id) ? 'checked' : ''}> ${m.title}</label>`).join('')}
+                            </div>
+                        ` : '<p class="text-[10px] text-gray-600 mb-3">Requiere los 16 módulos del curso completo (no editable).</p>'}
                         <div class="flex items-center gap-2">
                             <button data-id="${d.id}" class="btn-guardar-cert px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
                             <button data-id="${d.id}" class="btn-preview-cert px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-xs text-gray-300 font-semibold cursor-pointer"><i class="ph ph-eye"></i> Vista previa</button>
@@ -2624,12 +2725,18 @@
                         const msg = card.querySelector('.cert-msg');
                         msg.classList.remove('hidden'); msg.className = 'cert-msg text-xs text-gray-400'; msg.textContent = 'Guardando...';
                         try {
-                            await NLT_API.adminAcademyActualizarCertificado(btn.getAttribute('data-id'), {
+                            const datos = {
                                 title: card.querySelector('.cert-title').value.trim(),
                                 description: card.querySelector('.cert-desc').value.trim() || null,
-                            });
+                                activo: card.querySelector('.cert-activo').checked,
+                            };
+                            const checksModulo = card.querySelectorAll('.cert-req-modulo');
+                            if (checksModulo.length) {
+                                datos.required_module_ids = Array.from(checksModulo).filter(c => c.checked).map(c => c.value);
+                            }
+                            await NLT_API.adminAcademyActualizarCertificado(btn.getAttribute('data-id'), datos);
                             msg.className = 'cert-msg text-xs text-nlt-success'; msg.textContent = '✓ Guardado';
-                            _acadCertDefsCache = await NLT_API.adminAcademyListarCertificados();
+                            await cargarAcademyCertificados();
                         } catch (err) {
                             msg.className = 'cert-msg text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
                         }
@@ -2833,10 +2940,37 @@
             }
         });
 
+        async function cargarAcademyCertEmitidos() {
+            const box = document.getElementById('acadCertEmitidosBox');
+            try {
+                const emitidos = await NLT_API.adminAcademyCertificadosEmitidos();
+                box.innerHTML = emitidos.map(c => `
+                    <div class="flex items-center justify-between gap-3 py-1.5 border-b border-white/5 last:border-0">
+                        <span class="${c.revoked ? 'text-gray-600 line-through' : 'text-gray-300'}">${esc(c.certificate_title)} · ${esc(c.email || c.student_name)} · ${esc(c.certificate_code)} · ${new Date(c.issued_at).toLocaleDateString()}</span>
+                        ${c.revoked
+                            ? `<span class="text-[10px] text-nlt-danger font-bold uppercase shrink-0">Revocado</span>`
+                            : `<button data-id="${c.id}" class="btn-revocar-cert text-[10px] text-nlt-danger hover:underline cursor-pointer shrink-0">Revocar</button>`}
+                    </div>
+                `).join('') || '<p class="text-gray-600">Sin certificados emitidos todavía.</p>';
+                box.querySelectorAll('.btn-revocar-cert').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        const motivo = prompt('Motivo de la revocación (opcional):', '');
+                        if (motivo === null) return;
+                        await NLT_API.adminAcademyRevocarCertificado(btn.getAttribute('data-id'), motivo);
+                        await cargarAcademyCertEmitidos();
+                        await cargarAcademyCertificados();
+                    });
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
         async function cargarAcademyTodo() {
             await cargarAcademyStats();
             await cargarAcademyContenido();
             await cargarAcademyCertificados();
+            await cargarAcademyCertEmitidos();
             await cargarAcademyEstudiantes();
             await cargarAcademySettings();
             await cargarAcademyAccess();
@@ -3742,6 +3876,132 @@
             await cargarBrokerSyncRuns();
         }
 
+        // --- NLT Prop Firm (admin) ---
+
+        document.querySelectorAll('.propfirm-subtab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.propfirm-subtab').forEach(b => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                const tipo = btn.getAttribute('data-propfirm-tipo');
+                document.querySelectorAll('.propfirm-tipo').forEach(p => p.classList.toggle('hidden', p.id !== `propfirmTipo-${tipo}`));
+            });
+        });
+
+        async function cargarPropfirmStatus() {
+            try {
+                const s = await NLT_API.adminPropfirmStatus();
+                const el = document.getElementById('pfProviderEstado');
+                el.textContent = s.provider_configured ? `CONNECTED (${s.provider})` : 'NOT CONFIGURED';
+                el.className = 'text-lg font-bold ' + (s.provider_configured ? 'text-nlt-success' : 'text-gray-400');
+                document.getElementById('pfCountProfiles').textContent = s.counts.profiles;
+                document.getElementById('pfCountOrders').textContent = s.counts.orders;
+                document.getElementById('pfCountChallenges').textContent = s.counts.challenges;
+                document.getElementById('pfCountAccounts').textContent = s.counts.accounts;
+                document.getElementById('pfCountPayouts').textContent = s.counts.payouts;
+            } catch (err) {
+                document.getElementById('pfProviderEstado').textContent = 'Error: ' + err.message;
+            }
+        }
+
+        async function cargarPfConfigs() {
+            const box = document.getElementById('listaPfConfigs');
+            try {
+                const configs = await NLT_API.adminPropfirmListarConfigs();
+                box.innerHTML = configs.map(c => `
+                    <div class="glass-item p-4 flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-white font-semibold">${esc(c.nombre)} -- $${Number(c.account_size).toLocaleString()} · $${c.price}</p>
+                            <p class="text-xs text-gray-500">${c.activo ? 'ACTIVO (publicado)' : 'INACTIVO'} · target=${c.target_percent ?? '-'}% · daily=${c.max_daily_loss_percent ?? '-'}% · dd=${c.max_drawdown_percent ?? '-'}%</p>
+                        </div>
+                        <button data-action="toggle-pf" data-id="${c.id}" data-activo="${c.activo}" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold hover:bg-white/20 cursor-pointer">${c.activo ? 'Desactivar' : 'Activar'}</button>
+                    </div>
+                `).join('') || '<p class="text-sm text-gray-500">Sin challenge configs todavía.</p>';
+                box.querySelectorAll('button[data-action="toggle-pf"]').forEach(btn => {
+                    btn.addEventListener('click', async () => {
+                        await NLT_API.adminPropfirmActualizarConfig(btn.getAttribute('data-id'), { activo: btn.getAttribute('data-activo') !== 'true' });
+                        await cargarPfConfigs();
+                    });
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.getElementById('btn-nuevo-pf-config').addEventListener('click', () => {
+            document.getElementById('formNuevoPfConfig').classList.toggle('hidden');
+        });
+        document.getElementById('btn-cancelar-pf-config').addEventListener('click', () => {
+            document.getElementById('formNuevoPfConfig').classList.add('hidden');
+        });
+        document.getElementById('btn-guardar-pf-config').addEventListener('click', async () => {
+            const msg = document.getElementById('pfConfigMsg');
+            try {
+                await NLT_API.adminPropfirmCrearConfig({
+                    codigo: document.getElementById('pfCodigo').value.trim(),
+                    nombre: document.getElementById('pfNombre').value.trim(),
+                    account_size: Number(document.getElementById('pfAccountSize').value),
+                    price: Number(document.getElementById('pfPrice').value),
+                    target_percent: Number(document.getElementById('pfTarget').value) || null,
+                    max_daily_loss_percent: Number(document.getElementById('pfMaxDaily').value) || null,
+                    max_drawdown_percent: Number(document.getElementById('pfMaxDrawdown').value) || null,
+                    profit_split_percent: Number(document.getElementById('pfProfitSplit').value) || null,
+                    min_trading_days: Number(document.getElementById('pfMinDays').value) || null,
+                    leverage: document.getElementById('pfLeverage').value.trim() || null,
+                    platform: document.getElementById('pfPlatform').value.trim() || null,
+                    activo: document.getElementById('pfActivo').checked,
+                });
+                document.getElementById('formNuevoPfConfig').classList.add('hidden');
+                await cargarPfConfigs();
+            } catch (err) {
+                msg.className = 'text-xs text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+                msg.classList.remove('hidden');
+            }
+        });
+
+        async function cargarPropfirmActivity() {
+            try {
+                const [orders, challenges, accounts, webhookEvents] = await Promise.all([
+                    NLT_API.adminPropfirmOrdenes(), NLT_API.adminPropfirmChallenges(), NLT_API.adminPropfirmAccounts(), NLT_API.adminPropfirmWebhookEvents(),
+                ]);
+                document.getElementById('listaPfOrders').innerHTML = orders.map(o => `<p>${esc(o.order_id)} · $${o.final_amount} · ${esc(o.status)}</p>`).join('') || '<p class="text-gray-600">Sin órdenes todavía.</p>';
+                document.getElementById('listaPfChallenges').innerHTML = challenges.map(c => `<p>${esc(c.id)} · status=${esc(c.status)} · provider=${esc(c.provider || '-')}</p>`).join('') || '<p class="text-gray-600">Sin challenges todavía.</p>';
+                document.getElementById('listaPfAccounts').innerHTML = accounts.map(a => `<p>${esc(a.id)} · status=${esc(a.status)} · balance=${a.balance ?? '-'}</p>`).join('') || '<p class="text-gray-600">Sin cuentas todavía.</p>';
+                document.getElementById('listaPfWebhookEvents').innerHTML = webhookEvents.map(w => `<p>[${esc(w.recibido_en)}] ${esc(w.event_type || '?')} procesado=${w.procesado}</p>`).join('') || '<p class="text-gray-600">Sin eventos todavía.</p>';
+            } catch (err) {
+                document.getElementById('listaPfWebhookEvents').innerHTML = `<p class="text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        async function cargarTradingProviders() {
+            const box = document.getElementById('listaTradingProviders');
+            try {
+                const providers = await NLT_API.adminTradingProviders();
+                box.innerHTML = providers.map(p => `
+                    <div class="glass-card p-5">
+                        <div class="flex items-center justify-between mb-2">
+                            <p class="font-bold text-white uppercase">${esc(p.code)}</p>
+                            <span class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border ${p.status === 'connected' || p.status === 'active' ? 'bg-nlt-success/10 text-nlt-success border-nlt-success/20' : 'bg-gray-500/10 text-gray-400 border-gray-500/20'}">${esc(p.status)}</span>
+                        </div>
+                        <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">${esc(p.type)}</p>
+                        <p class="text-xs text-gray-500 mb-3">${esc(p.note || '')}</p>
+                        <div class="flex flex-wrap gap-1">
+                            ${Object.entries(p.capabilities || {}).filter(([, v]) => v).map(([k]) => `<span class="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400">${esc(k)}</span>`).join('') || '<span class="text-[10px] text-gray-600">Sin capacidades activas</span>'}
+                        </div>
+                    </div>
+                `).join('') || '<p class="text-sm text-gray-500 col-span-full">Sin providers registrados.</p>';
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        async function cargarPropfirmTodo() {
+            await cargarPropfirmStatus();
+            await cargarPfConfigs();
+            await cargarPropfirmActivity();
+            await cargarTradingProviders();
+        }
+
         // --- Administración Global (exclusivo Global Admin) ---
         let agAdminsCache = [];
         let agUsuarioSeleccionado = null;
@@ -3909,6 +4169,7 @@
             futures: [cargarFuturesTodo],
             afiliados: [cargarAfiliadosTodo],
             broker: [cargarBrokerTodo],
+            propfirm: [cargarPropfirmTodo],
         };
 
         let _esGlobalAdmin = false;

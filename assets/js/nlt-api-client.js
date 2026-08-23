@@ -489,6 +489,8 @@
         adminAcademyBorrarPregunta: (id) => request(`/admin/academy/questions/${id}`, { method: 'DELETE' }),
         adminAcademyListarCertificados: () => request('/admin/academy/certificates'),
         adminAcademyActualizarCertificado: (id, datos) => request(`/admin/academy/certificates/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        adminAcademyCertificadosEmitidos: () => request('/admin/academy/certificates/issued'),
+        adminAcademyRevocarCertificado: (issuedId, reason) => request(`/admin/academy/certificates/issued/${issuedId}/revoke`, { method: 'POST', body: JSON.stringify({ reason: reason || null }) }),
         adminAcademySettings: () => request('/admin/academy/settings'),
         adminAcademyActualizarSettings: (datos) => request('/admin/academy/settings', { method: 'PUT', body: JSON.stringify(datos) }),
         adminAcademyListarEstudiantes: () => request('/admin/academy/students'),
@@ -559,6 +561,28 @@
         adminBrokerSyncRuns: (resource) => request(`/admin/broker/sync/runs${resource ? '?resource=' + resource : ''}`),
         adminBrokerSyncRecurso: (recurso) => request(`/admin/broker/sync/${recurso}`, { method: 'POST' }),
         adminBrokerSyncAll: () => request('/admin/broker/sync/all', { method: 'POST' }),
+
+        // --- NLT PropFirm ---
+        propfirmListarChallenges: () => requestPublico('/propfirm/challenges'),
+        propfirmCrearOrden: (challengeConfigId, couponCode) => request('/propfirm/orders', { method: 'POST', body: JSON.stringify({ challenge_config_id: challengeConfigId, coupon_code: couponCode || null }) }),
+        propfirmMiPerfil: () => request('/propfirm/me/profile'),
+        propfirmMisOrdenes: () => request('/propfirm/me/orders'),
+        propfirmMisChallenges: () => request('/propfirm/me/challenges'),
+        propfirmMisCuentas: () => request('/propfirm/me/accounts'),
+        propfirmMisPayouts: () => request('/propfirm/me/payouts'),
+        propfirmSolicitarPayout: (accountId, amount) => request('/propfirm/me/payouts/request', { method: 'POST', body: JSON.stringify({ account_id: accountId, amount }) }),
+        propfirmMisTransacciones: () => request('/propfirm/me/transactions'),
+        tradingMiResumen: () => request('/trading/me/summary'),
+
+        adminPropfirmListarConfigs: () => request('/admin/propfirm/challenge-configs'),
+        adminPropfirmCrearConfig: (datos) => request('/admin/propfirm/challenge-configs', { method: 'POST', body: JSON.stringify(datos) }),
+        adminPropfirmActualizarConfig: (id, datos) => request(`/admin/propfirm/challenge-configs/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        adminPropfirmOrdenes: () => request('/admin/propfirm/orders'),
+        adminPropfirmChallenges: () => request('/admin/propfirm/challenges'),
+        adminPropfirmAccounts: () => request('/admin/propfirm/accounts'),
+        adminPropfirmWebhookEvents: () => request('/admin/propfirm/webhook-events'),
+        adminPropfirmStatus: () => request('/admin/propfirm/status'),
+        adminTradingProviders: () => request('/admin/trading/providers'),
     };
 
     window.NLT_API = NLT_API;

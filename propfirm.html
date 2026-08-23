@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Funded | Next Level Trading</title>
+    <meta name="description" content="Comprá tu challenge de trading y accedé a una cuenta funded -- toda la experiencia desde el ecosistema NLT.">
+    <link rel="canonical" href="https://nltnextlevel.uk/propfirm">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
+    <style>
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        [data-reveal] { opacity: 0; }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .challenge-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease; }
+        .challenge-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
+        .step-num { width: 2.25rem; height: 2.25rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; background: rgba(67,120,255,0.12); color: #4378FF; border: 1px solid rgba(67,120,255,0.2); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="broker.html" class="hover:text-white transition-colors">Broker</a>
+                <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="relative z-10 pt-44 pb-20 px-6 max-w-4xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT FUNDED</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>Trade with NLT.</h1>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto mb-10" data-reveal>Comprá tu challenge, demostrá tu estrategia, accedé a una cuenta funded -- todo desde el ecosistema NLT.</p>
+        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4" data-reveal>
+            <a href="#challenges" class="glow-button w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ver Challenges</a>
+            <a href="propfirm-dashboard.html" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl border border-white/10 text-gray-300 font-semibold text-sm hover:bg-white/5 transition-all">Mi Dashboard</a>
+        </div>
+    </section>
+
+    <main class="relative z-10 max-w-6xl mx-auto px-6 pb-24 space-y-20 md:space-y-28">
+
+        <!-- Provider disclosure -->
+        <div class="glass-card p-5 flex items-start gap-3 max-w-3xl mx-auto mt-6 sm:-mt-16" data-reveal>
+            <i class="ph-fill ph-info text-nlt-accent text-xl mt-0.5 shrink-0"></i>
+            <p class="text-xs text-gray-400 leading-relaxed">La infraestructura de challenge, evaluación de riesgo, ejecución y creación de cuentas es provista por nuestro partner de PropFirm. NLT no ejecuta operaciones ni gestiona los fondos de la cuenta funded.</p>
+        </div>
+
+        <!-- Challenges -->
+        <section id="challenges">
+            <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Challenges</h2>
+                <p class="text-gray-400 text-sm md:text-base">Elegí el tamaño de cuenta que se ajuste a tu estrategia.</p>
+            </div>
+            <div id="listaChallenges" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <p class="text-sm text-gray-500 animate-pulse col-span-full text-center">Cargando challenges...</p>
+            </div>
+        </section>
+
+        <!-- How It Works -->
+        <section>
+            <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">How It Works</h2>
+            </div>
+            <div class="space-y-4 max-w-2xl mx-auto">
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">1</span><p class="text-sm text-gray-300">Elegí tu challenge y revisá las reglas</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">2</span><p class="text-sm text-gray-300">Comprá el challenge</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">3</span><p class="text-sm text-gray-300">Completá el KYC cuando el proveedor lo requiera</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">4</span><p class="text-sm text-gray-300">Recibí tu cuenta y credenciales de trading</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">5</span><p class="text-sm text-gray-300">Operá bajo las reglas del challenge</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">6</span><p class="text-sm text-gray-300">Pasá el challenge y accedé a tu cuenta funded</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">7</span><p class="text-sm text-gray-300">Solicitá tus payouts cuando corresponda</p></div>
+            </div>
+        </section>
+
+        <!-- Risk / Partner Disclosure -->
+        <div class="flex items-start gap-3 p-5 rounded-xl bg-nlt-danger/10 border border-nlt-danger/20 max-w-3xl mx-auto" data-reveal>
+            <i class="ph-fill ph-warning text-nlt-danger text-xl mt-0.5 shrink-0"></i>
+            <p class="text-sm text-nlt-danger m-0">Trading involves significant risk of loss. Challenge fees are not investments and results are not guaranteed. Past performance is not indicative of future results.</p>
+        </div>
+        <div class="flex items-start gap-3 p-5 rounded-xl bg-nlt-warn/10 border border-nlt-warn/20 max-w-3xl mx-auto" data-reveal>
+            <i class="ph-fill ph-warning text-nlt-warn text-xl mt-0.5 shrink-0"></i>
+            <p class="text-sm text-nlt-warn m-0">NLT no es una prop firm regulada ni custodia fondos de challenge/funded. La infraestructura de evaluación y las cuentas funded son provistas por nuestro partner de PropFirm bajo sus propios términos.</p>
+        </div>
+
+        <!-- CTA final -->
+        <section class="glass-card p-10 md:p-14 text-center" data-reveal>
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-4">Ready to get funded?</h2>
+            <p class="text-gray-400 text-sm mb-8 max-w-lg mx-auto">Elegí tu challenge y empezá tu camino hacia una cuenta funded.</p>
+            <a href="#challenges" class="glow-button inline-block px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ver Challenges</a>
+        </section>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <div class="flex items-center gap-4">
+                <a href="aviso-riesgo.html" class="hover:text-gray-300 transition-colors">Aviso de Riesgo</a>
+                <a href="terminos.html" class="hover:text-gray-300 transition-colors">Términos</a>
+                <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260814"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        function tarjetaChallenge(c) {
+            const reglas = [
+                c.target_percent != null ? `Target: ${c.target_percent}%` : null,
+                c.max_daily_loss_percent != null ? `Max Daily Loss: ${c.max_daily_loss_percent}%` : null,
+                c.max_drawdown_percent != null ? `Max Drawdown: ${c.max_drawdown_percent}%` : null,
+                c.profit_split_percent != null ? `Profit Split: ${c.profit_split_percent}%` : null,
+                c.min_trading_days != null ? `Min Trading Days: ${c.min_trading_days}` : null,
+                c.leverage ? `Leverage: ${esc(c.leverage)}` : null,
+                c.platform ? `Platform: ${esc(c.platform)}` : null,
+            ].filter(Boolean);
+            return `
+                <div class="challenge-card glass-card p-7 flex flex-col text-center" data-reveal>
+                    <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">${esc(c.nombre)}</p>
+                    <p class="text-3xl font-extrabold text-white mb-1">$${Number(c.account_size).toLocaleString()}</p>
+                    <p class="text-sm text-gray-500 mb-5">Account Size</p>
+                    <p class="text-2xl font-bold text-nlt-accent mb-5">$${Number(c.price).toLocaleString()}</p>
+                    <div class="text-xs text-gray-500 space-y-1 mb-6 text-left">
+                        ${reglas.map(r => `<p>${r}</p>`).join('') || '<p class="text-gray-600">Reglas por confirmar.</p>'}
+                    </div>
+                    <button data-config-id="${esc(c.id)}" class="btn-comprar-challenge mt-auto px-5 py-2.5 rounded-xl text-sm font-semibold bg-nlt-accent text-white hover:bg-blue-500 transition-all cursor-pointer">Start Challenge</button>
+                </div>
+            `;
+        }
+
+        async function cargarChallenges() {
+            const cont = document.getElementById('listaChallenges');
+            try {
+                const challenges = await NLT_API.propfirmListarChallenges();
+                cont.innerHTML = challenges.map(tarjetaChallenge).join('') || '<p class="text-sm text-gray-500 col-span-full text-center">Todavía no hay challenges disponibles -- muy pronto.</p>';
+                cont.querySelectorAll('.btn-comprar-challenge').forEach((btn) => {
+                    btn.addEventListener('click', () => comprarChallenge(btn.getAttribute('data-config-id')));
+                });
+            } catch (err) {
+                cont.innerHTML = `<p class="text-sm text-nlt-danger col-span-full text-center">Error cargando challenges: ${esc(err.message)}</p>`;
+            }
+        }
+
+        async function comprarChallenge(configId) {
+            const session = await NLT.requireSession();
+            if (!session) return; // requireSession ya redirigió a index.html
+            try {
+                const orden = await NLT_API.propfirmCrearOrden(configId);
+                window.location.href = `propfirm-dashboard.html?order=${encodeURIComponent(orden.order_id)}`;
+            } catch (err) {
+                alert('No se pudo iniciar la orden: ' + err.message);
+            }
+        }
+
+        cargarChallenges();
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+
+        function _setupReveal() {
+            if (!window.gsap || !window.ScrollTrigger) {
+                document.querySelectorAll('[data-reveal]').forEach((el) => { el.style.opacity = '1'; });
+                return;
+            }
+            gsap.registerPlugin(ScrollTrigger);
+            ScrollTrigger.config({ ignoreMobileResize: true });
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                gsap.set(el, { y: 24 });
+                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _setupReveal);
+        } else {
+            _setupReveal();
+        }
+        setTimeout(() => {
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                if (getComputedStyle(el).opacity === '0') el.style.opacity = '1';
+            });
+        }, 2500);
+    </script>
+</body>
+</html>
