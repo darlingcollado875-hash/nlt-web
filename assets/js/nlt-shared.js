@@ -474,6 +474,10 @@
             id: 'journal', nombre: 'NLT Trader Journal', status: 'live', href: 'journal.html',
             icono: 'ph-notebook', descripcion: 'Registrá tus operaciones, medí tu desempeño real y construí disciplina con analítica profesional.',
         },
+        {
+            id: 'elite-signals', nombre: 'NLT Elite Signals', status: 'live', href: 'signals.html',
+            icono: 'ph-broadcast', descripcion: 'Señales BUY/SELL con entry, TP y SL, priorizando únicamente señales con Quality Score 90%+.',
+        },
     ];
 
     // --- Sidebar global (Fase 1: navegación consistente en toda la plataforma) ---
@@ -526,6 +530,13 @@
         { id: 'propfirm-landing', href: 'propfirm.html', icono: 'ph-trophy', label: 'Challenges' },
     ];
 
+    // NLT Elite Signals -- mismo patrón que NAV_BROKER/NAV_PROPFIRM (un solo
+    // producto, sin Ajustes propios -- reusa NAV_CFD_AJUSTES).
+    const NAV_SIGNALS = [
+        { id: 'signals-dashboard', href: 'signals-dashboard.html', icono: 'ph-squares-four', label: 'Dashboard' },
+        { id: 'signals-landing', href: 'signals.html', icono: 'ph-broadcast', label: 'Elite Signals' },
+    ];
+
     function _navItemHTML(item, activo) {
         const on = item.id === activo;
         const base = 'flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-sm transition-all';
@@ -541,12 +552,12 @@
     // se usa un solo link de vuelta a futuros.html.
     function renderSidebar({ activo, seccion = 'cfd' } = {}) {
         const esFuturesHome = seccion === 'futures' && FUTURES_HOME_IDS.includes(activo);
-        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
+        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
         const ajustes = seccion === 'futures' ? NAV_FUTURES_AJUSTES : NAV_CFD_AJUSTES;
-        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'futures' ? 'Futuros' : null;
+        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'futures' ? 'Futuros' : null;
         const ajustesLabel = seccion === 'futures' ? 'Ajustes Futures' : 'Ajustes';
         const adminLabel = seccion === 'futures' ? 'Administración' : 'Panel Admin';
-        const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'propfirm' ? 'admin.html#propfirm' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
+        const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'propfirm' ? 'admin.html#propfirm' : seccion === 'signals' ? 'admin.html#elite_signals' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
         const adminOn = activo === 'admin' || activo === 'futuros-admin';
         const adminCls = adminOn
             ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/10'

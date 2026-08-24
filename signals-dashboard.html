@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Elite Signals | Dashboard</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        @media (max-width: 767px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table tr:last-child { border-bottom: none; }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 3px; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Elite Signals</h1>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-10 space-y-8">
+
+            <!-- CARGANDO -->
+            <div id="vistaCargando" class="py-24 text-center">
+                <p class="text-sm text-gray-500 animate-pulse">Cargando NLT Elite Signals...</p>
+            </div>
+
+            <!-- SIN ACCESO -->
+            <div id="vistaSinAcceso" class="hidden py-16 max-w-lg mx-auto text-center">
+                <div class="glass-card p-10">
+                    <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
+                    <h2 class="text-xl font-bold text-white mb-2">Necesitás comprar tu acceso</h2>
+                    <p class="text-sm text-gray-500 mb-6">Todavía no tenés acceso a NLT Elite Signals.</p>
+                    <a href="signals.html" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Comprar acceso</a>
+                </div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="vistaDashboard" class="hidden space-y-8">
+                <div class="glass-card p-4 flex items-center gap-3 border-nlt-success/30">
+                    <i class="ph-fill ph-check-circle text-nlt-success text-xl"></i>
+                    <p class="text-sm text-nlt-success"><strong>Acceso activo</strong> -- toda señal con Quality Score de 70 o superior se publica, clasificada en NORMAL / OPTIMA / PERFECTA / ELITE según su score real. Esto no garantiza rentabilidad ni resultados.</p>
+                </div>
+
+                <div id="seccion-activas">
+                    <h2 class="text-lg font-bold mb-4">Señales activas</h2>
+                    <div id="gridActivas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <p class="text-sm text-gray-500 col-span-full">Cargando...</p>
+                    </div>
+                </div>
+
+                <div id="seccion-historial">
+                    <h2 class="text-lg font-bold mb-4">Historial</h2>
+                    <div class="glass-card overflow-x-auto">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[700px]">
+                            <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                                <tr><th class="px-5 py-3 font-semibold">Instrumento</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Entry</th><th class="px-5 py-3 font-semibold">SL</th><th class="px-5 py-3 font-semibold">TP</th><th class="px-5 py-3 font-semibold">Quality Score</th><th class="px-5 py-3 font-semibold">Nivel</th><th class="px-5 py-3 font-semibold">Estado</th></tr>
+                            </thead>
+                            <tbody id="tablaHistorial" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="8" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260824"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function fecha(iso) {
+            return iso ? new Date(iso).toLocaleString('es', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '--';
+        }
+        const ESTADO_LABEL = { ACTIVE: 'Activa', TP_HIT: 'TP alcanzado', SL_HIT: 'SL alcanzado', CANCELLED: 'Cancelada', EXPIRED: 'Expirada' };
+        // Nivel de CALIDAD (quality_tier, calculado por el backend a partir del
+        // score real -- ver app/models/elite_signals.py) -- distinto del status
+        // de ciclo de vida (Activa/TP alcanzado/...) de arriba.
+        const TIER_LABEL = { NORMAL: 'Normal', OPTIMA: 'Óptima', PERFECTA: 'Perfecta', ELITE: 'Elite' };
+        const TIER_CLS = {
+            NORMAL: 'text-gray-400 bg-white/5 border-white/10',
+            OPTIMA: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+            PERFECTA: 'text-nlt-success bg-nlt-success/10 border-nlt-success/20',
+            ELITE: 'text-nlt-accent bg-nlt-accent/10 border-nlt-accent/30',
+        };
+        function badgeTier(tier) {
+            const cls = TIER_CLS[tier] || TIER_CLS.NORMAL;
+            return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${cls}">${esc(TIER_LABEL[tier] || tier || '--')}</span>`;
+        }
+
+        function tarjetaSignal(s) {
+            const esBuy = s.direction === 'BUY';
+            const dirCls = esBuy ? 'text-nlt-success bg-nlt-success/10 border-nlt-success/20' : 'text-nlt-danger bg-nlt-danger/10 border-nlt-danger/20';
+            return `
+                <div class="glass-card p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <span class="font-bold text-white">${esc(s.symbol)}</span>
+                        <span class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full border ${dirCls}">${esc(s.direction)}</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-2 text-xs mb-3">
+                        <div><p class="text-gray-500 uppercase tracking-wider mb-0.5">Entry</p><p class="font-semibold text-white">${s.entry ?? '--'}</p></div>
+                        <div><p class="text-gray-500 uppercase tracking-wider mb-0.5">SL</p><p class="font-semibold text-white">${s.stop_loss ?? '--'}</p></div>
+                        <div><p class="text-gray-500 uppercase tracking-wider mb-0.5">TP</p><p class="font-semibold text-white">${s.take_profit ?? '--'}</p></div>
+                    </div>
+                    <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
+                        <span><i class="ph-fill ph-gauge text-nlt-accent"></i> Quality Score ${s.quality_score}%</span>
+                        <span>${esc(s.timeframe || '--')}</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        ${badgeTier(s.quality_tier)}
+                        <p class="text-[11px] text-gray-600">${fecha(s.created_at)}</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function cargarDashboard() {
+            try {
+                const [activas, historial] = await Promise.all([NLT_API.signalsActivas(), NLT_API.signalsHistorial()]);
+
+                document.getElementById('gridActivas').innerHTML = activas.length
+                    ? activas.map(tarjetaSignal).join('')
+                    : '<p class="text-sm text-gray-500 col-span-full">Sin señales activas por ahora.</p>';
+
+                document.getElementById('tablaHistorial').innerHTML = historial.length
+                    ? historial.map((h) => `
+                        <tr>
+                            <td data-label="Instrumento" class="px-5 py-3 font-semibold text-white">${esc(h.symbol)}</td>
+                            <td data-label="Dirección" class="px-5 py-3">${esc(h.direction)}</td>
+                            <td data-label="Entry" class="px-5 py-3">${h.entry ?? '--'}</td>
+                            <td data-label="SL" class="px-5 py-3">${h.stop_loss ?? '--'}</td>
+                            <td data-label="TP" class="px-5 py-3">${h.take_profit ?? '--'}</td>
+                            <td data-label="Quality Score" class="px-5 py-3">${h.quality_score}%</td>
+                            <td data-label="Nivel" class="px-5 py-3">${badgeTier(h.quality_tier)}</td>
+                            <td data-label="Estado" class="px-5 py-3">${esc(ESTADO_LABEL[h.status] || h.status)}</td>
+                        </tr>
+                    `).join('')
+                    : '<tr><td colspan="8" class="px-5 py-3 text-gray-500">Sin historial todavía.</td></tr>';
+            } catch (err) {
+                document.getElementById('gridActivas').innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'signals-dashboard', seccion: 'signals' });
+            NLT.bindLogoutButton('btn-salir');
+
+            document.getElementById('vistaCargando').classList.add('hidden');
+
+            let acceso;
+            try {
+                acceso = await NLT_API.signalsAccesoEstado();
+            } catch (err) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                return;
+            }
+
+            if (!acceso.tiene_acceso) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('vistaDashboard').classList.remove('hidden');
+            await cargarDashboard();
+
+            // Mismo patrón que dashboard.html/cuentas.html/maestra.html --
+            // se auto-pausa en tab oculta y refresca al volver (ver
+            // NLT.pollWhileVisible en nlt-shared.js). Nada de websockets:
+            // no hay Supabase Realtime en ningún lado del proyecto todavía.
+            NLT.pollWhileVisible(cargarDashboard, 20000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

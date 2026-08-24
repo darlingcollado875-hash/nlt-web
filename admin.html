@@ -88,6 +88,7 @@
             <button data-seccion="broker" class="tab-admin"><i class="ph-fill ph-briefcase mr-1.5"></i>Broker</button>
             <button data-seccion="propfirm" class="tab-admin"><i class="ph-fill ph-trophy mr-1.5"></i>Prop Firm</button>
             <button data-seccion="journal" class="tab-admin"><i class="ph-fill ph-notebook mr-1.5"></i>Trader Journal</button>
+            <button data-seccion="elite_signals" class="tab-admin"><i class="ph-fill ph-broadcast mr-1.5"></i>Elite Signals</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
@@ -1265,6 +1266,67 @@
                 </div>
             </div>
 
+            <!-- NLT ELITE SIGNALS -->
+            <div id="seccion-elite_signals" class="seccion-admin hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-broadcast text-nlt-accent"></i> NLT Elite Signals</h2>
+                    <button id="btn-nueva-signal" class="px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer"><i class="ph-bold ph-plus"></i> Nueva señal</button>
+                </div>
+                <p class="text-xs text-gray-500">Alta manual mientras no exista la integración automática de TradingView/Signal Engine (ver TODO en admin_elite_signals.py).</p>
+
+                <div id="signalsCancelacionesFallidasBox" class="hidden glass-card p-5 border-nlt-danger/30">
+                    <h3 class="text-sm font-bold text-nlt-danger flex items-center gap-2 mb-2"><i class="ph-fill ph-warning"></i> Cancelaciones de Pay2Commerce fallidas -- revisar a mano</h3>
+                    <p class="text-xs text-gray-400 mb-3">Estas órdenes se cobraron una sola vez pero la suscripción técnica de Pay2Commerce NO se pudo cancelar -- riesgo real de un segundo cobro automático si no se cancela a mano en Pay2Commerce.</p>
+                    <div id="listaCancelacionesFallidas" class="space-y-2"></div>
+                </div>
+                <div id="formNuevaSignal" class="glass-card p-6 hidden">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <input id="sgSymbol" placeholder="Símbolo (ej: EURUSD)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <select id="sgDirection" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                            <option value="BUY">BUY</option>
+                            <option value="SELL">SELL</option>
+                        </select>
+                        <input id="sgTimeframe" placeholder="Timeframe (ej: H1)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="sgQualityScore" type="number" min="70" max="100" placeholder="Quality Score (70-100)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="sgEntry" type="number" step="any" placeholder="Entry" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="sgStopLoss" type="number" step="any" placeholder="Stop Loss" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="sgTakeProfit" type="number" step="any" placeholder="Take Profit" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button id="btn-guardar-signal" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Publicar señal</button>
+                        <button id="btn-cancelar-signal" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Cancelar</button>
+                    </div>
+                    <p id="signalMsg" class="mt-2 text-xs hidden"></p>
+                </div>
+                <div class="glass-card overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr><th class="px-5 py-3 font-semibold">Símbolo</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Quality Score</th><th class="px-5 py-3 font-semibold">Nivel</th><th class="px-5 py-3 font-semibold">Origen</th><th class="px-5 py-3 font-semibold">Estado</th><th class="px-5 py-3 font-semibold">Creada</th><th class="px-5 py-3 font-semibold">Acciones</th></tr>
+                        </thead>
+                        <tbody id="tablaSignals" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="8" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+
+                <h2 class="text-lg font-bold pt-2">Acceso (pago único -- permanente hasta revocar)</h2>
+                <div class="glass-card p-5 flex flex-wrap items-end gap-3">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1">User ID</label>
+                        <input id="sgAccesoUserId" placeholder="uuid del usuario" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm w-72">
+                    </div>
+                    <button id="btn-signal-conceder-acceso" class="px-4 py-2 rounded-lg bg-nlt-success/10 border border-nlt-success/20 text-nlt-success text-xs font-semibold cursor-pointer">Conceder acceso</button>
+                    <button id="btn-signal-revocar-acceso" class="px-4 py-2 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer">Revocar acceso</button>
+                    <p id="signalAccesoMsg" class="text-xs hidden w-full"></p>
+                </div>
+                <div class="glass-card overflow-x-auto">
+                    <table class="w-full text-left text-sm">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr><th class="px-5 py-3 font-semibold">User ID</th><th class="px-5 py-3 font-semibold">Tipo</th><th class="px-5 py-3 font-semibold">Estado</th><th class="px-5 py-3 font-semibold">Otorgado por</th><th class="px-5 py-3 font-semibold">Fecha</th></tr>
+                        </thead>
+                        <tbody id="tablaSignalsAccesos" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="5" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- ADMINISTRACIÓN GLOBAL (exclusivo Global Admin) -->
             <div id="seccion-admin-global" class="seccion-admin hidden space-y-6">
                 <div>
@@ -1314,8 +1376,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260814"></script>
+    <script src="assets/js/nlt-shared.js?v=20260824"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
     <script src="assets/js/nlt-certificate.js?v=20260814c"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -4034,6 +4096,157 @@
             }
         }
 
+        // --- NLT Elite Signals ---
+        const SIGNAL_ESTADO_LABEL = { ACTIVE: 'Activa', TP_HIT: 'TP alcanzado', SL_HIT: 'SL alcanzado', CANCELLED: 'Cancelada', EXPIRED: 'Expirada' };
+
+        const SIGNAL_ORIGEN_CLS = { MANUAL: 'text-gray-400', TRADINGVIEW: 'text-nlt-accent', NLT_SIGNAL_ENGINE: 'text-nlt-success' };
+        // Nivel de CALIDAD (quality_tier, calculado por el backend -- ver
+        // app/models/elite_signals.py) -- distinto del status de ciclo de
+        // vida (Activa/TP alcanzado/...) de la columna Estado.
+        const SIGNAL_TIER_LABEL = { NORMAL: 'Normal', OPTIMA: 'Óptima', PERFECTA: 'Perfecta', ELITE: 'Elite' };
+        const SIGNAL_TIER_CLS = { NORMAL: 'text-gray-400', OPTIMA: 'text-blue-400', PERFECTA: 'text-nlt-success', ELITE: 'text-nlt-accent' };
+
+        function renderTablaSignals(signals) {
+            document.getElementById('tablaSignals').innerHTML = signals.length ? signals.map((s) => `
+                <tr>
+                    <td class="px-5 py-3 font-semibold text-white">${esc(s.symbol)}</td>
+                    <td class="px-5 py-3">${esc(s.direction)}</td>
+                    <td class="px-5 py-3">${s.quality_score}%</td>
+                    <td class="px-5 py-3 text-xs font-semibold ${SIGNAL_TIER_CLS[s.quality_tier] || 'text-gray-400'}">${esc(SIGNAL_TIER_LABEL[s.quality_tier] || s.quality_tier || '--')}</td>
+                    <td class="px-5 py-3 text-xs font-semibold ${SIGNAL_ORIGEN_CLS[s.origen] || 'text-gray-400'}">${esc(s.origen)}</td>
+                    <td class="px-5 py-3">${esc(SIGNAL_ESTADO_LABEL[s.status] || s.status)}</td>
+                    <td class="px-5 py-3 text-xs text-gray-500">${new Date(s.created_at).toLocaleString('es')}</td>
+                    <td class="px-5 py-3">
+                        ${s.status === 'ACTIVE' ? `
+                            <select data-signal-id="${s.id}" class="signal-status-select bg-black/20 border border-white/5 rounded-lg px-2 py-1 text-xs">
+                                <option value="">Cerrar como...</option>
+                                <option value="TP_HIT">TP alcanzado</option>
+                                <option value="SL_HIT">SL alcanzado</option>
+                                <option value="CANCELLED">Cancelada</option>
+                            </select>
+                        ` : '--'}
+                    </td>
+                </tr>
+            `).join('') : '<tr><td colspan="8" class="px-5 py-3 text-gray-500">Sin señales todavía.</td></tr>';
+
+            document.querySelectorAll('.signal-status-select').forEach((sel) => {
+                sel.addEventListener('change', async () => {
+                    const nuevoStatus = sel.value;
+                    if (!nuevoStatus) return;
+                    sel.disabled = true;
+                    try {
+                        await NLT_API.adminSignalsActualizarStatus(sel.getAttribute('data-signal-id'), nuevoStatus);
+                        await cargarSignalsTodo();
+                    } catch (err) {
+                        alert('Error: ' + err.message);
+                        sel.disabled = false;
+                    }
+                });
+            });
+        }
+
+        function renderTablaSignalsAccesos(accesos) {
+            document.getElementById('tablaSignalsAccesos').innerHTML = accesos.length ? accesos.map((a) => `
+                <tr>
+                    <td class="px-5 py-3 font-mono text-xs text-white">${esc(a.user_id)}</td>
+                    <td class="px-5 py-3">${esc(a.tipo_acceso)}</td>
+                    <td class="px-5 py-3 ${a.estado === 'ACTIVE' ? 'text-nlt-success' : 'text-nlt-danger'}">${esc(a.estado)}</td>
+                    <td class="px-5 py-3 text-xs text-gray-500">${esc(a.creado_por || '--')}</td>
+                    <td class="px-5 py-3 text-xs text-gray-500">${new Date(a.created_at).toLocaleString('es')}</td>
+                </tr>
+            `).join('') : '<tr><td colspan="5" class="px-5 py-3 text-gray-500">Sin accesos otorgados todavía.</td></tr>';
+        }
+
+        async function cargarSignalsTodo() {
+            try {
+                const [signals, accesos, fallidas] = await Promise.all([
+                    NLT_API.adminSignalsListar(), NLT_API.adminSignalsListarAccesos(), NLT_API.adminSignalsCancelacionesFallidas(),
+                ]);
+                renderTablaSignals(signals);
+                renderTablaSignalsAccesos(accesos);
+                if (fallidas.length) {
+                    document.getElementById('signalsCancelacionesFallidasBox').classList.remove('hidden');
+                    document.getElementById('listaCancelacionesFallidas').innerHTML = fallidas.map((f) => `
+                        <div class="glass-item p-3 text-xs">
+                            <p class="text-gray-300">${esc(f.detalle || '(sin detalle)')}</p>
+                            <p class="text-gray-600 mt-1">${new Date(f.created_at).toLocaleString('es')}</p>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                document.getElementById('tablaSignals').innerHTML = `<tr><td colspan="8" class="px-5 py-3 text-nlt-danger">Error: ${esc(err.message)}</td></tr>`;
+            }
+        }
+
+        document.getElementById('btn-signal-conceder-acceso').addEventListener('click', async () => {
+            const userId = document.getElementById('sgAccesoUserId').value.trim();
+            const msg = document.getElementById('signalAccesoMsg');
+            if (!userId) return;
+            try {
+                await NLT_API.adminSignalsConcederAcceso(userId);
+                msg.classList.remove('hidden');
+                msg.className = 'text-xs w-full text-nlt-success';
+                msg.textContent = 'Acceso concedido.';
+                await cargarSignalsTodo();
+            } catch (err) {
+                msg.classList.remove('hidden');
+                msg.className = 'text-xs w-full text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        });
+        document.getElementById('btn-signal-revocar-acceso').addEventListener('click', async () => {
+            const userId = document.getElementById('sgAccesoUserId').value.trim();
+            const msg = document.getElementById('signalAccesoMsg');
+            if (!userId) return;
+            try {
+                await NLT_API.adminSignalsRevocarAcceso(userId);
+                msg.classList.remove('hidden');
+                msg.className = 'text-xs w-full text-nlt-success';
+                msg.textContent = 'Acceso revocado.';
+                await cargarSignalsTodo();
+            } catch (err) {
+                msg.classList.remove('hidden');
+                msg.className = 'text-xs w-full text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        });
+
+        document.getElementById('btn-nueva-signal').addEventListener('click', () => {
+            document.getElementById('formNuevaSignal').classList.toggle('hidden');
+        });
+        document.getElementById('btn-cancelar-signal').addEventListener('click', () => {
+            document.getElementById('formNuevaSignal').classList.add('hidden');
+        });
+        document.getElementById('btn-guardar-signal').addEventListener('click', async () => {
+            const msg = document.getElementById('signalMsg');
+            const datos = {
+                symbol: document.getElementById('sgSymbol').value.trim().toUpperCase(),
+                direction: document.getElementById('sgDirection').value,
+                timeframe: document.getElementById('sgTimeframe').value.trim() || null,
+                quality_score: parseFloat(document.getElementById('sgQualityScore').value),
+                entry: document.getElementById('sgEntry').value ? parseFloat(document.getElementById('sgEntry').value) : null,
+                stop_loss: document.getElementById('sgStopLoss').value ? parseFloat(document.getElementById('sgStopLoss').value) : null,
+                take_profit: document.getElementById('sgTakeProfit').value ? parseFloat(document.getElementById('sgTakeProfit').value) : null,
+            };
+            if (!datos.symbol || isNaN(datos.quality_score)) {
+                msg.classList.remove('hidden');
+                msg.className = 'mt-2 text-xs text-nlt-danger';
+                msg.textContent = 'Símbolo y Quality Score son obligatorios.';
+                return;
+            }
+            try {
+                await NLT_API.adminSignalsCrear(datos);
+                document.getElementById('formNuevaSignal').classList.add('hidden');
+                msg.classList.add('hidden');
+                ['sgSymbol', 'sgTimeframe', 'sgQualityScore', 'sgEntry', 'sgStopLoss', 'sgTakeProfit'].forEach((id) => document.getElementById(id).value = '');
+                await cargarSignalsTodo();
+            } catch (err) {
+                msg.classList.remove('hidden');
+                msg.className = 'mt-2 text-xs text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+            }
+        });
+
         // --- Administración Global (exclusivo Global Admin) ---
         let agAdminsCache = [];
         let agUsuarioSeleccionado = null;
@@ -4203,6 +4416,7 @@
             broker: [cargarBrokerTodo],
             propfirm: [cargarPropfirmTodo],
             journal: [cargarJournalTodo],
+            elite_signals: [cargarSignalsTodo],
         };
 
         let _esGlobalAdmin = false;

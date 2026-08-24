@@ -61,9 +61,11 @@ insert into plans (id, producto, nombre, precio, billing_period, max_cuentas, po
 on conflict (id) do nothing;
 
 -- --- Indicator: precios reales confirmados en nextleveltrading0.framer.website ---
+-- "NLT Elite Signals" se quitó de acá (ver nlt-web/supabase/elite_signals.sql):
+-- ahora es su propio producto pago ($70/mes), no un item incluido en este plan.
 insert into plans (id, producto, nombre, descripcion, precio, billing_period, popular, orden, features) values
-  ('INDICATOR_MONTHLY', 'indicator', 'Acceso Mensual', 'NLT Tools + NLT Elite Signals, con actualizaciones mensuales.', 50.00, 'monthly', false, 1,
-    '["NLT Tools","NLT Elite Signals","Actualizaciones mensuales"]'::jsonb),
+  ('INDICATOR_MONTHLY', 'indicator', 'Acceso Mensual', 'NLT Tools, con actualizaciones mensuales.', 50.00, 'monthly', false, 1,
+    '["NLT Tools","Actualizaciones mensuales"]'::jsonb),
   ('INDICATOR_LIFETIME', 'indicator', 'Acceso Vitalicio', 'Todos los beneficios del plan mensual, de por vida, con prioridad de acceso al NLT AI Bot.', 120.00, 'one_time', true, 2,
     '["Todo lo del plan mensual","Acceso vitalicio","Prioridad NLT AI Bot"]'::jsonb)
 on conflict (id) do nothing;

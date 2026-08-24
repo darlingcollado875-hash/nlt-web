@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Indicator | Herramientas y señales para TradingView</title>
-    <meta name="description" content="NLT Tools, NLT Elite Signals y actualizaciones -- el indicador de NLT para TradingView.">
+    <meta name="description" content="NLT Tools y actualizaciones -- el indicador de NLT para TradingView.">
     <link rel="canonical" href="https://nltnextlevel.uk/indicator">
     <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -55,7 +55,7 @@
     <section class="relative z-10 pt-44 pb-20 px-6 max-w-5xl mx-auto text-center">
         <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT Indicator</p>
         <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>Herramientas y señales para TradingView.</h1>
-        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>NLT Tools y NLT Elite Signals, directo en tu gráfico de TradingView.</p>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>NLT Tools, directo en tu gráfico de TradingView.</p>
         <a href="#planes" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button" data-reveal>Ver planes</a>
     </section>
 
@@ -72,11 +72,11 @@
                 <h3 class="font-bold text-white mb-2">NLT Tools</h3>
                 <p class="text-sm text-gray-400">Herramientas de análisis directo en tu gráfico de TradingView.</p>
             </div>
-            <div class="glass-card p-8" data-reveal>
+            <a href="signals.html" class="glass-card p-8 block hover:border-nlt-accent/30 transition-all" data-reveal>
                 <i class="ph-fill ph-broadcast text-2xl text-nlt-accent mb-4"></i>
-                <h3 class="font-bold text-white mb-2">NLT Elite Signals</h3>
-                <p class="text-sm text-gray-400">Señales de contexto para ayudarte a filtrar entradas.</p>
-            </div>
+                <h3 class="font-bold text-white mb-2">¿Buscás señales? Conocé NLT Elite Signals</h3>
+                <p class="text-sm text-gray-400">Producto propio del ecosistema NLT -- señales estructuradas con Quality Score 90%+.</p>
+            </a>
             <div class="glass-card p-8" data-reveal>
                 <i class="ph-fill ph-arrows-clockwise text-2xl text-nlt-accent mb-4"></i>
                 <h3 class="font-bold text-white mb-2">Actualizaciones</h3>
@@ -238,8 +238,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260814c"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260814"></script>
+    <script src="assets/js/nlt-shared.js?v=20260824"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
     <script>
         let sesionActual = null;
         let planesCache = [];
