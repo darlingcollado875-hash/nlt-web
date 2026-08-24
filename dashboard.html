@@ -28,6 +28,8 @@
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .glow-text { text-shadow: 0 0 16px rgba(67, 120, 255, 0.4); }
+        .module-strip-wrap { position: relative; }
+        .module-strip-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 4px; width: 40px; background: linear-gradient(90deg, transparent, #080A0F); pointer-events: none; }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -55,7 +57,9 @@
         <div class="flex-1 overflow-y-auto p-5 space-y-6 md:p-10 md:space-y-8">
             <div>
                 <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">NLT Platform</p>
-                <div id="moduleStrip" class="flex items-center gap-3 overflow-x-auto pb-1"></div>
+                <div class="module-strip-wrap">
+                    <div id="moduleStrip" class="flex items-center gap-3 overflow-x-auto pb-1"></div>
+                </div>
             </div>
 
             <div id="connectionAlertWidget"></div>
@@ -116,12 +120,13 @@
         let sesionActual = null;
         let miSuscripcion = null; // { plan, status, max_accounts, cuentas_actuales, cuentas_disponibles } -- real, del backend
 
-        async function cargarMetricas() {
-            try {
-                miSuscripcion = await NLT_API.miSuscripcion();
-            } catch (err) {
-                console.error('Error cargando suscripción:', err);
-            }
+        async function cargarMetricas(subPreCargada) {
+            // subPreCargada: /billing/subscription se pedía ACÁ y, por
+            // separado, adentro de NLT.mountSidebar() (mismo endpoint, mismo
+            // dato, dos round-trips reales por cada carga del dashboard --
+            // confirmado real en el audit de rendimiento). init() la pide UNA
+            // sola vez y la reparte entre los dos consumidores.
+            miSuscripcion = subPreCargada;
             const limite = miSuscripcion ? miSuscripcion.max_accounts : 0;
             const usadas = miSuscripcion ? miSuscripcion.cuentas_actuales : 0;
             document.getElementById('metricCuentasUsadas').textContent = usadas;
@@ -253,14 +258,26 @@
 
             document.getElementById('moduleStrip').innerHTML = NLT.renderModuleStrip('copy');
 
-            // Estas 4 llamadas tocan zonas de DOM y endpoints independientes
-            // entre sí -- antes se esperaban una por una (5 round-trips en
+            // /billing/subscription se pide UNA sola vez acá (antes mountSidebar
+            // y cargarMetricas la pedían cada uno por su lado -- 2 round-trips
+            // reales al mismo endpoint en cada carga del dashboard, confirmado
+            // real en el audit de rendimiento) y se reparte a ambos consumidores.
+            let subscripcion = null;
+            try {
+                subscripcion = await NLT_API.miSuscripcion();
+            } catch (err) {
+                console.error('Error cargando suscripción:', err);
+            }
+            const planLabel = (subscripcion && subscripcion.plan && subscripcion.status === 'active') ? subscripcion.plan : 'Sin plan activo';
+
+            // Estas 5 llamadas tocan zonas de DOM y endpoints independientes
+            // entre sí -- antes se esperaban una por una (varios round-trips en
             // serie), lo que sumaba toda su latencia de red en vez de solo
             // la del más lento. En paralelo, todas corren a la vez.
             await Promise.all([
-                NLT.mountSidebar(sesionActual, { activo: 'dashboard', seccion: 'cfd' }),
+                NLT.mountSidebar(sesionActual, { activo: 'dashboard', seccion: 'cfd', planLabel }),
                 NLT.ensurePerfil(sesionActual),
-                cargarMetricas(),
+                cargarMetricas(subscripcion),
                 cargarMarketAlerts(),
                 cargarAlertaConexion(),
             ]);
