@@ -630,10 +630,6 @@
         adminSignalsListar: () => request('/admin/signals'),
         adminSignalsCrear: (datos) => request('/admin/signals', { method: 'POST', body: JSON.stringify(datos) }),
         adminSignalsActualizarStatus: (signalId, status) => request(`/admin/signals/${signalId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
-        adminSignalsListarAccesos: () => request('/admin/signals/access'),
-        adminSignalsConcederAcceso: (userId, notas) => request(`/admin/signals/access/${userId}/grant`, { method: 'POST', body: JSON.stringify({ notas: notas || null }) }),
-        adminSignalsRevocarAcceso: (userId) => request(`/admin/signals/access/${userId}/revoke`, { method: 'POST' }),
-        adminSignalsCancelacionesFallidas: () => request('/admin/signals/cancelaciones-fallidas'),
     };
 
     window.NLT_API = NLT_API;

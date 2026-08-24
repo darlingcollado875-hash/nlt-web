@@ -197,7 +197,7 @@
     <script src="assets/js/nlt-shared.js?v=20260824"></script>
     <script src="assets/js/nlt-api-client.js?v=20260824"></script>
     <script>
-        const PLAN_ID = 'ELITE_SIGNALS_ONETIME';
+        const PLAN_ID = 'ELITE_SIGNALS_MONTHLY';
         let sesionActual = null;
         let planCache = null;
         let cuponValidado = null;
@@ -209,7 +209,7 @@
         document.getElementById('btn-login-checkout').addEventListener('click', irALogin);
 
         function precioTexto(p) {
-            return `$${p.precio_mensual.toFixed(2)} pago único`;
+            return `$${p.precio_mensual.toFixed(2)}/mes`;
         }
 
         // --- Checkout real vía el tokenizador oficial de Pay2Commerce (P2C.tokenize) --
@@ -241,10 +241,10 @@
                 <p id="chkCuponMsg" class="text-xs mb-4 hidden"></p>
                 <div class="border-t border-white/10 pt-4 mb-6">
                     <div class="flex justify-between items-center">
-                        <span class="text-sm font-semibold text-white">Total (pago único)</span>
-                        <span class="text-2xl font-bold text-white" id="chkTotal">$${planCache.precio_mensual.toFixed(2)} USD</span>
+                        <span class="text-sm font-semibold text-white">Total (mensual)</span>
+                        <span class="text-2xl font-bold text-white" id="chkTotal">$${planCache.precio_mensual.toFixed(2)} USD/mes</span>
                     </div>
-                    <p class="text-[11px] text-gray-500 mt-1">Pago único -- acceso permanente. No es una suscripción, nunca se te vuelve a cobrar.</p>
+                    <p class="text-[11px] text-gray-500 mt-1">Suscripción mensual. Acceso mientras tu suscripción esté activa -- podés cancelar cuando quieras.</p>
                 </div>
                 <button id="chkPagar" class="w-full py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Pagar con tarjeta</button>
                 <p id="chkMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
@@ -264,7 +264,7 @@
                         cuponValidado = null;
                         msg.className = 'text-xs mb-4 text-nlt-danger';
                         msg.textContent = r.motivo || 'Cupón inválido';
-                        document.getElementById('chkTotal').textContent = `$${planCache.precio_mensual.toFixed(2)} USD`;
+                        document.getElementById('chkTotal').textContent = `$${planCache.precio_mensual.toFixed(2)} USD/mes`;
                         return;
                     }
                     cuponValidado = { code: code.toUpperCase(), discount_percentage: r.discount_percentage };
@@ -272,7 +272,7 @@
                     msg.textContent = `¡Cupón aplicado! ${r.discount_percentage}% de descuento.`;
                     const descuento = Math.round(planCache.precio_mensual * (r.discount_percentage / 100) * 100) / 100;
                     const total = Math.round((planCache.precio_mensual - descuento) * 100) / 100;
-                    document.getElementById('chkTotal').textContent = `$${total.toFixed(2)} USD`;
+                    document.getElementById('chkTotal').textContent = `$${total.toFixed(2)} USD/mes`;
                 } catch (err) {
                     msg.className = 'text-xs mb-4 text-nlt-danger';
                     msg.textContent = 'Error: ' + err.message;
@@ -288,11 +288,6 @@
                 msg.className = 'mt-3 text-xs p-3 rounded-lg bg-blue-500/10 text-blue-400';
                 msg.textContent = 'Un momento...';
                 try {
-                    // 'monthly' acá es intencional, NO un bug: ELITE_SIGNALS_ONETIME
-                    // es billing_period='one_time' en `plans`, pero Pay2Commerce no
-                    // tiene cobro único real (solo suscripciones) -- el backend
-                    // (orders.py::activar_pago) cancela la suscripción apenas se
-                    // verifica el primer cobro, así que el usuario paga una sola vez.
                     const orden = await NLT_API.crearOrden(PLAN_ID, 'monthly', cuponValidado ? cuponValidado.code : null);
                     if (!orden.payment_available) {
                         btn.disabled = true;
