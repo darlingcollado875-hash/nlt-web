@@ -470,6 +470,10 @@
             id: 'propfirm', nombre: 'NLT Funded', status: 'live', href: 'propfirm.html',
             icono: 'ph-trophy', descripcion: 'Comprá tu challenge y accedé a una cuenta funded a través de nuestro partner de PropFirm.',
         },
+        {
+            id: 'journal', nombre: 'NLT Trader Journal', status: 'live', href: 'journal.html',
+            icono: 'ph-notebook', descripcion: 'Registrá tus operaciones, medí tu desempeño real y construí disciplina con analítica profesional.',
+        },
     ];
 
     // --- Sidebar global (Fase 1: navegación consistente en toda la plataforma) ---
@@ -484,6 +488,7 @@
         { id: 'maestra', href: 'maestra.html', icono: 'ph-crown', label: 'Cuenta Maestra' },
         { id: 'cuentas', href: 'cuentas.html', icono: 'ph-users', label: 'Cuentas Destino' },
         { id: 'historial', href: 'historial.html', icono: 'ph-clock-counter-clockwise', label: 'Historial' },
+        { id: 'journal', href: 'journal.html', icono: 'ph-notebook', label: 'Trader Journal' },
         { id: 'afiliado', href: 'afiliado.html', icono: 'ph-share-network', label: 'NLT Affiliate' },
     ];
     const NAV_CFD_AJUSTES = [

@@ -583,6 +583,43 @@
         adminPropfirmWebhookEvents: () => request('/admin/propfirm/webhook-events'),
         adminPropfirmStatus: () => request('/admin/propfirm/status'),
         adminTradingProviders: () => request('/admin/trading/providers'),
+
+        // --- NLT Trader Journal ---
+        journalCrearTrade: (datos) => request('/journal/trades', { method: 'POST', body: JSON.stringify(datos) }),
+        journalListarTrades: (filtros = {}) => {
+            const qs = new URLSearchParams();
+            Object.entries(filtros).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, v); });
+            const query = qs.toString();
+            return request(`/journal/trades${query ? '?' + query : ''}`);
+        },
+        journalObtenerTrade: (tradeId) => request(`/journal/trades/${tradeId}`),
+        journalActualizarTrade: (tradeId, datos) => request(`/journal/trades/${tradeId}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        journalBorrarTrade: (tradeId) => request(`/journal/trades/${tradeId}`, { method: 'DELETE' }),
+        journalSubirScreenshot: (tradeId, stage, file, onProgress) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            return subirArchivo(`/journal/trades/${tradeId}/screenshots?stage=${encodeURIComponent(stage)}`, fd, onProgress);
+        },
+        journalBorrarScreenshot: (screenshotId) => request(`/journal/screenshots/${screenshotId}`, { method: 'DELETE' }),
+        journalDashboard: (range) => request(`/journal/dashboard?range=${encodeURIComponent(range || '30d')}`),
+        journalCalendario: (month) => request(`/journal/calendar?month=${encodeURIComponent(month)}`),
+        journalTradesDelDia: (fecha) => request(`/journal/calendar/${fecha}/trades`),
+        journalAnalytics: (filtros = {}) => {
+            const qs = new URLSearchParams();
+            Object.entries(filtros).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') qs.set(k, v); });
+            const query = qs.toString();
+            return request(`/journal/analytics${query ? '?' + query : ''}`);
+        },
+        journalDiscipline: (recalcular) => request(`/journal/discipline${recalcular ? '?recalcular=true' : ''}`),
+        journalReviewInsights: () => request('/journal/review-insights'),
+        journalListarPlaybooks: () => request('/journal/playbooks'),
+        journalCrearPlaybook: (datos) => request('/journal/playbooks', { method: 'POST', body: JSON.stringify(datos) }),
+        journalActualizarPlaybook: (playbookId, datos) => request(`/journal/playbooks/${playbookId}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        journalBorrarPlaybook: (playbookId) => request(`/journal/playbooks/${playbookId}`, { method: 'DELETE' }),
+        journalObtenerSettings: () => request('/journal/settings'),
+        journalActualizarSettings: (datos) => request('/journal/settings', { method: 'PUT', body: JSON.stringify(datos) }),
+
+        adminJournalStats: () => request('/admin/journal/stats'),
     };
 
     window.NLT_API = NLT_API;

@@ -87,6 +87,7 @@
             <button data-seccion="afiliados" class="tab-admin"><i class="ph-fill ph-share-network mr-1.5"></i>Affiliates</button>
             <button data-seccion="broker" class="tab-admin"><i class="ph-fill ph-briefcase mr-1.5"></i>Broker</button>
             <button data-seccion="propfirm" class="tab-admin"><i class="ph-fill ph-trophy mr-1.5"></i>Prop Firm</button>
+            <button data-seccion="journal" class="tab-admin"><i class="ph-fill ph-notebook mr-1.5"></i>Trader Journal</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
@@ -1245,6 +1246,22 @@
                     <h2 class="text-lg font-bold">Trading Providers</h2>
                     <p class="text-xs text-gray-500">Vista unificada de Broker + Prop Firm + Futures -- nunca muestra "Connected" sin una conexión real.</p>
                     <div id="listaTradingProviders" class="grid grid-cols-1 md:grid-cols-3 gap-4"><p class="text-sm text-gray-500 col-span-full">Cargando...</p></div>
+                </div>
+            </div>
+
+            <!-- NLT TRADER JOURNAL (Fase 23 -- solo métricas agregadas, nunca trades/screenshots privados de un usuario) -->
+            <div id="seccion-journal" class="seccion-admin hidden space-y-6">
+                <div class="glass-card p-6">
+                    <h2 class="text-lg font-bold flex items-center gap-2 mb-4"><i class="ph-fill ph-notebook text-nlt-accent"></i> Trader Journal -- Métricas Agregadas</h2>
+                    <p class="text-xs text-gray-500 mb-4">Solo números agregados -- nunca se muestran trades, screenshots ni notas privadas de un usuario específico desde acá.</p>
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Total Trades</p><p id="jTotalTrades" class="text-lg font-bold text-white">-</p></div>
+                        <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Usuarios activos</p><p id="jActiveUsers" class="text-lg font-bold text-white">-</p></div>
+                        <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Avg. trades/usuario</p><p id="jAvgTrades" class="text-lg font-bold text-white">-</p></div>
+                        <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Avg. Discipline Score</p><p id="jAvgDiscipline" class="text-lg font-bold text-white">-</p></div>
+                        <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Setup más usado</p><p id="jTopSetup" class="text-lg font-bold text-white">-</p></div>
+                        <div class="glass-card p-4"><p class="text-xs text-gray-500 mb-1">Activo más operado</p><p id="jTopAsset" class="text-lg font-bold text-white">-</p></div>
+                    </div>
                 </div>
             </div>
 
@@ -4002,6 +4019,21 @@
             await cargarTradingProviders();
         }
 
+        // --- NLT Trader Journal (Fase 23 -- solo agregados) ---
+        async function cargarJournalTodo() {
+            try {
+                const s = await NLT_API.adminJournalStats();
+                document.getElementById('jTotalTrades').textContent = s.total_trades;
+                document.getElementById('jActiveUsers').textContent = s.active_journal_users;
+                document.getElementById('jAvgTrades').textContent = s.average_trades_per_user;
+                document.getElementById('jAvgDiscipline').textContent = s.average_discipline_score ?? '--';
+                document.getElementById('jTopSetup').textContent = s.most_used_setup || '--';
+                document.getElementById('jTopAsset').textContent = s.most_traded_asset || '--';
+            } catch (err) {
+                document.getElementById('jTotalTrades').parentElement.parentElement.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
         // --- Administración Global (exclusivo Global Admin) ---
         let agAdminsCache = [];
         let agUsuarioSeleccionado = null;
@@ -4170,6 +4202,7 @@
             afiliados: [cargarAfiliadosTodo],
             broker: [cargarBrokerTodo],
             propfirm: [cargarPropfirmTodo],
+            journal: [cargarJournalTodo],
         };
 
         let _esGlobalAdmin = false;

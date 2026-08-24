@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Trader Journal</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .j-tab.activo { background: rgba(67,120,255,0.1); color: #4378FF; border-color: rgba(67,120,255,0.1); }
+        .j-tab:not(.activo):hover, .range-btn:not(.activo):hover { color: #fff; border-color: rgba(255,255,255,0.12); background: rgba(255,255,255,0.03); }
+        .range-btn.activo { background: rgba(67,120,255,0.15); color: #4378FF; border-color: rgba(67,120,255,0.25); }
+        .j-tab, .range-btn { transition: all .15s; }
+        .input-nlt { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.05); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-size: 0.875rem; color: #fff; }
+        .input-nlt:focus { outline: none; border-color: rgba(67,120,255,0.4); }
+        .label-nlt { font-size: 10px; color: #6B7280; display: block; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em; }
+        .chk-nlt { accent-color: #4378FF; width: 15px; height: 15px; }
+        .section-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #4378FF; margin-bottom: 12px; margin-top: 24px; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .section-header:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+        .dropzone { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; border: 1.5px dashed rgba(255,255,255,0.1); border-radius: 12px; padding: 16px 8px; cursor: pointer; transition: all .15s; }
+        .dropzone:hover { border-color: rgba(67,120,255,0.4); background: rgba(67,120,255,0.03); }
+        .cal-cell { min-height: 78px; border-radius: 12px; padding: 6px 8px; display: flex; flex-direction: column; gap: 2px; border: 1px solid rgba(255,255,255,0.04); }
+        .cal-empty { border: none; }
+        .cal-empty-day { background: rgba(255,255,255,0.015); }
+        .cal-win { background: rgba(34,197,94,0.08); border-color: rgba(34,197,94,0.15); cursor: pointer; }
+        .cal-loss { background: rgba(239,68,68,0.08); border-color: rgba(239,68,68,0.15); cursor: pointer; }
+        .cal-be { background: rgba(245,158,11,0.08); border-color: rgba(245,158,11,0.15); cursor: pointer; }
+        .cal-win:hover, .cal-loss:hover, .cal-be:hover { filter: brightness(1.3); }
+        .cal-daynum { font-size: 11px; color: #6B7280; font-weight: 600; }
+        .cal-pnl { font-size: 11px; font-weight: 700; }
+        .cal-count { font-size: 9px; color: #6B7280; }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 80; align-items: center; justify-content: center; padding: 16px; }
+        .modal-overlay:not(.hidden) { display: flex; }
+        .modal-card { max-height: 90vh; overflow-y: auto; }
+        .thumb-del { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 999px; background: #EF4444; color: #fff; font-size: 11px; line-height: 18px; text-align: center; cursor: pointer; }
+        .bar-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.05); overflow: hidden; }
+        .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4378FF, #6C93FF); }
+        /* Tailwind here is a static precompiled bundle (no build step on this
+           machine) scanned from the *other* pages before journal.html existed --
+           these multi-column grid variants were never used elsewhere, so they
+           never got compiled. Defined here directly instead of relying on
+           Tailwind to generate them. */
+        .grid-cols-7-fixed { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        @media (min-width: 1024px) {
+            .lg-grid-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+            .lg-grid-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+            .lg-grid-7 { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+            .lg-col-span-2 { grid-column: span 2 / span 2; }
+        }
+        .toast-z { z-index: 90; }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Trader Journal</h1>
+            <div class="flex items-center gap-2 md:gap-3">
+                <button id="btnNewTrade" class="px-4 py-2 md:px-5 md:py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-xs tracking-wide transition-all hover:brightness-110 cursor-pointer">+ New Trade</button>
+                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-10 space-y-6">
+
+            <nav class="flex items-center gap-2 flex-wrap">
+                <button data-tab="dashboard" class="j-tab activo px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Dashboard</button>
+                <button data-tab="trades" class="j-tab px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Trades</button>
+                <button data-tab="calendar" class="j-tab px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Calendar</button>
+                <button data-tab="analytics" class="j-tab px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Analytics</button>
+                <button data-tab="playbook" class="j-tab px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Playbook</button>
+                <button data-tab="discipline" class="j-tab px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Discipline</button>
+                <button data-tab="settings" class="j-tab px-3 py-2 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Settings</button>
+            </nav>
+
+            <!-- ===================== DASHBOARD ===================== -->
+            <div id="tab-dashboard" class="j-tab-content space-y-5">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <button data-range="today" class="range-btn px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 border border-white/5 cursor-pointer">Today</button>
+                    <button data-range="7d" class="range-btn px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 border border-white/5 cursor-pointer">7D</button>
+                    <button data-range="30d" class="range-btn activo px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 border border-white/5 cursor-pointer">30D</button>
+                    <button data-range="90d" class="range-btn px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 border border-white/5 cursor-pointer">90D</button>
+                    <button data-range="ytd" class="range-btn px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 border border-white/5 cursor-pointer">YTD</button>
+                    <button data-range="all" class="range-btn px-3 py-1.5 rounded-lg text-[11px] font-semibold text-gray-400 border border-white/5 cursor-pointer">All</button>
+                </div>
+
+                <div class="grid grid-cols-2 md:grid-cols-3 lg-grid-5 gap-3">
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Balance</p><p id="statBalance" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">P&amp;L Today</p><p id="statPnlToday" class="text-lg font-bold">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">P&amp;L Week</p><p id="statPnlWeek" class="text-lg font-bold">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">P&amp;L Month</p><p id="statPnlMonth" class="text-lg font-bold">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Win Rate</p><p id="statWinRate" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Profit Factor</p><p id="statProfitFactor" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Avg RR</p><p id="statAvgRR" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Max Drawdown</p><p id="statMaxDD" class="text-lg font-bold text-nlt-danger">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Total Trades</p><p id="statTotalTrades" class="text-lg font-bold text-white">--</p></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="glass-card p-5 lg-col-span-2">
+                        <h3 class="text-sm font-bold text-white mb-3">Equity Curve</h3>
+                        <div class="h-64"><canvas id="chartEquity"></canvas></div>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">P&amp;L by Day</h3>
+                        <div class="h-64"><canvas id="chartPnlDay"></canvas></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">Long vs Short</h3>
+                        <div id="dashLongShort" class="space-y-2 text-sm text-gray-400">--</div>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">Best Setups</h3>
+                        <div id="dashBestSetups" class="space-y-2 text-sm text-gray-400">--</div>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">Best Assets / Session</h3>
+                        <div id="dashBestAssets" class="space-y-2 text-sm text-gray-400 mb-3">--</div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider">Best Session</p>
+                        <p id="dashBestSession" class="text-sm text-white font-semibold">--</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== TRADES ===================== -->
+            <div id="tab-trades" class="j-tab-content space-y-4 hidden">
+                <div class="glass-card p-4 grid grid-cols-2 md:grid-cols-4 lg-grid-7 gap-2">
+                    <input id="fSymbol" placeholder="Symbol" class="input-nlt">
+                    <input id="fAssetType" placeholder="Asset type" class="input-nlt">
+                    <select id="fDirection" class="input-nlt"><option value="">Direction</option><option value="long">Long</option><option value="short">Short</option></select>
+                    <select id="fResult" class="input-nlt"><option value="">Result</option><option value="win">Win</option><option value="loss">Loss</option><option value="breakeven">Breakeven</option><option value="open">Open</option></select>
+                    <input id="fDesde" type="date" class="input-nlt">
+                    <input id="fHasta" type="date" class="input-nlt">
+                    <button id="btnFiltrarTrades" class="px-3 py-2 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold cursor-pointer">Filter</button>
+                </div>
+                <div class="glass-card overflow-hidden">
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-white/5 text-[10px] uppercase text-gray-500 border-b border-white/5">
+                                <tr>
+                                    <th class="text-left py-2.5 px-3">Date</th><th class="text-left py-2.5 px-3">Symbol</th>
+                                    <th class="text-left py-2.5 px-3">Dir</th><th class="text-left py-2.5 px-3">Result</th>
+                                    <th class="text-right py-2.5 px-3">P&amp;L</th><th class="text-right py-2.5 px-3">RR</th>
+                                    <th class="text-left py-2.5 px-3">Setup</th><th class="text-left py-2.5 px-3">Session</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaTrades"><tr><td colspan="8" class="py-6 text-center text-gray-600">Loading...</td></tr></tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <button id="btnTradesPrev" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">&larr; Prev</button>
+                    <span id="tradesPageLabel" class="text-xs text-gray-500"></span>
+                    <button id="btnTradesNext" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 border border-white/5 cursor-pointer">Next &rarr;</button>
+                </div>
+            </div>
+
+            <!-- ===================== CALENDAR ===================== -->
+            <div id="tab-calendar" class="j-tab-content space-y-4 hidden">
+                <div class="flex items-center justify-between">
+                    <button id="btnCalPrev" class="w-9 h-9 rounded-lg border border-white/5 flex items-center justify-center text-gray-400 hover:text-white cursor-pointer"><i class="ph ph-caret-left"></i></button>
+                    <h2 id="calLabel" class="text-lg font-bold capitalize">--</h2>
+                    <button id="btnCalNext" class="w-9 h-9 rounded-lg border border-white/5 flex items-center justify-center text-gray-400 hover:text-white cursor-pointer"><i class="ph ph-caret-right"></i></button>
+                </div>
+                <div class="grid grid-cols-7-fixed gap-1.5 text-center text-[10px] text-gray-500 uppercase tracking-wider">
+                    <div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div>
+                </div>
+                <div id="calGrid" class="grid grid-cols-7-fixed gap-1.5"></div>
+                <div id="calDayTrades" class="hidden glass-card p-5 space-y-2">
+                    <h3 id="calDayTitle" class="text-sm font-bold text-white mb-2">--</h3>
+                    <div id="calDayList" class="space-y-2"></div>
+                </div>
+            </div>
+
+            <!-- ===================== ANALYTICS ===================== -->
+            <div id="tab-analytics" class="j-tab-content space-y-4 hidden">
+                <div class="glass-card p-4 grid grid-cols-2 md:grid-cols-3 lg-grid-6 gap-2">
+                    <input id="aAssetType" placeholder="Asset type" class="input-nlt">
+                    <input id="aSession" placeholder="Session" class="input-nlt">
+                    <input id="aSetupType" placeholder="Setup type" class="input-nlt">
+                    <select id="aDirection" class="input-nlt"><option value="">Direction</option><option value="long">Long</option><option value="short">Short</option></select>
+                    <input id="aDesde" type="date" class="input-nlt">
+                    <input id="aHasta" type="date" class="input-nlt">
+                </div>
+                <button id="btnFiltrarAnalytics" class="px-4 py-2 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold cursor-pointer">Apply Filters</button>
+
+                <div class="grid grid-cols-2 md:grid-cols-4 lg-grid-5 gap-3">
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Trades</p><p id="anTotal" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Win Rate</p><p id="anWinRate" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Profit Factor</p><p id="anPF" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Expectancy</p><p id="anExpectancy" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Avg RR</p><p id="anAvgRR" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Avg Win</p><p id="anAvgWin" class="text-lg font-bold text-nlt-success">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Avg Loss</p><p id="anAvgLoss" class="text-lg font-bold text-nlt-danger">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Max Win Streak</p><p id="anMaxWin" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Max Loss Streak</p><p id="anMaxLoss" class="text-lg font-bold text-white">--</p></div>
+                    <div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1.5">Max Drawdown</p><p id="anMaxDD" class="text-lg font-bold text-nlt-danger">--</p></div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div class="glass-card p-5"><h3 class="text-sm font-bold text-white mb-3">Equity Curve</h3><div class="h-56"><canvas id="chartAnEquity"></canvas></div></div>
+                    <div class="glass-card p-5"><h3 class="text-sm font-bold text-white mb-3">Drawdown</h3><div class="h-56"><canvas id="chartAnDrawdown"></canvas></div></div>
+                    <div class="glass-card p-5"><h3 class="text-sm font-bold text-white mb-3">P&amp;L Distribution</h3><div class="h-56"><canvas id="chartAnDist"></canvas></div></div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">By Asset</h3>
+                        <table class="w-full text-xs"><tbody id="tblByAsset"></tbody></table>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">By Session</h3>
+                        <table class="w-full text-xs"><tbody id="tblBySession"></tbody></table>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">By Setup</h3>
+                        <table class="w-full text-xs"><tbody id="tblBySetup"></tbody></table>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">By Direction</h3>
+                        <div id="byDirection" class="grid grid-cols-2 gap-3"></div>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">By Day of Week</h3>
+                        <div id="byDayOfWeek" class="space-y-1.5 text-xs"></div>
+                    </div>
+                    <div class="glass-card p-5">
+                        <h3 class="text-sm font-bold text-white mb-3">By Hour of Day</h3>
+                        <div id="byHourOfDay" class="space-y-1.5 text-xs max-h-56 overflow-y-auto"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===================== PLAYBOOK ===================== -->
+            <div id="tab-playbook" class="j-tab-content space-y-4 hidden">
+                <button id="btnNewPlaybook" class="px-4 py-2 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold cursor-pointer">+ New Playbook</button>
+                <div id="listaPlaybooks" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">Loading...</div>
+            </div>
+
+            <!-- ===================== DISCIPLINE ===================== -->
+            <div id="tab-discipline" class="j-tab-content space-y-4 hidden">
+                <div class="glass-card p-8 flex flex-col md:flex-row items-center gap-8">
+                    <div class="text-center shrink-0">
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">NLT Discipline Score</p>
+                        <p id="discOverall" class="text-6xl font-bold text-nlt-accent">--</p>
+                        <p id="discTradesEval" class="text-xs text-gray-500 mt-1">-- trades evaluated</p>
+                        <button id="btnRecalcDiscipline" class="mt-3 px-3 py-1.5 rounded-lg border border-white/10 text-xs text-gray-400 hover:text-white cursor-pointer">Recalculate</button>
+                    </div>
+                    <div class="flex-1 w-full space-y-4">
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-gray-400">Risk Management</span><span id="discRisk" class="text-white font-semibold">--</span></div>
+                            <div class="bar-track"><div id="discRiskBar" class="bar-fill" style="width:0%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-gray-400">Execution</span><span id="discExec" class="text-white font-semibold">--</span></div>
+                            <div class="bar-track"><div id="discExecBar" class="bar-fill" style="width:0%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-gray-400">Psychology</span><span id="discPsych" class="text-white font-semibold">--</span></div>
+                            <div class="bar-track"><div id="discPsychBar" class="bar-fill" style="width:0%"></div></div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-xs mb-1"><span class="text-gray-400">Consistency</span><span id="discConsist" class="text-white font-semibold">--</span></div>
+                            <div class="bar-track"><div id="discConsistBar" class="bar-fill" style="width:0%"></div></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card p-5">
+                    <h3 class="text-sm font-bold text-white mb-3">Historical Evolution</h3>
+                    <div class="h-56"><canvas id="chartDiscHistory"></canvas></div>
+                </div>
+                <p class="text-[11px] text-gray-600">El Discipline Score es una fórmula determinística basada en tus propios trades (no es una calificación de IA) -- ver <button id="btnVerInsights" class="text-nlt-accent underline cursor-pointer">Trade Review insights</button>.</p>
+                <div id="reviewInsightsBox" class="hidden glass-card p-5 space-y-2 text-sm text-gray-400"></div>
+            </div>
+
+            <!-- ===================== SETTINGS ===================== -->
+            <div id="tab-settings" class="j-tab-content space-y-4 hidden">
+                <div class="glass-card p-6 max-w-md space-y-4">
+                    <h3 class="text-sm font-bold text-white">Journal Settings</h3>
+                    <div><label class="label-nlt" for="setBalance">Starting Balance</label><input id="setBalance" type="number" step="any" class="input-nlt"></div>
+                    <div><label class="label-nlt" for="setCurrency">Currency</label>
+                        <select id="setCurrency" class="input-nlt">
+                            <option>USD</option><option>EUR</option><option>GBP</option><option>AUD</option><option>CAD</option><option>JPY</option><option>CHF</option>
+                        </select>
+                    </div>
+                    <button id="btnSaveSettings" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Save</button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- ===================== MODAL: New / Edit Trade ===================== -->
+    <div id="modalTrade" class="modal-overlay hidden">
+        <div class="glass-card modal-card w-full max-w-3xl p-6 md:p-8">
+            <div class="flex items-center justify-between mb-4">
+                <h2 id="modalTradeTitle" class="text-lg font-bold text-white">New Trade</h2>
+                <button id="btnCloseModalTrade" class="text-gray-500 hover:text-white cursor-pointer text-xl leading-none">&times;</button>
+            </div>
+            <div id="modalTradeWarnings" class="hidden mb-4 p-3 rounded-lg bg-nlt-warn/10 border border-nlt-warn/20 text-xs text-nlt-warn space-y-1"></div>
+
+            <h4 class="section-header">Trade Information</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                <div><label class="label-nlt" for="tfSymbol">Symbol *</label><input id="tfSymbol" class="input-nlt" placeholder="XAUUSD"></div>
+                <div><label class="label-nlt" for="tfAssetType">Asset Type</label><input id="tfAssetType" list="dl-asset-type" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfDirection">Direction *</label><select id="tfDirection" class="input-nlt"><option value="long">Long</option><option value="short">Short</option></select></div>
+                <div><label class="label-nlt" for="tfSession">Session</label><input id="tfSession" list="dl-session" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfOpenedAt">Opened At</label><input id="tfOpenedAt" type="datetime-local" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfClosedAt">Closed At</label><input id="tfClosedAt" type="datetime-local" class="input-nlt"></div>
+            </div>
+
+            <h4 class="section-header">Setup</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                <div><label class="label-nlt" for="tfPlaybook">Playbook</label><select id="tfPlaybook" class="input-nlt"><option value="">-- none --</option></select></div>
+                <div><label class="label-nlt" for="tfSetupType">Setup Type</label><input id="tfSetupType" list="dl-setup-type" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfMarketStructure">Market Structure</label><input id="tfMarketStructure" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfHtfBias">HTF Bias</label><input id="tfHtfBias" list="dl-htf-bias" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfKillzone">Killzone</label><input id="tfKillzone" list="dl-killzone" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfConfluences">Confluences (comma separated)</label><input id="tfConfluences" class="input-nlt"></div>
+            </div>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfLiquiditySweep" class="chk-nlt"> Liquidity Sweep</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfBosMss" class="chk-nlt"> BOS / MSS</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfFvg" class="chk-nlt"> FVG</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfOrderBlock" class="chk-nlt"> Order Block</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfCrt" class="chk-nlt"> CRT</label>
+            </div>
+
+            <h4 class="section-header">Execution</h4>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><label class="label-nlt" for="tfEntryPrice">Entry Price</label><input id="tfEntryPrice" type="number" step="any" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfStopLoss">Stop Loss</label><input id="tfStopLoss" type="number" step="any" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfTakeProfit">Take Profit</label><input id="tfTakeProfit" type="number" step="any" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfPositionSize">Position Size</label><input id="tfPositionSize" type="number" step="any" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfRiskPercent">Risk %</label><input id="tfRiskPercent" type="number" step="any" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfRiskAmount">Risk Amount</label><input id="tfRiskAmount" type="number" step="any" class="input-nlt" placeholder="auto"></div>
+                <div><label class="label-nlt" for="tfExitPrice">Exit Price</label><input id="tfExitPrice" type="number" step="any" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfPnl">P&amp;L (override)</label><input id="tfPnl" type="number" step="any" class="input-nlt" placeholder="auto"></div>
+            </div>
+
+            <h4 class="section-header">Mental State</h4>
+            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                <div><label class="label-nlt" for="tfEmotionBefore">Emotion Before</label><input id="tfEmotionBefore" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfEmotionDuring">Emotion During</label><input id="tfEmotionDuring" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfEmotionAfter">Emotion After</label><input id="tfEmotionAfter" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfConfidence">Confidence (1-10)</label><input id="tfConfidence" type="number" min="1" max="10" class="input-nlt"></div>
+                <div><label class="label-nlt" for="tfPlanFollowed">Plan Followed</label><select id="tfPlanFollowed" class="input-nlt"><option value="">Not set</option><option value="true">Yes</option><option value="false">No</option></select></div>
+                <div><label class="label-nlt" for="tfRuleViolation">Rule Violation</label><input id="tfRuleViolation" class="input-nlt"></div>
+            </div>
+            <div class="flex flex-wrap gap-4">
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfFomo" class="chk-nlt"> FOMO</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfRevenge" class="chk-nlt"> Revenge Trading</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfHesitation" class="chk-nlt"> Hesitation</label>
+                <label class="flex items-center gap-1.5 text-xs text-gray-300"><input type="checkbox" id="tfOvertrading" class="chk-nlt"> Overtrading</label>
+            </div>
+
+            <h4 class="section-header">Review</h4>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div><label class="label-nlt" for="tfThesis">Trade Thesis</label><textarea id="tfThesis" rows="2" class="input-nlt"></textarea></div>
+                <div><label class="label-nlt" for="tfLesson">Lesson</label><textarea id="tfLesson" rows="2" class="input-nlt"></textarea></div>
+                <div><label class="label-nlt" for="tfWentRight">What Went Right</label><textarea id="tfWentRight" rows="2" class="input-nlt"></textarea></div>
+                <div><label class="label-nlt" for="tfWentWrong">What Went Wrong</label><textarea id="tfWentWrong" rows="2" class="input-nlt"></textarea></div>
+            </div>
+            <div class="mt-3"><label class="label-nlt" for="tfNotes">Notes</label><textarea id="tfNotes" rows="2" class="input-nlt"></textarea></div>
+
+            <div id="screenshotsSection" class="hidden">
+                <h4 class="section-header">Screenshots</h4>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1 text-center">Before</p>
+                        <label class="dropzone" for="dz-before"><i class="ph ph-image text-2xl text-gray-600"></i><span class="text-[10px] text-gray-500">Click to upload</span></label>
+                        <input type="file" id="dz-before" accept="image/*" class="hidden">
+                        <div id="thumbs-before" class="flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1 text-center">During</p>
+                        <label class="dropzone" for="dz-during"><i class="ph ph-image text-2xl text-gray-600"></i><span class="text-[10px] text-gray-500">Click to upload</span></label>
+                        <input type="file" id="dz-during" accept="image/*" class="hidden">
+                        <div id="thumbs-during" class="flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1 text-center">After</p>
+                        <label class="dropzone" for="dz-after"><i class="ph ph-image text-2xl text-gray-600"></i><span class="text-[10px] text-gray-500">Click to upload</span></label>
+                        <input type="file" id="dz-after" accept="image/*" class="hidden">
+                        <div id="thumbs-after" class="flex flex-wrap gap-2 mt-2"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+                <button id="btnDeleteTrade" class="hidden px-4 py-2 rounded-lg border border-nlt-danger/30 text-nlt-danger text-xs font-semibold cursor-pointer">Delete Trade</button>
+                <div class="flex items-center gap-2 ml-auto">
+                    <button id="btnCancelTrade" class="px-4 py-2 rounded-lg border border-white/10 text-gray-400 text-xs font-semibold cursor-pointer">Cancel</button>
+                    <button id="btnSaveTrade" class="px-5 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Save Trade</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== MODAL: New / Edit Playbook ===================== -->
+    <div id="modalPlaybook" class="modal-overlay hidden">
+        <div class="glass-card w-full max-w-lg p-6 space-y-3">
+            <div class="flex items-center justify-between">
+                <h2 id="modalPlaybookTitle" class="text-lg font-bold text-white">New Playbook</h2>
+                <button id="btnClosePlaybook" class="text-gray-500 hover:text-white cursor-pointer text-xl leading-none">&times;</button>
+            </div>
+            <div><label class="label-nlt" for="pbName">Name</label><input id="pbName" class="input-nlt"></div>
+            <div><label class="label-nlt" for="pbDescription">Description</label><textarea id="pbDescription" rows="2" class="input-nlt"></textarea></div>
+            <div><label class="label-nlt" for="pbRules">Rules (one per line)</label><textarea id="pbRules" rows="5" class="input-nlt" placeholder="Liquidity sweep confirmed&#10;BOS on M15&#10;FVG entry"></textarea></div>
+            <div class="flex justify-end gap-2 pt-2">
+                <button id="btnCancelPlaybook" class="px-4 py-2 rounded-lg border border-white/10 text-gray-400 text-xs font-semibold cursor-pointer">Cancel</button>
+                <button id="btnSavePlaybook" class="px-5 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Save Playbook</button>
+            </div>
+        </div>
+    </div>
+
+    <datalist id="dl-asset-type"><option value="forex"><option value="gold"><option value="indices"><option value="crypto"><option value="futures"><option value="stocks"></datalist>
+    <datalist id="dl-session"><option value="asian"><option value="london"><option value="new_york"><option value="off_hours"></datalist>
+    <datalist id="dl-setup-type"><option value="FVG"><option value="Order Block"><option value="Liquidity Sweep"><option value="BOS/MSS"><option value="CRT"><option value="Breakout"><option value="Reversal"><option value="Trend Continuation"></datalist>
+    <datalist id="dl-htf-bias"><option value="bullish"><option value="bearish"><option value="neutral"></datalist>
+    <datalist id="dl-killzone"><option value="London Open"><option value="New York Open"><option value="London Close"><option value="Asian Session"><option value="Silver Bullet (10-11am)"></datalist>
+
+    <div id="globalToast" class="hidden fixed bottom-6 right-6 toast-z px-5 py-3 rounded-xl text-sm font-semibold shadow-lg"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260823"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260823"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function money(v) { return v == null ? '--' : (v < 0 ? '-$' : '$') + Math.abs(Number(v)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+        function pnlClass(v) { return v == null ? 'text-gray-500' : v > 0 ? 'text-nlt-success' : v < 0 ? 'text-nlt-danger' : 'text-gray-400'; }
+        function toast(msg, tipo) {
+            const el = document.getElementById('globalToast');
+            el.textContent = msg;
+            el.className = `fixed bottom-6 right-6 toast-z px-5 py-3 rounded-xl text-sm font-semibold shadow-lg ${tipo === 'error' ? 'bg-nlt-danger/90 text-white' : 'bg-nlt-success/90 text-white'}`;
+            el.classList.remove('hidden');
+            clearTimeout(window._toastTimer);
+            window._toastTimer = setTimeout(() => el.classList.add('hidden'), 3500);
+        }
+        function darkChartOptions(extra) {
+            return Object.assign({
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6B7280', font: { size: 9 }, maxRotation: 0 } },
+                    y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6B7280', font: { size: 9 } } },
+                },
+            }, extra || {});
+        }
+        const charts = {};
+        function renderChart(canvasId, config) {
+            const el = document.getElementById(canvasId);
+            if (!el) return;
+            if (charts[canvasId]) charts[canvasId].destroy();
+            charts[canvasId] = new Chart(el.getContext('2d'), config);
+        }
+
+        let currentTab = 'dashboard';
+        let editingTradeId = null;
+        let dashRange = '30d';
+        let tradesFiltros = {};
+        let tradesOffset = 0;
+        const TRADES_LIMIT = 20;
+        let calYear, calMonth;
+        let playbooksCache = [];
+        let editingPlaybookId = null;
+
+        // --- Tabs ---
+        document.querySelectorAll('.j-tab').forEach((btn) => {
+            btn.addEventListener('click', () => cambiarTab(btn.dataset.tab));
+        });
+        function cambiarTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.j-tab').forEach((b) => b.classList.toggle('activo', b.dataset.tab === tab));
+            document.querySelectorAll('.j-tab-content').forEach((p) => p.classList.toggle('hidden', p.id !== `tab-${tab}`));
+            cargarTabActual(tab);
+        }
+        async function cargarTabActual(tab) {
+            try {
+                if (tab === 'dashboard') await cargarDashboard();
+                else if (tab === 'trades') await cargarTrades(true);
+                else if (tab === 'calendar') { if (!calYear) initCalendarDefault(); await cargarCalendario(); }
+                else if (tab === 'analytics') await cargarAnalytics();
+                else if (tab === 'playbook') await cargarPlaybooks();
+                else if (tab === 'discipline') await cargarDiscipline();
+                else if (tab === 'settings') await cargarSettings();
+            } catch (err) {
+                toast(err.message, 'error');
+            }
+        }
+        function refrescarTabActual() { cargarTabActual(currentTab); }
+
+        // --- Dashboard ---
+        document.querySelectorAll('.range-btn').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.range-btn').forEach((b) => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                dashRange = btn.dataset.range;
+                cargarDashboard();
+            });
+        });
+        async function cargarDashboard() {
+            const d = await NLT_API.journalDashboard(dashRange);
+            document.getElementById('statBalance').textContent = money(d.balance);
+            document.getElementById('statPnlToday').textContent = money(d.pnl_today);
+            document.getElementById('statPnlToday').className = 'text-lg font-bold ' + pnlClass(d.pnl_today);
+            document.getElementById('statPnlWeek').textContent = money(d.pnl_week);
+            document.getElementById('statPnlWeek').className = 'text-lg font-bold ' + pnlClass(d.pnl_week);
+            document.getElementById('statPnlMonth').textContent = money(d.pnl_month);
+            document.getElementById('statPnlMonth').className = 'text-lg font-bold ' + pnlClass(d.pnl_month);
+            document.getElementById('statWinRate').textContent = d.win_rate + '%';
+            document.getElementById('statProfitFactor').textContent = d.profit_factor == null ? '--' : d.profit_factor;
+            document.getElementById('statAvgRR').textContent = d.avg_rr == null ? '--' : d.avg_rr;
+            document.getElementById('statMaxDD').textContent = money(d.max_drawdown);
+            document.getElementById('statTotalTrades').textContent = d.total_trades;
+
+            renderChart('chartEquity', {
+                type: 'line',
+                data: { labels: d.equity_curve.map((p) => p.date ? new Date(p.date).toLocaleDateString() : 'Start'), datasets: [{ data: d.equity_curve.map((p) => p.equity), borderColor: '#4378FF', backgroundColor: 'rgba(67,120,255,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] },
+                options: darkChartOptions(),
+            });
+            renderChart('chartPnlDay', {
+                type: 'bar',
+                data: { labels: d.pnl_by_day.map((p) => p.date.slice(5)), datasets: [{ data: d.pnl_by_day.map((p) => p.pnl), backgroundColor: d.pnl_by_day.map((p) => p.pnl >= 0 ? '#22C55E' : '#EF4444') }] },
+                options: darkChartOptions(),
+            });
+
+            const ls = d.long_vs_short || {};
+            document.getElementById('dashLongShort').innerHTML = ['long', 'short'].map((dir) => {
+                const info = ls[dir];
+                return `<div class="flex items-center justify-between"><span class="capitalize">${dir}</span><span class="text-white font-semibold">${info ? `${info.trades} trades · ${info.win_rate}% · ${money(info.pnl)}` : '--'}</span></div>`;
+            }).join('');
+
+            document.getElementById('dashBestSetups').innerHTML = (d.best_setups || []).map((s) => `<div class="flex items-center justify-between"><span>${esc(s.label)}</span><span class="${pnlClass(s.pnl)} font-semibold">${money(s.pnl)}</span></div>`).join('') || '<p class="text-gray-600">No data yet</p>';
+            document.getElementById('dashBestAssets').innerHTML = (d.best_assets || []).map((a) => `<div class="flex items-center justify-between"><span>${esc(a.label)}</span><span class="${pnlClass(a.pnl)} font-semibold">${money(a.pnl)}</span></div>`).join('') || '<p class="text-gray-600">No data yet</p>';
+            document.getElementById('dashBestSession').textContent = d.best_session ? `${esc(d.best_session.label)} (${money(d.best_session.pnl)})` : '--';
+        }
+
+        // --- Trades ---
+        document.getElementById('btnFiltrarTrades').addEventListener('click', () => {
+            tradesFiltros = {
+                symbol: document.getElementById('fSymbol').value.trim() || undefined,
+                asset_type: document.getElementById('fAssetType').value.trim() || undefined,
+                direction: document.getElementById('fDirection').value || undefined,
+                result: document.getElementById('fResult').value || undefined,
+                desde: document.getElementById('fDesde').value || undefined,
+                hasta: document.getElementById('fHasta').value || undefined,
+            };
+            cargarTrades(true);
+        });
+        document.getElementById('btnTradesPrev').addEventListener('click', () => { if (tradesOffset >= TRADES_LIMIT) { tradesOffset -= TRADES_LIMIT; cargarTrades(false); } });
+        document.getElementById('btnTradesNext').addEventListener('click', () => { tradesOffset += TRADES_LIMIT; cargarTrades(false); });
+
+        async function cargarTrades(reset) {
+            if (reset) tradesOffset = 0;
+            const filas = await NLT_API.journalListarTrades({ ...tradesFiltros, limit: TRADES_LIMIT, offset: tradesOffset });
+            document.getElementById('tablaTrades').innerHTML = filas.length ? filas.map((t) => `
+                <tr class="border-b border-white/5 hover:bg-white/5 cursor-pointer" data-id="${t.id}">
+                    <td class="py-2 px-3 text-gray-400">${new Date(t.opened_at).toLocaleDateString()}</td>
+                    <td class="py-2 px-3 text-white font-semibold">${esc(t.symbol)}</td>
+                    <td class="py-2 px-3 capitalize">${esc(t.direction)}</td>
+                    <td class="py-2 px-3 capitalize">${esc(t.result)}</td>
+                    <td class="py-2 px-3 text-right font-semibold ${pnlClass(t.pnl)}">${money(t.pnl)}</td>
+                    <td class="py-2 px-3 text-right text-gray-400">${t.rr_actual ?? '--'}</td>
+                    <td class="py-2 px-3 text-gray-400">${esc(t.setup_type || '--')}</td>
+                    <td class="py-2 px-3 text-gray-400">${esc(t.session || '--')}</td>
+                </tr>
+            `).join('') : '<tr><td colspan="8" class="py-6 text-center text-gray-600">No trades yet -- click "+ New Trade" to log your first one.</td></tr>';
+            document.querySelectorAll('#tablaTrades tr[data-id]').forEach((tr) => tr.addEventListener('click', () => abrirModalTrade(tr.dataset.id)));
+            document.getElementById('tradesPageLabel').textContent = `Showing ${tradesOffset + 1}-${tradesOffset + filas.length}`;
+            document.getElementById('btnTradesPrev').disabled = tradesOffset === 0;
+            document.getElementById('btnTradesNext').disabled = filas.length < TRADES_LIMIT;
+        }
+
+        // --- Calendar ---
+        function initCalendarDefault() { const now = new Date(); calYear = now.getFullYear(); calMonth = now.getMonth() + 1; }
+        document.getElementById('btnCalPrev').addEventListener('click', () => { calMonth--; if (calMonth < 1) { calMonth = 12; calYear--; } document.getElementById('calDayTrades').classList.add('hidden'); cargarCalendario(); });
+        document.getElementById('btnCalNext').addEventListener('click', () => { calMonth++; if (calMonth > 12) { calMonth = 1; calYear++; } document.getElementById('calDayTrades').classList.add('hidden'); cargarCalendario(); });
+
+        async function cargarCalendario() {
+            const monthStr = `${calYear}-${String(calMonth).padStart(2, '0')}`;
+            document.getElementById('calLabel').textContent = new Date(calYear, calMonth - 1, 1).toLocaleString('en-US', { month: 'long', year: 'numeric' });
+            const dias = await NLT_API.journalCalendario(monthStr);
+            const porFecha = {};
+            dias.forEach((d) => { porFecha[d.trade_date] = d; });
+            const primerDia = new Date(calYear, calMonth - 1, 1);
+            const offset = primerDia.getDay();
+            const diasEnMes = new Date(calYear, calMonth, 0).getDate();
+            let html = '';
+            for (let i = 0; i < offset; i++) html += '<div class="cal-cell cal-empty"></div>';
+            for (let d = 1; d <= diasEnMes; d++) {
+                const fecha = `${monthStr}-${String(d).padStart(2, '0')}`;
+                const info = porFecha[fecha];
+                let cls = 'cal-cell cal-empty-day';
+                let contenido = `<span class="cal-daynum">${d}</span>`;
+                if (info && info.trades_count > 0) {
+                    cls = 'cal-cell ' + (info.pnl > 0 ? 'cal-win' : info.pnl < 0 ? 'cal-loss' : 'cal-be');
+                    contenido += `<span class="cal-pnl ${pnlClass(info.pnl)}">${money(info.pnl)}</span><span class="cal-count">${info.trades_count} trade${info.trades_count > 1 ? 's' : ''}</span>`;
+                }
+                html += `<div class="${cls}" data-fecha="${fecha}" data-tiene="${info && info.trades_count > 0 ? '1' : '0'}">${contenido}</div>`;
+            }
+            document.getElementById('calGrid').innerHTML = html;
+            document.querySelectorAll('#calGrid [data-tiene="1"]').forEach((el) => el.addEventListener('click', () => verTradesDelDia(el.dataset.fecha)));
+        }
+        async function verTradesDelDia(fecha) {
+            const trades = await NLT_API.journalTradesDelDia(fecha);
+            document.getElementById('calDayTitle').textContent = `Trades on ${fecha}`;
+            document.getElementById('calDayList').innerHTML = trades.map((t) => `
+                <div class="glass-item p-3 flex items-center justify-between cursor-pointer" data-id="${t.id}">
+                    <span class="text-white font-semibold">${esc(t.symbol)}</span><span class="capitalize text-gray-400">${esc(t.direction)}</span>
+                    <span class="${pnlClass(t.pnl)} font-semibold">${money(t.pnl)}</span>
+                </div>
+            `).join('') || '<p class="text-gray-600 text-sm">No trades.</p>';
+            document.querySelectorAll('#calDayList [data-id]').forEach((el) => el.addEventListener('click', () => abrirModalTrade(el.dataset.id)));
+            document.getElementById('calDayTrades').classList.remove('hidden');
+        }
+
+        // --- Analytics ---
+        document.getElementById('btnFiltrarAnalytics').addEventListener('click', cargarAnalytics);
+        async function cargarAnalytics() {
+            const filtros = {
+                asset_type: document.getElementById('aAssetType').value.trim() || undefined,
+                session: document.getElementById('aSession').value.trim() || undefined,
+                setup_type: document.getElementById('aSetupType').value.trim() || undefined,
+                direction: document.getElementById('aDirection').value || undefined,
+                desde: document.getElementById('aDesde').value || undefined,
+                hasta: document.getElementById('aHasta').value || undefined,
+            };
+            const a = await NLT_API.journalAnalytics(filtros);
+            document.getElementById('anTotal').textContent = a.total_trades;
+            document.getElementById('anWinRate').textContent = a.win_rate + '%';
+            document.getElementById('anPF').textContent = a.profit_factor ?? '--';
+            document.getElementById('anExpectancy').textContent = a.expectancy != null ? money(a.expectancy) : '--';
+            document.getElementById('anAvgRR').textContent = a.avg_rr ?? '--';
+            document.getElementById('anAvgWin').textContent = a.avg_win != null ? money(a.avg_win) : '--';
+            document.getElementById('anAvgLoss').textContent = a.avg_loss != null ? money(a.avg_loss) : '--';
+            document.getElementById('anMaxWin').textContent = a.max_consecutive_wins;
+            document.getElementById('anMaxLoss').textContent = a.max_consecutive_losses;
+            document.getElementById('anMaxDD').textContent = money(a.max_drawdown);
+
+            renderChart('chartAnEquity', { type: 'line', data: { labels: a.equity_curve.map((p) => p.date ? new Date(p.date).toLocaleDateString() : 'Start'), datasets: [{ data: a.equity_curve.map((p) => p.equity), borderColor: '#4378FF', backgroundColor: 'rgba(67,120,255,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] }, options: darkChartOptions() });
+            renderChart('chartAnDrawdown', { type: 'line', data: { labels: a.drawdown_curve.map((p) => new Date(p.date).toLocaleDateString()), datasets: [{ data: a.drawdown_curve.map((p) => p.drawdown), borderColor: '#EF4444', backgroundColor: 'rgba(239,68,68,0.1)', fill: true, tension: 0.3, pointRadius: 0 }] }, options: darkChartOptions() });
+            renderChart('chartAnDist', { type: 'bar', data: { labels: a.pnl_distribution.map((p) => p.range), datasets: [{ data: a.pnl_distribution.map((p) => p.count), backgroundColor: '#4378FF' }] }, options: darkChartOptions() });
+
+            const filaBreak = (f) => `<tr class="border-b border-white/5"><td class="py-1.5 text-white">${esc(f.label)}</td><td class="py-1.5 text-center text-gray-400">${f.trades}</td><td class="py-1.5 text-center text-gray-400">${f.win_rate}%</td><td class="py-1.5 text-right font-semibold ${pnlClass(f.pnl)}">${money(f.pnl)}</td></tr>`;
+            document.getElementById('tblByAsset').innerHTML = a.by_asset.map(filaBreak).join('') || '<tr><td class="py-3 text-gray-600">No data yet</td></tr>';
+            document.getElementById('tblBySession').innerHTML = a.by_session.map(filaBreak).join('') || '<tr><td class="py-3 text-gray-600">No data yet</td></tr>';
+            document.getElementById('tblBySetup').innerHTML = a.by_setup.map(filaBreak).join('') || '<tr><td class="py-3 text-gray-600">No data yet</td></tr>';
+
+            document.getElementById('byDirection').innerHTML = ['long', 'short'].map((dir) => {
+                const info = a.by_direction[dir];
+                return `<div class="glass-item p-3 text-center"><p class="text-[10px] text-gray-500 uppercase mb-1">${dir}</p><p class="text-white font-bold">${info ? info.trades : 0}</p><p class="text-xs ${pnlClass(info ? info.pnl : null)}">${info ? money(info.pnl) : '--'}</p></div>`;
+            }).join('');
+            document.getElementById('byDayOfWeek').innerHTML = a.by_day_of_week.map((d) => `<div class="flex items-center justify-between"><span class="text-gray-400">${esc(d.label)}</span><span class="${pnlClass(d.pnl)} font-semibold">${money(d.pnl)} (${d.trades})</span></div>`).join('') || '<p class="text-gray-600">No data yet</p>';
+            document.getElementById('byHourOfDay').innerHTML = a.by_hour_of_day.map((h) => `<div class="flex items-center justify-between"><span class="text-gray-400">${esc(h.label)}</span><span class="${pnlClass(h.pnl)} font-semibold">${money(h.pnl)} (${h.trades})</span></div>`).join('') || '<p class="text-gray-600">No data yet</p>';
+        }
+
+        // --- Playbook ---
+        document.getElementById('btnNewPlaybook').addEventListener('click', () => abrirModalPlaybook(null));
+        document.getElementById('btnClosePlaybook').addEventListener('click', () => document.getElementById('modalPlaybook').classList.add('hidden'));
+        document.getElementById('btnCancelPlaybook').addEventListener('click', () => document.getElementById('modalPlaybook').classList.add('hidden'));
+
+        async function cargarPlaybooks() {
+            playbooksCache = await NLT_API.journalListarPlaybooks();
+            llenarSelectPlaybooks();
+            document.getElementById('listaPlaybooks').innerHTML = playbooksCache.map((p) => `
+                <div class="glass-card p-5 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-bold text-white">${esc(p.name)}</h3>
+                        <div class="flex gap-2">
+                            <button class="text-gray-500 hover:text-white cursor-pointer text-xs" data-edit="${p.id}"><i class="ph ph-pencil-simple"></i></button>
+                            <button class="text-gray-500 hover:text-nlt-danger cursor-pointer text-xs" data-del="${p.id}"><i class="ph ph-trash"></i></button>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500">${esc(p.description || '')}</p>
+                    <div class="flex flex-wrap gap-1.5">${p.rules.map((r) => `<span class="px-2 py-0.5 rounded-md bg-white/5 text-[10px] text-gray-400">${esc(r)}</span>`).join('')}</div>
+                    <div class="grid grid-cols-2 gap-2 text-xs pt-2 border-t border-white/5">
+                        <div><p class="text-gray-500">Trades</p><p class="text-white font-semibold">${p.stats.trades}</p></div>
+                        <div><p class="text-gray-500">Win Rate</p><p class="text-white font-semibold">${p.stats.win_rate}%</p></div>
+                        <div><p class="text-gray-500">Profit Factor</p><p class="text-white font-semibold">${p.stats.profit_factor ?? '--'}</p></div>
+                        <div><p class="text-gray-500">Avg RR</p><p class="text-white font-semibold">${p.stats.avg_rr ?? '--'}</p></div>
+                    </div>
+                </div>
+            `).join('') || '<p class="text-gray-600 col-span-full">No playbooks yet -- create one to start tracking setup-specific performance.</p>';
+            document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => abrirModalPlaybook(b.dataset.edit)));
+            document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
+                if (!confirm('Delete this playbook?')) return;
+                await NLT_API.journalBorrarPlaybook(b.dataset.del);
+                toast('Playbook deleted');
+                cargarPlaybooks();
+            }));
+        }
+        function llenarSelectPlaybooks() {
+            const sel = document.getElementById('tfPlaybook');
+            const actual = sel.value;
+            sel.innerHTML = '<option value="">-- none --</option>' + playbooksCache.map((p) => `<option value="${p.id}">${esc(p.name)}</option>`).join('');
+            sel.value = actual;
+        }
+        function abrirModalPlaybook(id) {
+            editingPlaybookId = id;
+            const pb = id ? playbooksCache.find((p) => p.id === id) : null;
+            document.getElementById('modalPlaybookTitle').textContent = id ? 'Edit Playbook' : 'New Playbook';
+            document.getElementById('pbName').value = pb ? pb.name : '';
+            document.getElementById('pbDescription').value = pb ? (pb.description || '') : '';
+            document.getElementById('pbRules').value = pb ? pb.rules.join('\n') : '';
+            document.getElementById('modalPlaybook').classList.remove('hidden');
+        }
+        document.getElementById('btnSavePlaybook').addEventListener('click', async () => {
+            const datos = {
+                name: document.getElementById('pbName').value.trim(),
+                description: document.getElementById('pbDescription').value.trim() || null,
+                rules: document.getElementById('pbRules').value.split('\n').map((r) => r.trim()).filter(Boolean),
+            };
+            if (!datos.name) { toast('Name is required', 'error'); return; }
+            try {
+                if (editingPlaybookId) await NLT_API.journalActualizarPlaybook(editingPlaybookId, datos);
+                else await NLT_API.journalCrearPlaybook(datos);
+                document.getElementById('modalPlaybook').classList.add('hidden');
+                toast('Playbook saved');
+                cargarPlaybooks();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        // --- Discipline ---
+        document.getElementById('btnRecalcDiscipline').addEventListener('click', () => cargarDiscipline(true));
+        document.getElementById('btnVerInsights').addEventListener('click', async () => {
+            const box = document.getElementById('reviewInsightsBox');
+            if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
+            const ins = await NLT_API.journalReviewInsights();
+            box.innerHTML = `
+                <p><span class="text-gray-500">Trades analyzed:</span> <span class="text-white font-semibold">${ins.trades_analyzed}</span></p>
+                ${ins.best_setup ? `<p><span class="text-gray-500">Best setup:</span> <span class="text-nlt-success font-semibold">${esc(ins.best_setup.label)}</span></p>` : ''}
+                ${ins.worst_setup ? `<p><span class="text-gray-500">Worst setup:</span> <span class="text-nlt-danger font-semibold">${esc(ins.worst_setup.label)}</span></p>` : ''}
+                ${ins.best_asset ? `<p><span class="text-gray-500">Best asset:</span> <span class="text-nlt-success font-semibold">${esc(ins.best_asset.label)}</span></p>` : ''}
+                ${ins.top_rule_violation ? `<p><span class="text-gray-500">Top rule violation:</span> <span class="text-nlt-warn font-semibold">${esc(ins.top_rule_violation)}</span></p>` : ''}
+                ${ins.risk_change_trend ? `<p>${esc(ins.risk_change_trend)}</p>` : ''}
+                ${ins.behavior_after_loss ? `<p>${esc(ins.behavior_after_loss)}</p>` : ''}
+                ${ins.trades_analyzed === 0 ? '<p class="text-gray-600">Not enough closed trades yet.</p>' : ''}
+            `;
+            box.classList.remove('hidden');
+        });
+        async function cargarDiscipline(recalcular) {
+            const s = await NLT_API.journalDiscipline(recalcular);
+            document.getElementById('discOverall').textContent = s.overall;
+            document.getElementById('discTradesEval').textContent = `${s.trades_evaluated} trade${s.trades_evaluated === 1 ? '' : 's'} evaluated`;
+            const setBar = (barId, valId, valor) => { document.getElementById(barId).style.width = valor + '%'; document.getElementById(valId).textContent = valor; };
+            setBar('discRiskBar', 'discRisk', s.risk_management);
+            setBar('discExecBar', 'discExec', s.execution);
+            setBar('discPsychBar', 'discPsych', s.psychology);
+            setBar('discConsistBar', 'discConsist', s.consistency);
+            renderChart('chartDiscHistory', {
+                type: 'line',
+                data: { labels: s.history.map((h) => new Date(h.computed_at).toLocaleDateString()), datasets: [{ data: s.history.map((h) => h.overall), borderColor: '#4378FF', backgroundColor: 'rgba(67,120,255,0.1)', fill: true, tension: 0.3 }] },
+                options: darkChartOptions({ scales: { x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6B7280', font: { size: 9 } } }, y: { min: 0, max: 100, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { color: '#6B7280', font: { size: 9 } } } } }),
+            });
+        }
+
+        // --- Settings ---
+        async function cargarSettings() {
+            const s = await NLT_API.journalObtenerSettings();
+            document.getElementById('setBalance').value = s.starting_balance;
+            document.getElementById('setCurrency').value = s.currency;
+        }
+        document.getElementById('btnSaveSettings').addEventListener('click', async () => {
+            try {
+                await NLT_API.journalActualizarSettings({ starting_balance: Number(document.getElementById('setBalance').value) || 0, currency: document.getElementById('setCurrency').value });
+                toast('Settings saved');
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        // --- New / Edit Trade modal ---
+        document.getElementById('btnNewTrade').addEventListener('click', () => abrirModalTrade(null));
+        document.getElementById('btnCloseModalTrade').addEventListener('click', cerrarModalTrade);
+        document.getElementById('btnCancelTrade').addEventListener('click', cerrarModalTrade);
+        function cerrarModalTrade() { document.getElementById('modalTrade').classList.add('hidden'); }
+
+        function toDatetimeLocal(iso) {
+            if (!iso) return '';
+            const d = new Date(iso);
+            const pad = (n) => String(n).padStart(2, '0');
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+        }
+        function resetearFormularioTrade() {
+            ['tfSymbol', 'tfAssetType', 'tfSession', 'tfOpenedAt', 'tfClosedAt', 'tfSetupType', 'tfMarketStructure', 'tfHtfBias', 'tfKillzone', 'tfConfluences',
+             'tfEntryPrice', 'tfStopLoss', 'tfTakeProfit', 'tfPositionSize', 'tfRiskPercent', 'tfRiskAmount', 'tfExitPrice', 'tfPnl',
+             'tfEmotionBefore', 'tfEmotionDuring', 'tfEmotionAfter', 'tfConfidence', 'tfRuleViolation', 'tfThesis', 'tfLesson', 'tfWentRight', 'tfWentWrong', 'tfNotes',
+            ].forEach((id) => { document.getElementById(id).value = ''; });
+            ['tfLiquiditySweep', 'tfBosMss', 'tfFvg', 'tfOrderBlock', 'tfCrt', 'tfFomo', 'tfRevenge', 'tfHesitation', 'tfOvertrading'].forEach((id) => { document.getElementById(id).checked = false; });
+            document.getElementById('tfDirection').value = 'long';
+            document.getElementById('tfPlanFollowed').value = '';
+            document.getElementById('tfPlaybook').value = '';
+            ['before', 'during', 'after'].forEach((stage) => { document.getElementById(`thumbs-${stage}`).innerHTML = ''; });
+        }
+        function llenarFormularioTrade(t) {
+            document.getElementById('tfSymbol').value = t.symbol;
+            document.getElementById('tfAssetType').value = t.asset_type || '';
+            document.getElementById('tfDirection').value = t.direction;
+            document.getElementById('tfSession').value = t.session || '';
+            document.getElementById('tfOpenedAt').value = toDatetimeLocal(t.opened_at);
+            document.getElementById('tfClosedAt').value = toDatetimeLocal(t.closed_at);
+            document.getElementById('tfPlaybook').value = t.playbook_id || '';
+            document.getElementById('tfSetupType').value = t.setup_type || '';
+            document.getElementById('tfMarketStructure').value = t.market_structure || '';
+            document.getElementById('tfHtfBias').value = t.htf_bias || '';
+            document.getElementById('tfKillzone').value = t.killzone || '';
+            document.getElementById('tfConfluences').value = (t.confluences || []).join(', ');
+            document.getElementById('tfLiquiditySweep').checked = t.liquidity_sweep;
+            document.getElementById('tfBosMss').checked = t.bos_mss;
+            document.getElementById('tfFvg').checked = t.fvg;
+            document.getElementById('tfOrderBlock').checked = t.order_block;
+            document.getElementById('tfCrt').checked = t.crt;
+            document.getElementById('tfEntryPrice').value = t.entry_price ?? '';
+            document.getElementById('tfStopLoss').value = t.stop_loss ?? '';
+            document.getElementById('tfTakeProfit').value = t.take_profit ?? '';
+            document.getElementById('tfPositionSize').value = t.position_size ?? '';
+            document.getElementById('tfRiskPercent').value = t.risk_percent ?? '';
+            document.getElementById('tfRiskAmount').value = t.risk_amount ?? '';
+            document.getElementById('tfExitPrice').value = t.exit_price ?? '';
+            document.getElementById('tfPnl').value = t.pnl ?? '';
+            document.getElementById('tfEmotionBefore').value = t.emotion_before || '';
+            document.getElementById('tfEmotionDuring').value = t.emotion_during || '';
+            document.getElementById('tfEmotionAfter').value = t.emotion_after || '';
+            document.getElementById('tfConfidence').value = t.confidence ?? '';
+            document.getElementById('tfFomo').checked = t.fomo;
+            document.getElementById('tfRevenge').checked = t.revenge_trading;
+            document.getElementById('tfHesitation').checked = t.hesitation;
+            document.getElementById('tfOvertrading').checked = t.overtrading;
+            document.getElementById('tfPlanFollowed').value = t.plan_followed === null || t.plan_followed === undefined ? '' : String(t.plan_followed);
+            document.getElementById('tfRuleViolation').value = t.rule_violation || '';
+            document.getElementById('tfThesis').value = t.trade_thesis || '';
+            document.getElementById('tfLesson').value = t.lesson || '';
+            document.getElementById('tfWentRight').value = t.what_went_right || '';
+            document.getElementById('tfWentWrong').value = t.what_went_wrong || '';
+            document.getElementById('tfNotes').value = t.notes || '';
+        }
+        function leerFormularioTrade() {
+            const val = (id) => document.getElementById(id).value;
+            const num = (id) => { const v = val(id); return v === '' ? null : Number(v); };
+            const chk = (id) => document.getElementById(id).checked;
+            const tri = (id) => { const v = val(id); return v === '' ? null : v === 'true'; };
+            return {
+                symbol: val('tfSymbol').toUpperCase().trim(),
+                asset_type: val('tfAssetType').trim() || null,
+                direction: val('tfDirection'),
+                session: val('tfSession').trim() || null,
+                opened_at: val('tfOpenedAt') ? new Date(val('tfOpenedAt')).toISOString() : null,
+                closed_at: val('tfClosedAt') ? new Date(val('tfClosedAt')).toISOString() : null,
+                playbook_id: val('tfPlaybook') || null,
+                setup_type: val('tfSetupType').trim() || null,
+                market_structure: val('tfMarketStructure').trim() || null,
+                htf_bias: val('tfHtfBias').trim() || null,
+                liquidity_sweep: chk('tfLiquiditySweep'),
+                bos_mss: chk('tfBosMss'),
+                fvg: chk('tfFvg'),
+                order_block: chk('tfOrderBlock'),
+                crt: chk('tfCrt'),
+                killzone: val('tfKillzone').trim() || null,
+                confluences: val('tfConfluences').split(',').map((s) => s.trim()).filter(Boolean),
+                entry_price: num('tfEntryPrice'), stop_loss: num('tfStopLoss'), take_profit: num('tfTakeProfit'),
+                risk_percent: num('tfRiskPercent'), risk_amount: num('tfRiskAmount'), position_size: num('tfPositionSize'),
+                exit_price: num('tfExitPrice'), pnl: num('tfPnl'),
+                emotion_before: val('tfEmotionBefore').trim() || null, emotion_during: val('tfEmotionDuring').trim() || null, emotion_after: val('tfEmotionAfter').trim() || null,
+                confidence: num('tfConfidence'), fomo: chk('tfFomo'), revenge_trading: chk('tfRevenge'), hesitation: chk('tfHesitation'), overtrading: chk('tfOvertrading'),
+                plan_followed: tri('tfPlanFollowed'), rule_violation: val('tfRuleViolation').trim() || null,
+                trade_thesis: val('tfThesis').trim() || null, what_went_right: val('tfWentRight').trim() || null, what_went_wrong: val('tfWentWrong').trim() || null,
+                lesson: val('tfLesson').trim() || null, notes: val('tfNotes').trim() || null,
+                origin: 'MANUAL',
+            };
+        }
+        async function abrirModalTrade(tradeId) {
+            resetearFormularioTrade();
+            document.getElementById('modalTradeWarnings').classList.add('hidden');
+            if (tradeId) {
+                editingTradeId = tradeId;
+                document.getElementById('modalTradeTitle').textContent = 'Edit Trade';
+                document.getElementById('screenshotsSection').classList.remove('hidden');
+                document.getElementById('btnDeleteTrade').classList.remove('hidden');
+                const t = await NLT_API.journalObtenerTrade(tradeId);
+                llenarFormularioTrade(t);
+                renderScreenshots(t.screenshots);
+            } else {
+                editingTradeId = null;
+                document.getElementById('modalTradeTitle').textContent = 'New Trade';
+                document.getElementById('screenshotsSection').classList.add('hidden');
+                document.getElementById('btnDeleteTrade').classList.add('hidden');
+                document.getElementById('tfOpenedAt').value = toDatetimeLocal(new Date().toISOString());
+            }
+            document.getElementById('modalTrade').classList.remove('hidden');
+        }
+        function mostrarWarnings(warnings) {
+            const box = document.getElementById('modalTradeWarnings');
+            if (!warnings || !warnings.length) { box.classList.add('hidden'); return; }
+            box.innerHTML = warnings.map((w) => `<p>&#9888; ${esc(w)}</p>`).join('');
+            box.classList.remove('hidden');
+        }
+        document.getElementById('btnSaveTrade').addEventListener('click', async () => {
+            const datos = leerFormularioTrade();
+            if (!datos.symbol) { toast('Symbol is required', 'error'); return; }
+            try {
+                if (editingTradeId) {
+                    const resp = await NLT_API.journalActualizarTrade(editingTradeId, datos);
+                    mostrarWarnings(resp.warnings);
+                    toast('Trade updated');
+                } else {
+                    const resp = await NLT_API.journalCrearTrade(datos);
+                    editingTradeId = resp.id;
+                    mostrarWarnings(resp.warnings);
+                    document.getElementById('modalTradeTitle').textContent = 'Edit Trade';
+                    document.getElementById('screenshotsSection').classList.remove('hidden');
+                    document.getElementById('btnDeleteTrade').classList.remove('hidden');
+                    toast('Trade created -- add screenshots below or close');
+                }
+                refrescarTabActual();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+        document.getElementById('btnDeleteTrade').addEventListener('click', async () => {
+            if (!editingTradeId) return;
+            if (!confirm('Delete this trade? This cannot be undone.')) return;
+            try {
+                await NLT_API.journalBorrarTrade(editingTradeId);
+                cerrarModalTrade();
+                toast('Trade deleted');
+                refrescarTabActual();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        function renderScreenshots(screenshots) {
+            ['before', 'during', 'after'].forEach((stage) => {
+                const box = document.getElementById(`thumbs-${stage}`);
+                const de = (screenshots || []).filter((s) => s.stage === stage);
+                box.innerHTML = de.map((s) => `
+                    <div class="relative w-16 h-16">
+                        <img src="${s.url}" class="w-full h-full object-cover rounded-lg">
+                        <span class="thumb-del" data-id="${s.id}">&times;</span>
+                    </div>
+                `).join('');
+            });
+            document.querySelectorAll('.thumb-del').forEach((btn) => btn.addEventListener('click', async () => {
+                await NLT_API.journalBorrarScreenshot(btn.dataset.id);
+                const t = await NLT_API.journalObtenerTrade(editingTradeId);
+                renderScreenshots(t.screenshots);
+            }));
+        }
+        ['before', 'during', 'after'].forEach((stage) => {
+            document.getElementById(`dz-${stage}`).addEventListener('change', async (e) => {
+                const file = e.target.files[0];
+                e.target.value = '';
+                if (!file || !editingTradeId) return;
+                try {
+                    await NLT_API.journalSubirScreenshot(editingTradeId, stage, file);
+                    const t = await NLT_API.journalObtenerTrade(editingTradeId);
+                    renderScreenshots(t.screenshots);
+                    toast('Screenshot uploaded');
+                } catch (err) { toast(err.message, 'error'); }
+            });
+        });
+
+        // --- Init ---
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'journal', seccion: 'cfd' });
+            playbooksCache = await NLT_API.journalListarPlaybooks().catch(() => []);
+            llenarSelectPlaybooks();
+            await cargarDashboard();
+        }
+        NLT.bindLogoutButton('btn-salir');
+        init();
+    </script>
+</body>
+</html>
