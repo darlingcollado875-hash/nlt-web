@@ -439,6 +439,18 @@
             } catch (err) { alert('Error: ' + err.message); }
         }
 
+        function actualizarContadorComentarios(postId, delta) {
+            // Solo actualiza el número en el botón de esta tarjeta -- nunca
+            // recargar todo el feed acá, porque eso reconstruye el DOM entero
+            // y colapsa de nuevo el bloque de comentarios que el usuario
+            // recién abrió (mismo motivo por el que .btn-react ya es
+            // optimista, ver wirePostCards).
+            const btn = document.querySelector(`.btn-toggle-comments[data-post-id="${postId}"]`);
+            if (!btn) return;
+            const actual = parseInt(btn.textContent.trim().match(/\d+$/)?.[0] || '0', 10);
+            btn.innerHTML = `<i class="ph ph-chat-circle"></i> ${Math.max(0, actual + delta)}`;
+        }
+
         async function alternarComentarios(postId) {
             const box = document.getElementById(`comments-${postId}`);
             const oculto = box.classList.contains('hidden');
@@ -466,7 +478,7 @@
                     if (!confirm('¿Eliminar este comentario?')) return;
                     await NLT_API.communityBorrarComentario(b.getAttribute('data-comment-id'));
                     await cargarComentarios(postId);
-                    await cargarFeed();
+                    actualizarContadorComentarios(postId, -1);
                 }));
 
                 if (esMiembro) {
@@ -483,7 +495,7 @@
                             await NLT_API.communityCrearComentario(postId, input.value.trim());
                             input.value = '';
                             await cargarComentarios(postId);
-                            await cargarFeed();
+                            actualizarContadorComentarios(postId, 1);
                         } catch (err) { alert('Error: ' + err.message); }
                     });
                 }
