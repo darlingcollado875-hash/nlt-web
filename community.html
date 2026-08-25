@@ -273,14 +273,28 @@
             btn.disabled = true;
             msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-gray-400'; msg.textContent = 'Publicando...';
             try {
-                await NLT_API.communityCrearPost(datos);
+                const nuevo = await NLT_API.communityCrearPost(datos);
                 document.getElementById('cpBody').value = '';
                 imagenSeleccionada = null;
                 document.getElementById('cpImagePreview').classList.add('hidden');
                 document.getElementById('cpImageInput').value = '';
                 renderCamposExtra();
                 msg.classList.add('hidden');
-                await cargarFeed();
+                // Solo se agrega la tarjeta nueva arriba -- un cargarFeed()
+                // completo acá reconstruye TODO el DOM y colapsaría cualquier
+                // hilo de comentarios que tuvieras abierto en otra tarjeta
+                // (mismo motivo que el resto de este archivo). Se cae al
+                // reload completo únicamente en los casos donde no alcanza
+                // con insertar (feed vacío, o el filtro/orden actual no
+                // garantiza que la nueva vaya arriba).
+                if (!feedCache.length || filtroActivo === 'trending' || (filtroActivo !== 'all' && filtroActivo !== nuevo.type)) {
+                    await cargarFeed();
+                } else {
+                    feedCache = [nuevo, ...feedCache];
+                    const box = document.getElementById('feedBox');
+                    box.insertAdjacentHTML('afterbegin', postCardHTML(nuevo));
+                    wirePostCards(box);
+                }
             } catch (err) {
                 msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
             } finally {
@@ -382,8 +396,20 @@
             </div>`;
         }
 
+        // Escucha una sola vez por elemento -- wirePostCards se vuelve a
+        // llamar sobre TODO el contenedor cada vez que el poll de fondo
+        // agrega publicaciones nuevas (ver pollFeedNuevo), así que sin este
+        // guard las tarjetas ya existentes acumularían un listener duplicado
+        // por cada tanda nueva que llegue (un click terminaría disparando la
+        // acción N veces).
+        function _unaVez(el, fn) {
+            if (el._wired) return;
+            el._wired = true;
+            fn();
+        }
+
         function wirePostCards(container) {
-            container.querySelectorAll('.btn-react').forEach(btn => {
+            container.querySelectorAll('.btn-react').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', async () => {
                     if (!esMiembro) { alert('Necesitás ser miembro de NLT para reaccionar.'); return; }
                     const postId = btn.getAttribute('data-post-id');
@@ -408,17 +434,17 @@
                         alert('Error: ' + err.message);
                     }
                 });
-            });
-            container.querySelectorAll('.btn-toggle-comments').forEach(btn => {
+            }));
+            container.querySelectorAll('.btn-toggle-comments').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', () => alternarComentarios(btn.getAttribute('data-post-id')));
-            });
-            container.querySelectorAll('.btn-report').forEach(btn => {
+            }));
+            container.querySelectorAll('.btn-report').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', () => reportarPost(btn.getAttribute('data-post-id')));
-            });
-            container.querySelectorAll('.btn-edit-post').forEach(btn => {
+            }));
+            container.querySelectorAll('.btn-edit-post').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', () => activarEdicionPost(btn.getAttribute('data-post-id')));
-            });
-            container.querySelectorAll('.btn-delete-post').forEach(btn => {
+            }));
+            container.querySelectorAll('.btn-delete-post').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', async () => {
                     if (!confirm('¿Eliminar esta publicación?')) return;
                     const postId = btn.getAttribute('data-post-id');
@@ -432,16 +458,16 @@
                         btn.closest('.glass-card').remove();
                     } catch (err) { alert('Error: ' + err.message); }
                 });
-            });
-            container.querySelectorAll('.btn-ver-perfil').forEach(el => {
+            }));
+            container.querySelectorAll('.btn-ver-perfil').forEach(el => _unaVez(el, () => {
                 el.addEventListener('click', () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; });
-            });
-            container.querySelectorAll('.btn-ad-click').forEach(btn => {
+            }));
+            container.querySelectorAll('.btn-ad-click').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', () => {
                     NLT_API.communityAdClick(btn.getAttribute('data-ad-id'));
                     window.open(btn.getAttribute('data-url'), '_blank', 'noopener');
                 });
-            });
+            }));
         }
 
         const _adsImpresionadas = new Set();
@@ -546,35 +572,53 @@
             });
         }
 
+        function comentarioHTML(c, postId) {
+            return `
+                <div class="comment-item flex items-start gap-2.5" data-comment-id="${c.id}">
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden">${c.author_avatar_url ? `<img src="${esc(c.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.author_display_name)}</div>
+                    <div class="flex-1 min-w-0 glass-item px-3 py-2">
+                        <p class="text-xs font-semibold text-white">${esc(c.author_display_name)}${c.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(c.created_at)}</span></p>
+                        <div id="commentBody-${c.id}" data-raw-body="${esc(c.body)}"><p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p></div>
+                    </div>
+                    ${c.is_own ? `
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button class="btn-editar-comentario text-gray-600 hover:text-white cursor-pointer" data-comment-id="${c.id}" title="Editar"><i class="ph ph-pencil-simple text-xs"></i></button>
+                            <button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}" title="Eliminar"><i class="ph ph-trash text-xs"></i></button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function wireComentarios(scopeEl, postId) {
+            scopeEl.querySelectorAll('.btn-editar-comentario').forEach(b => {
+                if (b._wired) return;
+                b._wired = true;
+                b.addEventListener('click', () => activarEdicionComentario(b.getAttribute('data-comment-id')));
+            });
+            scopeEl.querySelectorAll('.btn-borrar-comentario').forEach(b => {
+                if (b._wired) return;
+                b._wired = true;
+                b.addEventListener('click', async () => {
+                    if (!confirm('¿Eliminar este comentario?')) return;
+                    await NLT_API.communityBorrarComentario(b.getAttribute('data-comment-id'));
+                    // .comment-item (no [data-comment-id]) a propósito: el botón
+                    // también lleva data-comment-id, así que closest() con ese
+                    // selector encontraba el botón mismo, no el bloque completo
+                    // (mismo bug ya corregido antes para btn-delete-post).
+                    b.closest('.comment-item').remove();
+                    actualizarContadorComentarios(postId, -1);
+                });
+            });
+        }
+
         async function cargarComentarios(postId) {
             const box = document.getElementById(`comments-${postId}`);
             box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando...</p>';
             try {
                 const comentarios = await NLT_API.communityComentarios(postId);
-                box.innerHTML = comentarios.map(c => `
-                    <div class="flex items-start gap-2.5" data-comment-id="${c.id}">
-                        <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden">${c.author_avatar_url ? `<img src="${esc(c.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.author_display_name)}</div>
-                        <div class="flex-1 min-w-0 glass-item px-3 py-2">
-                            <p class="text-xs font-semibold text-white">${esc(c.author_display_name)}${c.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(c.created_at)}</span></p>
-                            <div id="commentBody-${c.id}" data-raw-body="${esc(c.body)}"><p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p></div>
-                        </div>
-                        ${c.is_own ? `
-                            <div class="flex items-center gap-1 shrink-0">
-                                <button class="btn-editar-comentario text-gray-600 hover:text-white cursor-pointer" data-comment-id="${c.id}" title="Editar"><i class="ph ph-pencil-simple text-xs"></i></button>
-                                <button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}" title="Eliminar"><i class="ph ph-trash text-xs"></i></button>
-                            </div>
-                        ` : ''}
-                    </div>
-                `).join('') || '<p class="text-xs text-gray-600">Sé el primero en comentar.</p>';
-
-                box.querySelectorAll('.btn-editar-comentario').forEach(b => b.addEventListener('click', () => activarEdicionComentario(b.getAttribute('data-comment-id'))));
-
-                box.querySelectorAll('.btn-borrar-comentario').forEach(b => b.addEventListener('click', async () => {
-                    if (!confirm('¿Eliminar este comentario?')) return;
-                    await NLT_API.communityBorrarComentario(b.getAttribute('data-comment-id'));
-                    await cargarComentarios(postId);
-                    actualizarContadorComentarios(postId, -1);
-                }));
+                box.innerHTML = comentarios.map(c => comentarioHTML(c, postId)).join('') || '<p class="text-xs text-gray-600">Sé el primero en comentar.</p>';
+                wireComentarios(box, postId);
 
                 if (esMiembro) {
                     box.insertAdjacentHTML('beforeend', `
@@ -587,15 +631,47 @@
                         const input = document.getElementById(`newComment-${postId}`);
                         if (!input.value.trim()) return;
                         try {
-                            await NLT_API.communityCrearComentario(postId, input.value.trim());
+                            const nuevo = await NLT_API.communityCrearComentario(postId, input.value.trim());
                             input.value = '';
-                            await cargarComentarios(postId);
+                            // Inserta solo el comentario nuevo antes del input -- nunca
+                            // recargar la lista entera acá (mismo motivo que el resto
+                            // de este archivo: no perder el estado de otras tarjetas
+                            // ni el propio input si el poll de fondo dispara a la vez).
+                            const placeholder = box.querySelector('p.text-gray-600');
+                            if (placeholder) placeholder.remove();
+                            input.closest('.flex').insertAdjacentHTML('beforebegin', comentarioHTML(nuevo, postId));
+                            wireComentarios(box, postId);
                             actualizarContadorComentarios(postId, 1);
                         } catch (err) { alert('Error: ' + err.message); }
                     });
                 }
             } catch (err) {
                 box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        // --- Polling: comentarios nuevos de OTROS en hilos que ya tenés
+        // abiertos. Nunca recarga el hilo entero (perdería un borrador sin
+        // enviar o una edición en curso) -- solo agrega los ids que todavía
+        // no están en el DOM, en el mismo lugar donde aparecería uno propio.
+        async function pollComentariosAbiertos() {
+            const abiertos = [...document.querySelectorAll('[id^="comments-"]')].filter(b => !b.classList.contains('hidden'));
+            for (const box of abiertos) {
+                const postId = box.id.replace('comments-', '');
+                try {
+                    const comentarios = await NLT_API.communityComentarios(postId);
+                    const idsActuales = new Set([...box.querySelectorAll('[data-comment-id]')].map(el => el.getAttribute('data-comment-id')));
+                    const nuevos = comentarios.filter(c => !idsActuales.has(c.id));
+                    if (!nuevos.length) continue;
+                    const placeholder = box.querySelector('p.text-gray-600');
+                    if (placeholder) placeholder.remove();
+                    const inputRow = box.querySelector('#newComment-' + postId)?.closest('.flex');
+                    const html = nuevos.map(c => comentarioHTML(c, postId)).join('');
+                    if (inputRow) inputRow.insertAdjacentHTML('beforebegin', html);
+                    else box.insertAdjacentHTML('beforeend', html);
+                    wireComentarios(box, postId);
+                    actualizarContadorComentarios(postId, nuevos.length);
+                } catch (_) { /* un poll fallido no debe interrumpir al usuario */ }
             }
         }
 
@@ -629,6 +705,36 @@
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error cargando la comunidad: ${err.message}</p>`;
             }
+        }
+
+        // --- Polling: publicaciones nuevas de OTROS usuarios sin refrescar.
+        // Nunca reconstruye el feed entero (perdería hilos de comentarios
+        // abiertos, ediciones en curso, posición de scroll) -- solo agrega
+        // arriba las que todavía no están. En 'trending' se omite: el orden
+        // ahí depende de reacciones/comentarios acumulados, no de fecha, así
+        // que un post nuevo (0 interacciones) no correspondería arriba.
+        async function pollFeedNuevo() {
+            if (filtroActivo === 'trending') return;
+            if (document.getElementById('vistaFeed').classList.contains('hidden')) return;
+            try {
+                const tipo = filtroActivo === 'all' ? null : filtroActivo;
+                const posts = await NLT_API.communityFeed({ tipo });
+                const idsActuales = new Set(feedCache.filter(i => !i._ad && !i._oficial).map(i => i.id));
+                const nuevos = posts.filter(p => !idsActuales.has(p.id));
+                if (!nuevos.length) return;
+                nuevos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                const box = document.getElementById('feedBox');
+                if (!feedCache.length) {
+                    // El feed estaba vacío (placeholder "sé el primero") -- acá sí se reemplaza, una única vez.
+                    feedCache = nuevos;
+                    box.innerHTML = nuevos.map(postCardHTML).join('');
+                    wirePostCards(box);
+                    return;
+                }
+                feedCache = [...nuevos, ...feedCache];
+                box.insertAdjacentHTML('afterbegin', nuevos.map(postCardHTML).join(''));
+                wirePostCards(box);
+            } catch (_) { /* un poll fallido no debe interrumpir al usuario */ }
         }
 
         // --- Perfil ---
@@ -828,6 +934,15 @@
                 document.getElementById('vistaFeed').classList.remove('hidden');
                 await cargarFeed();
             }
+
+            // Mismo patrón que signals-dashboard.html (NLT.pollWhileVisible,
+            // se auto-pausa en tab oculta) -- sin websockets/Realtime en el
+            // proyecto todavía. Publicaciones y comentarios de OTROS
+            // usuarios aparecen solos, sin que nadie tenga que refrescar;
+            // ambos pollers son no-op si no aplican (perfil abierto, filtro
+            // trending, ningún hilo de comentarios abierto).
+            NLT.pollWhileVisible(pollFeedNuevo, 20000);
+            NLT.pollWhileVisible(pollComentariosAbiertos, 20000);
         }
         init();
     </script>
