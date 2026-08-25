@@ -357,12 +357,18 @@
                                <div><p class="text-sm font-semibold text-white btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}">${esc(p.author_display_name)}${p.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p><p class="text-[10px] text-gray-500">@${esc(p.author_username)} · ${tiempoRelativo(p.created_at)} · ${TYPE_LABEL[p.type] || ''}</p></div>`
                         }
                     </div>
-                    ${!esOficial ? `<button class="btn-report text-gray-600 hover:text-gray-400 cursor-pointer" data-post-id="${p.id}" title="Reportar"><i class="ph ph-flag"></i></button>` : ''}
+                    ${!esOficial ? (p.is_own
+                        ? `<div class="flex items-center gap-1">
+                             <button class="btn-edit-post text-gray-600 hover:text-white cursor-pointer" data-post-id="${p.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button>
+                             <button class="btn-delete-post text-gray-600 hover:text-nlt-danger cursor-pointer" data-post-id="${p.id}" title="Eliminar"><i class="ph ph-trash"></i></button>
+                           </div>`
+                        : `<button class="btn-report text-gray-600 hover:text-gray-400 cursor-pointer" data-post-id="${p.id}" title="Reportar"><i class="ph ph-flag"></i></button>`
+                    ) : ''}
                 </div>
                 ${esOficial ? `<p class="font-bold text-white mb-1">${esc(p.title)}</p>` : ''}
                 ${p.type === 'analysis' ? bloqueAnalysis(p) : ''}
                 ${p.type === 'result' ? bloqueResult(p) : ''}
-                ${(p.body || esOficial) ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body || '')}</p>` : ''}
+                ${!esOficial ? `<div id="postBody-${p.id}" data-raw-body="${esc(p.body || '')}">${p.body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body)}</p>` : ''}</div>` : `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body || '')}</p>`}
                 ${p.image_url ? `<img src="${p.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
                 ${!esOficial ? `
                     <div class="flex items-center justify-between pt-3 border-t border-white/5">
@@ -409,6 +415,21 @@
             container.querySelectorAll('.btn-report').forEach(btn => {
                 btn.addEventListener('click', () => reportarPost(btn.getAttribute('data-post-id')));
             });
+            container.querySelectorAll('.btn-edit-post').forEach(btn => {
+                btn.addEventListener('click', () => activarEdicionPost(btn.getAttribute('data-post-id')));
+            });
+            container.querySelectorAll('.btn-delete-post').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('¿Eliminar esta publicación?')) return;
+                    const postId = btn.getAttribute('data-post-id');
+                    try {
+                        await NLT_API.communityBorrarPost(postId);
+                        // Solo se quita esta tarjeta del DOM -- nunca recargar
+                        // todo el feed acá (mismo motivo que los comentarios).
+                        btn.closest('[data-post-id]').remove();
+                    } catch (err) { alert('Error: ' + err.message); }
+                });
+            });
             container.querySelectorAll('.btn-ver-perfil').forEach(el => {
                 el.addEventListener('click', () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; });
             });
@@ -426,6 +447,38 @@
                 if (_adsImpresionadas.has(ad.id)) return;
                 _adsImpresionadas.add(ad.id);
                 NLT_API.communityAdImpresion(ad.id);
+            });
+        }
+
+        function renderPostBodyEstatico(wrap, body) {
+            wrap.setAttribute('data-raw-body', body || '');
+            wrap.innerHTML = body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(body)}</p>` : '';
+        }
+
+        function activarEdicionPost(postId) {
+            const wrap = document.getElementById(`postBody-${postId}`);
+            if (!wrap) return;
+            const original = wrap.getAttribute('data-raw-body') || '';
+            wrap.innerHTML = `
+                <textarea class="post-input w-full mb-2" rows="3">${esc(original)}</textarea>
+                <div class="flex items-center gap-2 mb-3">
+                    <button class="btn-guardar-edicion-post px-4 py-1.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
+                    <button class="btn-cancelar-edicion-post px-4 py-1.5 rounded-full bg-white/10 text-xs font-semibold cursor-pointer">Cancelar</button>
+                    <p class="editPostMsg text-xs hidden"></p>
+                </div>
+            `;
+            const textarea = wrap.querySelector('textarea');
+            textarea.focus();
+            wrap.querySelector('.btn-cancelar-edicion-post').addEventListener('click', () => renderPostBodyEstatico(wrap, original));
+            wrap.querySelector('.btn-guardar-edicion-post').addEventListener('click', async () => {
+                const msg = wrap.querySelector('.editPostMsg');
+                const nuevoBody = textarea.value.trim();
+                try {
+                    await NLT_API.communityActualizarPost(postId, { body: nuevoBody || null });
+                    renderPostBodyEstatico(wrap, nuevoBody);
+                } catch (err) {
+                    msg.classList.remove('hidden'); msg.className = 'editPostMsg text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+                }
             });
         }
 
@@ -458,6 +511,38 @@
             if (oculto) await cargarComentarios(postId);
         }
 
+        function activarEdicionComentario(commentId) {
+            const wrap = document.getElementById(`commentBody-${commentId}`);
+            if (!wrap) return;
+            const original = wrap.getAttribute('data-raw-body') || '';
+            wrap.innerHTML = `
+                <textarea class="post-input w-full mt-1 mb-1" rows="2">${esc(original)}</textarea>
+                <div class="flex items-center gap-2">
+                    <button class="btn-guardar-edicion-comentario px-3 py-1 rounded-full bg-nlt-accent text-white text-[11px] font-semibold cursor-pointer">Guardar</button>
+                    <button class="btn-cancelar-edicion-comentario px-3 py-1 rounded-full bg-white/10 text-[11px] font-semibold cursor-pointer">Cancelar</button>
+                    <p class="editCommentMsg text-[11px] hidden"></p>
+                </div>
+            `;
+            const textarea = wrap.querySelector('textarea');
+            textarea.focus();
+            const renderEstatico = (body) => {
+                wrap.setAttribute('data-raw-body', body);
+                wrap.innerHTML = `<p class="text-xs text-gray-300 mt-0.5">${esc(body).replace(/\n/g, '<br>')}</p>`;
+            };
+            wrap.querySelector('.btn-cancelar-edicion-comentario').addEventListener('click', () => renderEstatico(original));
+            wrap.querySelector('.btn-guardar-edicion-comentario').addEventListener('click', async () => {
+                const nuevoBody = textarea.value.trim();
+                if (!nuevoBody) return;
+                try {
+                    await NLT_API.communityActualizarComentario(commentId, nuevoBody);
+                    renderEstatico(nuevoBody);
+                } catch (err) {
+                    const msg = wrap.querySelector('.editCommentMsg');
+                    msg.classList.remove('hidden'); msg.className = 'editCommentMsg text-[11px] text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+                }
+            });
+        }
+
         async function cargarComentarios(postId) {
             const box = document.getElementById(`comments-${postId}`);
             box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando...</p>';
@@ -468,11 +553,18 @@
                         <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden">${c.author_avatar_url ? `<img src="${esc(c.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.author_display_name)}</div>
                         <div class="flex-1 min-w-0 glass-item px-3 py-2">
                             <p class="text-xs font-semibold text-white">${esc(c.author_display_name)}${c.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(c.created_at)}</span></p>
-                            <p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p>
+                            <div id="commentBody-${c.id}" data-raw-body="${esc(c.body)}"><p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p></div>
                         </div>
-                        ${c.is_own ? `<button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}"><i class="ph ph-trash text-xs"></i></button>` : ''}
+                        ${c.is_own ? `
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button class="btn-editar-comentario text-gray-600 hover:text-white cursor-pointer" data-comment-id="${c.id}" title="Editar"><i class="ph ph-pencil-simple text-xs"></i></button>
+                                <button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}" title="Eliminar"><i class="ph ph-trash text-xs"></i></button>
+                            </div>
+                        ` : ''}
                     </div>
                 `).join('') || '<p class="text-xs text-gray-600">Sé el primero en comentar.</p>';
+
+                box.querySelectorAll('.btn-editar-comentario').forEach(b => b.addEventListener('click', () => activarEdicionComentario(b.getAttribute('data-comment-id'))));
 
                 box.querySelectorAll('.btn-borrar-comentario').forEach(b => b.addEventListener('click', async () => {
                     if (!confirm('¿Eliminar este comentario?')) return;
