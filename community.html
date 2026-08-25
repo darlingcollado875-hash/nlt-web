@@ -426,7 +426,10 @@
                         await NLT_API.communityBorrarPost(postId);
                         // Solo se quita esta tarjeta del DOM -- nunca recargar
                         // todo el feed acá (mismo motivo que los comentarios).
-                        btn.closest('[data-post-id]').remove();
+                        // .glass-card (no [data-post-id]) a propósito: el botón
+                        // TAMBIÉN tiene data-post-id, así que closest() con ese
+                        // selector encontraba el botón mismo, no la tarjeta.
+                        btn.closest('.glass-card').remove();
                     } catch (err) { alert('Error: ' + err.message); }
                 });
             });
