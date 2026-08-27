@@ -453,12 +453,36 @@
         communityChatEnviar: (content, replyToId) => request('/community/chat/messages', { method: 'POST', body: JSON.stringify({ content, reply_to_id: replyToId || null }) }),
         communityChatEditar: (id, content) => request(`/community/chat/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
         communityChatBorrar: (id) => request(`/community/chat/messages/${id}`, { method: 'DELETE' }),
+        // Imagen en Chat General -- multipart, mismo helper subirArchivo()
+        // que el resto del proyecto (progreso real de subida vía XHR).
+        communityChatEnviarImagen: (file, content, replyToId, onProgress) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            if (content) fd.append('content', content);
+            if (replyToId) fd.append('reply_to_id', replyToId);
+            return subirArchivo('/community/chat/messages/media', fd, onProgress);
+        },
+        communityChatMediaUrl: (messageId) => request(`/community/chat/messages/${messageId}/media-url`),
+        communityChatEscribiendo: () => request('/community/chat/typing', { method: 'POST' }),
+        communityChatDejarDeEscribir: () => request('/community/chat/typing', { method: 'DELETE' }),
+        communityChatQuienEscribe: () => request('/community/chat/typing'),
         communityDMConversaciones: () => request('/community/dm/conversations'),
         communityDMIniciar: (otherUserId) => request('/community/dm/conversations', { method: 'POST', body: JSON.stringify({ other_user_id: otherUserId }) }),
         communityDMMensajes: (conversationId, before) => request(`/community/dm/conversations/${conversationId}/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
         communityDMEnviar: (conversationId, content) => request(`/community/dm/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ content }) }),
+        communityDMEnviarImagen: (conversationId, file, content, onProgress) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            if (content) fd.append('content', content);
+            return subirArchivo(`/community/dm/conversations/${conversationId}/messages/media`, fd, onProgress);
+        },
+        communityDMMediaUrl: (messageId) => request(`/community/dm/messages/${messageId}/media-url`),
         communityDMEditar: (id, content) => request(`/community/dm/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
         communityDMBorrar: (id) => request(`/community/dm/messages/${id}`, { method: 'DELETE' }),
+        communityDMMarcarLeida: (conversationId) => request(`/community/dm/conversations/${conversationId}/read`, { method: 'POST' }),
+        communityDMEscribiendo: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'POST' }),
+        communityDMDejarDeEscribir: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'DELETE' }),
+        communityDMQuienEscribe: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`),
 
         // --- admin: NLT Community ---
         adminCommunityStats: () => request('/admin/community/stats'),

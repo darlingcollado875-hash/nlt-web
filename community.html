@@ -40,6 +40,31 @@
         .verified-badge { color: #22C55E; font-size: 12px; vertical-align: -1px; }
         .type-tab { padding: 7px 13px; border-radius: 10px; font-size: 12px; font-weight: 600; color: #9CA6B4; cursor: pointer; }
         .type-tab.activo { color: #fff; background: rgba(67,120,255,0.15); }
+
+        /* --- Chat General + DM: burbujas, media, emojis, typing --- */
+        .msg-scroll { position: relative; }
+        .msg-input-row { position: sticky; bottom: 0; background: #080A0F; padding-top: 8px; margin-top: -1px; }
+        .msg-thumb { max-width: 220px; max-height: 220px; border-radius: 12px; cursor: zoom-in; display: block; margin-top: 6px; object-fit: cover; }
+        .msg-typing { min-height: 16px; font-size: 11px; color: #6B7280; font-style: italic; }
+        .btn-nuevos-msg { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); background: #4378FF; color: #fff; font-size: 11px; font-weight: 600; padding: 6px 14px; border-radius: 999px; box-shadow: 0 4px 16px rgba(67,120,255,0.4); cursor: pointer; z-index: 5; }
+        .msg-check { font-size: 11px; }
+        .msg-check.leido { color: #4378FF; }
+        .msg-check.enviado { color: #6B7280; }
+        .emoji-btn, .media-btn { width: 36px; height: 36px; border-radius: 999px; display: flex; align-items: center; justify-content: center; color: #9CA6B4; cursor: pointer; background: rgba(255,255,255,0.04); flex-shrink: 0; }
+        .emoji-btn:hover, .media-btn:hover { background: rgba(255,255,255,0.08); color: #fff; }
+        #emojiPicker { position: fixed; width: 280px; max-height: 260px; overflow-y: auto; background: #11151C; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 10px; box-shadow: 0 12px 40px rgba(0,0,0,0.5); z-index: 200; }
+        #emojiPicker .emoji-cat { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #6B7280; margin: 6px 2px 4px; }
+        #emojiPicker .emoji-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+        #emojiPicker button { font-size: 19px; line-height: 1; padding: 5px 0; border-radius: 8px; cursor: pointer; }
+        #emojiPicker button:hover { background: rgba(255,255,255,0.08); }
+        @media (max-width: 480px) { #emojiPicker { width: min(320px, calc(100vw - 24px)); left: 12px !important; right: 12px; } }
+        #lightboxModal { position: fixed; inset: 0; background: rgba(3,4,7,0.92); z-index: 300; align-items: center; justify-content: center; padding: 24px; }
+        #lightboxModal:not(.hidden) { display: flex; } /* nunca display:flex en la regla base -- .hidden (Tailwind) es una sola clase, un selector #id le gana en especificidad si display va ahí */
+        #lightboxModal img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+        #lightboxModal .btn-cerrar-lightbox { position: absolute; top: 20px; right: 20px; width: 40px; height: 40px; border-radius: 999px; background: rgba(255,255,255,0.08); color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 20px; }
+        .media-preview-box { position: relative; display: inline-block; margin-bottom: 8px; }
+        .media-preview-box img { max-height: 120px; border-radius: 10px; display: block; }
+        .media-preview-box .btn-quitar-preview { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 999px; background: #E5484D; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -141,10 +166,19 @@
             </div>
 
             <div id="chatAutorizado" class="hidden">
-                <div id="chatMensajes" class="glass-card p-4 space-y-3 mb-4 overflow-y-auto" style="height: 55vh;">
-                    <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                <div class="msg-scroll mb-1">
+                    <div id="chatMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 55vh;">
+                        <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                    </div>
+                    <button id="btn-chat-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
                 </div>
-                <div class="flex items-center gap-2">
+                <p id="chatEscribiendo" class="msg-typing mb-1">&nbsp;</p>
+                <div id="chatMediaPreview" class="hidden"></div>
+                <div class="msg-input-row flex items-center gap-2">
+                    <button id="btn-chat-emoji" type="button" class="emoji-btn" title="Emojis"><i class="ph ph-smiley"></i></button>
+                    <label class="media-btn" title="Adjuntar imagen">
+                        <i class="ph ph-image"></i><input type="file" id="chatImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+                    </label>
                     <input id="chatInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
                     <button id="btn-chat-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
                 </div>
@@ -174,10 +208,19 @@
             <div id="dmConversacionBox" class="hidden">
                 <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mensajes</button>
                 <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
-                <div id="dmMensajes" class="glass-card p-4 space-y-3 mb-4 overflow-y-auto" style="height: 50vh;">
-                    <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                <div class="msg-scroll mb-1">
+                    <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh;">
+                        <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                    </div>
+                    <button id="btn-dm-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
                 </div>
-                <div class="flex items-center gap-2">
+                <p id="dmEscribiendo" class="msg-typing mb-1">&nbsp;</p>
+                <div id="dmMediaPreview" class="hidden"></div>
+                <div class="msg-input-row flex items-center gap-2">
+                    <button id="btn-dm-emoji" type="button" class="emoji-btn" title="Emojis"><i class="ph ph-smiley"></i></button>
+                    <label class="media-btn" title="Adjuntar imagen">
+                        <i class="ph ph-image"></i><input type="file" id="dmImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+                    </label>
                     <input id="dmInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
                     <button id="btn-dm-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
                 </div>
@@ -187,6 +230,18 @@
 
         <p class="text-[11px] text-gray-600 text-center max-w-xl mx-auto pt-10">El contenido de la comunidad es generado por sus miembros. No representa asesoría financiera de NLT ni garantiza resultados de trading.</p>
     </main>
+
+    <!-- Emoji picker + lightbox (compartidos por Chat General y DMs) --
+         FUERA de <main> a propósito: <main> es "relative z-10" (crea su
+         propio stacking context), lo que atrapaba estos overlays position:fixed
+         por DEBAJO del header (z-40, hermano de <main>) sin importar su
+         z-index interno -- bug real encontrado y corregido en verificación
+         de UI (el header quedaba clickeable encima del lightbox). -->
+    <div id="emojiPicker" class="hidden"></div>
+    <div id="lightboxModal" class="hidden">
+        <div class="btn-cerrar-lightbox" id="btn-cerrar-lightbox"><i class="ph ph-x"></i></div>
+        <img id="lightboxImg" src="" alt="Imagen">
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=20260824"></script>
@@ -957,24 +1012,121 @@
             });
         }
 
-        // --- Chat privado ---
+        // --- Emojis + Lightbox (compartidos por Chat General y DMs) ---
+        const EMOJI_CATEGORIAS = [
+            { nombre: 'Trading', emojis: ['📈', '📉', '💰', '💵', '🚀', '🔥', '💪', '🎯', '⚡', '🏆', '💎', '📊', '✅', '❌'] },
+            { nombre: 'Caras', emojis: ['😀', '😁', '😂', '🤣', '😊', '😍', '🤔', '😎', '😅', '😢', '😭', '😡', '🙄', '😴', '🤯', '🥳', '😬', '🙃'] },
+            { nombre: 'Gestos', emojis: ['👍', '👎', '👏', '🙌', '🤝', '✌️', '🤞', '👌', '🙏', '👋', '✋', '🤙'] },
+            { nombre: 'Otros', emojis: ['❤️', '⭐', '🎉', '💯', '⏰', '📌', '🔔', '💬', '⚠️', '👀', '🧠', '📷'] },
+        ];
+        document.getElementById('emojiPicker').innerHTML = EMOJI_CATEGORIAS.map(cat => `
+            <p class="emoji-cat">${esc(cat.nombre)}</p>
+            <div class="emoji-grid">${cat.emojis.map(e => `<button type="button" data-emoji="${e}">${e}</button>`).join('')}</div>
+        `).join('');
+
+        let emojiPickerTargetInputId = null;
+        function cerrarEmojiPicker() {
+            document.getElementById('emojiPicker').classList.add('hidden');
+            emojiPickerTargetInputId = null;
+        }
+        function abrirEmojiPicker(anchorEl, inputId) {
+            const picker = document.getElementById('emojiPicker');
+            if (emojiPickerTargetInputId === inputId && !picker.classList.contains('hidden')) { cerrarEmojiPicker(); return; }
+            emojiPickerTargetInputId = inputId;
+            const rect = anchorEl.getBoundingClientRect();
+            picker.style.left = Math.max(8, Math.min(rect.left, window.innerWidth - 292)) + 'px';
+            picker.style.top = Math.max(8, rect.top - 268) + 'px';
+            picker.classList.remove('hidden');
+        }
+        document.getElementById('emojiPicker').addEventListener('click', (e) => {
+            const btn = e.target.closest('button[data-emoji]');
+            if (!btn || !emojiPickerTargetInputId) return;
+            const input = document.getElementById(emojiPickerTargetInputId);
+            const emoji = btn.getAttribute('data-emoji');
+            const inicio = input.selectionStart ?? input.value.length;
+            const fin = input.selectionEnd ?? input.value.length;
+            input.value = input.value.slice(0, inicio) + emoji + input.value.slice(fin);
+            input.focus();
+            input.selectionStart = input.selectionEnd = inicio + emoji.length;
+            input.dispatchEvent(new Event('input'));
+        });
+        document.addEventListener('click', (e) => {
+            const picker = document.getElementById('emojiPicker');
+            if (picker.classList.contains('hidden')) return;
+            if (e.target.closest('#emojiPicker') || e.target.closest('.emoji-btn')) return;
+            cerrarEmojiPicker();
+        });
+        document.getElementById('btn-chat-emoji').addEventListener('click', (e) => { e.stopPropagation(); abrirEmojiPicker(e.currentTarget, 'chatInput'); });
+        document.getElementById('btn-dm-emoji').addEventListener('click', (e) => { e.stopPropagation(); abrirEmojiPicker(e.currentTarget, 'dmInput'); });
+
+        function cerrarLightbox() {
+            document.getElementById('lightboxModal').classList.add('hidden');
+            document.getElementById('lightboxImg').src = '';
+        }
+        document.getElementById('btn-cerrar-lightbox').addEventListener('click', cerrarLightbox);
+        document.getElementById('lightboxModal').addEventListener('click', (e) => { if (e.target.id === 'lightboxModal') cerrarLightbox(); });
+        // Siempre refresca la signed URL antes de mostrar en grande -- la que
+        // vino en el listado puede haber expirado si quedó un rato abierto.
+        async function abrirLightboxDesdeMensaje(tipo, messageId, urlActual) {
+            document.getElementById('lightboxImg').src = urlActual;
+            document.getElementById('lightboxModal').classList.remove('hidden');
+            try {
+                const r = tipo === 'chat' ? await NLT_API.communityChatMediaUrl(messageId) : await NLT_API.communityDMMediaUrl(messageId);
+                if (r.url) document.getElementById('lightboxImg').src = r.url;
+            } catch (_) { /* se queda con la URL que ya tenía */ }
+        }
+
+        // Validación rápida en cliente (feedback inmediato) -- el backend
+        // (magic bytes) es la autoridad real, esto es solo para no gastar
+        // una subida entera en un archivo que ya sabemos que va a fallar.
+        function validarImagenCliente(file) {
+            const MAX = 8 * 1024 * 1024;
+            if (file.size > MAX) { alert('La imagen supera el límite de 8MB.'); return false; }
+            if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { alert('Solo se permiten imágenes JPG, PNG o WEBP.'); return false; }
+            return true;
+        }
+        function mostrarPreviewImagen(boxId, file, onQuitar) {
+            const box = document.getElementById(boxId);
+            const url = URL.createObjectURL(file);
+            box.innerHTML = `<div class="media-preview-box"><img src="${url}"><div class="btn-quitar-preview"><i class="ph ph-x"></i></div></div>`;
+            box.classList.remove('hidden');
+            box.querySelector('.btn-quitar-preview').addEventListener('click', () => {
+                URL.revokeObjectURL(url);
+                box.innerHTML = '';
+                box.classList.add('hidden');
+                onQuitar();
+            });
+        }
+
+        // --- Chat privado (general) ---
         let ultimoMensajeChatId = null;
         let chatCargado = false;
+        let chatImagenSeleccionada = null;
+        let chatTypingTimer = null;
 
         function mensajeChatHTML(m) {
+            const media = m.media_url ? `<img src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-chat" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
+            const textoBurbuja = m.content ? `<div id="chatBody-${m.id}" data-raw-body="${esc(m.content)}"><p class="text-xs text-gray-300 mt-0.5">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : '';
+            if (m.is_own) {
+                const acciones = `<button class="btn-borrar-chat text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash"></i></button>${m.content ? `<button class="btn-editar-chat text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button>` : ''}`;
+                return `
+                    <div class="chat-message flex justify-end gap-2" data-message-id="${m.id}">
+                        <div class="flex flex-col items-end max-w-[78%]">
+                            ${textoBurbuja ? `<div class="glass-item px-3 py-2" style="background:rgba(67,120,255,0.14); border-color:rgba(67,120,255,0.22);">${textoBurbuja}</div>` : ''}
+                            ${media}
+                            <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''} ${acciones}</p>
+                        </div>
+                    </div>
+                `;
+            }
             return `
                 <div class="chat-message flex items-start gap-2.5" data-message-id="${m.id}">
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden">${m.author_avatar_url ? `<img src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>
-                    <div class="flex-1 min-w-0 glass-item px-3 py-2">
+                    <div class="max-w-[78%] min-w-0 glass-item px-3 py-2">
                         <p class="text-xs font-semibold text-white">${esc(m.author_display_name)}${m.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}</span></p>
-                        <div id="chatBody-${m.id}" data-raw-body="${esc(m.content)}"><p class="text-xs text-gray-300 mt-0.5">${esc(m.content).replace(/\n/g, '<br>')}</p></div>
+                        ${textoBurbuja}
+                        ${media}
                     </div>
-                    ${m.is_own ? `
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button class="btn-editar-chat text-gray-600 hover:text-white cursor-pointer" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple text-xs"></i></button>
-                            <button class="btn-borrar-chat text-gray-600 hover:text-nlt-danger cursor-pointer" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash text-xs"></i></button>
-                        </div>
-                    ` : ''}
                 </div>
             `;
         }
@@ -1022,6 +1174,19 @@
                     b.closest('.chat-message').remove();
                 });
             }));
+            scopeEl.querySelectorAll('.btn-ver-imagen-chat').forEach(img => _unaVez(img, () => {
+                img.addEventListener('click', () => abrirLightboxDesdeMensaje('chat', img.getAttribute('data-message-id'), img.getAttribute('data-url')));
+            }));
+        }
+
+        async function actualizarTypingChat() {
+            try {
+                const r = await NLT_API.communityChatQuienEscribe();
+                const nombres = r.escribiendo.map(u => u.display_name);
+                document.getElementById('chatEscribiendo').textContent = nombres.length
+                    ? `${nombres.slice(0, 2).join(', ')}${nombres.length > 2 ? ' y otros' : ''} escribiendo...`
+                    : ' ';
+            } catch (_) { /* no crítico */ }
         }
 
         async function cargarChat() {
@@ -1033,6 +1198,7 @@
                 wireMensajesChat(box);
                 box.scrollTop = box.scrollHeight;
                 chatCargado = true;
+                actualizarTypingChat();
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
             }
@@ -1041,9 +1207,12 @@
         // Poll eficiente (no agresivo): solo agrega mensajes nuevos al final,
         // nunca reconstruye la lista completa (perdería una edición en curso
         // o el scroll del usuario). Se detiene solo si la vista de chat no
-        // está visible -- ver pollWhileVisible en init().
+        // está visible -- ver pollWhileVisible en init(). El indicador de
+        // "escribiendo" se refresca en el mismo tick -- a propósito no se
+        // suma un poll nuevo/más agresivo solo para eso.
         async function pollChatNuevo() {
             if (document.getElementById('vistaChat').classList.contains('hidden') || !chatCargado) return;
+            actualizarTypingChat();
             try {
                 const mensajes = await NLT_API.communityChatMensajes();
                 const idsActuales = new Set([...document.querySelectorAll('.chat-message')].map(el => el.getAttribute('data-message-id')));
@@ -1056,18 +1225,44 @@
                 box.insertAdjacentHTML('beforeend', nuevos.map(mensajeChatHTML).join(''));
                 wireMensajesChat(box);
                 if (estabaAlFondo) box.scrollTop = box.scrollHeight;
+                else document.getElementById('btn-chat-nuevos').classList.remove('hidden');
             } catch (_) { /* un poll fallido no debe interrumpir al usuario */ }
         }
 
-        document.getElementById('btn-chat-enviar').addEventListener('click', async () => {
+        document.getElementById('btn-chat-nuevos').addEventListener('click', () => {
+            const box = document.getElementById('chatMensajes');
+            box.scrollTop = box.scrollHeight;
+            document.getElementById('btn-chat-nuevos').classList.add('hidden');
+        });
+        document.getElementById('chatMensajes').addEventListener('scroll', () => {
+            const box = document.getElementById('chatMensajes');
+            if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) document.getElementById('btn-chat-nuevos').classList.add('hidden');
+        });
+
+        document.getElementById('chatImagenInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!validarImagenCliente(file)) { e.target.value = ''; return; }
+            chatImagenSeleccionada = file;
+            mostrarPreviewImagen('chatMediaPreview', file, () => { chatImagenSeleccionada = null; document.getElementById('chatImagenInput').value = ''; });
+        });
+
+        async function enviarMensajeChat() {
             const input = document.getElementById('chatInput');
             const msg = document.getElementById('chatMsg');
             const contenido = input.value.trim();
-            if (!contenido) return;
+            if (!contenido && !chatImagenSeleccionada) return;
             try {
-                const nuevo = await NLT_API.communityChatEnviar(contenido);
+                const nuevo = chatImagenSeleccionada
+                    ? await NLT_API.communityChatEnviarImagen(chatImagenSeleccionada, contenido || null)
+                    : await NLT_API.communityChatEnviar(contenido);
                 input.value = '';
+                chatImagenSeleccionada = null;
+                document.getElementById('chatImagenInput').value = '';
+                document.getElementById('chatMediaPreview').innerHTML = '';
+                document.getElementById('chatMediaPreview').classList.add('hidden');
                 msg.classList.add('hidden');
+                NLT_API.communityChatDejarDeEscribir().catch(() => {});
                 const box = document.getElementById('chatMensajes');
                 const placeholder = box.querySelector('p.text-gray-600');
                 if (placeholder) placeholder.remove();
@@ -1077,20 +1272,35 @@
             } catch (err) {
                 msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
             }
-        });
+        }
+        document.getElementById('btn-chat-enviar').addEventListener('click', enviarMensajeChat);
         document.getElementById('chatInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                document.getElementById('btn-chat-enviar').click();
+                enviarMensajeChat();
             }
         });
+        // Heartbeat de "escribiendo" -- a lo sumo 1 cada 3s mientras se
+        // sigue tipeando, nunca un poll: son escrituras disparadas por
+        // eventos reales de tecleo, no un timer corriendo solo.
+        document.getElementById('chatInput').addEventListener('input', () => {
+            if (!document.getElementById('chatInput').value.trim()) { NLT_API.communityChatDejarDeEscribir().catch(() => {}); return; }
+            if (chatTypingTimer) return;
+            NLT_API.communityChatEscribiendo().catch(() => {});
+            chatTypingTimer = setTimeout(() => { chatTypingTimer = null; }, 3000);
+        });
+        document.getElementById('chatInput').addEventListener('blur', () => { NLT_API.communityChatDejarDeEscribir().catch(() => {}); });
 
         // --- Mensajería privada 1-a-1 ---
         let dmCargado = false;
         let conversacionActualId = null;
+        let conversacionesCache = [];
+        let dmOtroParticipante = null;
+        let dmImagenSeleccionada = null;
+        let dmTypingTimer = null;
 
         function tarjetaConversacionHTML(c) {
-            const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : 'Sin mensajes todavía.';
+            const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : (c.last_message_at ? '📷 Imagen' : 'Sin mensajes todavía.');
             return `
                 <div class="glass-item p-3 flex items-center gap-3 cursor-pointer btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}">
                     <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">${c.other_avatar_url ? `<img src="${esc(c.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.other_display_name)}</div>
@@ -1107,9 +1317,11 @@
             const box = document.getElementById('dmConversaciones');
             try {
                 const conversaciones = await NLT_API.communityDMConversaciones();
+                conversacionesCache = conversaciones;
                 box.innerHTML = conversaciones.length ? conversaciones.map(tarjetaConversacionHTML).join('') : '<p class="text-sm text-gray-500 text-center py-10">Todavía no tenés conversaciones -- entrá al perfil de otro miembro y tocá "Enviar mensaje".</p>';
                 box.querySelectorAll('.btn-abrir-conversacion').forEach(el => {
-                    el.addEventListener('click', () => abrirConversacion(el.getAttribute('data-conversation-id')));
+                    const id = el.getAttribute('data-conversation-id');
+                    el.addEventListener('click', () => abrirConversacion(id, conversaciones.find(c => c.id === id)));
                 });
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
@@ -1117,16 +1329,20 @@
         }
 
         function mensajeDMHTML(m) {
-            const alineacion = m.is_own ? 'items-end' : 'items-start';
+            const media = m.media_url ? `<img src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-dm" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
             const burbuja = m.is_own ? 'bg-nlt-accent/15 border-nlt-accent/20' : 'glass-item';
+            const textoBurbuja = m.content ? `<div id="dmBody-${m.id}" data-raw-body="${esc(m.content)}" class="${burbuja} border rounded-xl px-3 py-2"><p class="text-xs text-gray-200">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : '';
+            const estadoLectura = m.is_own ? ` <span class="msg-check ${m.read_at ? 'leido' : 'enviado'}" title="${m.read_at ? 'Leído' : 'Enviado'}">${m.read_at ? '✓✓' : '✓'}</span>` : '';
+            const acciones = m.is_own ? `<button class="btn-borrar-dm text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash"></i></button>${m.content ? `<button class="btn-editar-dm text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button>` : ''}` : '';
+            const avatar = !m.is_own ? `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden mt-0.5">${dmOtroParticipante && dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante ? dmOtroParticipante.other_display_name : '')}</div>` : '';
             return `
-                <div class="dm-message flex flex-col ${alineacion}" data-message-id="${m.id}">
-                    <div id="dmBody-${m.id}" data-raw-body="${esc(m.content)}" class="max-w-[80%] ${burbuja} border rounded-xl px-3 py-2">
-                        <p class="text-xs text-gray-200">${esc(m.content).replace(/\n/g, '<br>')}</p>
+                <div class="dm-message flex ${m.is_own ? 'justify-end' : 'items-start gap-2'}" data-message-id="${m.id}">
+                    ${avatar}
+                    <div class="flex flex-col ${m.is_own ? 'items-end' : 'items-start'} max-w-[78%]">
+                        ${textoBurbuja}
+                        ${media}
+                        <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}${estadoLectura} ${acciones}</p>
                     </div>
-                    <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}
-                        ${m.is_own ? `<button class="btn-editar-dm text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button><button class="btn-borrar-dm text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash"></i></button>` : ''}
-                    </p>
                 </div>
             `;
         }
@@ -1170,18 +1386,33 @@
                     b.closest('.dm-message').remove();
                 });
             }));
+            scopeEl.querySelectorAll('.btn-ver-imagen-dm').forEach(img => _unaVez(img, () => {
+                img.addEventListener('click', () => abrirLightboxDesdeMensaje('dm', img.getAttribute('data-message-id'), img.getAttribute('data-url')));
+            }));
+        }
+
+        async function actualizarTypingDM() {
+            if (!conversacionActualId) return;
+            try {
+                const r = await NLT_API.communityDMQuienEscribe(conversacionActualId);
+                document.getElementById('dmEscribiendo').textContent = r.escribiendo ? `${r.display_name || 'La otra persona'} está escribiendo...` : ' ';
+            } catch (_) { /* no crítico */ }
         }
 
         async function abrirConversacion(conversationId, conversacionData) {
             conversacionActualId = conversationId;
+            dmOtroParticipante = conversacionData || conversacionesCache.find(c => c.id === conversationId) || null;
             document.getElementById('dmListaBox').classList.add('hidden');
             document.getElementById('dmConversacionBox').classList.remove('hidden');
+            document.getElementById('dmEscribiendo').textContent = ' ';
             const header = document.getElementById('dmConversacionHeader');
-            if (conversacionData) {
+            if (dmOtroParticipante) {
                 header.innerHTML = `
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">${conversacionData.other_avatar_url ? `<img src="${esc(conversacionData.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(conversacionData.other_display_name)}</div>
-                    <p class="text-sm font-bold text-white">${esc(conversacionData.other_display_name)}</p>
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">${dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante.other_display_name)}</div>
+                    <p class="text-sm font-bold text-white">${esc(dmOtroParticipante.other_display_name)}</p>
                 `;
+            } else {
+                header.innerHTML = '';
             }
             const box = document.getElementById('dmMensajes');
             box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>';
@@ -1190,27 +1421,58 @@
                 box.innerHTML = mensajes.length ? mensajes.map(mensajeDMHTML).join('') : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
                 wireMensajesDM(box);
                 box.scrollTop = box.scrollHeight;
+                // Preparado: marca como leídos los mensajes del otro participante
+                // al abrir la conversación -- ver community_dm.py::marcar_leida.
+                NLT_API.communityDMMarcarLeida(conversationId).catch(() => {});
+                actualizarTypingDM();
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
             }
         }
 
         document.getElementById('btn-volver-mensajes').addEventListener('click', () => {
+            if (conversacionActualId) NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {});
             conversacionActualId = null;
+            dmOtroParticipante = null;
             document.getElementById('dmConversacionBox').classList.add('hidden');
             document.getElementById('dmListaBox').classList.remove('hidden');
             cargarConversaciones();
         });
 
-        document.getElementById('btn-dm-enviar').addEventListener('click', async () => {
+        document.getElementById('btn-dm-nuevos').addEventListener('click', () => {
+            const box = document.getElementById('dmMensajes');
+            box.scrollTop = box.scrollHeight;
+            document.getElementById('btn-dm-nuevos').classList.add('hidden');
+        });
+        document.getElementById('dmMensajes').addEventListener('scroll', () => {
+            const box = document.getElementById('dmMensajes');
+            if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) document.getElementById('btn-dm-nuevos').classList.add('hidden');
+        });
+
+        document.getElementById('dmImagenInput').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            if (!validarImagenCliente(file)) { e.target.value = ''; return; }
+            dmImagenSeleccionada = file;
+            mostrarPreviewImagen('dmMediaPreview', file, () => { dmImagenSeleccionada = null; document.getElementById('dmImagenInput').value = ''; });
+        });
+
+        async function enviarMensajeDM() {
             const input = document.getElementById('dmInput');
             const msg = document.getElementById('dmMsg');
             const contenido = input.value.trim();
-            if (!contenido || !conversacionActualId) return;
+            if ((!contenido && !dmImagenSeleccionada) || !conversacionActualId) return;
             try {
-                const nuevo = await NLT_API.communityDMEnviar(conversacionActualId, contenido);
+                const nuevo = dmImagenSeleccionada
+                    ? await NLT_API.communityDMEnviarImagen(conversacionActualId, dmImagenSeleccionada, contenido || null)
+                    : await NLT_API.communityDMEnviar(conversacionActualId, contenido);
                 input.value = '';
+                dmImagenSeleccionada = null;
+                document.getElementById('dmImagenInput').value = '';
+                document.getElementById('dmMediaPreview').innerHTML = '';
+                document.getElementById('dmMediaPreview').classList.add('hidden');
                 msg.classList.add('hidden');
+                NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {});
                 const box = document.getElementById('dmMensajes');
                 const placeholder = box.querySelector('p.text-gray-600');
                 if (placeholder) placeholder.remove();
@@ -1220,22 +1482,46 @@
             } catch (err) {
                 msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
             }
-        });
+        }
+        document.getElementById('btn-dm-enviar').addEventListener('click', enviarMensajeDM);
         document.getElementById('dmInput').addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
-                document.getElementById('btn-dm-enviar').click();
+                enviarMensajeDM();
             }
         });
+        document.getElementById('dmInput').addEventListener('input', () => {
+            if (!conversacionActualId) return;
+            if (!document.getElementById('dmInput').value.trim()) { NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {}); return; }
+            if (dmTypingTimer) return;
+            NLT_API.communityDMEscribiendo(conversacionActualId).catch(() => {});
+            dmTypingTimer = setTimeout(() => { dmTypingTimer = null; }, 3000);
+        });
+        document.getElementById('dmInput').addEventListener('blur', () => { if (conversacionActualId) NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {}); });
 
         // Poll eficiente: solo agrega mensajes nuevos a la conversación
         // abierta, nunca reconstruye nada (mismo motivo que pollChatNuevo).
+        // El indicador de "escribiendo" y el recibo de lectura se refrescan
+        // en el mismo tick -- sin poll nuevo/más agresivo solo para eso.
         async function pollDMNuevo() {
             if (document.getElementById('vistaMensajes').classList.contains('hidden') || !conversacionActualId) return;
+            actualizarTypingDM();
             try {
                 const mensajes = await NLT_API.communityDMMensajes(conversacionActualId);
                 const idsActuales = new Set([...document.querySelectorAll('.dm-message')].map(el => el.getAttribute('data-message-id')));
                 const nuevos = mensajes.filter(m => !idsActuales.has(m.id));
+                // El check ✓/✓✓ de un mensaje PROPIO ya renderizado puede
+                // cambiar (el otro lo acaba de leer) sin que haya mensajes
+                // nuevos -- se actualiza el span puntual, nunca se reconstruye
+                // la burbuja entera (mismo principio de "solo agregar, nunca
+                // reconstruir" del resto de este poll).
+                mensajes.filter(m => m.is_own && m.read_at && idsActuales.has(m.id)).forEach(m => {
+                    const check = document.querySelector(`.dm-message[data-message-id="${m.id}"] .msg-check`);
+                    if (check && !check.classList.contains('leido')) {
+                        check.classList.add('leido'); check.classList.remove('enviado');
+                        check.textContent = '✓✓'; check.title = 'Leído';
+                    }
+                });
                 if (!nuevos.length) return;
                 const box = document.getElementById('dmMensajes');
                 const placeholder = box.querySelector('p.text-gray-600');
@@ -1244,6 +1530,8 @@
                 box.insertAdjacentHTML('beforeend', nuevos.map(mensajeDMHTML).join(''));
                 wireMensajesDM(box);
                 if (estabaAlFondo) box.scrollTop = box.scrollHeight;
+                else document.getElementById('btn-dm-nuevos').classList.remove('hidden');
+                if (nuevos.some(m => !m.is_own)) NLT_API.communityDMMarcarLeida(conversacionActualId).catch(() => {});
             } catch (_) { /* un poll fallido no debe interrumpir al usuario */ }
         }
 
