@@ -55,6 +55,7 @@
                 <a href="calculators.html" title="NLT Calculators" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="ph ph-calculator"></i></a>
                 <a href="news.html" title="Economic Calendar" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors"><i class="ph ph-calendar-dots"></i></a>
                 <div id="communityLinks" class="hidden sm:flex items-center gap-2"></div>
+                <div id="notifBellSlot"></div>
                 <div class="flex items-center gap-2 pl-1">
                     <div class="hidden sm:flex w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 items-center justify-center text-[10px] font-bold text-white" id="userAvatarInitial">·</div>
                     <button id="btn-salir" class="text-xs text-gray-500 hover:text-white transition-colors cursor-pointer">Salir</button>
@@ -156,7 +157,7 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=20260827"></script>
     <script src="assets/js/nlt-api-client.js?v=20260824"></script>
     <script src="assets/js/nlt-certificate.js?v=20260814c"></script>
     <script>
@@ -612,6 +613,11 @@
             if (!sesionActual) return;
             document.getElementById('userAvatarInitial').textContent = (sesionActual.user.email || '??').slice(0, 2).toUpperCase();
             NLT.bindLogoutButton('btn-salir');
+            // Notification Center global (Fase 5) -- cualquier usuario logueado
+            // ve sus notificaciones acá, sin importar si tiene o no Academy
+            // activa (mismo componente que el sidebar/Community, ver nlt-shared.js).
+            document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
+            NLT.mountNotifBell('notifBell');
 
             document.getElementById('vistaCargando').classList.add('hidden');
 

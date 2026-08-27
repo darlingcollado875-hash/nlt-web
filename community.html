@@ -77,13 +77,7 @@
                 <span class="font-semibold text-base tracking-tight hidden sm:inline">NLT Community</span>
             </a>
             <div class="flex items-center gap-2">
-                <div id="notifBellBox" class="relative hidden">
-                    <button id="btn-notif" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-300 relative">
-                        <i class="ph ph-bell text-lg"></i>
-                        <span id="notifBadge" class="hidden absolute -top-1 -right-1 w-4 h-4 rounded-full bg-nlt-danger text-white text-[9px] font-bold flex items-center justify-center"></span>
-                    </button>
-                    <div id="notifPanel" class="hidden absolute right-0 top-11 w-80 max-h-96 overflow-y-auto glass-card p-3 z-50"></div>
-                </div>
+                <div id="notifBellSlot"></div>
                 <div id="headerCTA"></div>
             </div>
         </div>
@@ -244,7 +238,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=20260827"></script>
     <script src="assets/js/nlt-api-client.js?v=20260824"></script>
     <script>
         let sesionActual = null;
@@ -1565,32 +1559,12 @@
         document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
         document.getElementById('tab-vista-mensajes').addEventListener('click', () => mostrarVista('mensajes'));
 
-        // --- Notificaciones ---
-        async function cargarNotifBadge() {
-            try {
-                const { count } = await NLT_API.communityNoLeidas();
-                const badge = document.getElementById('notifBadge');
-                if (count > 0) { badge.textContent = count > 9 ? '9+' : count; badge.classList.remove('hidden'); }
-                else badge.classList.add('hidden');
-            } catch (_) {}
-        }
-
-        document.getElementById('btn-notif').addEventListener('click', async () => {
-            const panel = document.getElementById('notifPanel');
-            panel.classList.toggle('hidden');
-            if (panel.classList.contains('hidden')) return;
-            panel.innerHTML = '<p class="text-xs text-gray-500 animate-pulse p-3">Cargando...</p>';
-            try {
-                const notifs = await NLT_API.communityNotificaciones();
-                panel.innerHTML = notifs.length
-                    ? notifs.map(n => `<div class="p-2.5 rounded-lg ${n.read ? '' : 'bg-nlt-accent/5'} text-xs text-gray-300 mb-1">${n.message}<p class="text-[10px] text-gray-600 mt-0.5">${tiempoRelativo(n.created_at)}</p></div>`).join('')
-                    : '<p class="text-xs text-gray-500 p-3">Sin notificaciones todavía.</p>';
-                await NLT_API.communityMarcarTodasLeidas();
-                cargarNotifBadge();
-            } catch (err) {
-                panel.innerHTML = `<p class="text-xs text-nlt-danger p-3">Error: ${err.message}</p>`;
-            }
-        });
+        // --- Notificaciones (Notification Center global -- ver nlt-shared.js) ---
+        // Reemplaza la implementación propia de antes (solo Community) por el
+        // mismo componente compartido que usan las 14 páginas del sidebar --
+        // mountNotifBell ya trae su propio polling, panel, mark-read individual
+        // y "marcar todas", con el contenido siempre escapado (nunca innerHTML
+        // crudo de `message`/`title`).
 
         // --- Init ---
         async function init() {
@@ -1598,6 +1572,7 @@
 
             const params = new URLSearchParams(window.location.search);
             const usernameParam = params.get('u');
+            const vistaParam = params.get('vista');
 
             if (sesionActual) {
                 try {
@@ -1608,8 +1583,8 @@
                 if (esMiembro) {
                     try {
                         miPerfil = await NLT_API.communityMiPerfil();
-                        document.getElementById('notifBellBox').classList.remove('hidden');
-                        cargarNotifBadge();
+                        document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
+                        NLT.mountNotifBell('notifBell');
                     } catch (_) {}
                 }
             }
@@ -1627,6 +1602,10 @@
                 document.getElementById('chatTabs').classList.remove('hidden');
                 document.getElementById('vistaFeed').classList.remove('hidden');
                 await cargarFeed();
+                // Deep-link del Notification Center ("Nuevo DM" -> Community
+                // /Messages, ver nlt-shared.js::_NOTIF_HREFS) -- solo cambia de
+                // pestaña si el usuario ya es miembro (mismo gate que el resto).
+                if (esMiembro && vistaParam === 'mensajes') mostrarVista('mensajes');
             }
 
             // Mismo patrón que signals-dashboard.html (NLT.pollWhileVisible,

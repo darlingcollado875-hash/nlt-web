@@ -564,11 +564,12 @@
             : 'text-yellow-400 hover:text-yellow-300 hover:bg-white/5';
 
         return `
-            <div class="h-24 flex items-center px-8">
+            <div class="h-24 flex items-center justify-between px-8">
                 <a href="dashboard.html" class="flex items-center gap-3">
                     <img src="assets/img/nlt-icon.png" alt="NLT" class="w-9 h-9">
                     <span class="font-semibold text-lg tracking-tight">NLT</span>
                 </a>
+                ${notifBellHTML('sidebarNotifBell')}
             </div>
             <nav class="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
                 ${grupoLabel ? `<p class="px-4 pb-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest">${grupoLabel}</p>` : ''}
@@ -646,6 +647,7 @@
         if (!aside) return;
         aside.innerHTML = renderSidebar({ activo, seccion });
         _mountMobileSidebarToggle(aside);
+        mountNotifBell('sidebarNotifBell');
 
         document.getElementById('userEmail').textContent = session.user.email;
         const avatar = document.getElementById('userAvatarInitial');
@@ -766,6 +768,203 @@
         return { stop, start };
     }
 
+    // ─── NLT Global Notification Center (🔔) ──────────────────────────
+    // Capa transversal: el mismo componente se monta en las 14 páginas del
+    // sidebar (ver renderSidebar más abajo) y, por separado, en Community y
+    // Academy (headers propios, ver community.html/academy-dashboard.html)
+    // -- una sola implementación, nunca 3 sistemas distintos. Pega contra
+    // /community/notifications* (nombre histórico del endpoint -- ver
+    // auditoría: la tabla ya es la infraestructura global, no hace falta
+    // mover la URL para no romper contratos existentes).
+    function _escNotif(texto) {
+        return String(texto ?? '')
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
+    function _tiempoRelativoNotif(iso) {
+        const diff = (Date.now() - new Date(iso).getTime()) / 1000;
+        if (diff < 60) return 'ahora';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+        return `${Math.floor(diff / 86400)}d`;
+    }
+
+    const _NOTIF_ICONOS = {
+        comment: 'ph-chat-circle', reply: 'ph-arrow-bend-up-left', reaction: 'ph-heart',
+        mention: 'ph-at', announcement: 'ph-megaphone', certificate: 'ph-certificate',
+        new_dm: 'ph-envelope-simple-open', elite_signal_new: 'ph-chart-line-up', elite_signal_tp: 'ph-target',
+        elite_signal_sl: 'ph-warning-octagon', elite_signal_cancelled: 'ph-x-circle', elite_signal_expired: 'ph-clock-countdown',
+        academy_lesson_completed: 'ph-check-circle', academy_certificate: 'ph-certificate',
+        payment_confirmed: 'ph-credit-card', payment_failed: 'ph-credit-card',
+        subscription_renewal: 'ph-arrows-clockwise', subscription_cancelled: 'ph-x-circle',
+        promotion: 'ph-tag', new_feature: 'ph-sparkle',
+    };
+
+    // Navegación al hacer click (Fase 5: "abrir el recurso correspondiente
+    // cuando exista") -- a nivel de PÁGINA, no de anchor puntual (mismos
+    // ejemplos que pidió el pedido: "Nueva señal -> Elite Signals", no un
+    // deep-link a la señal exacta -- no se inventa esa capacidad).
+    const _NOTIF_HREFS = {
+        comment: 'community.html', reply: 'community.html', reaction: 'community.html', mention: 'community.html',
+        announcement: 'community.html', certificate: 'academy-dashboard.html',
+        new_dm: 'community.html?vista=mensajes',
+        elite_signal_new: 'signals-dashboard.html', elite_signal_tp: 'signals-dashboard.html',
+        elite_signal_sl: 'signals-dashboard.html', elite_signal_cancelled: 'signals-dashboard.html', elite_signal_expired: 'signals-dashboard.html',
+        academy_lesson_completed: 'academy-dashboard.html', academy_certificate: 'academy-dashboard.html',
+        payment_confirmed: 'suscripcion.html', payment_failed: 'suscripcion.html',
+        subscription_renewal: 'suscripcion.html', subscription_cancelled: 'suscripcion.html',
+        promotion: 'dashboard.html', new_feature: 'dashboard.html',
+    };
+
+    function notifBellHTML(idPrefix = 'notifBell') {
+        return `
+            <div class="relative" id="${idPrefix}Box">
+                <button id="${idPrefix}Btn" type="button" aria-label="Notificaciones" class="w-9 h-9 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-300 relative transition-colors">
+                    <i class="ph ph-bell text-lg"></i>
+                    <span id="${idPrefix}Badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-nlt-danger text-white text-[9px] font-bold flex items-center justify-center"></span>
+                </button>
+                <div id="${idPrefix}Panel" class="hidden absolute top-11 w-80 max-h-96 overflow-y-auto glass-card p-0 z-50 shadow-2xl"></div>
+            </div>
+        `;
+    }
+
+    // Monta el comportamiento sobre markup ya insertado en el DOM (por
+    // renderSidebar, o pegado a mano en community.html/academy-dashboard.html)
+    // -- separado de notifBellHTML para que cada página decida DÓNDE va el
+    // botón sin duplicar la lógica de polling/render/click.
+    function mountNotifBell(idPrefix = 'notifBell') {
+        const btn = document.getElementById(`${idPrefix}Btn`);
+        const badge = document.getElementById(`${idPrefix}Badge`);
+        const panel = document.getElementById(`${idPrefix}Panel`);
+        if (!btn || !badge || !panel || typeof window.NLT_API === 'undefined') return null;
+
+        async function refrescarBadge() {
+            try {
+                const { count } = await window.NLT_API.communityNoLeidas();
+                if (count > 0) { badge.textContent = count > 9 ? '9+' : String(count); badge.classList.remove('hidden'); }
+                else badge.classList.add('hidden');
+            } catch (_) {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function _irAlRecurso(n) {
+            const href = _NOTIF_HREFS[n.type] || 'dashboard.html';
+            const [ruta] = href.split('?');
+            // Ya estamos en Community y la notificación es de DM -- cambia de
+            // pestaña en la misma página en vez de recargarla (mejor UX, sin
+            // inventar un router: solo se usa si la función ya existe en scope).
+            if (n.type === 'new_dm' && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.mostrarVista === 'function') {
+                panel.classList.add('hidden');
+                window.mostrarVista('mensajes');
+                return;
+            }
+            window.location.href = href;
+        }
+
+        function _renderItem(n) {
+            const icono = _NOTIF_ICONOS[n.type] || 'ph-bell';
+            const titulo = n.title ? _escNotif(n.title) : '';
+            return `
+                <button type="button" data-id="${n.id}" class="notif-item w-full text-left p-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors flex gap-2.5 items-start ${n.read ? 'opacity-60' : ''}">
+                    <i class="ph-fill ${icono} text-nlt-accent text-base mt-0.5 shrink-0"></i>
+                    <span class="flex-1 min-w-0">
+                        ${titulo ? `<p class="text-xs font-semibold text-white truncate">${titulo}</p>` : ''}
+                        <p class="text-xs text-gray-300 line-clamp-2">${_escNotif(n.message)}</p>
+                        <p class="text-[10px] text-gray-600 mt-0.5">${_tiempoRelativoNotif(n.created_at)}</p>
+                    </span>
+                    ${!n.read ? '<span class="w-2 h-2 rounded-full bg-nlt-accent shrink-0 mt-1"></span>' : ''}
+                </button>
+            `;
+        }
+
+        function _posicionarPanel() {
+            // El bundle de Tailwind de este proyecto está PRECOMPILADO (sin
+            // build step JIT) -- una clase arbitraria nueva (ej. w-[min(...)])
+            // simplemente no existe en el CSS y no tiene efecto (confirmado:
+            // 0 matches en assets/css/tailwind.css). Por eso el ancho máximo
+            // se fuerza acá con estilos inline, nunca con una clase nueva.
+            //
+            // right-0 puro (absolute, la clase de base) asume que sobra
+            // espacio a la izquierda del botón -- falso en mobile cuando el
+            // botón NO está pegado al borde derecho REAL de la pantalla
+            // (header de Community/Academy, a diferencia del sidebar de
+            // escritorio). "left" en un elemento absolute es relativo a su
+            // offset parent (el propio wrapper del botón), NO al viewport --
+            // por eso, cuando no entra, se pasa a fixed (ahí sí left/top son
+            // relativos al viewport real) en vez de solo cambiar left/right.
+            const ancho = Math.min(320, window.innerWidth - 24);
+            panel.style.width = `${ancho}px`;
+            const rectBtn = btn.getBoundingClientRect();
+            if (rectBtn.right - ancho >= 8) {
+                panel.style.position = '';
+                panel.style.top = '';
+                panel.style.left = 'auto';
+                panel.style.right = '0';
+            } else {
+                panel.style.position = 'fixed';
+                panel.style.top = `${rectBtn.bottom + 6}px`;
+                panel.style.left = '8px';
+                panel.style.right = 'auto';
+            }
+        }
+
+        async function abrirPanel() {
+            const oculto = panel.classList.contains('hidden');
+            panel.classList.toggle('hidden');
+            if (!oculto) return; // se estaba cerrando, nada más que hacer
+
+            panel.innerHTML = '<p class="text-xs text-gray-500 animate-pulse p-4">Cargando...</p>';
+            _posicionarPanel();
+            let notifs;
+            try {
+                notifs = await window.NLT_API.communityNotificaciones();
+            } catch (_) {
+                panel.innerHTML = '<p class="text-xs text-nlt-danger p-4">No se pudieron cargar las notificaciones.</p>';
+                return;
+            }
+            if (!notifs.length) {
+                panel.innerHTML = '<p class="text-xs text-gray-500 p-4">Sin notificaciones todavía.</p>';
+                return;
+            }
+            panel.innerHTML = `
+                <div class="flex items-center justify-between p-3 border-b border-white/5">
+                    <p class="text-xs font-semibold text-white">Notificaciones</p>
+                    <button id="${idPrefix}MarcarTodas" type="button" class="text-[10px] text-nlt-accent hover:underline cursor-pointer">Marcar todas leídas</button>
+                </div>
+                ${notifs.map(_renderItem).join('')}
+            `;
+            document.getElementById(`${idPrefix}MarcarTodas`).addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try { await window.NLT_API.communityMarcarTodasLeidas(); } catch (_) { /* red -- se reintenta en el próximo open */ }
+                refrescarBadge();
+                panel.querySelectorAll('.notif-item').forEach((el) => {
+                    el.classList.add('opacity-60');
+                    const punto = el.querySelector('.bg-nlt-accent.shrink-0');
+                    if (punto) punto.remove();
+                });
+            });
+            panel.querySelectorAll('.notif-item').forEach((el) => {
+                el.addEventListener('click', () => {
+                    const n = notifs.find((x) => x.id === el.getAttribute('data-id'));
+                    if (!n) return;
+                    if (!n.read) window.NLT_API.communityMarcarLeida(n.id).catch(() => {});
+                    _irAlRecurso(n);
+                });
+            });
+        }
+
+        btn.addEventListener('click', (e) => { e.stopPropagation(); abrirPanel(); });
+        document.addEventListener('click', (e) => {
+            if (!panel.classList.contains('hidden') && !panel.contains(e.target) && e.target !== btn) panel.classList.add('hidden');
+        });
+
+        refrescarBadge();
+        pollWhileVisible(refrescarBadge, 20000);
+        return { refrescarBadge };
+    }
+
     window.NLT = {
         supabase,
         ADMIN_EMAIL,
@@ -788,5 +987,7 @@
         mountAuthAwareCTA,
         mountPublicHeader,
         pollWhileVisible,
+        notifBellHTML,
+        mountNotifBell,
     };
 })();
