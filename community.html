@@ -24,8 +24,21 @@
     </noscript>
     <style>
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; }
-        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
-        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 16px; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; transition: border-color .15s ease; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 16px; transition: border-color .15s ease, background-color .15s ease; }
+        /* Premium refinement (Fase Community UX): tarjetas de post/perfil y
+           filas de conversación levantan sutilmente el borde al pasar el
+           mouse -- microinteracción liviana, sin transform/sombra exagerada,
+           coherente con "no animaciones exageradas". .feed-card/.conv-row
+           marcan explícitamente CUÁLES glass-card/glass-item la reciben (no
+           todos: el header de un DM ya abierto o el composer no deberían
+           "reaccionar" como si fueran clickeables). */
+        .feed-card:hover, .conv-row:hover { border-color: rgba(255, 255, 255, 0.1); }
+        .conv-row:hover { background: rgba(255, 255, 255, 0.035); cursor: pointer; }
+        /* Skeleton de carga (Fase 9: "loading; skeletons") -- mismo lenguaje
+           visual que .glass-item, sin depender de ninguna librería nueva. */
+        .skeleton-block { background: rgba(255,255,255,0.05); border-radius: 8px; animation: skeleton-pulse 1.4s ease-in-out infinite; }
+        @keyframes skeleton-pulse { 0%, 100% { opacity: .5; } 50% { opacity: .9; } }
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.7); }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .chip { padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.04); transition: all .15s; cursor: pointer; white-space: nowrap; border: 1px solid transparent; }
@@ -169,9 +182,9 @@
                 <p id="chatEscribiendo" class="msg-typing mb-1">&nbsp;</p>
                 <div id="chatMediaPreview" class="hidden"></div>
                 <div class="msg-input-row flex items-center gap-2">
-                    <button id="btn-chat-emoji" type="button" class="emoji-btn" title="Emojis"><i class="ph ph-smiley"></i></button>
-                    <label class="media-btn" title="Adjuntar imagen">
-                        <i class="ph ph-image"></i><input type="file" id="chatImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+                    <button id="btn-chat-emoji" type="button" class="emoji-btn" title="Emojis" aria-label="Insertar emoji"><i class="ph ph-smiley" aria-hidden="true"></i></button>
+                    <label class="media-btn" title="Adjuntar imagen" aria-label="Adjuntar imagen">
+                        <i class="ph ph-image" aria-hidden="true"></i><input type="file" id="chatImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
                     </label>
                     <input id="chatInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
                     <button id="btn-chat-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
@@ -211,9 +224,9 @@
                 <p id="dmEscribiendo" class="msg-typing mb-1">&nbsp;</p>
                 <div id="dmMediaPreview" class="hidden"></div>
                 <div class="msg-input-row flex items-center gap-2">
-                    <button id="btn-dm-emoji" type="button" class="emoji-btn" title="Emojis"><i class="ph ph-smiley"></i></button>
-                    <label class="media-btn" title="Adjuntar imagen">
-                        <i class="ph ph-image"></i><input type="file" id="dmImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+                    <button id="btn-dm-emoji" type="button" class="emoji-btn" title="Emojis" aria-label="Insertar emoji"><i class="ph ph-smiley" aria-hidden="true"></i></button>
+                    <label class="media-btn" title="Adjuntar imagen" aria-label="Adjuntar imagen">
+                        <i class="ph ph-image" aria-hidden="true"></i><input type="file" id="dmImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
                     </label>
                     <input id="dmInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
                     <button id="btn-dm-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
@@ -233,7 +246,7 @@
          de UI (el header quedaba clickeable encima del lightbox). -->
     <div id="emojiPicker" class="hidden"></div>
     <div id="lightboxModal" class="hidden">
-        <div class="btn-cerrar-lightbox" id="btn-cerrar-lightbox"><i class="ph ph-x"></i></div>
+        <div class="btn-cerrar-lightbox" id="btn-cerrar-lightbox" role="button" tabindex="0" aria-label="Cerrar imagen"><i class="ph ph-x" aria-hidden="true"></i></div>
         <img id="lightboxImg" src="" alt="Imagen">
     </div>
 
@@ -475,22 +488,22 @@
             if (p._ad) return adCardHTML(p);
             const esOficial = p._oficial;
             return `
-            <div class="glass-card p-5" data-post-id="${p.id}">
+            <div class="glass-card feed-card p-5" data-post-id="${p.id}">
                 <div class="flex items-start justify-between mb-3">
                     <div class="flex items-center gap-2.5">
                         ${esOficial
                             ? `<div class="w-9 h-9 rounded-full bg-nlt-accent/15 flex items-center justify-center"><img src="assets/img/nlt-icon.png" class="w-5 h-5"></div>
                                <div><p class="text-sm font-bold text-white">NLT Official <i class="ph-fill ph-seal-check text-nlt-accent"></i></p><span class="official-badge">${p.category}</span></div>`
-                            : `<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">${p.author_avatar_url ? `<img src="${esc(p.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(p.author_display_name)}</div>
+                            : `<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}" role="button" tabindex="0" aria-label="Ver perfil de ${esc(p.author_display_name)}">${p.author_avatar_url ? `<img src="${esc(p.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(p.author_display_name)}</div>
                                <div><p class="text-sm font-semibold text-white btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}">${esc(p.author_display_name)}${p.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p><p class="text-[10px] text-gray-500">@${esc(p.author_username)} · ${tiempoRelativo(p.created_at)} · ${TYPE_LABEL[p.type] || ''}</p></div>`
                         }
                     </div>
                     ${!esOficial ? (p.is_own
                         ? `<div class="flex items-center gap-1">
-                             <button class="btn-edit-post text-gray-600 hover:text-white cursor-pointer" data-post-id="${p.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button>
-                             <button class="btn-delete-post text-gray-600 hover:text-nlt-danger cursor-pointer" data-post-id="${p.id}" title="Eliminar"><i class="ph ph-trash"></i></button>
+                             <button class="btn-edit-post text-gray-600 hover:text-white cursor-pointer" data-post-id="${p.id}" title="Editar" aria-label="Editar publicación"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button>
+                             <button class="btn-delete-post text-gray-600 hover:text-nlt-danger cursor-pointer" data-post-id="${p.id}" title="Eliminar" aria-label="Eliminar publicación"><i class="ph ph-trash" aria-hidden="true"></i></button>
                            </div>`
-                        : `<button class="btn-report text-gray-600 hover:text-gray-400 cursor-pointer" data-post-id="${p.id}" title="Reportar"><i class="ph ph-flag"></i></button>`
+                        : `<button class="btn-report text-gray-600 hover:text-gray-400 cursor-pointer" data-post-id="${p.id}" title="Reportar" aria-label="Reportar publicación"><i class="ph ph-flag" aria-hidden="true"></i></button>`
                     ) : ''}
                 </div>
                 ${esOficial ? `<p class="font-bold text-white mb-1">${esc(p.title)}</p>` : ''}
@@ -574,7 +587,16 @@
                 });
             }));
             container.querySelectorAll('.btn-ver-perfil').forEach(el => _unaVez(el, () => {
-                el.addEventListener('click', () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; });
+                const ir = () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; };
+                el.addEventListener('click', ir);
+                // El avatar (role="button", ver postCardHTML) es un <div>, no
+                // un <a>/<button> real -- sin esto, Enter/Espacio con foco de
+                // teclado no dispara nada (accesibilidad, Fase 11).
+                if (el.getAttribute('role') === 'button') {
+                    el.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); ir(); }
+                    });
+                }
             }));
             container.querySelectorAll('.btn-ad-click').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', () => {
@@ -696,8 +718,8 @@
                     </div>
                     ${c.is_own ? `
                         <div class="flex items-center gap-1 shrink-0">
-                            <button class="btn-editar-comentario text-gray-600 hover:text-white cursor-pointer" data-comment-id="${c.id}" title="Editar"><i class="ph ph-pencil-simple text-xs"></i></button>
-                            <button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}" title="Eliminar"><i class="ph ph-trash text-xs"></i></button>
+                            <button class="btn-editar-comentario text-gray-600 hover:text-white cursor-pointer" data-comment-id="${c.id}" title="Editar" aria-label="Editar comentario"><i class="ph ph-pencil-simple text-xs" aria-hidden="true"></i></button>
+                            <button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}" title="Eliminar" aria-label="Eliminar comentario"><i class="ph ph-trash text-xs" aria-hidden="true"></i></button>
                         </div>
                     ` : ''}
                 </div>
@@ -790,9 +812,28 @@
         }
 
         // --- Feed ---
+        // Skeleton liviano (Fase 9/12: "loading; skeletons", sin librerías
+        // nuevas) -- misma forma que una tarjeta real (avatar + 2 líneas +
+        // cuerpo) para que el layout no salte al llegar el contenido real.
+        function _skeletonFeedHTML(n = 3) {
+            return Array(n).fill(0).map(() => `
+                <div class="glass-card p-5">
+                    <div class="flex items-center gap-2.5 mb-4">
+                        <div class="skeleton-block w-9 h-9 rounded-full"></div>
+                        <div class="flex-1 space-y-1.5">
+                            <div class="skeleton-block h-3 w-32"></div>
+                            <div class="skeleton-block h-2.5 w-20"></div>
+                        </div>
+                    </div>
+                    <div class="skeleton-block h-3 w-full mb-2"></div>
+                    <div class="skeleton-block h-3" style="width: 65%"></div>
+                </div>
+            `).join('');
+        }
+
         async function cargarFeed() {
             const box = document.getElementById('feedBox');
-            box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando comunidad...</p>';
+            box.innerHTML = _skeletonFeedHTML();
             try {
                 const tipo = ['all', 'trending'].includes(filtroActivo) ? null : filtroActivo;
                 const [posts, oficiales, ads] = await Promise.all([
@@ -852,18 +893,30 @@
         }
 
         // --- Perfil ---
-        async function mostrarPerfil(username) {
+        async function mostrarPerfil(username, origen = 'feed') {
             document.getElementById('vistaFeed').classList.add('hidden');
             document.getElementById('vistaChat').classList.add('hidden');
             document.getElementById('vistaMensajes').classList.add('hidden');
             document.getElementById('chatTabs').classList.add('hidden');
             const box = document.getElementById('vistaPerfil');
             box.classList.remove('hidden');
-            box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando perfil...</p>';
+            box.innerHTML = `
+                <div class="glass-card p-6 mb-6 text-center">
+                    <div class="skeleton-block w-16 h-16 rounded-full mx-auto mb-3"></div>
+                    <div class="skeleton-block h-4 w-32 mx-auto mb-2"></div>
+                    <div class="skeleton-block h-3 w-20 mx-auto"></div>
+                </div>
+            `;
+            // Guarda de dónde vino (feed o un DM abierto) para que "Volver"
+            // sea fluido -- Community -> Profile -> Message -> DM debe poder
+            // recorrerse en ambos sentidos sin perder el contexto.
+            const conversacionOrigenId = origen === 'dm' ? conversacionActualId : null;
             try {
                 const [perfil, posts] = await Promise.all([NLT_API.communityPerfilPublico(username), NLT_API.communityPostsDePerfil(username)]);
                 box.innerHTML = `
-                    <button id="btn-volver-feed" class="text-xs text-gray-500 hover:text-white mb-6 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver al feed</button>
+                    <button id="btn-volver-feed" class="text-xs text-gray-500 hover:text-white mb-6 flex items-center gap-1 cursor-pointer">
+                        <i class="ph ph-arrow-left"></i> ${conversacionOrigenId ? 'Volver a la conversación' : 'Volver al feed'}
+                    </button>
                     <div class="glass-card p-6 mb-6 text-center">
                         <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold text-white mx-auto mb-3 overflow-hidden">${perfil.avatar_url ? `<img src="${esc(perfil.avatar_url)}" class="w-full h-full object-cover">` : iniciales(perfil.display_name)}</div>
                         <p class="text-lg font-bold text-white">${esc(perfil.display_name)}${perfil.verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
@@ -886,9 +939,15 @@
                     <div id="perfilEditBox" class="hidden glass-card p-6 mb-6"></div>
                     <div id="perfilPostsBox" class="space-y-4"></div>
                 `;
-                document.getElementById('btn-volver-feed').addEventListener('click', () => {
+                document.getElementById('btn-volver-feed').addEventListener('click', async () => {
                     window.history.pushState({}, '', 'community.html');
                     box.classList.add('hidden');
+                    if (conversacionOrigenId) {
+                        document.getElementById('vistaMensajes').classList.remove('hidden');
+                        mostrarVista('mensajes');
+                        await abrirConversacion(conversacionOrigenId, dmOtroParticipante);
+                        return;
+                    }
                     document.getElementById('chatTabs').classList.remove('hidden');
                     document.getElementById('vistaFeed').classList.remove('hidden');
                 });
@@ -1058,7 +1117,15 @@
             document.getElementById('lightboxImg').src = '';
         }
         document.getElementById('btn-cerrar-lightbox').addEventListener('click', cerrarLightbox);
+        document.getElementById('btn-cerrar-lightbox').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); cerrarLightbox(); }
+        });
         document.getElementById('lightboxModal').addEventListener('click', (e) => { if (e.target.id === 'lightboxModal') cerrarLightbox(); });
+        // Escape también cierra el lightbox -- soporte de teclado (Fase 11),
+        // no depender solo del ícono/click.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !document.getElementById('lightboxModal').classList.contains('hidden')) cerrarLightbox();
+        });
         // Siempre refresca la signed URL antes de mostrar en grande -- la que
         // vino en el listado puede haber expirado si quedó un rato abierto.
         async function abrirLightboxDesdeMensaje(tipo, messageId, urlActual) {
@@ -1296,7 +1363,7 @@
         function tarjetaConversacionHTML(c) {
             const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : (c.last_message_at ? '📷 Imagen' : 'Sin mensajes todavía.');
             return `
-                <div class="glass-item p-3 flex items-center gap-3 cursor-pointer btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}">
+                <div class="glass-item conv-row p-3 flex items-center gap-3 cursor-pointer btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}" role="button" tabindex="0" aria-label="Abrir conversación con ${esc(c.other_display_name)}">
                     <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">${c.other_avatar_url ? `<img src="${esc(c.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.other_display_name)}</div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-white truncate">${esc(c.other_display_name)}${c.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
@@ -1307,30 +1374,56 @@
             `;
         }
 
+        function _skeletonConversacionesHTML(n = 4) {
+            return Array(n).fill(0).map(() => `
+                <div class="glass-item p-3 flex items-center gap-3">
+                    <div class="skeleton-block w-11 h-11 rounded-full shrink-0"></div>
+                    <div class="flex-1 space-y-1.5">
+                        <div class="skeleton-block h-3 w-24"></div>
+                        <div class="skeleton-block h-2.5 w-44"></div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
         async function cargarConversaciones() {
             const box = document.getElementById('dmConversaciones');
+            box.innerHTML = _skeletonConversacionesHTML();
             try {
                 const conversaciones = await NLT_API.communityDMConversaciones();
                 conversacionesCache = conversaciones;
                 box.innerHTML = conversaciones.length ? conversaciones.map(tarjetaConversacionHTML).join('') : '<p class="text-sm text-gray-500 text-center py-10">Todavía no tenés conversaciones -- entrá al perfil de otro miembro y tocá "Enviar mensaje".</p>';
                 box.querySelectorAll('.btn-abrir-conversacion').forEach(el => {
                     const id = el.getAttribute('data-conversation-id');
-                    el.addEventListener('click', () => abrirConversacion(id, conversaciones.find(c => c.id === id)));
+                    const abrir = () => abrirConversacion(id, conversaciones.find(c => c.id === id));
+                    el.addEventListener('click', abrir);
+                    el.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+                    });
                 });
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
             }
         }
 
-        function mensajeDMHTML(m) {
+        // mostrarAvatar: solo true en el ÚLTIMO mensaje de una tanda seguida
+        // del mismo remitente (nunca "repetido en cada mensaje", pedido
+        // explícito) -- en un DM 1-a-1 alcanza con comparar is_own contra el
+        // próximo mensaje, no hace falta trackear IDs de usuario. El slot del
+        // avatar SIEMPRE se renderiza (mismo ancho) aunque esté vacío, para
+        // que la burbuja de arriba no se corra al ocultarlo.
+        function mensajeDMHTML(m, mostrarAvatar = true) {
             const media = m.media_url ? `<img src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-dm" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
             const burbuja = m.is_own ? 'bg-nlt-accent/15 border-nlt-accent/20' : 'glass-item';
             const textoBurbuja = m.content ? `<div id="dmBody-${m.id}" data-raw-body="${esc(m.content)}" class="${burbuja} border rounded-xl px-3 py-2"><p class="text-xs text-gray-200">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : '';
             const estadoLectura = m.is_own ? ` <span class="msg-check ${m.read_at ? 'leido' : 'enviado'}" title="${m.read_at ? 'Leído' : 'Enviado'}">${m.read_at ? '✓✓' : '✓'}</span>` : '';
-            const acciones = m.is_own ? `<button class="btn-borrar-dm text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash"></i></button>${m.content ? `<button class="btn-editar-dm text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button>` : ''}` : '';
-            const avatar = !m.is_own ? `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden mt-0.5">${dmOtroParticipante && dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante ? dmOtroParticipante.other_display_name : '')}</div>` : '';
+            const acciones = m.is_own ? `<button class="btn-borrar-dm text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar" aria-label="Eliminar mensaje"><i class="ph ph-trash" aria-hidden="true"></i></button>${m.content ? `<button class="btn-editar-dm text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar" aria-label="Editar mensaje"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button>` : ''}` : '';
+            const avatarImg = mostrarAvatar
+                ? `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden">${dmOtroParticipante && dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante ? dmOtroParticipante.other_display_name : '')}</div>`
+                : '';
+            const avatar = !m.is_own ? `<div class="dm-avatar-slot w-7 h-7 shrink-0 mt-0.5">${avatarImg}</div>` : '';
             return `
-                <div class="dm-message flex ${m.is_own ? 'justify-end' : 'items-start gap-2'}" data-message-id="${m.id}">
+                <div class="dm-message flex ${m.is_own ? 'justify-end' : 'items-start gap-2'}" data-message-id="${m.id}" data-is-own="${m.is_own}">
                     ${avatar}
                     <div class="flex flex-col ${m.is_own ? 'items-end' : 'items-start'} max-w-[78%]">
                         ${textoBurbuja}
@@ -1339,6 +1432,30 @@
                     </div>
                 </div>
             `;
+        }
+
+        // Arma la lista completa calculando qué mensajes muestran avatar
+        // (agrupación por remitente, ver mensajeDMHTML). Usado solo en la
+        // carga inicial de la conversación -- los mensajes que se agregan
+        // de a uno (envío propio / poll) usan _agregarMensajeDM más abajo.
+        function _listaMensajesDMHTML(mensajes) {
+            return mensajes.map((m, i) => {
+                const esUltimoDeLaTanda = i === mensajes.length - 1 || mensajes[i + 1].is_own !== m.is_own;
+                return mensajeDMHTML(m, esUltimoDeLaTanda);
+            }).join('');
+        }
+
+        // Agrega UN mensaje nuevo al final (envío propio o el que trae el
+        // poll) manteniendo la agrupación de avatar: si el mensaje anterior
+        // era del MISMO remitente y todavía mostraba su avatar, se lo retira
+        // (el nuevo, al ser ahora el último de la tanda, es el que lo lleva).
+        function _agregarMensajeDM(box, nuevo) {
+            const anterior = box.querySelector('.dm-message:last-child');
+            if (anterior && anterior.getAttribute('data-is-own') === String(nuevo.is_own)) {
+                const slot = anterior.querySelector('.dm-avatar-slot');
+                if (slot) slot.innerHTML = '';
+            }
+            box.insertAdjacentHTML('beforeend', mensajeDMHTML(nuevo, true));
         }
 
         function activarEdicionDM(messageId) {
@@ -1401,10 +1518,24 @@
             document.getElementById('dmEscribiendo').textContent = ' ';
             const header = document.getElementById('dmConversacionHeader');
             if (dmOtroParticipante) {
+                // Header clickeable entero (avatar + nombre + @username) ->
+                // abre el MISMO componente de perfil que el feed (mostrarPerfil),
+                // nunca una copia -- <button> real en vez de un div con onclick
+                // para tener foco/teclado gratis (Enter/Space), sin depender
+                // solo del ícono/cursor para transmitir que es interactivo.
                 header.innerHTML = `
-                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">${dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante.other_display_name)}</div>
-                    <p class="text-sm font-bold text-white">${esc(dmOtroParticipante.other_display_name)}</p>
+                    <button type="button" id="btn-dm-header-perfil" class="flex items-center gap-2.5 flex-1 min-w-0 text-left cursor-pointer hover:bg-white/5 transition-colors rounded-xl p-2" aria-label="Ver perfil de ${esc(dmOtroParticipante.other_display_name)}">
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante.other_display_name)}</div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-white truncate">${esc(dmOtroParticipante.other_display_name)}${dmOtroParticipante.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
+                            <p class="text-[11px] text-gray-500 truncate">@${esc(dmOtroParticipante.other_username)}</p>
+                        </div>
+                    </button>
                 `;
+                document.getElementById('btn-dm-header-perfil').addEventListener('click', () => {
+                    window.history.pushState({}, '', `community.html?u=${dmOtroParticipante.other_username}`);
+                    mostrarPerfil(dmOtroParticipante.other_username, 'dm');
+                });
             } else {
                 header.innerHTML = '';
             }
@@ -1412,7 +1543,7 @@
             box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>';
             try {
                 const mensajes = await NLT_API.communityDMMensajes(conversationId);
-                box.innerHTML = mensajes.length ? mensajes.map(mensajeDMHTML).join('') : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                box.innerHTML = mensajes.length ? _listaMensajesDMHTML(mensajes) : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
                 wireMensajesDM(box);
                 box.scrollTop = box.scrollHeight;
                 // Preparado: marca como leídos los mensajes del otro participante
@@ -1470,7 +1601,7 @@
                 const box = document.getElementById('dmMensajes');
                 const placeholder = box.querySelector('p.text-gray-600');
                 if (placeholder) placeholder.remove();
-                box.insertAdjacentHTML('beforeend', mensajeDMHTML(nuevo));
+                _agregarMensajeDM(box, nuevo);
                 wireMensajesDM(box);
                 box.scrollTop = box.scrollHeight;
             } catch (err) {
@@ -1521,7 +1652,7 @@
                 const placeholder = box.querySelector('p.text-gray-600');
                 if (placeholder) placeholder.remove();
                 const estabaAlFondo = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
-                box.insertAdjacentHTML('beforeend', nuevos.map(mensajeDMHTML).join(''));
+                nuevos.forEach(m => _agregarMensajeDM(box, m));
                 wireMensajesDM(box);
                 if (estabaAlFondo) box.scrollTop = box.scrollHeight;
                 else document.getElementById('btn-dm-nuevos').classList.remove('hidden');
