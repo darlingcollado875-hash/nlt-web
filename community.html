@@ -72,6 +72,7 @@
         <div id="chatTabs" class="hidden flex items-center gap-2 mb-6">
             <button data-vista="feed" id="tab-vista-feed" class="chip activo">Feed</button>
             <button data-vista="chat" id="tab-vista-chat" class="chip">Chat</button>
+            <button data-vista="mensajes" id="tab-vista-mensajes" class="chip">Mensajes</button>
         </div>
 
         <!-- Feed view -->
@@ -148,6 +149,39 @@
                     <button id="btn-chat-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
                 </div>
                 <p id="chatMsg" class="mt-2 text-xs hidden"></p>
+            </div>
+        </div>
+
+        <!-- Mensajes (DM 1-a-1) view -->
+        <div id="vistaMensajes" class="hidden">
+            <div id="dmSinAcceso" class="hidden glass-card p-10 text-center">
+                <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
+                <p class="font-bold text-white mb-1">Necesitás un producto NLT activo</p>
+                <p class="text-xs text-gray-500 mb-4">Cualquier suscripción activa del ecosistema te da acceso a la mensajería privada.</p>
+                <a href="plans.html" class="inline-block px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Ver planes</a>
+            </div>
+
+            <div id="dmListaBox">
+                <div class="text-center mb-6">
+                    <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
+                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Mensajes</h1>
+                </div>
+                <div id="dmConversaciones" class="space-y-2">
+                    <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando conversaciones...</p>
+                </div>
+            </div>
+
+            <div id="dmConversacionBox" class="hidden">
+                <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mensajes</button>
+                <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
+                <div id="dmMensajes" class="glass-card p-4 space-y-3 mb-4 overflow-y-auto" style="height: 50vh;">
+                    <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input id="dmInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
+                    <button id="btn-dm-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
+                </div>
+                <p id="dmMsg" class="mt-2 text-xs hidden"></p>
             </div>
         </div>
 
@@ -772,6 +806,7 @@
         async function mostrarPerfil(username) {
             document.getElementById('vistaFeed').classList.add('hidden');
             document.getElementById('vistaChat').classList.add('hidden');
+            document.getElementById('vistaMensajes').classList.add('hidden');
             document.getElementById('chatTabs').classList.add('hidden');
             const box = document.getElementById('vistaPerfil');
             box.classList.remove('hidden');
@@ -793,7 +828,10 @@
                         </div>
                         ${perfil.is_own
                             ? `<button id="btn-editar-perfil" class="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer">Editar perfil</button>`
-                            : `<button id="btn-seguir" data-siguiendo="${perfil.is_following}" class="px-5 py-2 rounded-full text-xs font-semibold cursor-pointer ${perfil.is_following ? 'bg-white/10 text-gray-300' : 'bg-nlt-accent text-white'}">${perfil.is_following ? 'Siguiendo' : 'Seguir'}</button>`
+                            : `<div class="flex items-center justify-center gap-2">
+                                   <button id="btn-seguir" data-siguiendo="${perfil.is_following}" class="px-5 py-2 rounded-full text-xs font-semibold cursor-pointer ${perfil.is_following ? 'bg-white/10 text-gray-300' : 'bg-nlt-accent text-white'}">${perfil.is_following ? 'Siguiendo' : 'Seguir'}</button>
+                                   ${esMiembro ? `<button id="btn-enviar-mensaje" data-user-id="${esc(perfil.user_id)}" class="px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5"><i class="ph ph-chat-circle-dots"></i> Enviar mensaje</button>` : ''}
+                               </div>`
                         }
                     </div>
                     <div id="perfilEditBox" class="hidden glass-card p-6 mb-6"></div>
@@ -812,6 +850,19 @@
                 if (perfil.is_own) {
                     document.getElementById('btn-editar-perfil').addEventListener('click', () => mostrarFormEdicionPerfil(perfil));
                 } else {
+                    const btnMensaje = document.getElementById('btn-enviar-mensaje');
+                    if (btnMensaje) {
+                        btnMensaje.addEventListener('click', async () => {
+                            try {
+                                const conversacion = await NLT_API.communityDMIniciar(btnMensaje.getAttribute('data-user-id'));
+                                document.getElementById('vistaPerfil').classList.add('hidden');
+                                document.getElementById('chatTabs').classList.remove('hidden');
+                                document.getElementById('vistaMensajes').classList.remove('hidden');
+                                mostrarVista('mensajes');
+                                await abrirConversacion(conversacion.id, conversacion);
+                            } catch (err) { alert('Error: ' + err.message); }
+                        });
+                    }
                     const btnSeguir = document.getElementById('btn-seguir');
                     btnSeguir.addEventListener('click', async () => {
                         if (!esMiembro) { alert('Necesitás ser miembro de NLT para seguir a otros usuarios.'); return; }
@@ -1034,12 +1085,176 @@
             }
         });
 
+        // --- Mensajería privada 1-a-1 ---
+        let dmCargado = false;
+        let conversacionActualId = null;
+
+        function tarjetaConversacionHTML(c) {
+            const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : 'Sin mensajes todavía.';
+            return `
+                <div class="glass-item p-3 flex items-center gap-3 cursor-pointer btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}">
+                    <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">${c.other_avatar_url ? `<img src="${esc(c.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.other_display_name)}</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-semibold text-white truncate">${esc(c.other_display_name)}${c.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
+                        <p class="text-xs text-gray-500 truncate">${preview}</p>
+                    </div>
+                    <p class="text-[11px] text-gray-600 shrink-0">${c.last_message_at ? tiempoRelativo(c.last_message_at) : ''}</p>
+                </div>
+            `;
+        }
+
+        async function cargarConversaciones() {
+            const box = document.getElementById('dmConversaciones');
+            try {
+                const conversaciones = await NLT_API.communityDMConversaciones();
+                box.innerHTML = conversaciones.length ? conversaciones.map(tarjetaConversacionHTML).join('') : '<p class="text-sm text-gray-500 text-center py-10">Todavía no tenés conversaciones -- entrá al perfil de otro miembro y tocá "Enviar mensaje".</p>';
+                box.querySelectorAll('.btn-abrir-conversacion').forEach(el => {
+                    el.addEventListener('click', () => abrirConversacion(el.getAttribute('data-conversation-id')));
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        function mensajeDMHTML(m) {
+            const alineacion = m.is_own ? 'items-end' : 'items-start';
+            const burbuja = m.is_own ? 'bg-nlt-accent/15 border-nlt-accent/20' : 'glass-item';
+            return `
+                <div class="dm-message flex flex-col ${alineacion}" data-message-id="${m.id}">
+                    <div id="dmBody-${m.id}" data-raw-body="${esc(m.content)}" class="max-w-[80%] ${burbuja} border rounded-xl px-3 py-2">
+                        <p class="text-xs text-gray-200">${esc(m.content).replace(/\n/g, '<br>')}</p>
+                    </div>
+                    <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}
+                        ${m.is_own ? `<button class="btn-editar-dm text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button><button class="btn-borrar-dm text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash"></i></button>` : ''}
+                    </p>
+                </div>
+            `;
+        }
+
+        function activarEdicionDM(messageId) {
+            const wrap = document.getElementById(`dmBody-${messageId}`);
+            if (!wrap) return;
+            const original = wrap.getAttribute('data-raw-body') || '';
+            wrap.innerHTML = `
+                <textarea class="post-input w-full mb-1" rows="2">${esc(original)}</textarea>
+                <div class="flex items-center gap-2">
+                    <button class="btn-guardar-edicion-dm px-2 py-0.5 rounded-full bg-nlt-accent text-white text-[10px] font-semibold cursor-pointer">Guardar</button>
+                    <button class="btn-cancelar-edicion-dm px-2 py-0.5 rounded-full bg-white/10 text-[10px] font-semibold cursor-pointer">Cancelar</button>
+                </div>
+            `;
+            const textarea = wrap.querySelector('textarea');
+            textarea.focus();
+            const renderEstatico = (content) => {
+                wrap.setAttribute('data-raw-body', content);
+                wrap.innerHTML = `<p class="text-xs text-gray-200">${esc(content).replace(/\n/g, '<br>')}</p>`;
+            };
+            wrap.querySelector('.btn-cancelar-edicion-dm').addEventListener('click', () => renderEstatico(original));
+            wrap.querySelector('.btn-guardar-edicion-dm').addEventListener('click', async () => {
+                const nuevo = textarea.value.trim();
+                if (!nuevo) return;
+                try {
+                    await NLT_API.communityDMEditar(messageId, nuevo);
+                    renderEstatico(nuevo);
+                } catch (err) { alert('Error: ' + err.message); }
+            });
+        }
+
+        function wireMensajesDM(scopeEl) {
+            scopeEl.querySelectorAll('.btn-editar-dm').forEach(b => _unaVez(b, () => {
+                b.addEventListener('click', () => activarEdicionDM(b.getAttribute('data-message-id')));
+            }));
+            scopeEl.querySelectorAll('.btn-borrar-dm').forEach(b => _unaVez(b, () => {
+                b.addEventListener('click', async () => {
+                    if (!confirm('¿Eliminar este mensaje?')) return;
+                    await NLT_API.communityDMBorrar(b.getAttribute('data-message-id'));
+                    b.closest('.dm-message').remove();
+                });
+            }));
+        }
+
+        async function abrirConversacion(conversationId, conversacionData) {
+            conversacionActualId = conversationId;
+            document.getElementById('dmListaBox').classList.add('hidden');
+            document.getElementById('dmConversacionBox').classList.remove('hidden');
+            const header = document.getElementById('dmConversacionHeader');
+            if (conversacionData) {
+                header.innerHTML = `
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden">${conversacionData.other_avatar_url ? `<img src="${esc(conversacionData.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(conversacionData.other_display_name)}</div>
+                    <p class="text-sm font-bold text-white">${esc(conversacionData.other_display_name)}</p>
+                `;
+            }
+            const box = document.getElementById('dmMensajes');
+            box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>';
+            try {
+                const mensajes = await NLT_API.communityDMMensajes(conversationId);
+                box.innerHTML = mensajes.length ? mensajes.map(mensajeDMHTML).join('') : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                wireMensajesDM(box);
+                box.scrollTop = box.scrollHeight;
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.getElementById('btn-volver-mensajes').addEventListener('click', () => {
+            conversacionActualId = null;
+            document.getElementById('dmConversacionBox').classList.add('hidden');
+            document.getElementById('dmListaBox').classList.remove('hidden');
+            cargarConversaciones();
+        });
+
+        document.getElementById('btn-dm-enviar').addEventListener('click', async () => {
+            const input = document.getElementById('dmInput');
+            const msg = document.getElementById('dmMsg');
+            const contenido = input.value.trim();
+            if (!contenido || !conversacionActualId) return;
+            try {
+                const nuevo = await NLT_API.communityDMEnviar(conversacionActualId, contenido);
+                input.value = '';
+                msg.classList.add('hidden');
+                const box = document.getElementById('dmMensajes');
+                const placeholder = box.querySelector('p.text-gray-600');
+                if (placeholder) placeholder.remove();
+                box.insertAdjacentHTML('beforeend', mensajeDMHTML(nuevo));
+                wireMensajesDM(box);
+                box.scrollTop = box.scrollHeight;
+            } catch (err) {
+                msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+            }
+        });
+        document.getElementById('dmInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('btn-dm-enviar').click();
+            }
+        });
+
+        // Poll eficiente: solo agrega mensajes nuevos a la conversación
+        // abierta, nunca reconstruye nada (mismo motivo que pollChatNuevo).
+        async function pollDMNuevo() {
+            if (document.getElementById('vistaMensajes').classList.contains('hidden') || !conversacionActualId) return;
+            try {
+                const mensajes = await NLT_API.communityDMMensajes(conversacionActualId);
+                const idsActuales = new Set([...document.querySelectorAll('.dm-message')].map(el => el.getAttribute('data-message-id')));
+                const nuevos = mensajes.filter(m => !idsActuales.has(m.id));
+                if (!nuevos.length) return;
+                const box = document.getElementById('dmMensajes');
+                const placeholder = box.querySelector('p.text-gray-600');
+                if (placeholder) placeholder.remove();
+                const estabaAlFondo = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+                box.insertAdjacentHTML('beforeend', nuevos.map(mensajeDMHTML).join(''));
+                wireMensajesDM(box);
+                if (estabaAlFondo) box.scrollTop = box.scrollHeight;
+            } catch (_) { /* un poll fallido no debe interrumpir al usuario */ }
+        }
+
         // --- Switch de vista Feed/Chat ---
         async function mostrarVista(vista) {
             document.getElementById('tab-vista-feed').classList.toggle('activo', vista === 'feed');
             document.getElementById('tab-vista-chat').classList.toggle('activo', vista === 'chat');
+            document.getElementById('tab-vista-mensajes').classList.toggle('activo', vista === 'mensajes');
             document.getElementById('vistaFeed').classList.toggle('hidden', vista !== 'feed');
             document.getElementById('vistaChat').classList.toggle('hidden', vista !== 'chat');
+            document.getElementById('vistaMensajes').classList.toggle('hidden', vista !== 'mensajes');
             if (vista === 'chat' && !chatCargado) {
                 if (esMiembro) {
                     document.getElementById('chatAutorizado').classList.remove('hidden');
@@ -1048,9 +1263,19 @@
                     document.getElementById('chatSinAcceso').classList.remove('hidden');
                 }
             }
+            if (vista === 'mensajes' && !dmCargado) {
+                if (esMiembro) {
+                    document.getElementById('dmListaBox').classList.remove('hidden');
+                    await cargarConversaciones();
+                } else {
+                    document.getElementById('dmSinAcceso').classList.remove('hidden');
+                }
+                dmCargado = true;
+            }
         }
         document.getElementById('tab-vista-feed').addEventListener('click', () => mostrarVista('feed'));
         document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
+        document.getElementById('tab-vista-mensajes').addEventListener('click', () => mostrarVista('mensajes'));
 
         // --- Notificaciones ---
         async function cargarNotifBadge() {
@@ -1125,6 +1350,7 @@
             NLT.pollWhileVisible(pollFeedNuevo, 20000);
             NLT.pollWhileVisible(pollComentariosAbiertos, 20000);
             NLT.pollWhileVisible(pollChatNuevo, 8000);
+            NLT.pollWhileVisible(pollDMNuevo, 8000);
         }
         init();
     </script>

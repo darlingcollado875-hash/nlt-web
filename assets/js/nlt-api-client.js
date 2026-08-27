@@ -453,6 +453,12 @@
         communityChatEnviar: (content, replyToId) => request('/community/chat/messages', { method: 'POST', body: JSON.stringify({ content, reply_to_id: replyToId || null }) }),
         communityChatEditar: (id, content) => request(`/community/chat/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
         communityChatBorrar: (id) => request(`/community/chat/messages/${id}`, { method: 'DELETE' }),
+        communityDMConversaciones: () => request('/community/dm/conversations'),
+        communityDMIniciar: (otherUserId) => request('/community/dm/conversations', { method: 'POST', body: JSON.stringify({ other_user_id: otherUserId }) }),
+        communityDMMensajes: (conversationId, before) => request(`/community/dm/conversations/${conversationId}/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
+        communityDMEnviar: (conversationId, content) => request(`/community/dm/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ content }) }),
+        communityDMEditar: (id, content) => request(`/community/dm/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
+        communityDMBorrar: (id) => request(`/community/dm/messages/${id}`, { method: 'DELETE' }),
 
         // --- admin: NLT Community ---
         adminCommunityStats: () => request('/admin/community/stats'),
