@@ -371,6 +371,26 @@
                         enviarProgresoVideo(leccion.id, pct);
                     }
                 });
+                // La signed URL embebida expira (auditoría de seguridad Fase
+                // 16B -- ver ACADEMY_MEDIA_TTL_SEG en el backend). Si eso pasa
+                // a mitad de reproducción, el <video> dispara 'error' -- se
+                // refresca puntualmente y se retoma desde el mismo currentTime,
+                // en vez de dejar el player roto. Un solo reintento (evita loop
+                // si el problema es otro, ej. red caída).
+                let yaReintentado = false;
+                video.addEventListener('error', async () => {
+                    if (yaReintentado) return;
+                    yaReintentado = true;
+                    const momento = video.currentTime;
+                    try {
+                        const r = await NLT_API.academyMediaUrl(leccion.id, 'video');
+                        if (r.url) {
+                            video.src = r.url;
+                            video.currentTime = momento;
+                            video.play().catch(() => {});
+                        }
+                    } catch (_) { /* se queda roto -- mejor que un loop de reintentos */ }
+                });
             }
 
             if (leccion.has_quiz && (leccion.video_progress_percent || 0) >= leccion.min_watch_percent) {

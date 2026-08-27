@@ -347,6 +347,9 @@
         academyCurso: () => request('/academy/course'),
         academyContinueLearning: () => request('/academy/continue-learning'),
         academyActualizarProgreso: (lessonId, video_progress_percent) => request(`/academy/lessons/${lessonId}/progress`, { method: 'POST', body: JSON.stringify({ video_progress_percent }) }),
+        // Refresca la signed URL de video/PDF de una clase (auditoría de
+        // seguridad -- ver ACADEMY_MEDIA_TTL_SEG en el backend). kind: 'video' | 'pdf'.
+        academyMediaUrl: (lessonId, kind) => request(`/academy/lessons/${lessonId}/media-url?kind=${kind}`),
         academyObtenerQuiz: (lessonId) => request(`/academy/lessons/${lessonId}/quiz`),
         academyEnviarQuiz: (lessonId, answers) => request(`/academy/lessons/${lessonId}/quiz/submit`, { method: 'POST', body: JSON.stringify({ answers }) }),
         academyCertificados: () => request('/academy/certificates'),
