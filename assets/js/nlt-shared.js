@@ -476,7 +476,7 @@
         },
         {
             id: 'elite-signals', nombre: 'NLT Elite Signals', status: 'live', href: 'signals.html',
-            icono: 'ph-broadcast', descripcion: 'Señales BUY/SELL con entry, TP y SL, priorizando únicamente señales con Quality Score 90%+.',
+            icono: 'ph-broadcast', descripcion: 'Señales BUY/SELL con entry, TP y SL, clasificadas por Quality Score (NORMAL/OPTIMA/STRONG/PERFECTA/ELITE).',
         },
     ];
 

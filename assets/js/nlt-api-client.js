@@ -449,6 +449,10 @@
         communityNoLeidas: () => request('/community/notifications/unread-count'),
         communityMarcarLeida: (id) => request(`/community/notifications/${id}/read`, { method: 'POST' }),
         communityMarcarTodasLeidas: () => request('/community/notifications/read-all', { method: 'POST' }),
+        communityChatMensajes: (before) => request(`/community/chat/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
+        communityChatEnviar: (content, replyToId) => request('/community/chat/messages', { method: 'POST', body: JSON.stringify({ content, reply_to_id: replyToId || null }) }),
+        communityChatEditar: (id, content) => request(`/community/chat/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
+        communityChatBorrar: (id) => request(`/community/chat/messages/${id}`, { method: 'DELETE' }),
 
         // --- admin: NLT Community ---
         adminCommunityStats: () => request('/admin/community/stats'),

@@ -69,6 +69,11 @@
         <!-- Perfil view -->
         <div id="vistaPerfil" class="hidden"></div>
 
+        <div id="chatTabs" class="hidden flex items-center gap-2 mb-6">
+            <button data-vista="feed" id="tab-vista-feed" class="chip activo">Feed</button>
+            <button data-vista="chat" id="tab-vista-chat" class="chip">Chat</button>
+        </div>
+
         <!-- Feed view -->
         <div id="vistaFeed">
             <div class="text-center mb-8">
@@ -117,6 +122,32 @@
 
             <div id="feedBox" class="space-y-4">
                 <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando comunidad...</p>
+            </div>
+        </div>
+
+        <!-- Chat view -->
+        <div id="vistaChat" class="hidden">
+            <div class="text-center mb-6">
+                <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Chat privado</h1>
+            </div>
+
+            <div id="chatSinAcceso" class="hidden glass-card p-10 text-center">
+                <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
+                <p class="font-bold text-white mb-1">Necesitás un producto NLT activo</p>
+                <p class="text-xs text-gray-500 mb-4">Cualquier suscripción activa del ecosistema (Copy System, Academy, Elite Signals, Indicator) te da acceso al chat.</p>
+                <a href="plans.html" class="inline-block px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Ver planes</a>
+            </div>
+
+            <div id="chatAutorizado" class="hidden">
+                <div id="chatMensajes" class="glass-card p-4 space-y-3 mb-4 overflow-y-auto" style="height: 55vh;">
+                    <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <input id="chatInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
+                    <button id="btn-chat-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
+                </div>
+                <p id="chatMsg" class="mt-2 text-xs hidden"></p>
             </div>
         </div>
 
@@ -740,6 +771,8 @@
         // --- Perfil ---
         async function mostrarPerfil(username) {
             document.getElementById('vistaFeed').classList.add('hidden');
+            document.getElementById('vistaChat').classList.add('hidden');
+            document.getElementById('chatTabs').classList.add('hidden');
             const box = document.getElementById('vistaPerfil');
             box.classList.remove('hidden');
             box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando perfil...</p>';
@@ -769,6 +802,7 @@
                 document.getElementById('btn-volver-feed').addEventListener('click', () => {
                     window.history.pushState({}, '', 'community.html');
                     box.classList.add('hidden');
+                    document.getElementById('chatTabs').classList.remove('hidden');
                     document.getElementById('vistaFeed').classList.remove('hidden');
                 });
                 const postsBox = document.getElementById('perfilPostsBox');
@@ -872,6 +906,152 @@
             });
         }
 
+        // --- Chat privado ---
+        let ultimoMensajeChatId = null;
+        let chatCargado = false;
+
+        function mensajeChatHTML(m) {
+            return `
+                <div class="chat-message flex items-start gap-2.5" data-message-id="${m.id}">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden">${m.author_avatar_url ? `<img src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>
+                    <div class="flex-1 min-w-0 glass-item px-3 py-2">
+                        <p class="text-xs font-semibold text-white">${esc(m.author_display_name)}${m.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}</span></p>
+                        <div id="chatBody-${m.id}" data-raw-body="${esc(m.content)}"><p class="text-xs text-gray-300 mt-0.5">${esc(m.content).replace(/\n/g, '<br>')}</p></div>
+                    </div>
+                    ${m.is_own ? `
+                        <div class="flex items-center gap-1 shrink-0">
+                            <button class="btn-editar-chat text-gray-600 hover:text-white cursor-pointer" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple text-xs"></i></button>
+                            <button class="btn-borrar-chat text-gray-600 hover:text-nlt-danger cursor-pointer" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash text-xs"></i></button>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }
+
+        function activarEdicionChat(messageId) {
+            const wrap = document.getElementById(`chatBody-${messageId}`);
+            if (!wrap) return;
+            const original = wrap.getAttribute('data-raw-body') || '';
+            wrap.innerHTML = `
+                <textarea class="post-input w-full mt-1 mb-1" rows="2">${esc(original)}</textarea>
+                <div class="flex items-center gap-2">
+                    <button class="btn-guardar-edicion-chat px-3 py-1 rounded-full bg-nlt-accent text-white text-[11px] font-semibold cursor-pointer">Guardar</button>
+                    <button class="btn-cancelar-edicion-chat px-3 py-1 rounded-full bg-white/10 text-[11px] font-semibold cursor-pointer">Cancelar</button>
+                </div>
+            `;
+            const textarea = wrap.querySelector('textarea');
+            textarea.focus();
+            const renderEstatico = (content) => {
+                wrap.setAttribute('data-raw-body', content);
+                wrap.innerHTML = `<p class="text-xs text-gray-300 mt-0.5">${esc(content).replace(/\n/g, '<br>')}</p>`;
+            };
+            wrap.querySelector('.btn-cancelar-edicion-chat').addEventListener('click', () => renderEstatico(original));
+            wrap.querySelector('.btn-guardar-edicion-chat').addEventListener('click', async () => {
+                const nuevo = textarea.value.trim();
+                if (!nuevo) return;
+                try {
+                    await NLT_API.communityChatEditar(messageId, nuevo);
+                    renderEstatico(nuevo);
+                } catch (err) { alert('Error: ' + err.message); }
+            });
+        }
+
+        function wireMensajesChat(scopeEl) {
+            scopeEl.querySelectorAll('.btn-editar-chat').forEach(b => _unaVez(b, () => {
+                b.addEventListener('click', () => activarEdicionChat(b.getAttribute('data-message-id')));
+            }));
+            scopeEl.querySelectorAll('.btn-borrar-chat').forEach(b => _unaVez(b, () => {
+                b.addEventListener('click', async () => {
+                    if (!confirm('¿Eliminar este mensaje?')) return;
+                    await NLT_API.communityChatBorrar(b.getAttribute('data-message-id'));
+                    // .chat-message (no [data-message-id]) a propósito -- mismo
+                    // motivo que posts/comentarios: el botón también lleva
+                    // data-message-id, closest() con ese selector encontraría
+                    // el botón mismo, no el bloque completo.
+                    b.closest('.chat-message').remove();
+                });
+            }));
+        }
+
+        async function cargarChat() {
+            const box = document.getElementById('chatMensajes');
+            try {
+                const mensajes = await NLT_API.communityChatMensajes();
+                ultimoMensajeChatId = mensajes.length ? mensajes[mensajes.length - 1].id : null;
+                box.innerHTML = mensajes.length ? mensajes.map(mensajeChatHTML).join('') : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                wireMensajesChat(box);
+                box.scrollTop = box.scrollHeight;
+                chatCargado = true;
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        // Poll eficiente (no agresivo): solo agrega mensajes nuevos al final,
+        // nunca reconstruye la lista completa (perdería una edición en curso
+        // o el scroll del usuario). Se detiene solo si la vista de chat no
+        // está visible -- ver pollWhileVisible en init().
+        async function pollChatNuevo() {
+            if (document.getElementById('vistaChat').classList.contains('hidden') || !chatCargado) return;
+            try {
+                const mensajes = await NLT_API.communityChatMensajes();
+                const idsActuales = new Set([...document.querySelectorAll('.chat-message')].map(el => el.getAttribute('data-message-id')));
+                const nuevos = mensajes.filter(m => !idsActuales.has(m.id));
+                if (!nuevos.length) return;
+                const box = document.getElementById('chatMensajes');
+                const placeholder = box.querySelector('p.text-gray-600');
+                if (placeholder) placeholder.remove();
+                const estabaAlFondo = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
+                box.insertAdjacentHTML('beforeend', nuevos.map(mensajeChatHTML).join(''));
+                wireMensajesChat(box);
+                if (estabaAlFondo) box.scrollTop = box.scrollHeight;
+            } catch (_) { /* un poll fallido no debe interrumpir al usuario */ }
+        }
+
+        document.getElementById('btn-chat-enviar').addEventListener('click', async () => {
+            const input = document.getElementById('chatInput');
+            const msg = document.getElementById('chatMsg');
+            const contenido = input.value.trim();
+            if (!contenido) return;
+            try {
+                const nuevo = await NLT_API.communityChatEnviar(contenido);
+                input.value = '';
+                msg.classList.add('hidden');
+                const box = document.getElementById('chatMensajes');
+                const placeholder = box.querySelector('p.text-gray-600');
+                if (placeholder) placeholder.remove();
+                box.insertAdjacentHTML('beforeend', mensajeChatHTML(nuevo));
+                wireMensajesChat(box);
+                box.scrollTop = box.scrollHeight;
+            } catch (err) {
+                msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+            }
+        });
+        document.getElementById('chatInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                document.getElementById('btn-chat-enviar').click();
+            }
+        });
+
+        // --- Switch de vista Feed/Chat ---
+        async function mostrarVista(vista) {
+            document.getElementById('tab-vista-feed').classList.toggle('activo', vista === 'feed');
+            document.getElementById('tab-vista-chat').classList.toggle('activo', vista === 'chat');
+            document.getElementById('vistaFeed').classList.toggle('hidden', vista !== 'feed');
+            document.getElementById('vistaChat').classList.toggle('hidden', vista !== 'chat');
+            if (vista === 'chat' && !chatCargado) {
+                if (esMiembro) {
+                    document.getElementById('chatAutorizado').classList.remove('hidden');
+                    await cargarChat();
+                } else {
+                    document.getElementById('chatSinAcceso').classList.remove('hidden');
+                }
+            }
+        }
+        document.getElementById('tab-vista-feed').addEventListener('click', () => mostrarVista('feed'));
+        document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
+
         // --- Notificaciones ---
         async function cargarNotifBadge() {
             try {
@@ -931,6 +1111,7 @@
             if (usernameParam) {
                 await mostrarPerfil(usernameParam);
             } else {
+                document.getElementById('chatTabs').classList.remove('hidden');
                 document.getElementById('vistaFeed').classList.remove('hidden');
                 await cargarFeed();
             }
@@ -939,10 +1120,11 @@
             // se auto-pausa en tab oculta) -- sin websockets/Realtime en el
             // proyecto todavía. Publicaciones y comentarios de OTROS
             // usuarios aparecen solos, sin que nadie tenga que refrescar;
-            // ambos pollers son no-op si no aplican (perfil abierto, filtro
-            // trending, ningún hilo de comentarios abierto).
+            // todos los pollers son no-op si no aplican (perfil abierto,
+            // filtro trending, ningún hilo abierto, vista de chat cerrada).
             NLT.pollWhileVisible(pollFeedNuevo, 20000);
             NLT.pollWhileVisible(pollComentariosAbiertos, 20000);
+            NLT.pollWhileVisible(pollChatNuevo, 8000);
         }
         init();
     </script>
