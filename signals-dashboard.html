@@ -34,6 +34,9 @@
             .responsive-table td { padding: 6px 0 !important; }
             .responsive-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 3px; }
         }
+        .chip-activo { padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.04); transition: all .15s; cursor: pointer; white-space: nowrap; border: 1px solid transparent; }
+        .chip-activo:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .chip-activo.activo { color: #4378FF; background: rgba(67,120,255,0.12); border-color: rgba(67,120,255,0.25); }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
@@ -70,6 +73,13 @@
                     <p class="text-sm text-nlt-success"><strong>Acceso activo</strong> -- toda señal con Quality Score de 70 o superior se publica, clasificada en NORMAL / OPTIMA / PERFECTA / ELITE según su score real. Esto no garantiza rentabilidad ni resultados.</p>
                 </div>
 
+                <div id="chipsActivos" class="flex items-center gap-2 overflow-x-auto pb-1">
+                    <button data-activo="ALL" class="chip-activo activo">ALL</button>
+                    <button data-activo="EURUSD" class="chip-activo">EURUSD</button>
+                    <button data-activo="XAUUSD" class="chip-activo">XAUUSD</button>
+                    <button data-activo="NAS100" class="chip-activo">NAS100</button>
+                </div>
+
                 <div id="seccion-activas">
                     <h2 class="text-lg font-bold mb-4">Señales activas</h2>
                     <div id="gridActivas" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -80,11 +90,11 @@
                 <div id="seccion-historial">
                     <h2 class="text-lg font-bold mb-4">Historial</h2>
                     <div class="glass-card overflow-x-auto">
-                        <table class="responsive-table w-full text-left text-sm md:min-w-[700px]">
+                        <table class="responsive-table w-full text-left text-sm md:min-w-[820px]">
                             <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
-                                <tr><th class="px-5 py-3 font-semibold">Instrumento</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Entry</th><th class="px-5 py-3 font-semibold">SL</th><th class="px-5 py-3 font-semibold">TP</th><th class="px-5 py-3 font-semibold">Quality Score</th><th class="px-5 py-3 font-semibold">Nivel</th><th class="px-5 py-3 font-semibold">Estado</th></tr>
+                                <tr><th class="px-5 py-3 font-semibold">Instrumento</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Entry</th><th class="px-5 py-3 font-semibold">SL</th><th class="px-5 py-3 font-semibold">TP</th><th class="px-5 py-3 font-semibold">Setup</th><th class="px-5 py-3 font-semibold">TF</th><th class="px-5 py-3 font-semibold">Quality Score</th><th class="px-5 py-3 font-semibold">Nivel</th><th class="px-5 py-3 font-semibold">Estado</th></tr>
                             </thead>
-                            <tbody id="tablaHistorial" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="8" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                            <tbody id="tablaHistorial" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="10" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
                         </table>
                     </div>
                 </div>
@@ -105,14 +115,19 @@
         const ESTADO_LABEL = { ACTIVE: 'Activa', TP_HIT: 'TP alcanzado', SL_HIT: 'SL alcanzado', CANCELLED: 'Cancelada', EXPIRED: 'Expirada' };
         // Nivel de CALIDAD (quality_tier, calculado por el backend a partir del
         // score real -- ver app/models/elite_signals.py) -- distinto del status
-        // de ciclo de vida (Activa/TP alcanzado/...) de arriba.
-        const TIER_LABEL = { NORMAL: 'Normal', OPTIMA: 'Óptima', PERFECTA: 'Perfecta', ELITE: 'Elite' };
+        // de ciclo de vida (Activa/TP alcanzado/...) de arriba. 5 niveles desde
+        // la conexión con NLT Signal Engine V3.13 (se agregó STRONG 86-89).
+        const TIER_LABEL = { NORMAL: 'Normal', OPTIMA: 'Óptima', STRONG: 'Strong', PERFECTA: 'Perfecta', ELITE: 'Elite' };
         const TIER_CLS = {
             NORMAL: 'text-gray-400 bg-white/5 border-white/10',
             OPTIMA: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
+            STRONG: 'text-purple-400 bg-purple-500/10 border-purple-500/20',
             PERFECTA: 'text-nlt-success bg-nlt-success/10 border-nlt-success/20',
             ELITE: 'text-nlt-accent bg-nlt-accent/10 border-nlt-accent/30',
         };
+        let activoFiltro = 'ALL';
+        let cacheActivas = [];
+        let cacheHistorial = [];
         function badgeTier(tier) {
             const cls = TIER_CLS[tier] || TIER_CLS.NORMAL;
             return `<span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${cls}">${esc(TIER_LABEL[tier] || tier || '--')}</span>`;
@@ -132,6 +147,7 @@
                         <div><p class="text-gray-500 uppercase tracking-wider mb-0.5">SL</p><p class="font-semibold text-white">${s.stop_loss ?? '--'}</p></div>
                         <div><p class="text-gray-500 uppercase tracking-wider mb-0.5">TP</p><p class="font-semibold text-white">${s.take_profit ?? '--'}</p></div>
                     </div>
+                    ${s.setup ? `<p class="text-[11px] text-gray-500 mb-2"><i class="ph-fill ph-strategy text-nlt-accent"></i> ${esc(s.setup)}</p>` : ''}
                     <div class="flex items-center justify-between text-xs text-gray-500 mb-2">
                         <span><i class="ph-fill ph-gauge text-nlt-accent"></i> Quality Score ${s.quality_score}%</span>
                         <span>${esc(s.timeframe || '--')}</span>
@@ -144,28 +160,47 @@
             `;
         }
 
+        function renderDashboard() {
+            const activas = activoFiltro === 'ALL' ? cacheActivas : cacheActivas.filter((s) => s.symbol === activoFiltro);
+            const historial = activoFiltro === 'ALL' ? cacheHistorial : cacheHistorial.filter((s) => s.symbol === activoFiltro);
+
+            document.getElementById('gridActivas').innerHTML = activas.length
+                ? activas.map(tarjetaSignal).join('')
+                : '<p class="text-sm text-gray-500 col-span-full">Sin señales activas por ahora.</p>';
+
+            document.getElementById('tablaHistorial').innerHTML = historial.length
+                ? historial.map((h) => `
+                    <tr>
+                        <td data-label="Instrumento" class="px-5 py-3 font-semibold text-white">${esc(h.symbol)}</td>
+                        <td data-label="Dirección" class="px-5 py-3">${esc(h.direction)}</td>
+                        <td data-label="Entry" class="px-5 py-3">${h.entry ?? '--'}</td>
+                        <td data-label="SL" class="px-5 py-3">${h.stop_loss ?? '--'}</td>
+                        <td data-label="TP" class="px-5 py-3">${h.take_profit ?? '--'}</td>
+                        <td data-label="Setup" class="px-5 py-3">${esc(h.setup || '--')}</td>
+                        <td data-label="TF" class="px-5 py-3">${esc(h.timeframe || '--')}</td>
+                        <td data-label="Quality Score" class="px-5 py-3">${h.quality_score}%</td>
+                        <td data-label="Nivel" class="px-5 py-3">${badgeTier(h.quality_tier)}</td>
+                        <td data-label="Estado" class="px-5 py-3">${esc(ESTADO_LABEL[h.status] || h.status)}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="10" class="px-5 py-3 text-gray-500">Sin historial todavía.</td></tr>';
+        }
+
+        document.querySelectorAll('.chip-activo').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.chip-activo').forEach((b) => b.classList.remove('activo'));
+                btn.classList.add('activo');
+                activoFiltro = btn.getAttribute('data-activo');
+                renderDashboard();
+            });
+        });
+
         async function cargarDashboard() {
             try {
                 const [activas, historial] = await Promise.all([NLT_API.signalsActivas(), NLT_API.signalsHistorial()]);
-
-                document.getElementById('gridActivas').innerHTML = activas.length
-                    ? activas.map(tarjetaSignal).join('')
-                    : '<p class="text-sm text-gray-500 col-span-full">Sin señales activas por ahora.</p>';
-
-                document.getElementById('tablaHistorial').innerHTML = historial.length
-                    ? historial.map((h) => `
-                        <tr>
-                            <td data-label="Instrumento" class="px-5 py-3 font-semibold text-white">${esc(h.symbol)}</td>
-                            <td data-label="Dirección" class="px-5 py-3">${esc(h.direction)}</td>
-                            <td data-label="Entry" class="px-5 py-3">${h.entry ?? '--'}</td>
-                            <td data-label="SL" class="px-5 py-3">${h.stop_loss ?? '--'}</td>
-                            <td data-label="TP" class="px-5 py-3">${h.take_profit ?? '--'}</td>
-                            <td data-label="Quality Score" class="px-5 py-3">${h.quality_score}%</td>
-                            <td data-label="Nivel" class="px-5 py-3">${badgeTier(h.quality_tier)}</td>
-                            <td data-label="Estado" class="px-5 py-3">${esc(ESTADO_LABEL[h.status] || h.status)}</td>
-                        </tr>
-                    `).join('')
-                    : '<tr><td colspan="8" class="px-5 py-3 text-gray-500">Sin historial todavía.</td></tr>';
+                cacheActivas = activas;
+                cacheHistorial = historial;
+                renderDashboard();
             } catch (err) {
                 document.getElementById('gridActivas').innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${esc(err.message)}</p>`;
             }
