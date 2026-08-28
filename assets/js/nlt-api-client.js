@@ -134,8 +134,13 @@
     // indicator.html): visitantes sin sesión también tienen que poder ver
     // precios, así que esto NUNCA manda Authorization -- solo pega a
     // endpoints que el backend ya expone sin auth (ver billing.py::/plans*).
-    async function requestPublico(path) {
-        const resp = await _fetchConTimeout(BASE_URL + path);
+    // `options` opcional (method/body) -- agregado para become-partner.html,
+    // primer submit público real de este archivo (antes solo GETs).
+    async function requestPublico(path, options = {}) {
+        const resp = await _fetchConTimeout(BASE_URL + path, {
+            ...options,
+            headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+        });
         let body = null;
         try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
         if (!resp.ok) {
@@ -705,6 +710,36 @@
         adminSignalsListar: () => request('/admin/signals'),
         adminSignalsCrear: (datos) => request('/admin/signals', { method: 'POST', body: JSON.stringify(datos) }),
         adminSignalsActualizarStatus: (signalId, status) => request(`/admin/signals/${signalId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+
+        // --- NLT Partners (Business Development Foundation) ---
+        // Públicos, sin sesión -- partners.html/become-partner.html se ven
+        // sin cuenta NLT (una empresa que se postula no necesariamente
+        // tiene una).
+        partnersPublicos: () => requestPublico('/partners'),
+        partnersAplicar: (datos) => requestPublico('/partners/apply', { method: 'POST', body: JSON.stringify(datos) }),
+
+        // --- admin: NLT Partners ---
+        adminPartnersListar: (filtros = {}) => {
+            const qs = new URLSearchParams();
+            if (filtros.internal_status) qs.set('internal_status', filtros.internal_status);
+            if (filtros.category) qs.set('category', filtros.category);
+            const query = qs.toString();
+            return request(`/admin/partners${query ? '?' + query : ''}`);
+        },
+        adminPartnersObtener: (partnerId) => request(`/admin/partners/${partnerId}`),
+        adminPartnersCrear: (datos) => request('/admin/partners', { method: 'POST', body: JSON.stringify(datos) }),
+        adminPartnersActualizar: (partnerId, cambios) => request(`/admin/partners/${partnerId}`, { method: 'PATCH', body: JSON.stringify(cambios) }),
+        adminPartnersArchivar: (partnerId) => request(`/admin/partners/${partnerId}/archive`, { method: 'POST' }),
+        // Logo: reutiliza Media Library (category "marketing", placement
+        // "partners") en vez de un upload propio -- 3 llamadas explícitas,
+        // no un endpoint nuevo. Devuelve la URL servible (video_url,
+        // nombre heredado del modelo genérico de Media -- sirve igual para
+        // imagen) para guardarla como logo_url del partner.
+        adminPartnersSubirLogo: async (partnerId, file, companyName, onProgress) => {
+            const asset = await NLT_API.adminSubirMedia(file, { title: `Logo -- ${companyName}`, category: 'marketing' }, onProgress);
+            await NLT_API.adminActualizarPlacementsMedia(asset.id, ['partners']);
+            return NLT_API.adminPartnersActualizar(partnerId, { logo_url: asset.video_url });
+        },
     };
 
     window.NLT_API = NLT_API;
