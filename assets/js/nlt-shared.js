@@ -537,6 +537,15 @@
         { id: 'signals-landing', href: 'signals.html', icono: 'ph-broadcast', label: 'Elite Signals' },
     ];
 
+    // Equipo + Acuerdos + Firma -- una sola página (equipo.html) con
+    // secciones ancladas, mismo patrón que NAV_FUTURES_HOME (#seccion-*).
+    const NAV_EQUIPO = [
+        { id: 'equipo-mios', href: '#seccion-mis-acuerdos', icono: 'ph-file-text', label: 'Mis Acuerdos' },
+        { id: 'equipo-roster', href: '#seccion-equipo', icono: 'ph-users-three', label: 'Equipo' },
+        { id: 'equipo-acuerdos', href: '#seccion-acuerdos-admin', icono: 'ph-folder-lock', label: 'Acuerdos (Admin)' },
+        { id: 'equipo-auditoria', href: '#seccion-auditoria', icono: 'ph-scroll', label: 'Auditoría' },
+    ];
+
     function _navItemHTML(item, activo) {
         const on = item.id === activo;
         const base = 'flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-sm transition-all';
@@ -552,9 +561,9 @@
     // se usa un solo link de vuelta a futuros.html.
     function renderSidebar({ activo, seccion = 'cfd' } = {}) {
         const esFuturesHome = seccion === 'futures' && FUTURES_HOME_IDS.includes(activo);
-        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
+        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'equipo' ? NAV_EQUIPO : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
         const ajustes = seccion === 'futures' ? NAV_FUTURES_AJUSTES : NAV_CFD_AJUSTES;
-        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'futures' ? 'Futuros' : null;
+        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'equipo' ? 'Equipo NLT' : seccion === 'futures' ? 'Futuros' : null;
         const ajustesLabel = seccion === 'futures' ? 'Ajustes Futures' : 'Ajustes';
         const adminLabel = seccion === 'futures' ? 'Administración' : 'Panel Admin';
         const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'propfirm' ? 'admin.html#propfirm' : seccion === 'signals' ? 'admin.html#elite_signals' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
@@ -576,6 +585,9 @@
                 ${nav.map((i) => _navItemHTML(i, activo)).join('')}
                 <div class="pt-6 pb-2 px-4"><p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">${ajustesLabel}</p></div>
                 ${ajustes.map((i) => _navItemHTML(i, activo)).join('')}
+                <a href="equipo.html" id="nav-equipo" class="hidden items-center gap-3 px-4 py-3 rounded-2xl font-medium text-sm transition-all ${activo === 'equipo-mios' || activo === 'equipo-roster' || activo === 'equipo-acuerdos' || activo === 'equipo-auditoria' ? 'bg-nlt-accent/10 text-nlt-accent border border-nlt-accent/10' : 'text-gray-400 hover:text-white hover:bg-white/5'}">
+                    <i class="ph-fill ph-users-three text-lg"></i> Equipo
+                </a>
                 <a href="${adminHref}" id="nav-admin" class="hidden items-center gap-3 px-4 py-3 rounded-2xl font-medium text-sm transition-all ${adminCls}">
                     <i class="ph-fill ph-shield-star text-lg"></i> ${adminLabel}
                 </a>
@@ -659,9 +671,25 @@
             navAdmin.classList.remove('hidden');
             navAdmin.classList.add('flex');
         }
+        function _revelarNavEquipo() {
+            const navEquipo = document.getElementById('nav-equipo');
+            if (!navEquipo) return;
+            navEquipo.classList.remove('hidden');
+            navEquipo.classList.add('flex');
+        }
 
         if (isAdmin(session)) {
             _revelarNavAdmin();
+            _revelarNavEquipo();
+        } else if (typeof window.NLT_API !== 'undefined') {
+            // "Equipo" solo es relevante para el puñado de personas del
+            // equipo interno de NLT -- para el resto de usuarios esta
+            // llamada devuelve es_miembro:false y el link nunca aparece.
+            // Fire-and-forget: un fallo acá nunca debe romper el resto del
+            // sidebar (mismo criterio que el resto de mountSidebar).
+            window.NLT_API.teamMiRol().then((rol) => {
+                if (rol && rol.es_miembro) _revelarNavEquipo();
+            }).catch(() => {});
         }
 
         const labelEl = document.getElementById('userPlanLabel');

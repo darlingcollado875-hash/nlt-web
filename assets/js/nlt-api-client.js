@@ -497,6 +497,33 @@
         communityDMDejarDeEscribir: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'DELETE' }),
         communityDMQuienEscribe: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`),
 
+        // --- Equipo + Acuerdos + Firma Electrónica ---
+        teamMiRol: () => request('/team/me'),
+        teamListarMiembros: () => request('/team/members'),
+        teamObtenerMiembro: (id) => request(`/team/members/${id}`),
+        teamCrearMiembro: (datos) => request('/team/members', { method: 'POST', body: JSON.stringify(datos) }),
+        teamInvitarMiembro: (id, email) => request(`/team/members/${id}/invite`, { method: 'POST', body: JSON.stringify({ email }) }),
+        teamActualizarMiembro: (id, datos) => request(`/team/members/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        teamActualizarPermisos: (id, permissions) => request(`/team/members/${id}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) }),
+        teamAuditoria: (entidad, limite) => request(`/team/audit?${entidad ? 'entidad=' + encodeURIComponent(entidad) + '&' : ''}limite=${limite || 200}`),
+        agreementsListar: () => request('/agreements'),
+        agreementsCrear: (slug, title) => request('/agreements', { method: 'POST', body: JSON.stringify({ slug, title }) }),
+        agreementsListarVersiones: (agreementId) => request(`/agreements/${agreementId}/versions`),
+        agreementsCrearVersion: (agreementId, file, version, title, onProgress) => {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('version', version);
+            fd.append('title', title);
+            return subirArchivo(`/agreements/${agreementId}/versions`, fd, onProgress);
+        },
+        agreementsPublicar: (versionId) => request(`/agreements/versions/${versionId}/publish`, { method: 'POST' }),
+        agreementsArchivar: (versionId) => request(`/agreements/versions/${versionId}/archive`, { method: 'POST' }),
+        agreementsMios: () => request('/agreements/mine'),
+        agreementsDocumentoUrl: (versionId) => request(`/agreements/versions/${versionId}/document`),
+        agreementsAsignaciones: (versionId) => request(`/agreements/versions/${versionId}/assignments`),
+        agreementsMarcarVisto: (versionId) => request(`/agreements/versions/${versionId}/view`, { method: 'POST' }),
+        agreementsFirmar: (versionId, accepted) => request(`/agreements/versions/${versionId}/sign`, { method: 'POST', body: JSON.stringify({ accepted }) }),
+
         // --- admin: NLT Community ---
         adminCommunityStats: () => request('/admin/community/stats'),
         adminCommunityListarPosts: (status) => request(`/admin/community/posts${status ? '?status=' + status : ''}`),

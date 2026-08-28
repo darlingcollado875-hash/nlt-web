@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT | Equipo</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; transition: border-color .15s ease, background-color .15s ease; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .chip { padding: 5px 12px; border-radius: 999px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; }
+        .chip-pendiente { color: #9CA6B4; background: rgba(255,255,255,0.05); }
+        .chip-visto { color: #F5A623; background: rgba(245,166,35,0.12); }
+        .chip-firmado { color: #22C55E; background: rgba(34,197,94,0.12); }
+        .chip-requiere { color: #E5484D; background: rgba(229,72,77,0.12); }
+        .member-card { transition: border-color .15s ease, transform .15s ease; }
+        .member-card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-1px); }
+        .perm-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 4px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .perm-row:last-child { border-bottom: none; }
+        .switch { position: relative; width: 38px; height: 22px; border-radius: 999px; background: rgba(255,255,255,0.08); cursor: pointer; flex-shrink: 0; transition: background-color .15s ease; }
+        .switch.on { background: #4378FF; }
+        .switch .knob { position: absolute; top: 2px; left: 2px; width: 18px; height: 18px; border-radius: 999px; background: #fff; transition: transform .15s ease; }
+        .switch.on .knob { transform: translateX(16px); }
+        .switch.disabled { opacity: .4; cursor: not-allowed; }
+
+        /* Grid del roster -- NUNCA usar sm:/lg:grid-cols-N de Tailwind acá:
+           confirmado que esas variantes responsive de grid-cols NO están en
+           el bundle precompilado (solo grid-cols-1 a secas existe). Mismo
+           motivo que el bug histórico de justify-end/max-w-[78%] de este
+           proyecto -- CSS propio en su lugar. */
+        .team-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+        @media (min-width: 640px) { .team-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .team-grid { grid-template-columns: repeat(3, 1fr); } }
+
+        /* max-h-[85vh] (arbitrary value) tampoco está compilado -- confirmado. */
+        .modal-miembro-box { max-height: 85vh; }
+
+        /* Botones compactos dentro de tarjetas -- los modificadores
+           "!py-1.5 !px-3 !text-xs" de Tailwind (important-modifier) tampoco
+           existen en el bundle. */
+        .btn-primario.btn-sm, .btn-secundario.btn-sm { padding: 7px 14px; font-size: 12px; border-radius: 10px; }
+
+        /* .skeleton-block / .post-input -- mismas definiciones que
+           community.html (cada página las define localmente, no son parte
+           del bundle de Tailwind). */
+        .skeleton-block { background: rgba(255,255,255,0.05); border-radius: 8px; animation: skeleton-pulse 1.4s ease-in-out infinite; }
+        @keyframes skeleton-pulse { 0%, 100% { opacity: .5; } 50% { opacity: .9; } }
+        .post-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px; font-size: 13.5px; color: #fff; }
+        .post-input:focus { outline: none; border-color: rgba(67,120,255,0.5); }
+
+        /* Resto de clases verificadas como NO compiladas en este archivo
+           (bg-black/70, z-[250], min-h-0, select-none, justify-end -- el
+           mismo bug histórico de este proyecto --, from-x/to-x con
+           opacidad custom, self-center, h-32): CSS propio en su lugar. */
+        .skeleton-h32 { height: 8rem; }
+        .modal-miembro-overlay { background: rgba(0,0,0,0.7); z-index: 250; }
+        .min-h-0-fix { min-height: 0; }
+        .select-none-fix { user-select: none; }
+        .jc-end { justify-content: flex-end; }
+        .avatar-accent { background: linear-gradient(to top right, rgba(67,120,255,0.4), rgba(67,120,255,0.1)); }
+        .self-center-fix { align-self: center; }
+        @media (min-width: 640px) { .sm-items-center { align-items: center; } }
+
+        /* Modal de lectura/firma -- experiencia dedicada (Fase "Experiencia
+           del Acuerdo"), no un <a> suelto a un PDF. */
+        #modalAcuerdo { position: fixed; inset: 0; background: rgba(3,4,7,0.88); z-index: 300; display: none; align-items: center; justify-content: center; padding: 20px; }
+        #modalAcuerdo.abierto { display: flex; }
+        .modal-acuerdo-box { width: 100%; max-width: 780px; height: min(88vh, 900px); display: flex; flex-direction: column; }
+        .doc-frame { flex: 1; min-height: 0; border-radius: 16px; overflow: hidden; background: #1a1d24; border: 1px solid rgba(255,255,255,0.06); }
+        .doc-frame iframe { width: 100%; height: 100%; border: 0; }
+        .btn-primario { background: #4378FF; color: #fff; font-weight: 600; border-radius: 12px; padding: 12px 24px; font-size: 14px; cursor: pointer; transition: opacity .15s ease, transform .1s ease; }
+        .btn-primario:hover:not(:disabled) { opacity: .92; }
+        .btn-primario:active:not(:disabled) { transform: scale(.98); }
+        .btn-primario:disabled { opacity: .35; cursor: not-allowed; }
+        .btn-secundario { background: rgba(255,255,255,0.05); color: #C7CDD6; font-weight: 600; border-radius: 12px; padding: 12px 20px; font-size: 14px; cursor: pointer; }
+        .btn-secundario:hover { background: rgba(255,255,255,0.08); }
+
+        @keyframes firmaOk { 0% { transform: scale(.7); opacity: 0; } 60% { transform: scale(1.05); } 100% { transform: scale(1); opacity: 1; } }
+        .firma-ok-icon { animation: firmaOk 420ms cubic-bezier(.34,1.56,.64,1); }
+        @media (prefers-reduced-motion: reduce) { .firma-ok-icon { animation: none; } }
+
+        @media (max-width: 767px) {
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table tr:last-child { border-bottom: none; }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 3px; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <div>
+                <h1 class="text-lg md:text-2xl font-bold tracking-tight">Equipo</h1>
+                <p id="miRolLabel" class="text-xs text-gray-500 mt-0.5">&nbsp;</p>
+            </div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 max-w-5xl mx-auto w-full">
+
+            <div id="vistaSinAcceso" class="hidden glass-card p-10 text-center">
+                <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
+                <p class="font-bold text-white mb-1">Este apartado es exclusivo del equipo interno de NLT</p>
+                <p class="text-xs text-gray-500">Si creés que deberías tener acceso, contactá al administrador.</p>
+            </div>
+
+            <div id="vistaEquipo" class="hidden space-y-10">
+
+                <!-- Mis Acuerdos -->
+                <section id="seccion-mis-acuerdos">
+                    <h2 class="text-lg font-bold mb-4">Mis Acuerdos</h2>
+                    <div id="listaMisAcuerdos" class="space-y-3">
+                        <div class="skeleton-block h-20 rounded-2xl"></div>
+                    </div>
+                </section>
+
+                <!-- Equipo (roster) -->
+                <section id="seccion-equipo">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold">Equipo</h2>
+                        <button id="btn-nuevo-miembro" class="hidden text-xs font-semibold text-nlt-accent hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"><i class="ph-bold ph-plus"></i> Agregar miembro</button>
+                    </div>
+                    <div id="gridEquipo" class="team-grid">
+                        <div class="skeleton-block skeleton-h32 rounded-2xl"></div>
+                        <div class="skeleton-block skeleton-h32 rounded-2xl"></div>
+                        <div class="skeleton-block skeleton-h32 rounded-2xl"></div>
+                    </div>
+                </section>
+
+                <!-- Acuerdos (Admin) -->
+                <section id="seccion-acuerdos-admin" class="hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-lg font-bold">Acuerdos</h2>
+                        <button id="btn-nueva-version" class="hidden text-xs font-semibold text-nlt-accent hover:text-white transition-colors cursor-pointer flex items-center gap-1.5"><i class="ph-bold ph-upload-simple"></i> Nueva versión</button>
+                    </div>
+                    <div id="listaAcuerdosAdmin" class="space-y-4">
+                        <div class="skeleton-block h-24 rounded-2xl"></div>
+                    </div>
+                </section>
+
+                <!-- Auditoría -->
+                <section id="seccion-auditoria" class="hidden">
+                    <h2 class="text-lg font-bold mb-4">Auditoría</h2>
+                    <div class="glass-card overflow-hidden">
+                        <table class="w-full text-sm responsive-table">
+                            <thead><tr class="text-left text-[10px] text-gray-500 uppercase tracking-wider border-b border-white/5"><th class="px-5 py-3">Fecha</th><th class="px-5 py-3">Actor</th><th class="px-5 py-3">Acción</th><th class="px-5 py-3">Entidad</th></tr></thead>
+                            <tbody id="tablaAuditoria"><tr><td colspan="4" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal: perfil / permisos de un miembro -->
+    <div id="modalMiembro" class="hidden fixed inset-0 modal-miembro-overlay items-center justify-center p-5">
+        <div class="glass-card p-6 w-full max-w-md modal-miembro-box overflow-y-auto">
+            <div class="flex items-center justify-between mb-5">
+                <h3 class="text-base font-bold" id="modalMiembroNombre">Miembro</h3>
+                <button id="btn-cerrar-modal-miembro" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+            <div id="modalMiembroBody"></div>
+        </div>
+    </div>
+
+    <!-- Modal: experiencia de lectura + firma del acuerdo -->
+    <div id="modalAcuerdo">
+        <div class="glass-card modal-acuerdo-box p-6 md:p-8 flex flex-col">
+            <div id="vistaLectura" class="flex-1 min-h-0-fix flex flex-col">
+                <div class="flex items-start justify-between mb-1">
+                    <div>
+                        <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.2em]">NLT</p>
+                        <h2 id="lecturaTitulo" class="text-xl font-extrabold tracking-tight">Acuerdo Marco</h2>
+                        <p class="text-xs text-gray-500 mt-0.5">Versión <span id="lecturaVersion">1.0</span> · <span id="lecturaEstado">Pendiente de firma</span></p>
+                    </div>
+                    <button id="btn-cerrar-modal-acuerdo" class="text-gray-500 hover:text-white cursor-pointer shrink-0"><i class="ph-bold ph-x text-lg"></i></button>
+                </div>
+                <div class="doc-frame mt-4 mb-4">
+                    <iframe id="lecturaFrame" title="Documento del acuerdo"></iframe>
+                </div>
+                <label class="flex items-start gap-2.5 mb-4 cursor-pointer select-none-fix">
+                    <input type="checkbox" id="checkAceptar" class="mt-0.5 w-4 h-4 cursor-pointer" style="accent-color:#4378FF">
+                    <span class="text-sm text-gray-300">Declaro que he leído y comprendido el presente acuerdo.</span>
+                </label>
+                <div class="flex items-center jc-end gap-3">
+                    <button id="btn-cancelar-firma" class="btn-secundario">Cerrar</button>
+                    <button id="btn-firmar" class="btn-primario" disabled>Firmar Acuerdo</button>
+                </div>
+                <p id="msgFirma" class="text-xs text-nlt-danger mt-2 hidden"></p>
+            </div>
+            <div id="vistaFirmado" class="hidden flex-1 flex flex-col items-center justify-center text-center px-6">
+                <i class="ph-fill ph-check-circle firma-ok-icon text-5xl text-nlt-success mb-4"></i>
+                <h2 class="text-xl font-extrabold tracking-tight mb-1">ACUERDO FIRMADO</h2>
+                <p class="text-sm text-gray-400 mb-6">✓ Documento aceptado correctamente.</p>
+                <div class="glass-item px-5 py-4 text-left w-full max-w-xs mx-auto mb-6">
+                    <p class="text-xs text-gray-500">Versión</p><p class="text-sm font-semibold text-white mb-2" id="firmadoVersion">1.0</p>
+                    <p class="text-xs text-gray-500">Firmado</p><p class="text-sm font-semibold text-white" id="firmadoFecha">--</p>
+                </div>
+                <button id="btn-cerrar-firmado" class="btn-primario">Listo</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260827"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        function iniciales(nombre) {
+            return String(nombre || '').trim().split(/\s+/).slice(0, 2).map(p => p[0]).join('').toUpperCase() || '?';
+        }
+        function fechaLegible(iso) {
+            if (!iso) return '--';
+            return new Date(iso).toLocaleString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        const CHIP_LABEL = { PENDIENTE: 'Pendiente', VISTO: 'Visto', FIRMADO: 'Firmado', REQUIERE_NUEVA_FIRMA: 'Requiere nueva firma' };
+        const CHIP_CLASE = { PENDIENTE: 'chip-pendiente', VISTO: 'chip-visto', FIRMADO: 'chip-firmado', REQUIERE_NUEVA_FIRMA: 'chip-requiere' };
+        function chipEstado(estado) {
+            return `<span class="chip ${CHIP_CLASE[estado] || 'chip-pendiente'}">${CHIP_LABEL[estado] || estado}</span>`;
+        }
+
+        let MI_ROL = null;
+        let VERSION_ACTUAL_MODAL = null;
+
+        // --- Mis Acuerdos ---
+        async function cargarMisAcuerdos() {
+            const box = document.getElementById('listaMisAcuerdos');
+            try {
+                const versiones = await NLT_API.agreementsMios();
+                box.innerHTML = versiones.length ? versiones.map(v => `
+                    <div class="glass-card p-5 flex flex-col sm:flex-row sm-items-center justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-bold text-white">${esc(v.title)}</p>
+                            <p class="text-xs text-gray-500 mt-0.5">Versión ${esc(v.version)}</p>
+                        </div>
+                        <div class="flex items-center gap-3">
+                            ${chipEstado(v.mi_estado || 'PENDIENTE')}
+                            <button class="btn-revisar-acuerdo btn-primario btn-sm" data-version-id="${v.id}" data-firmado="${v.mi_estado === 'FIRMADO' ? '1' : '0'}">${v.mi_estado === 'FIRMADO' ? 'Ver' : 'Revisar y firmar'}</button>
+                        </div>
+                    </div>
+                `).join('') : '<p class="text-sm text-gray-500 glass-card p-6 text-center">No tenés acuerdos asignados todavía.</p>';
+                box.querySelectorAll('.btn-revisar-acuerdo').forEach(b => b.addEventListener('click', () => abrirModalAcuerdo(b.getAttribute('data-version-id'))));
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger glass-card p-6">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        async function abrirModalAcuerdo(versionId) {
+            VERSION_ACTUAL_MODAL = versionId;
+            const modal = document.getElementById('modalAcuerdo');
+            document.getElementById('vistaLectura').classList.remove('hidden');
+            document.getElementById('vistaFirmado').classList.add('hidden');
+            document.getElementById('checkAceptar').checked = false;
+            document.getElementById('btn-firmar').disabled = true;
+            document.getElementById('msgFirma').classList.add('hidden');
+            modal.classList.add('abierto');
+            try {
+                const [doc] = await Promise.all([
+                    NLT_API.agreementsDocumentoUrl(versionId),
+                    NLT_API.agreementsMarcarVisto(versionId).catch(() => {}),
+                ]);
+                document.getElementById('lecturaFrame').src = doc.url || '';
+            } catch (err) {
+                document.getElementById('msgFirma').textContent = 'Error al cargar el documento: ' + err.message;
+                document.getElementById('msgFirma').classList.remove('hidden');
+            }
+        }
+        document.getElementById('checkAceptar').addEventListener('change', (e) => {
+            document.getElementById('btn-firmar').disabled = !e.target.checked;
+        });
+        document.getElementById('btn-firmar').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-firmar');
+            btn.disabled = true;
+            btn.textContent = 'Firmando...';
+            try {
+                const firma = await NLT_API.agreementsFirmar(VERSION_ACTUAL_MODAL, true);
+                document.getElementById('vistaLectura').classList.add('hidden');
+                document.getElementById('vistaFirmado').classList.remove('hidden');
+                document.getElementById('firmadoFecha').textContent = fechaLegible(firma.signed_at);
+                cargarMisAcuerdos();
+            } catch (err) {
+                document.getElementById('msgFirma').textContent = 'Error: ' + err.message;
+                document.getElementById('msgFirma').classList.remove('hidden');
+                btn.disabled = false;
+                btn.textContent = 'Firmar Acuerdo';
+            }
+        });
+        function cerrarModalAcuerdo() {
+            document.getElementById('modalAcuerdo').classList.remove('abierto');
+            document.getElementById('lecturaFrame').src = 'about:blank';
+        }
+        document.getElementById('btn-cerrar-modal-acuerdo').addEventListener('click', cerrarModalAcuerdo);
+        document.getElementById('btn-cancelar-firma').addEventListener('click', cerrarModalAcuerdo);
+        document.getElementById('btn-cerrar-firmado').addEventListener('click', cerrarModalAcuerdo);
+
+        // --- Equipo (roster) ---
+        function tarjetaMiembroHTML(m) {
+            const puedeGestionar = MI_ROL.is_super_admin || MI_ROL.permissions['team.manage_members'] || MI_ROL.permissions['team.manage_permissions'] || MI_ROL.permissions['team.manage_roles'];
+            return `
+                <div class="glass-card member-card p-5 ${puedeGestionar ? 'cursor-pointer' : ''}" ${puedeGestionar ? `data-member-id="${m.id}"` : ''}>
+                    <div class="flex items-center gap-3 mb-3">
+                        <div class="w-11 h-11 rounded-full avatar-accent flex items-center justify-center text-xs font-bold text-white shrink-0">${iniciales(m.full_name)}</div>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-white truncate">${esc(m.full_name)}</p>
+                            <p class="text-[11px] text-gray-500 truncate">${esc(m.display_title || m.team_role)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="chip ${m.activo ? 'chip-firmado' : 'chip-requiere'}">${m.activo ? 'Activo' : 'Inactivo'}</span>
+                        <span class="text-[10px] text-gray-600">${m.tiene_cuenta ? 'Con cuenta' : 'Sin invitar'}</span>
+                    </div>
+                </div>
+            `;
+        }
+
+        async function cargarEquipo() {
+            const grid = document.getElementById('gridEquipo');
+            try {
+                const miembros = await NLT_API.teamListarMiembros();
+                grid.innerHTML = miembros.map(tarjetaMiembroHTML).join('');
+                grid.querySelectorAll('[data-member-id]').forEach(el => el.addEventListener('click', () => abrirModalMiembro(el.getAttribute('data-member-id'))));
+            } catch (err) {
+                grid.innerHTML = `<p class="text-sm text-nlt-danger col-span-full">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        const TEAM_ROLES = ['MEMBER', 'EDITOR', 'PROGRAMMER', 'MARKETING', 'COMMUNITY_MANAGER', 'CUSTOM'];
+
+        async function abrirModalMiembro(memberId) {
+            const modal = document.getElementById('modalMiembro');
+            const body = document.getElementById('modalMiembroBody');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            body.innerHTML = '<p class="text-sm text-gray-500">Cargando...</p>';
+            const m = await NLT_API.teamObtenerMiembro(memberId);
+            document.getElementById('modalMiembroNombre').textContent = m.full_name;
+
+            const puedeRoles = MI_ROL.is_super_admin || MI_ROL.permissions['team.manage_roles'];
+            const puedePermisos = MI_ROL.is_super_admin || MI_ROL.permissions['team.manage_permissions'];
+            const puedeMiembros = MI_ROL.is_super_admin || MI_ROL.permissions['team.manage_members'];
+
+            body.innerHTML = `
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 block mb-1.5">Cargo (visible)</label>
+                    <p class="text-sm text-white">${esc(m.display_title || '--')}</p>
+                </div>
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 block mb-1.5">Rol</label>
+                    <select id="selectRol" class="post-input w-full" ${puedeRoles ? '' : 'disabled'}>${TEAM_ROLES.map(r => `<option value="${r}" ${r === m.team_role ? 'selected' : ''}>${r}</option>`).join('')}</select>
+                </div>
+                ${puedeMiembros ? `
+                <div class="mb-4">
+                    <label class="text-xs text-gray-500 block mb-1.5">Email (para invitar)</label>
+                    <div class="flex gap-2">
+                        <input id="inputEmailMiembro" type="email" class="post-input flex-1" value="${esc(m.email || '')}" placeholder="correo@ejemplo.com" ${m.tiene_cuenta ? 'disabled' : ''}>
+                        ${m.tiene_cuenta ? '<span class="chip chip-firmado self-center-fix">Con cuenta</span>' : '<button id="btn-invitar" class="btn-primario btn-sm">Invitar</button>'}
+                    </div>
+                </div>
+                <div class="perm-row">
+                    <span class="text-sm text-gray-300">Miembro activo</span>
+                    <div class="switch ${m.activo ? 'on' : ''}" id="switchActivo"><div class="knob"></div></div>
+                </div>
+                ` : ''}
+                <div class="mt-3 pt-3 border-t border-white/5">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Permisos</p>
+                    <div id="listaPermisos"></div>
+                </div>
+                ${puedeRoles || puedePermisos || puedeMiembros ? '<button id="btn-guardar-miembro" class="btn-primario w-full mt-4">Guardar cambios</button>' : ''}
+            `;
+
+            const permisosCatalogo = MI_ROL.catalogo;
+            const permisosActuales = { ...m.permissions };
+            document.getElementById('listaPermisos').innerHTML = permisosCatalogo.map(p => `
+                <div class="perm-row">
+                    <span class="text-sm text-gray-300">${esc(p.label)}</span>
+                    <div class="switch ${permisosActuales[p.id] ? 'on' : ''} ${puedePermisos ? '' : 'disabled'}" data-perm="${p.id}"><div class="knob"></div></div>
+                </div>
+            `).join('');
+            if (puedePermisos) {
+                document.querySelectorAll('#listaPermisos [data-perm]').forEach(sw => sw.addEventListener('click', () => {
+                    sw.classList.toggle('on');
+                    permisosActuales[sw.getAttribute('data-perm')] = sw.classList.contains('on');
+                }));
+            }
+            if (puedeMiembros) {
+                const switchActivo = document.getElementById('switchActivo');
+                let nuevoActivo = m.activo;
+                switchActivo.addEventListener('click', () => { switchActivo.classList.toggle('on'); nuevoActivo = switchActivo.classList.contains('on'); });
+                const btnInvitar = document.getElementById('btn-invitar');
+                if (btnInvitar) btnInvitar.addEventListener('click', async () => {
+                    const email = document.getElementById('inputEmailMiembro').value.trim();
+                    if (!email) return;
+                    btnInvitar.textContent = 'Invitando...';
+                    try { await NLT_API.teamInvitarMiembro(memberId, email); abrirModalMiembro(memberId); cargarEquipo(); }
+                    catch (err) { alert('Error: ' + err.message); btnInvitar.textContent = 'Invitar'; }
+                });
+                document.getElementById('btn-guardar-miembro') && document.getElementById('btn-guardar-miembro').addEventListener('click', async () => {
+                    try {
+                        if (puedeRoles) await NLT_API.teamActualizarMiembro(memberId, { team_role: document.getElementById('selectRol').value, activo: nuevoActivo });
+                        else await NLT_API.teamActualizarMiembro(memberId, { activo: nuevoActivo });
+                        if (puedePermisos) await NLT_API.teamActualizarPermisos(memberId, permisosActuales);
+                        modal.classList.add('hidden'); modal.classList.remove('flex');
+                        cargarEquipo();
+                    } catch (err) { alert('Error: ' + err.message); }
+                });
+            } else if (puedePermisos) {
+                document.getElementById('btn-guardar-miembro').addEventListener('click', async () => {
+                    try { await NLT_API.teamActualizarPermisos(memberId, permisosActuales); modal.classList.add('hidden'); modal.classList.remove('flex'); cargarEquipo(); }
+                    catch (err) { alert('Error: ' + err.message); }
+                });
+            }
+        }
+        document.getElementById('btn-cerrar-modal-miembro').addEventListener('click', () => {
+            document.getElementById('modalMiembro').classList.add('hidden');
+            document.getElementById('modalMiembro').classList.remove('flex');
+        });
+
+        // --- Acuerdos (Admin) ---
+        async function cargarAcuerdosAdmin() {
+            const box = document.getElementById('listaAcuerdosAdmin');
+            try {
+                const familias = await NLT_API.agreementsListar();
+                if (!familias.length) { box.innerHTML = '<p class="text-sm text-gray-500 glass-card p-6 text-center">Sin acuerdos todavía.</p>'; return; }
+                const bloques = await Promise.all(familias.map(async (fam) => {
+                    const versiones = await NLT_API.agreementsListarVersiones(fam.id);
+                    return `
+                        <div class="glass-card p-5">
+                            <p class="text-sm font-bold text-white mb-3">${esc(fam.title)}</p>
+                            <div class="space-y-2">
+                                ${versiones.map(v => `
+                                    <div class="glass-item p-4 flex flex-col sm:flex-row sm-items-center justify-between gap-2">
+                                        <div>
+                                            <p class="text-sm font-semibold text-white">Versión ${esc(v.version)} <span class="chip ${v.status === 'published' ? 'chip-firmado' : v.status === 'archived' ? 'chip-requiere' : 'chip-pendiente'} ml-1">${v.status}</span></p>
+                                            <p class="text-xs text-gray-500 mt-0.5">Firmados: ${v.firmados}/${v.total_asignados} · Pendientes: ${v.pendientes}/${v.total_asignados}</p>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <button class="btn-ver-asignaciones btn-secundario btn-sm" data-version-id="${v.id}">Ver firmas</button>
+                                            ${v.status === 'draft' ? `<button class="btn-publicar btn-primario btn-sm" data-version-id="${v.id}">Publicar</button>` : ''}
+                                            ${v.status === 'published' ? `<button class="btn-archivar btn-secundario btn-sm" data-version-id="${v.id}">Archivar</button>` : ''}
+                                        </div>
+                                    </div>
+                                    <div class="asignaciones-box hidden glass-item p-3" data-version-box="${v.id}"></div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    `;
+                }));
+                box.innerHTML = bloques.join('');
+                box.querySelectorAll('.btn-publicar').forEach(b => b.addEventListener('click', async () => {
+                    if (!confirm('¿Publicar esta versión? Quedará disponible para que todo el equipo activo la firme.')) return;
+                    try { await NLT_API.agreementsPublicar(b.getAttribute('data-version-id')); cargarAcuerdosAdmin(); } catch (err) { alert('Error: ' + err.message); }
+                }));
+                box.querySelectorAll('.btn-archivar').forEach(b => b.addEventListener('click', async () => {
+                    if (!confirm('¿Archivar esta versión?')) return;
+                    try { await NLT_API.agreementsArchivar(b.getAttribute('data-version-id')); cargarAcuerdosAdmin(); } catch (err) { alert('Error: ' + err.message); }
+                }));
+                box.querySelectorAll('.btn-ver-asignaciones').forEach(b => b.addEventListener('click', async () => {
+                    const vid = b.getAttribute('data-version-id');
+                    const cont = box.querySelector(`[data-version-box="${vid}"]`);
+                    if (!cont.classList.contains('hidden')) { cont.classList.add('hidden'); return; }
+                    cont.classList.remove('hidden');
+                    cont.innerHTML = '<p class="text-xs text-gray-500">Cargando...</p>';
+                    try {
+                        const asignaciones = await NLT_API.agreementsAsignaciones(vid);
+                        cont.innerHTML = asignaciones.map(a => `
+                            <div class="flex items-center justify-between py-1.5">
+                                <span class="text-xs text-gray-300">${esc(a.full_name || '--')} <span class="text-gray-600">· ${esc(a.display_title || '')}</span></span>
+                                ${chipEstado(a.status)}
+                            </div>
+                        `).join('') || '<p class="text-xs text-gray-500">Nadie asignado.</p>';
+                    } catch (err) { cont.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`; }
+                }));
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger glass-card p-6">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.getElementById('btn-nueva-version').addEventListener('click', async () => {
+            const familias = await NLT_API.agreementsListar();
+            if (!familias.length) { alert('Primero necesitás un acuerdo (familia) creado.'); return; }
+            const agreementId = familias[0].id; // NLT hoy tiene un solo acuerdo activo (Acuerdo Marco)
+            const version = prompt('Número de versión (ej. 1.1):');
+            if (!version) return;
+            const title = prompt('Título de la versión:', 'NLT Agreement v' + version);
+            if (!title) return;
+            const input = document.createElement('input');
+            input.type = 'file'; input.accept = 'application/pdf';
+            input.addEventListener('change', async () => {
+                const file = input.files[0];
+                if (!file) return;
+                try {
+                    await NLT_API.agreementsCrearVersion(agreementId, file, version, title);
+                    cargarAcuerdosAdmin();
+                } catch (err) { alert('Error: ' + err.message); }
+            });
+            input.click();
+        });
+
+        // --- Auditoría ---
+        async function cargarAuditoria() {
+            const tbody = document.getElementById('tablaAuditoria');
+            try {
+                const eventos = await NLT_API.teamAuditoria(null, 100);
+                tbody.innerHTML = eventos.length ? eventos.map(e => `
+                    <tr>
+                        <td data-label="Fecha" class="px-5 py-3 text-gray-400">${fechaLegible(e.created_at)}</td>
+                        <td data-label="Actor" class="px-5 py-3 text-white font-medium">${esc(e.actor)}</td>
+                        <td data-label="Acción" class="px-5 py-3">${esc(e.accion)}</td>
+                        <td data-label="Entidad" class="px-5 py-3 text-gray-500">${esc(e.entidad)}${e.entidad_id ? ' · ' + esc(e.entidad_id).slice(0, 8) : ''}</td>
+                    </tr>
+                `).join('') : '<tr><td colspan="4" class="px-5 py-3 text-gray-500">Sin eventos todavía.</td></tr>';
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="4" class="px-5 py-3 text-nlt-danger">Error: ${esc(err.message)}</td></tr>`;
+            }
+        }
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'equipo-roster', seccion: 'equipo' });
+            NLT.bindLogoutButton('btn-salir');
+
+            try {
+                MI_ROL = await NLT_API.teamMiRol();
+            } catch (err) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                return;
+            }
+            if (!MI_ROL.es_miembro) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('vistaEquipo').classList.remove('hidden');
+            document.getElementById('miRolLabel').textContent = MI_ROL.is_super_admin ? 'Super Admin · ' + (MI_ROL.full_name || '') : `${MI_ROL.team_role || 'Miembro'} · ${MI_ROL.full_name || ''}`;
+
+            const puedeGestionarMiembros = MI_ROL.is_super_admin || MI_ROL.permissions['team.manage_members'];
+            if (puedeGestionarMiembros) document.getElementById('btn-nuevo-miembro').classList.remove('hidden');
+
+            const puedeAcuerdosAdmin = MI_ROL.is_super_admin || MI_ROL.permissions['agreements.create'] || MI_ROL.permissions['agreements.publish'] || MI_ROL.permissions['agreements.archive'];
+            if (puedeAcuerdosAdmin) {
+                document.getElementById('seccion-acuerdos-admin').classList.remove('hidden');
+                if (MI_ROL.is_super_admin || MI_ROL.permissions['agreements.create']) document.getElementById('btn-nueva-version').classList.remove('hidden');
+                cargarAcuerdosAdmin();
+            }
+            const puedeAuditoria = MI_ROL.is_super_admin || MI_ROL.permissions['audit.view'];
+            if (puedeAuditoria) {
+                document.getElementById('seccion-auditoria').classList.remove('hidden');
+                cargarAuditoria();
+            }
+
+            cargarMisAcuerdos();
+            cargarEquipo();
+        }
+
+        document.getElementById('btn-nuevo-miembro').addEventListener('click', async () => {
+            const full_name = prompt('Nombre completo:');
+            if (!full_name) return;
+            const display_title = prompt('Cargo (ej. "Editor"):') || null;
+            try { await NLT_API.teamCrearMiembro({ full_name, display_title, team_role: 'MEMBER' }); cargarEquipo(); }
+            catch (err) { alert('Error: ' + err.message); }
+        });
+
+        init();
+    </script>
+</body>
+</html>
