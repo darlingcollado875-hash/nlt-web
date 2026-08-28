@@ -22,13 +22,17 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js" defer></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js" defer></script>
     <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. */
+        html { overflow-x: hidden; }
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
-        [data-reveal] { opacity: 0; }
         .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .broker-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease; }
@@ -243,7 +247,7 @@
                 <div class="broker-card glass-card p-7 flex flex-col" data-reveal>
                     <div class="flex items-center justify-between mb-4">
                         <div class="flex items-center gap-3">
-                            ${b.logo_url ? `<img src="${esc(b.logo_url)}" alt="${esc(b.nombre)}" class="w-10 h-10 rounded-lg object-cover">` : `<div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center"><i class="ph-fill ph-buildings text-gray-400"></i></div>`}
+                            ${b.logo_url ? `<img loading="lazy" decoding="async" src="${esc(b.logo_url)}" alt="${esc(b.nombre)}" class="w-10 h-10 rounded-lg object-cover">` : `<div class="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center"><i class="ph-fill ph-buildings text-gray-400"></i></div>`}
                             <h3 class="font-bold text-white text-lg">${esc(b.nombre)}</h3>
                         </div>
                         ${estadoBadge(b.status)}
@@ -304,35 +308,11 @@
         renderEcosistemaStrip();
         NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
 
-        function _setupRevealBroker() {
-            if (!window.gsap || !window.ScrollTrigger) {
-                // GSAP no cargó (CDN lento/bloqueado) -- nunca dejar el
-                // contenido invisible por un [data-reveal]{opacity:0} sin
-                // animación que lo revierta. Se muestra estático.
-                document.querySelectorAll('[data-reveal]').forEach((el) => { el.style.opacity = '1'; });
-                return;
-            }
-            gsap.registerPlugin(ScrollTrigger);
-            ScrollTrigger.config({ ignoreMobileResize: true });
-            document.querySelectorAll('[data-reveal]').forEach((el) => {
-                gsap.set(el, { y: 24 });
-                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
-            });
-        }
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', _setupRevealBroker);
-        } else {
-            _setupRevealBroker();
-        }
-        // Red de seguridad adicional: si por lo que sea la animación nunca
-        // corre (script bloqueado del todo, error de red), mostrar el
-        // contenido de todas formas después de 2.5s en vez de dejarlo
-        // invisible para siempre.
-        setTimeout(() => {
-            document.querySelectorAll('[data-reveal]').forEach((el) => {
-                if (getComputedStyle(el).opacity === '0') el.style.opacity = '1';
-            });
-        }, 2500);
+        // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
+        // IntersectionObserver es una API nativa del navegador (sin dependencia
+        // de un CDN externo que pueda fallar) -- ya no hace falta el
+        // safety-net de 2.5s que compensaba una posible falla de carga de gsap.min.js.
+        NLT.mountReveal();
     </script>
 </body>
 </html>

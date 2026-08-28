@@ -15,23 +15,25 @@
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
-        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script defer src="assets/js/nlt-shared.js?v=20260828"></script>
     <script defer src="assets/js/nlt-api-client.js?v=20260824"></script>
     <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. */
+        html { overflow-x: hidden; }
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
-        [data-reveal] { opacity: 0; }
         .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
 
@@ -269,7 +271,7 @@
                             <div class="glass-card p-6" data-reveal>
                                 ${it.created_at ? `<p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">${new Date(it.created_at).toLocaleDateString()}</p>` : ''}
                                 ${it.titulo ? `<h3 class="font-bold text-white text-lg mb-2">${it.titulo}</h3>` : ''}
-                                ${it.tipo === 'imagen' && it.contenido ? `<img src="${it.contenido}" alt="${it.titulo || ''}" class="rounded-xl mb-3 w-full">` : ''}
+                                ${it.tipo === 'imagen' && it.contenido ? `<img loading="lazy" decoding="async" src="${it.contenido}" alt="${it.titulo || ''}" class="rounded-xl mb-3 w-full">` : ''}
                                 ${it.tipo === 'texto' && it.contenido ? `<p class="text-sm text-gray-400 leading-relaxed">${it.contenido}</p>` : ''}
                             </div>
                         `).join('');
@@ -286,31 +288,14 @@
                     `;
                     document.getElementById('btn-reintentar-noticias')?.addEventListener('click', cargarNoticias);
                 }
-                // Reveal inmediato y explícito (no depende del safety-net global de
-                // data-reveal) -- así el estado de error/vacío nunca queda invisible
-                // aunque el fetch resuelva tarde (cold start de Railway).
-                document.querySelectorAll('#noticiasBox [data-reveal]').forEach((el) => {
-                    if (window.gsap && window.ScrollTrigger) {
-                        gsap.set(el, { y: 24, opacity: 0 });
-                        gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
-                    } else {
-                        el.style.opacity = '1';
-                    }
-                });
+                // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
+                NLT.mountReveal('#noticiasBox [data-reveal]');
             }
 
             await cargarNoticias();
         })();
 
-        if (window.gsap && window.ScrollTrigger) {
-            gsap.registerPlugin(ScrollTrigger);
-                ScrollTrigger.config({ ignoreMobileResize: true });
-            document.querySelectorAll('section [data-reveal]').forEach((el) => {
-                if (el.closest('#noticiasBox')) return;
-                gsap.set(el, { y: 24 });
-                gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
-            });
-        }
+        NLT.mountReveal('section [data-reveal]');
         });
     </script>
 

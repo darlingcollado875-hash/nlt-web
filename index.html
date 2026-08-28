@@ -60,22 +60,25 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
 
-    <!-- GSAP -- animaciones de scroll/entrada/contadores. CDN, sin build step,
-         consistente con el resto del sitio (Supabase también va por CDN).
-         defer: confirmado real (video del usuario, 14/08) que esta página
-         se quedaba en negro ~30s en un celular real -- estos 4 scripts
-         bloqueaban el parser antes de poder pintar nada visible. Es seguro
-         diferirlos porque los 4 <script> inline del body ya se protegen
-         solos (chequean document.readyState, o esperan a los eventos load/
-         DOMContentLoaded, o no dependen de gsap/NLT en absoluto) -- ver
-         líneas más abajo. -->
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-
+    <!-- GSAP (72KB) + ScrollTrigger (43KB) que cargaban acá se retiraron en
+         el Performance Sprint -- reemplazados por NLT.mountReveal()/
+         mountCounters() (IntersectionObserver nativo, ver nlt-shared.js) y
+         @keyframes CSS para la entrada del hero. defer en los scripts que
+         quedan: confirmado real (video del usuario, 14/08) que esta página
+         se quedaba en negro ~30s en un celular real por scripts bloqueando
+         el parser -- los <script> inline del body ya se protegen solos
+         (chequean document.readyState, o esperan a load/DOMContentLoaded). -->
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script defer src="assets/js/nlt-shared.js?v=20260828"></script>
 
     <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. */
+        html { overflow-x: hidden; }
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
         .glow-button:hover { box-shadow: 0 0 36px rgba(67, 120, 255, 0.6); }
@@ -84,7 +87,6 @@
         .module-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.35); box-shadow: 0 24px 60px -20px rgba(67, 120, 255, 0.35); }
         .module-card .icon-wrap { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), background 0.4s ease; }
         .module-card:hover .icon-wrap { transform: scale(1.08) rotate(-4deg); }
-        [data-reveal] { opacity: 0; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
     </style>
@@ -253,19 +255,8 @@
                 const grid = document.getElementById('modulesGrid');
                 if (!grid || !window.NLT) return;
                 grid.innerHTML = window.NLT.NLT_MODULES.map(tarjeta).join('');
-                if (window.gsap && window.ScrollTrigger) animarReveal();
-            }
-
-            function animarReveal() {
-                gsap.registerPlugin(ScrollTrigger);
-                ScrollTrigger.config({ ignoreMobileResize: true });
-                document.querySelectorAll('[data-reveal]').forEach((el) => {
-                    gsap.to(el, {
-                        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
-                        scrollTrigger: { trigger: el, start: 'top 85%' },
-                    });
-                    gsap.set(el, { y: 24 });
-                });
+                // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
+                NLT.mountReveal();
             }
 
             if (document.readyState === 'loading') {
@@ -276,30 +267,30 @@
         })();
     </script>
 
-    <!-- Animación de entrada del hero + contadores -->
+    <!-- Animación de entrada del hero + contadores -- Motion System nativo
+         (Performance Sprint): reemplaza el timeline de GSAP por @keyframes
+         CSS con animation-delay escalonado (mismo efecto de superposición
+         que los offsets negativos "-=0.4"/"-=0.5" del timeline original,
+         acortado a los tokens EMPHASIS del sistema -- más premium/ágil que
+         los 700-900ms originales) + NLT.mountCounters() para el conteo. -->
+    <style>
+        @keyframes nlt-hero-in {
+            from { opacity: 0; transform: translateY(var(--nlt-hero-y, 16px)); filter: blur(var(--nlt-hero-blur, 0px)); }
+            to { opacity: 1; transform: translateY(0); filter: blur(0px); }
+        }
+        #hero-badge, #hero-title, #hero-sub, #hero-cta {
+            animation-name: nlt-hero-in; animation-timing-function: var(--nlt-ease, cubic-bezier(0.16,1,0.3,1)); animation-fill-mode: both;
+        }
+        #hero-badge { --nlt-hero-y: 16px; --nlt-hero-blur: 6px; animation-duration: 500ms; animation-delay: 0ms; }
+        #hero-title { --nlt-hero-y: 28px; --nlt-hero-blur: 10px; animation-duration: 600ms; animation-delay: 120ms; }
+        #hero-sub { --nlt-hero-y: 16px; animation-duration: 450ms; animation-delay: 320ms; }
+        #hero-cta { --nlt-hero-y: 16px; animation-duration: 450ms; animation-delay: 420ms; }
+        @media (prefers-reduced-motion: reduce) {
+            #hero-badge, #hero-title, #hero-sub, #hero-cta { animation: none; opacity: 1; transform: none; filter: none; }
+        }
+    </style>
     <script>
-        window.addEventListener('load', () => {
-            if (!window.gsap) return;
-            const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-            tl.fromTo('#hero-badge', { opacity: 0, y: 16, filter: 'blur(6px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.7 })
-              .fromTo('#hero-title', { opacity: 0, y: 28, filter: 'blur(10px)' }, { opacity: 1, y: 0, filter: 'blur(0px)', duration: 0.9 }, '-=0.4')
-              .fromTo('#hero-sub', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.5')
-              .fromTo('#hero-cta', { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.7 }, '-=0.5');
-
-            if (window.ScrollTrigger) {
-                gsap.registerPlugin(ScrollTrigger);
-                ScrollTrigger.config({ ignoreMobileResize: true });
-                document.querySelectorAll('[data-count]').forEach((el) => {
-                    const target = parseFloat(el.getAttribute('data-count'));
-                    ScrollTrigger.create({
-                        trigger: el, start: 'top 90%', once: true,
-                        onEnter: () => gsap.fromTo(el, { textContent: 0 }, {
-                            textContent: target, duration: 1.4, ease: 'power2.out', snap: { textContent: 1 },
-                        }),
-                    });
-                });
-            }
-        });
+        window.addEventListener('load', () => { NLT.mountCounters(); });
     </script>
 
     <script>

@@ -22,16 +22,20 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script defer src="assets/js/nlt-shared.js?v=20260828"></script>
     <script defer src="assets/js/nlt-api-client.js?v=20260824"></script>
     <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. */
+        html { overflow-x: hidden; }
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
-        [data-reveal] { opacity: 0; }
         .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .timeline-dot { box-shadow: 0 0 0 4px rgba(67,120,255,0.15); }
@@ -206,7 +210,7 @@
     <div id="supremeModal" class="fixed inset-0 z-[100] hidden bg-black/85 backdrop-blur-sm">
         <div id="supremeScroll" class="h-full overflow-y-auto">
             <div class="min-h-full flex items-start justify-center px-4 py-10 md:py-16">
-                <div id="supremePanel" class="supreme-modal-panel relative w-full max-w-5xl supreme-glow-ring rounded-3xl overflow-hidden border border-white/10">
+                <div id="supremePanel" class="supreme-modal-panel nlt-modal-panel relative w-full max-w-5xl supreme-glow-ring rounded-3xl overflow-hidden border border-white/10">
                     <button id="btn-supreme-close" type="button" class="absolute top-5 right-5 z-30 w-10 h-10 shrink-0 rounded-full border border-gray-700 bg-black/40 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500 transition-all cursor-pointer">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
                     </button>
@@ -333,26 +337,41 @@
                 const grid = document.getElementById('modulesGrid');
                 if (!grid || !window.NLT) return;
                 grid.innerHTML = window.NLT.NLT_MODULES.map(tarjeta).join('');
-                animarReveal();
-            }
-            function animarReveal() {
-                if (!window.gsap || !window.ScrollTrigger) return;
-                gsap.registerPlugin(ScrollTrigger);
-                ScrollTrigger.config({ ignoreMobileResize: true });
-                document.querySelectorAll('[data-reveal]').forEach((el) => {
-                    gsap.set(el, { y: 24 });
-                    gsap.to(el, { opacity: 1, y: 0, duration: 0.9, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 88%' } });
-                });
+                // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
+                NLT.mountReveal();
             }
             if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);
             else render();
         })();
 
         // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
-        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        // BUG REAL preexistente encontrado en el Performance Sprint (Fase H,
+        // resiliencia): este <script> corre síncrono apenas el parser llega
+        // acá -- nlt-shared.js es "defer", así que en una carga lenta (o a
+        // veces incluso local, es una carrera real) todavía puede no haber
+        // corrido, y "NLT" no existe como identificador global todavía
+        // (ReferenceError, no undefined -- confirmado real). document.readyState
+        // !== 'loading' garantiza que TODOS los scripts defer ya terminaron
+        // (así lo especifica el estándar), mismo patrón ya usado arriba para
+        // el reveal.
+        function _mountHeaderCuandoListo() {
+            NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', _mountHeaderCuandoListo);
+        } else {
+            _mountHeaderCuandoListo();
+        }
 
         (async function () {
             const box = document.getElementById('videosBox');
+            // Misma carrera real que _mountHeaderCuandoListo() de arriba --
+            // este bloque también depende de NLT (para el reveal final) y de
+            // NLT_API, ambos scripts defer. Esperar a que el documento haya
+            // terminado de parsear garantiza (por spec) que ya corrieron.
+            if (document.readyState === 'loading') {
+                await new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve));
+            }
             try {
                 const videos = await NLT_API.contenidoEcosistema('videos');
                 if (!videos.length) {
@@ -382,12 +401,7 @@
             } catch (err) {
                 box.innerHTML = '';  // sin bloquear la página si el CMS falla -- la sección simplemente no aparece
             }
-            if (window.gsap && window.ScrollTrigger) {
-                document.querySelectorAll('#videosBox [data-reveal]').forEach((el) => {
-                    gsap.set(el, { y: 24, opacity: 0 });
-                    gsap.to(el, { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out', scrollTrigger: { trigger: el, start: 'top 90%' } });
-                });
-            }
+            NLT.mountReveal('#videosBox [data-reveal]');
         })();
     </script>
 
@@ -562,13 +576,9 @@
                 runTicker();
                 runSignalTag();
 
-                if (window.gsap) {
-                    gsap.set(panel, { opacity: 0, y: 24, scale: 0.97 });
-                    gsap.set('[data-supreme-reveal]', { opacity: 0, y: 14 });
-                    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-                    tl.to(panel, { opacity: 1, y: 0, scale: 1, duration: 0.55 })
-                      .to('[data-supreme-reveal]', { opacity: 1, y: 0, duration: 0.55, stagger: 0.06 }, '-=0.25');
-                }
+                // Motion System nativo (Performance Sprint) -- reemplaza el
+                // timeline de GSAP, ver NLT.animarEntradaModal() en nlt-shared.js.
+                NLT.animarEntradaModal(panel, { childrenSelector: '[data-supreme-reveal]', stagger: 60 });
             }
 
             function close() {
