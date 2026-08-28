@@ -1010,6 +1010,136 @@
         return { refrescarBadge };
     }
 
+    // --- Motion System NLT (Performance Sprint, Fase F/11-13) ---------------
+    // Reemplazo nativo de GSAP+ScrollTrigger para el patrón de scroll-reveal
+    // que se repetía IDÉNTICO en las 10 páginas públicas (academy, broker,
+    // copy-system, ecosystem, index, indicator, news, plans, propfirm,
+    // signals): gsap.set(el,{y:24}) + gsap.to(el,{opacity:1,y:0,duration:0.8,
+    // scrollTrigger:{trigger:el,start:'top 90%'}}) -- 115KB de librería
+    // (gsap.min.js 72KB + ScrollTrigger.min.js 43KB) para un fade+translate
+    // que un IntersectionObserver + CSS transitions hacen en unas pocas
+    // líneas, más rápido de cargar y sin dependencia externa.
+    //
+    // Tokens de duración (pedido explícito): MICRO 120-180ms (micro-
+    // interacciones: botones, chips), STANDARD 180-260ms (hover de cards,
+    // dropdowns), EMPHASIS 260-400ms (reveals de entrada, modals). Un solo
+    // easing consistente en todo el sitio -- variante de ease-out-expo,
+    // "rápido al principio, se asienta suave" -- nunca un rebote/bounce.
+    let _motionCSSInyectado = false;
+    function _inyectarMotionCSS() {
+        if (_motionCSSInyectado) return;
+        _motionCSSInyectado = true;
+        const style = document.createElement('style');
+        style.textContent = `
+            :root {
+                --nlt-ease: cubic-bezier(0.16, 1, 0.3, 1);
+                --nlt-micro: 150ms;
+                --nlt-standard: 220ms;
+                --nlt-emphasis: 350ms;
+            }
+            [data-reveal], [data-supreme-reveal] {
+                opacity: 0; transform: translateY(24px);
+                transition: opacity var(--nlt-emphasis) var(--nlt-ease), transform var(--nlt-emphasis) var(--nlt-ease);
+            }
+            [data-reveal].nlt-in, [data-supreme-reveal].nlt-in { opacity: 1; transform: translateY(0); }
+            .nlt-modal-panel {
+                opacity: 0; transform: translateY(24px) scale(0.97);
+                transition: opacity var(--nlt-emphasis) var(--nlt-ease), transform var(--nlt-emphasis) var(--nlt-ease);
+            }
+            .nlt-modal-panel.nlt-in { opacity: 1; transform: translateY(0) scale(1); }
+            @media (prefers-reduced-motion: reduce) {
+                [data-reveal], [data-supreme-reveal], .nlt-modal-panel {
+                    transition: none !important; opacity: 1 !important; transform: none !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Reemplaza gsap.set+gsap.to+ScrollTrigger para [data-reveal]/[data-supreme-reveal].
+    // stagger (ms) opcional: aplica transition-delay incremental (reemplaza
+    // el gsap.timeline({stagger:...}) de ecosystem.html). once=true (default,
+    // igual al comportamiento default de ScrollTrigger acá: revela y no
+    // vuelve a esconder al scrollear hacia arriba).
+    function mountReveal(selector = '[data-reveal]', { threshold = 0.1, stagger = 0 } = {}) {
+        _inyectarMotionCSS();
+        const elementos = document.querySelectorAll(selector);
+        if (!elementos.length) return;
+        if (!('IntersectionObserver' in window)) {
+            elementos.forEach((el) => el.classList.add('nlt-in'));
+            return;
+        }
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                const el = entry.target;
+                if (stagger > 0) {
+                    const i = [...elementos].indexOf(el);
+                    el.style.transitionDelay = `${i * stagger}ms`;
+                }
+                el.classList.add('nlt-in');
+                obs.unobserve(el);
+            });
+        }, { threshold, rootMargin: '0px 0px -10% 0px' });
+        elementos.forEach((el) => obs.observe(el));
+    }
+
+    // Reemplaza gsap.fromTo(el,{textContent:0},{textContent:target,...}) --
+    // cuenta de 0 al valor real cuando el elemento entra en viewport.
+    // Respeta prefers-reduced-motion (salta directo al valor final).
+    function animateCounter(el, target, { duration = 1200 } = {}) {
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+            el.textContent = target;
+            return;
+        }
+        const t0 = performance.now();
+        function frame(ahora) {
+            const progreso = Math.min((ahora - t0) / duration, 1);
+            const eased = 1 - Math.pow(1 - progreso, 3); // ease-out cubic, sin dependencias
+            el.textContent = Math.round(target * eased);
+            if (progreso < 1) requestAnimationFrame(frame);
+        }
+        requestAnimationFrame(frame);
+    }
+
+    function mountCounters(selector = '[data-count]', opts = {}) {
+        const elementos = document.querySelectorAll(selector);
+        if (!elementos.length || !('IntersectionObserver' in window)) return;
+        const obs = new IntersectionObserver((entries) => {
+            entries.forEach((entry) => {
+                if (!entry.isIntersecting) return;
+                const el = entry.target;
+                animateCounter(el, parseFloat(el.getAttribute('data-count')), opts);
+                obs.unobserve(el);
+            });
+        }, { threshold: 0.5 });
+        elementos.forEach((el) => obs.observe(el));
+    }
+
+    // Entrada de un modal (fade + translate + scale sutil) -- reemplaza el
+    // gsap.timeline({...}).to(panel,{...}).to('[data-supreme-reveal]',
+    // {...,stagger}) de ecosystem.html. panel necesita la clase
+    // "nlt-modal-panel" en el HTML; los hijos con stagger opcional via
+    // childrenSelector (ej. '[data-supreme-reveal]' dentro del panel).
+    function animarEntradaModal(panel, { childrenSelector = null, stagger = 60 } = {}) {
+        _inyectarMotionCSS();
+        panel.classList.remove('nlt-in');
+        if (childrenSelector) {
+            panel.querySelectorAll(childrenSelector).forEach((el, i) => {
+                el.classList.remove('nlt-in');
+                el.style.transitionDelay = `${i * stagger}ms`;
+            });
+        }
+        // Doble rAF: fuerza un reflow real entre "estado inicial" y "estado
+        // final" para que la transition SIEMPRE dispare (si se agrega la
+        // clase en el mismo frame que se remueve, el navegador puede
+        // coalescer ambos cambios y saltar directo al estado final sin animar).
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+            panel.classList.add('nlt-in');
+            if (childrenSelector) panel.querySelectorAll(childrenSelector).forEach((el) => el.classList.add('nlt-in'));
+        }));
+    }
+
     window.NLT = {
         supabase,
         ADMIN_EMAIL,
@@ -1034,5 +1164,9 @@
         pollWhileVisible,
         notifBellHTML,
         mountNotifBell,
+        mountReveal,
+        animateCounter,
+        mountCounters,
+        animarEntradaModal,
     };
 })();
