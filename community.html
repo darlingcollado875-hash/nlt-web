@@ -248,10 +248,16 @@
         <!-- Perfil view -->
         <div id="vistaPerfil" class="hidden vista-angosta"></div>
 
-        <div id="chatTabs" class="hidden vista-angosta flex items-center gap-2 mb-6">
+        <div id="chatTabs" class="hidden vista-angosta flex items-center gap-2 mb-6 overflow-x-auto pb-1">
             <button data-vista="feed" id="tab-vista-feed" class="chip activo">Feed</button>
             <button data-vista="chat" id="tab-vista-chat" class="chip">Chat</button>
             <button data-vista="mensajes" id="tab-vista-mensajes" class="chip">Mensajes</button>
+            <!-- Solo visible para miembros (mismo gate que composerBox/chat/DM) --
+                 se revela en init() junto con la carga de miPerfil. Reusa
+                 mostrarPerfil() con el username propio: es el MISMO componente
+                 de perfil que ya usan los demás miembros, is_own lo calcula el
+                 backend desde el JWT (nunca un id que mande el frontend). -->
+            <button id="tab-mi-perfil" class="chip hidden shrink-0">👤 Mi perfil</button>
         </div>
 
         <!-- Feed view -->
@@ -2094,6 +2100,14 @@
         document.getElementById('tab-vista-feed').addEventListener('click', () => mostrarVista('feed'));
         document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
         document.getElementById('tab-vista-mensajes').addEventListener('click', () => mostrarVista('mensajes'));
+        // Mismo patrón que el header clickeable de un DM (btn-dm-header-perfil):
+        // pushState primero para que la URL refleje ?u=<propio-username> (Volver,
+        // refresh y compartir el link se comportan igual que en cualquier otro perfil).
+        document.getElementById('tab-mi-perfil').addEventListener('click', () => {
+            if (!miPerfil) return;
+            window.history.pushState({}, '', `community.html?u=${miPerfil.username}`);
+            mostrarPerfil(miPerfil.username);
+        });
 
         // --- Notificaciones (Notification Center global -- ver nlt-shared.js) ---
         // Reemplaza la implementación propia de antes (solo Community) por el
@@ -2119,6 +2133,7 @@
                 if (esMiembro) {
                     try {
                         miPerfil = await NLT_API.communityMiPerfil();
+                        document.getElementById('tab-mi-perfil').classList.remove('hidden');
                         document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
                         NLT.mountNotifBell('notifBell');
                     } catch (_) {}
