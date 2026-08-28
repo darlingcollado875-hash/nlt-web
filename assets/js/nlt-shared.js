@@ -621,22 +621,32 @@
         `;
     }
 
-    // El <aside id="sidebar"> de las 10 páginas de la app (dashboard,
+    // El <aside id="sidebar"> de las 15 páginas de la app (dashboard,
     // cuentas, maestra, historial, afiliado, suscripción, configuración,
-    // futuros*, admin) es un ancho FIJO de 280px -- confirmado real
-    // revisando el CSS: sin ningún breakpoint que lo reduzca. En un
-    // celular de 375px de ancho eso se come el 75% de la pantalla y deja
-    // el contenido real (dashboard.html, cuentas.html, etc.) en una tira
-    // de ~95px, imposible de usar -- coincide con "no se logra navegar"
-    // reportado en mobile. Se convierte en un drawer: fuera de pantalla
-    // por defecto en mobile (-translate-x-full) con un botón hamburguesa
-    // fijo + fondo oscuro para abrirlo/cerrarlo, y vuelve a ser el
-    // sidebar estático normal desde md: hacia arriba -- desktop queda
-    // exactamente igual que antes.
+    // futuros*, admin, equipo, journal, *-dashboard) es un ancho FIJO de
+    // 280px -- confirmado real revisando el CSS: sin ningún breakpoint
+    // que lo reduzca. En un celular de 375px de ancho eso se come el 75%
+    // de la pantalla y deja el contenido real en una tira de ~95px,
+    // imposible de usar -- coincide con "no se logra navegar" reportado
+    // en mobile. Se convierte en un drawer: fuera de pantalla por
+    // defecto en mobile, con un botón hamburguesa fijo + fondo oscuro
+    // para abrirlo/cerrarlo, y vuelve a ser el sidebar estático normal
+    // desde md: hacia arriba -- desktop queda exactamente igual que antes.
+    //
+    // FIX (validación post-deploy, 28/08): el estado base "fuera de
+    // pantalla" ya NO se agrega acá vía classList -- se movió a CSS puro
+    // (@media (max-width:767px) #sidebar{...}, en el <style> de cada una
+    // de las 15 páginas). Antes, mientras mountSidebar() esperaba
+    // requireSession()+miSuscripcion() (~1s real, más en conexiones
+    // lentas), el aside quedaba como flex item ESTÁTICO de 280px --
+    // confirmado real con un poll de 15ms: scrollWidth 539 vs viewport
+    // 375 durante toda esa ventana, recién bajaba al llamar esta función.
+    // Con el estado base en CSS, el aside nace ya posicionado fuera de
+    // pantalla desde el primer paint, sin depender de ningún timing de
+    // JS -- esta función ahora SOLO agrega la interactividad (botón,
+    // backdrop, listeners), nunca el layout.
     function _mountMobileSidebarToggle(aside) {
         if (document.getElementById('mobileSidebarToggle')) return;
-
-        aside.classList.add('fixed', 'inset-y-0', 'left-0', 'z-50', '-translate-x-full', 'transition-transform', 'duration-300', 'md:translate-x-0', 'md:static');
 
         const toggle = document.createElement('button');
         toggle.id = 'mobileSidebarToggle';
@@ -651,16 +661,16 @@
         document.body.appendChild(backdrop);
 
         function abrir() {
-            aside.classList.remove('-translate-x-full');
+            aside.classList.add('sidebar-open');
             backdrop.classList.remove('hidden');
             toggle.innerHTML = '<i class="ph-bold ph-x text-lg"></i>';
         }
         function cerrar() {
-            aside.classList.add('-translate-x-full');
+            aside.classList.remove('sidebar-open');
             backdrop.classList.add('hidden');
             toggle.innerHTML = '<i class="ph-bold ph-list text-lg"></i>';
         }
-        toggle.addEventListener('click', () => aside.classList.contains('-translate-x-full') ? abrir() : cerrar());
+        toggle.addEventListener('click', () => aside.classList.contains('sidebar-open') ? cerrar() : abrir());
         backdrop.addEventListener('click', cerrar);
         aside.querySelectorAll('a').forEach((a) => a.addEventListener('click', cerrar));
     }

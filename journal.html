@@ -64,6 +64,28 @@
             .lg-col-span-2 { grid-column: span 2 / span 2; }
         }
         .toast-z { z-index: 90; }
+
+        /* Safety net -- mismo fix que las otras 24 páginas del Mobile Sweep:
+           documentElement es el único nivel que contiene de verdad overflow
+           horizontal (position:fixed no queda contenido por overflow de body). */
+        html { overflow-x: hidden; }
+
+        /* Sidebar mobile drawer -- estado base en CSS puro, sin depender del
+           timing de mountSidebar()/requireSession() (ver
+           _mountMobileSidebarToggle en nlt-shared.js). Causa raíz real de un
+           overflow transitorio confirmado (dashboard.html, mismo <aside
+           id="sidebar"> compartido) con un poll de 15ms: mientras
+           mountSidebar() esperaba requireSession()+miSuscripcion() (~1s), el
+           aside quedaba como flex item estático de 280px -- scrollWidth 539
+           vs viewport 375 durante toda esa ventana. Ahora nace ya fuera de
+           pantalla desde el primer paint. */
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #sidebar { transition: none; }
+        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">

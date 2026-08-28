@@ -30,11 +30,38 @@
         .glow-text { text-shadow: 0 0 16px rgba(67, 120, 255, 0.4); }
         .module-strip-wrap { position: relative; }
         .module-strip-wrap::after { content: ''; position: absolute; top: 0; right: 0; bottom: 4px; width: 40px; background: linear-gradient(90deg, transparent, #080A0F); pointer-events: none; }
+
+        /* Safety net -- mismo fix que las otras 24 páginas del Mobile Sweep:
+           documentElement es el único nivel que contiene de verdad overflow
+           horizontal (position:fixed no queda contenido por overflow de body). */
+        html { overflow-x: hidden; }
+
+        /* Sidebar mobile drawer -- estado base en CSS puro, sin depender del
+           timing de mountSidebar()/requireSession() (ver
+           _mountMobileSidebarToggle en nlt-shared.js). Causa raíz real de un
+           overflow transitorio confirmado con un poll de 15ms: mientras
+           mountSidebar() esperaba requireSession()+miSuscripcion() (~1s), el
+           <aside id="sidebar"> quedaba como flex item estático de 280px --
+           scrollWidth 539 vs viewport 375 durante toda esa ventana. Ahora
+           nace ya fuera de pantalla desde el primer paint. */
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #sidebar { transition: none; }
+        }
     </style>
 </head>
 <body class="h-screen flex overflow-hidden">
 
     <!-- SIDEBAR (contenido inyectado por NLT.mountSidebar -- ver assets/js/nlt-shared.js) -->
+    <!-- El estado base de drawer mobile (fuera de pantalla) vive en el <style>
+         de arriba (@media max-width:767px #sidebar{...}), NO en estas clases ni
+         en JS: mountSidebar() corre recién tras resolver la sesión async y hasta
+         entonces el aside quedaba en flujo a 280px -> overflow horizontal
+         transitorio (scrollWidth 539 en 375). _mountMobileSidebarToggle() solo
+         agrega el botón/backdrop y togglea .sidebar-open. -->
     <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
 
     <!-- CONTENIDO -->

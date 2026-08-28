@@ -30,6 +30,23 @@
            si la pagina puede scrollear horizontal. Verificado real: sin esto,
            scrollWidth 417px en un viewport de 375px. */
         html { overflow-x: hidden; }
+
+        /* Sidebar mobile drawer -- estado base en CSS puro, sin depender del
+           timing de mountSidebar()/requireSession() (ver
+           _mountMobileSidebarToggle en nlt-shared.js). Causa raíz real de un
+           overflow transitorio confirmado (dashboard.html, mismo <aside
+           id="sidebar"> compartido) con un poll de 15ms: mientras
+           mountSidebar() esperaba requireSession()+miSuscripcion() (~1s), el
+           aside quedaba como flex item estático de 280px -- scrollWidth 539
+           vs viewport 375 durante toda esa ventana. Ahora nace ya fuera de
+           pantalla desde el primer paint. */
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #sidebar { transition: none; }
+        }
         body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
