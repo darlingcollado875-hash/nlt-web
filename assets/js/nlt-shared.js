@@ -55,6 +55,23 @@
         return session;
     }
 
+    // BUG REAL confirmado en producción (Admin, sesión larga -- "Error:
+    // Token inválido o expirado" en todas las tarjetas): una vez resuelta,
+    // _sessionPromise quedaba "congelada" con el access_token de ESA
+    // primera resolución para siempre -- las promesas no se re-evalúan.
+    // supabase-js sí renueva el access_token en segundo plano
+    // (autoRefreshToken:true por default), pero _token() en
+    // nlt-api-client.js sigue leyendo la sesión vieja de acá, así que
+    // cualquier pestaña abierta más de ~1h (vida del access_token)
+    // empezaba a fallar TODOS los fetches hasta recargar la página a
+    // mano. Este listener mantiene _sessionPromise sincronizada con cada
+    // evento real de Supabase (incluido TOKEN_REFRESHED) sin tocar el
+    // resto del mecanismo de caché (sigue resolviendo una sola vez el
+    // getSession() inicial de la carga de página).
+    supabase.auth.onAuthStateChange((_event, session) => {
+        _sessionPromise = Promise.resolve({ data: { session }, error: null });
+    });
+
     // Redirige a index.html si no hay sesión activa. Devuelve la sesión si existe.
     async function requireSession() {
         let { data: { session }, error } = await _getSessionRaw();
