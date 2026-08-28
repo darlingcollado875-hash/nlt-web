@@ -453,16 +453,21 @@
         communityMarcarLeida: (id) => request(`/community/notifications/${id}/read`, { method: 'POST' }),
         communityMarcarTodasLeidas: () => request('/community/notifications/read-all', { method: 'POST' }),
         communityChatMensajes: (before) => request(`/community/chat/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
-        communityChatEnviar: (content, replyToId) => request('/community/chat/messages', { method: 'POST', body: JSON.stringify({ content, reply_to_id: replyToId || null }) }),
+        // clientMessageId (Fase "Reliability") -- UUID generado por el
+        // llamador, UNA vez por intento lógico de envío (se reenvía igual en
+        // un reintento tras fallo). Opcional a propósito -- no rompe ningún
+        // llamador viejo que todavía no lo pase.
+        communityChatEnviar: (content, replyToId, clientMessageId) => request('/community/chat/messages', { method: 'POST', body: JSON.stringify({ content, reply_to_id: replyToId || null, client_message_id: clientMessageId || null }) }),
         communityChatEditar: (id, content) => request(`/community/chat/messages/${id}`, { method: 'PATCH', body: JSON.stringify({ content }) }),
         communityChatBorrar: (id) => request(`/community/chat/messages/${id}`, { method: 'DELETE' }),
         // Imagen en Chat General -- multipart, mismo helper subirArchivo()
         // que el resto del proyecto (progreso real de subida vía XHR).
-        communityChatEnviarImagen: (file, content, replyToId, onProgress) => {
+        communityChatEnviarImagen: (file, content, replyToId, clientMessageId, onProgress) => {
             const fd = new FormData();
             fd.append('file', file);
             if (content) fd.append('content', content);
             if (replyToId) fd.append('reply_to_id', replyToId);
+            if (clientMessageId) fd.append('client_message_id', clientMessageId);
             return subirArchivo('/community/chat/messages/media', fd, onProgress);
         },
         communityChatMediaUrl: (messageId) => request(`/community/chat/messages/${messageId}/media-url`),
@@ -472,11 +477,16 @@
         communityDMConversaciones: () => request('/community/dm/conversations'),
         communityDMIniciar: (otherUserId) => request('/community/dm/conversations', { method: 'POST', body: JSON.stringify({ other_user_id: otherUserId }) }),
         communityDMMensajes: (conversationId, before) => request(`/community/dm/conversations/${conversationId}/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
-        communityDMEnviar: (conversationId, content) => request(`/community/dm/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ content }) }),
-        communityDMEnviarImagen: (conversationId, file, content, onProgress) => {
+        // reply_to_id + client_message_id (Fase "Reliability + Reply") --
+        // mismo patrón que Chat General, ver community_dm.py para la
+        // validación de "misma conversación".
+        communityDMEnviar: (conversationId, content, replyToId, clientMessageId) => request(`/community/dm/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify({ content, reply_to_id: replyToId || null, client_message_id: clientMessageId || null }) }),
+        communityDMEnviarImagen: (conversationId, file, content, replyToId, clientMessageId, onProgress) => {
             const fd = new FormData();
             fd.append('file', file);
             if (content) fd.append('content', content);
+            if (replyToId) fd.append('reply_to_id', replyToId);
+            if (clientMessageId) fd.append('client_message_id', clientMessageId);
             return subirArchivo(`/community/dm/conversations/${conversationId}/messages/media`, fd, onProgress);
         },
         communityDMMediaUrl: (messageId) => request(`/community/dm/messages/${messageId}/media-url`),
