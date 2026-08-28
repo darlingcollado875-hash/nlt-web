@@ -78,6 +78,53 @@
         .media-preview-box { position: relative; display: inline-block; margin-bottom: 8px; }
         .media-preview-box img { max-height: 120px; border-radius: 10px; display: block; }
         .media-preview-box .btn-quitar-preview { position: absolute; top: -6px; right: -6px; width: 20px; height: 20px; border-radius: 999px; background: #E5484D; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; cursor: pointer; }
+
+        /* Ancho de burbuja de mensaje (Chat General + DM) -- ANTES era la
+           clase de Tailwind max-w-[78%], que NUNCA tuvo efecto real (arbitrary
+           value no incluido en el bundle precompilado -- confirmado: "78%" no
+           aparece ni una vez en assets/css/tailwind.css). Sin ningún límite
+           real, una burbuja con un mensaje largo podía estirarse casi al
+           ancho completo del contenedor -- pasaba desapercibido mientras el
+           contenedor era angosto (max-w-3xl), pero se vuelve un problema real
+           ahora que Chat/DM usan un contenedor mucho más ancho en escritorio
+           (ver .vista-ancha más abajo). min(78%, 480px): en mobile se comporta
+           igual que antes (78% de un contenedor angosto ya da <480px), en
+           desktop nunca pasa de 480px sin importar cuán ancho esté el panel
+           -- "premium, no gigante", pedido explícito. */
+        .msg-bubble-wrap { max-width: min(78%, 480px); }
+
+        /* Fase "Desktop Chat Width Fix": Chat General y Mensajes (DM) usan un
+           contenedor bastante más ancho que Feed/Perfil en escritorio -- ahí
+           es donde se desperdiciaba el espacio (el reclamo real). Feed/Perfil
+           se quedan en la lectura cómoda de max-w-3xl de siempre (ver
+           .vista-angosta en vistaFeed/vistaPerfil). Nada de esto toca mobile:
+           <main> ya no tiene un max-width propio, así que en mobile (donde
+           .vista-ancha y .vista-angosta caen al mismo ancho de pantalla
+           disponible, ambas con w-full) el layout se ve exactamente igual
+           que antes. */
+        .vista-angosta { max-width: 48rem; margin-inline: auto; width: 100%; } /* 48rem = max-w-3xl, mismo valor de antes */
+        .vista-ancha { max-width: 80rem; margin-inline: auto; width: 100%; } /* 80rem = max-w-7xl */
+
+        /* Layout de 2 columnas de DM (lista | conversación activa) -- SOLO
+           desde 1024px (mismo breakpoint "lg" que ya usa el resto del sitio
+           para el sidebar de escritorio, ver nlt-shared.js). Por debajo de
+           1024px, dmListaBox/dmConversacionBox se comportan EXACTAMENTE
+           igual que antes (un solo panel visible a la vez, controlado por
+           JS con .hidden) -- mobile/tablet quedan sin cambios de comportamiento. */
+        @media (min-width: 1024px) {
+            #dmPanels { display: flex; align-items: flex-start; gap: 28px; }
+            /* El JS sigue alternando .hidden en cada panel para mobile --
+               acá se neutraliza ESE display:none puntual (nunca el propio
+               .hidden en otro elemento) para que ambos paneles convivan
+               siempre visibles lado a lado en desktop. Mismo patrón de
+               especificidad ya usado en este archivo (#lightboxModal:not(.hidden)). */
+            #dmListaBox, #dmListaBox.hidden, #dmConversacionBox, #dmConversacionBox.hidden { display: block; }
+            #dmListaBox { width: 320px; flex-shrink: 0; border-right: 1px solid rgba(255,255,255,0.06); padding-right: 24px; }
+            #dmConversacionBox { flex: 1; min-width: 0; }
+            /* Redundante con las 2 columnas visibles a la vez -- en mobile
+               sigue siendo la única forma de volver a la lista. */
+            #btn-volver-mensajes { display: none; }
+        }
     </style>
 </head>
 <body class="min-h-screen">
@@ -96,10 +143,10 @@
         </div>
     </header>
 
-    <main class="relative z-10 pt-28 md:pt-32 pb-24 px-5 md:px-0 max-w-3xl mx-auto">
+    <main class="relative z-10 pt-28 md:pt-32 pb-24 px-5 md:px-0">
 
         <!-- Perfil view -->
-        <div id="vistaPerfil" class="hidden"></div>
+        <div id="vistaPerfil" class="hidden vista-angosta"></div>
 
         <div id="chatTabs" class="hidden flex items-center gap-2 mb-6">
             <button data-vista="feed" id="tab-vista-feed" class="chip activo">Feed</button>
@@ -108,7 +155,7 @@
         </div>
 
         <!-- Feed view -->
-        <div id="vistaFeed">
+        <div id="vistaFeed" class="vista-angosta">
             <div class="text-center mb-8">
                 <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Where NLT traders learn, share and grow together.</h1>
@@ -159,7 +206,7 @@
         </div>
 
         <!-- Chat view -->
-        <div id="vistaChat" class="hidden">
+        <div id="vistaChat" class="hidden vista-ancha">
             <div class="text-center mb-6">
                 <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Chat privado</h1>
@@ -194,7 +241,7 @@
         </div>
 
         <!-- Mensajes (DM 1-a-1) view -->
-        <div id="vistaMensajes" class="hidden">
+        <div id="vistaMensajes" class="hidden vista-ancha">
             <div id="dmSinAcceso" class="hidden glass-card p-10 text-center">
                 <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
                 <p class="font-bold text-white mb-1">Necesitás un producto NLT activo</p>
@@ -202,36 +249,42 @@
                 <a href="plans.html" class="inline-block px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Ver planes</a>
             </div>
 
-            <div id="dmListaBox">
-                <div class="text-center mb-6">
-                    <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
-                    <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Mensajes</h1>
-                </div>
-                <div id="dmConversaciones" class="space-y-2">
-                    <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando conversaciones...</p>
-                </div>
-            </div>
-
-            <div id="dmConversacionBox" class="hidden">
-                <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mensajes</button>
-                <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
-                <div class="msg-scroll mb-1">
-                    <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh;">
-                        <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+            <!-- dmPanels: en desktop (>=1024px) lista y conversación conviven
+                 lado a lado (ver .vista-ancha/#dmPanels en <style>); por
+                 debajo de eso, exactamente el mismo toggle de un solo panel
+                 de siempre (JS alterna .hidden sin ningún cambio). -->
+            <div id="dmPanels">
+                <div id="dmListaBox">
+                    <div class="text-center mb-6">
+                        <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Mensajes</h1>
                     </div>
-                    <button id="btn-dm-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
+                    <div id="dmConversaciones" class="space-y-2">
+                        <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando conversaciones...</p>
+                    </div>
                 </div>
-                <p id="dmEscribiendo" class="msg-typing mb-1">&nbsp;</p>
-                <div id="dmMediaPreview" class="hidden"></div>
-                <div class="msg-input-row flex items-center gap-2">
-                    <button id="btn-dm-emoji" type="button" class="emoji-btn" title="Emojis" aria-label="Insertar emoji"><i class="ph ph-smiley" aria-hidden="true"></i></button>
-                    <label class="media-btn" title="Adjuntar imagen" aria-label="Adjuntar imagen">
-                        <i class="ph ph-image" aria-hidden="true"></i><input type="file" id="dmImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
-                    </label>
-                    <input id="dmInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
-                    <button id="btn-dm-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
+
+                <div id="dmConversacionBox" class="hidden">
+                    <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mensajes</button>
+                    <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
+                    <div class="msg-scroll mb-1">
+                        <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh;">
+                            <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                        </div>
+                        <button id="btn-dm-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
+                    </div>
+                    <p id="dmEscribiendo" class="msg-typing mb-1">&nbsp;</p>
+                    <div id="dmMediaPreview" class="hidden"></div>
+                    <div class="msg-input-row flex items-center gap-2">
+                        <button id="btn-dm-emoji" type="button" class="emoji-btn" title="Emojis" aria-label="Insertar emoji"><i class="ph ph-smiley" aria-hidden="true"></i></button>
+                        <label class="media-btn" title="Adjuntar imagen" aria-label="Adjuntar imagen">
+                            <i class="ph ph-image" aria-hidden="true"></i><input type="file" id="dmImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
+                        </label>
+                        <input id="dmInput" placeholder="Escribí un mensaje..." maxlength="2000" class="post-input flex-1">
+                        <button id="btn-dm-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
+                    </div>
+                    <p id="dmMsg" class="mt-2 text-xs hidden"></p>
                 </div>
-                <p id="dmMsg" class="mt-2 text-xs hidden"></p>
             </div>
         </div>
 
@@ -1172,7 +1225,7 @@
                 const acciones = `<button class="btn-borrar-chat text-gray-600 hover:text-nlt-danger cursor-pointer ml-1" data-message-id="${m.id}" title="Eliminar"><i class="ph ph-trash"></i></button>${m.content ? `<button class="btn-editar-chat text-gray-600 hover:text-white cursor-pointer ml-1.5" data-message-id="${m.id}" title="Editar"><i class="ph ph-pencil-simple"></i></button>` : ''}`;
                 return `
                     <div class="chat-message flex justify-end gap-2" data-message-id="${m.id}">
-                        <div class="flex flex-col items-end max-w-[78%]">
+                        <div class="flex flex-col items-end msg-bubble-wrap">
                             ${textoBurbuja ? `<div class="glass-item px-3 py-2" style="background:rgba(67,120,255,0.14); border-color:rgba(67,120,255,0.22);">${textoBurbuja}</div>` : ''}
                             ${media}
                             <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''} ${acciones}</p>
@@ -1183,7 +1236,7 @@
             return `
                 <div class="chat-message flex items-start gap-2.5" data-message-id="${m.id}">
                     <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden">${m.author_avatar_url ? `<img src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>
-                    <div class="max-w-[78%] min-w-0 glass-item px-3 py-2">
+                    <div class="msg-bubble-wrap min-w-0 glass-item px-3 py-2">
                         <p class="text-xs font-semibold text-white">${esc(m.author_display_name)}${m.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}</span></p>
                         ${textoBurbuja}
                         ${media}
@@ -1425,7 +1478,7 @@
             return `
                 <div class="dm-message flex ${m.is_own ? 'justify-end' : 'items-start gap-2'}" data-message-id="${m.id}" data-is-own="${m.is_own}">
                     ${avatar}
-                    <div class="flex flex-col ${m.is_own ? 'items-end' : 'items-start'} max-w-[78%]">
+                    <div class="flex flex-col ${m.is_own ? 'items-end' : 'items-start'} msg-bubble-wrap">
                         ${textoBurbuja}
                         ${media}
                         <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}${estadoLectura} ${acciones}</p>
