@@ -15,14 +15,19 @@
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
-        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
     <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. */
+        html { overflow-x: hidden; }
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; transition: border-color .15s ease; }
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 16px; transition: border-color .15s ease, background-color .15s ease; }
@@ -640,7 +645,7 @@
                 </div>
                 <p class="font-bold text-white mb-1">${esc(ad.title)}</p>
                 ${ad.body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${esc(ad.body).replace(/\n/g, '<br>')}</p>` : ''}
-                ${ad.image_url ? `<img src="${ad.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
+                ${ad.image_url ? `<img loading="lazy" decoding="async" src="${ad.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
                 ${ad.target_url ? `<button class="btn-ad-click w-full py-2 rounded-lg bg-nlt-accent/10 text-nlt-accent text-xs font-semibold cursor-pointer" data-ad-id="${ad.id}" data-url="${esc(ad.target_url)}">Ver más</button>` : ''}
             </div>`;
         }
@@ -655,7 +660,7 @@
                         ${esOficial
                             ? `<div class="w-9 h-9 rounded-full bg-nlt-accent/15 flex items-center justify-center"><img src="assets/img/nlt-icon.png" class="w-5 h-5"></div>
                                <div><p class="text-sm font-bold text-white">NLT Official <i class="ph-fill ph-seal-check text-nlt-accent"></i></p><span class="official-badge">${p.category}</span></div>`
-                            : `<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}" role="button" tabindex="0" aria-label="Ver perfil de ${esc(p.author_display_name)}">${p.author_avatar_url ? `<img src="${esc(p.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(p.author_display_name)}</div>
+                            : `<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}" role="button" tabindex="0" aria-label="Ver perfil de ${esc(p.author_display_name)}">${p.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(p.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(p.author_display_name)}</div>
                                <div><p class="text-sm font-semibold text-white btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}">${esc(p.author_display_name)}${p.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p><p class="text-[10px] text-gray-500">@${esc(p.author_username)} · ${tiempoRelativo(p.created_at)} · ${TYPE_LABEL[p.type] || ''}</p></div>`
                         }
                     </div>
@@ -671,7 +676,7 @@
                 ${p.type === 'analysis' ? bloqueAnalysis(p) : ''}
                 ${p.type === 'result' ? bloqueResult(p) : ''}
                 ${!esOficial ? `<div id="postBody-${p.id}" data-raw-body="${esc(p.body || '')}">${p.body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body)}</p>` : ''}</div>` : `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body || '')}</p>`}
-                ${p.image_url ? `<img src="${p.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
+                ${p.image_url ? `<img loading="lazy" decoding="async" src="${p.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
                 ${!esOficial ? `
                     <div class="flex items-center justify-between pt-3 border-t border-white/5">
                         <div class="flex items-center gap-1.5">
@@ -872,7 +877,7 @@
         function comentarioHTML(c, postId) {
             return `
                 <div class="comment-item flex items-start gap-2.5" data-comment-id="${c.id}">
-                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden">${c.author_avatar_url ? `<img src="${esc(c.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.author_display_name)}</div>
+                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden">${c.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(c.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.author_display_name)}</div>
                     <div class="flex-1 min-w-0 glass-item px-3 py-2">
                         <p class="text-xs font-semibold text-white">${esc(c.author_display_name)}${c.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(c.created_at)}</span></p>
                         <div id="commentBody-${c.id}" data-raw-body="${esc(c.body)}"><p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p></div>
@@ -1079,7 +1084,7 @@
                         <i class="ph ph-arrow-left"></i> ${conversacionOrigenId ? 'Volver a la conversación' : 'Volver al feed'}
                     </button>
                     <div class="glass-card p-6 mb-6 text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold text-white mx-auto mb-3 overflow-hidden">${perfil.avatar_url ? `<img src="${esc(perfil.avatar_url)}" class="w-full h-full object-cover">` : iniciales(perfil.display_name)}</div>
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold text-white mx-auto mb-3 overflow-hidden">${perfil.avatar_url ? `<img loading="lazy" decoding="async" src="${esc(perfil.avatar_url)}" class="w-full h-full object-cover">` : iniciales(perfil.display_name)}</div>
                         <p class="text-lg font-bold text-white">${esc(perfil.display_name)}${perfil.verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
                         <p class="text-xs text-gray-500 mb-2">@${esc(perfil.username)}</p>
                         ${perfil.bio ? `<p class="text-sm text-gray-400 max-w-md mx-auto mb-3">${esc(perfil.bio)}</p>` : ''}
@@ -1174,7 +1179,7 @@
             box.innerHTML = `
                 <h3 class="text-sm font-semibold text-white mb-3">Editar perfil</h3>
                 <div class="flex items-center gap-3 mb-4">
-                    <div id="epAvatarPreview" class="w-14 h-14 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0">${avatarUrlActual ? `<img src="${esc(avatarUrlActual)}" class="w-full h-full object-cover">` : iniciales(perfil.display_name)}</div>
+                    <div id="epAvatarPreview" class="w-14 h-14 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0">${avatarUrlActual ? `<img loading="lazy" decoding="async" src="${esc(avatarUrlActual)}" class="w-full h-full object-cover">` : iniciales(perfil.display_name)}</div>
                     <div>
                         <input type="file" id="epAvatarInput" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden">
                         <button id="btn-cambiar-avatar" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer">Cambiar foto</button>
@@ -1359,7 +1364,7 @@
         }
 
         function mensajeChatHTML(m) {
-            const media = m.media_url ? `<img src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-chat" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
+            const media = m.media_url ? `<img loading="lazy" decoding="async" src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-chat" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
             const textoBurbuja = m.content ? `<div id="chatBody-${m.id}" data-raw-body="${esc(m.content)}"><p class="text-xs text-gray-300 mt-0.5">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : '';
             const replyRef = replyRefHTML(m, 'chat');
             if (m.is_own) {
@@ -1376,7 +1381,7 @@
             const acciones = accionesMensajeHTML(m, 'chat', m.author_display_name);
             return `
                 <div class="chat-message flex items-start gap-2.5" data-message-id="${m.id}">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden">${m.author_avatar_url ? `<img src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden">${m.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>
                     <div class="msg-bubble-wrap min-w-0 glass-item px-3 py-2">
                         <p class="text-xs font-semibold text-white">${esc(m.author_display_name)}${m.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}</span></p>
                         ${replyRef}
@@ -1658,7 +1663,7 @@
             const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : (c.last_message_at ? '📷 Imagen' : 'Sin mensajes todavía.');
             return `
                 <div class="glass-item conv-row p-3 flex items-center gap-3 cursor-pointer btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}" role="button" tabindex="0" aria-label="Abrir conversación con ${esc(c.other_display_name)}">
-                    <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">${c.other_avatar_url ? `<img src="${esc(c.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.other_display_name)}</div>
+                    <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">${c.other_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(c.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.other_display_name)}</div>
                     <div class="flex-1 min-w-0">
                         <p class="text-sm font-semibold text-white truncate">${esc(c.other_display_name)}${c.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
                         <p class="text-xs text-gray-500 truncate">${preview}</p>
@@ -1707,7 +1712,7 @@
         // avatar SIEMPRE se renderiza (mismo ancho) aunque esté vacío, para
         // que la burbuja de arriba no se corra al ocultarlo.
         function mensajeDMHTML(m, mostrarAvatar = true, esContinuacion = false) {
-            const media = m.media_url ? `<img src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-dm" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
+            const media = m.media_url ? `<img loading="lazy" decoding="async" src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-dm" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
             const burbuja = m.is_own ? 'bg-nlt-accent/15 border-nlt-accent/20' : 'glass-item';
             const replyRef = replyRefHTML(m, 'dm');
             const textoBurbuja = m.content ? `<div id="dmBody-${m.id}" data-raw-body="${esc(m.content)}" class="${burbuja} border rounded-xl px-3 py-2">${replyRef}<p class="text-xs text-gray-200">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : (replyRef ? `<div class="${burbuja} border rounded-xl px-3 py-2">${replyRef}</div>` : '');
@@ -1715,7 +1720,7 @@
             const nombreAutor = m.is_own ? 'ti mismo' : (dmOtroParticipante ? dmOtroParticipante.other_display_name : '');
             const acciones = accionesMensajeHTML(m, 'dm', nombreAutor);
             const avatarImg = mostrarAvatar
-                ? `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden">${dmOtroParticipante && dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante ? dmOtroParticipante.other_display_name : '')}</div>`
+                ? `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden">${dmOtroParticipante && dmOtroParticipante.other_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante ? dmOtroParticipante.other_display_name : '')}</div>`
                 : '';
             const avatar = !m.is_own ? `<div class="dm-avatar-slot w-7 h-7 shrink-0 mt-0.5">${avatarImg}</div>` : '';
             return `
@@ -1884,7 +1889,7 @@
                 // solo del ícono/cursor para transmitir que es interactivo.
                 header.innerHTML = `
                     <button type="button" id="btn-dm-header-perfil" class="flex items-center gap-2.5 flex-1 min-w-0 text-left cursor-pointer hover:bg-white/5 transition-colors rounded-xl p-2" aria-label="Ver perfil de ${esc(dmOtroParticipante.other_display_name)}">
-                        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${dmOtroParticipante.other_avatar_url ? `<img src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante.other_display_name)}</div>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${dmOtroParticipante.other_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(dmOtroParticipante.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(dmOtroParticipante.other_display_name)}</div>
                         <div class="min-w-0">
                             <p class="text-sm font-bold text-white truncate">${esc(dmOtroParticipante.other_display_name)}${dmOtroParticipante.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
                             <p class="text-[11px] text-gray-500 truncate">@${esc(dmOtroParticipante.other_username)}</p>
