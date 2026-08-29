@@ -255,7 +255,12 @@
         adminRechazarPago: (orderId, motivo) => request(`/admin/billing/orders/${orderId}/reject`, { method: 'POST', body: JSON.stringify({ motivo: motivo || null }) }),
         adminStats: () => request('/admin/billing/stats'),
         adminListarUsuarios: () => request('/admin/billing/users'),
-        adminAsignarPlan: (userId, plan) => request(`/admin/billing/users/${userId}/plan`, { method: 'POST', body: JSON.stringify({ plan }) }),
+        // producto es opcional: el backend lo infiere de plan.producto cuando
+        // plan no es null. Cuando plan=null (quitar acceso), el backend
+        // por defecto usa producto='copy_system' si no se especifica --
+        // por eso cualquier caller que quite acceso de OTRO producto debe
+        // pasar producto explícitamente (ver admin_billing.py::asignar_plan_manual).
+        adminAsignarPlan: (userId, plan, producto) => request(`/admin/billing/users/${userId}/plan`, { method: 'POST', body: JSON.stringify(producto ? { plan, producto } : { plan }) }),
 
         // --- NLT Indicator (usuario) ---
         indicadorCrearOrden: (plan_id, tradingview_username) => request('/indicator/orders', { method: 'POST', body: JSON.stringify({ plan_id, tradingview_username }) }),

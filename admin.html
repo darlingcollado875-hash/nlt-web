@@ -1299,6 +1299,37 @@
                 </div>
                 <p class="text-xs text-gray-500">Alta manual mientras no exista la integración automática de TradingView/Signal Engine (ver TODO en admin_elite_signals.py).</p>
 
+                <!-- Dar acceso manual -- reutiliza el mecanismo GENÉRICO de
+                     planes (POST /admin/billing/users/{id}/plan, mismo que
+                     usa Pagos → Usuarios para cualquier producto) -- NO es un
+                     sistema de acceso nuevo/paralelo, ver docstring de
+                     admin_elite_signals.py: "el acceso se administra con el
+                     mecanismo genérico ya existente". Solo agrega un atajo
+                     acá para no tener que ir a otra pestaña. -->
+                <div class="glass-card p-6">
+                    <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2"><i class="ph-fill ph-key text-nlt-accent"></i> Dar acceso manual</h3>
+                    <p class="text-xs text-gray-500 mb-4">Para cortesías o correcciones -- sin pasar por pago. Requiere permiso "Planes" (mismo endpoint que Pagos → Usuarios).</p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input id="esBuscarEmail" type="email" placeholder="Email del usuario" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <button id="btn-es-buscar-usuario" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer whitespace-nowrap">Buscar</button>
+                    </div>
+                    <div id="esResultadoBusqueda" class="mt-3 hidden">
+                        <div class="glass-item p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+                            <div class="flex-1 min-w-0">
+                                <p id="esUsuarioEmail" class="text-sm font-semibold text-white truncate"></p>
+                                <p id="esUsuarioPlanActual" class="text-xs text-gray-500"></p>
+                            </div>
+                            <select id="esPlanSelect" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs">
+                                <option value="ELITE_SIGNALS_ONETIME">$70 -- pago único, acceso permanente</option>
+                                <option value="ELITE_SIGNALS_MONTHLY">$15/mes -- recurrente</option>
+                            </select>
+                            <button id="btn-es-dar-acceso" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer whitespace-nowrap">Dar acceso</button>
+                            <button id="btn-es-quitar-acceso" class="px-4 py-2 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer whitespace-nowrap">Quitar acceso</button>
+                        </div>
+                    </div>
+                    <p id="esAccesoMsg" class="mt-2 text-xs hidden"></p>
+                </div>
+
                 <div id="formNuevaSignal" class="glass-card p-6 hidden">
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
                         <input id="sgSymbol" placeholder="Símbolo (ej: EURUSD)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
@@ -4275,7 +4306,69 @@
             }
         }
 
-        // --- NLT Elite Signals ---
+        // --- NLT Elite Signals: dar/quitar acceso manual ---
+        // Reutiliza NLT_API.adminAsignarPlan (POST /admin/billing/users/{id}/plan)
+        // y adminGlobalUsuarios (GET /admin/global/users?q=) -- ambos ya
+        // existentes, ningún endpoint nuevo. adminGlobalUsuarios es
+        // Global-Admin-only en el backend (ver admin_global.py); un admin
+        // secundario con permiso "elite_signals" pero sin ser Global Admin
+        // vería el error real del backend acá, no un fallo silencioso.
+        let esUsuarioEncontrado = null;
+
+        function esMostrarMsg(texto, tipo) {
+            const msg = document.getElementById('esAccesoMsg');
+            msg.classList.remove('hidden');
+            msg.className = `mt-2 text-xs ${tipo === 'ok' ? 'text-nlt-success' : 'text-nlt-danger'}`;
+            msg.textContent = texto;
+        }
+
+        document.getElementById('btn-es-buscar-usuario').addEventListener('click', async () => {
+            const email = document.getElementById('esBuscarEmail').value.trim();
+            if (!email) return;
+            document.getElementById('esResultadoBusqueda').classList.add('hidden');
+            document.getElementById('esAccesoMsg').classList.add('hidden');
+            esUsuarioEncontrado = null;
+            try {
+                const resultados = await NLT_API.adminGlobalUsuarios(email);
+                const match = resultados.find((u) => (u.email || '').toLowerCase() === email.toLowerCase()) || resultados[0];
+                if (!match) {
+                    esMostrarMsg('No se encontró ningún usuario con ese email.', 'error');
+                    return;
+                }
+                esUsuarioEncontrado = match;
+                document.getElementById('esUsuarioEmail').textContent = match.email;
+                document.getElementById('esUsuarioPlanActual').textContent = `user_id: ${match.user_id}`;
+                document.getElementById('esResultadoBusqueda').classList.remove('hidden');
+            } catch (err) {
+                esMostrarMsg('Error: ' + err.message, 'error');
+            }
+        });
+
+        document.getElementById('btn-es-dar-acceso').addEventListener('click', async () => {
+            if (!esUsuarioEncontrado) return;
+            const plan = document.getElementById('esPlanSelect').value;
+            try {
+                await NLT_API.adminAsignarPlan(esUsuarioEncontrado.user_id, plan);
+                esMostrarMsg(`Acceso otorgado a ${esUsuarioEncontrado.email} (${plan}).`, 'ok');
+            } catch (err) {
+                esMostrarMsg('Error: ' + err.message, 'error');
+            }
+        });
+
+        document.getElementById('btn-es-quitar-acceso').addEventListener('click', async () => {
+            if (!esUsuarioEncontrado) return;
+            if (!confirm(`¿Quitar el acceso de Elite Signals a ${esUsuarioEncontrado.email}?`)) return;
+            try {
+                // producto explícito: sin esto, el backend por defecto quitaría
+                // la suscripción de 'copy_system' del usuario en vez de la de
+                // Elite Signals (ver admin_billing.py::asignar_plan_manual).
+                await NLT_API.adminAsignarPlan(esUsuarioEncontrado.user_id, null, 'elite_signals');
+                esMostrarMsg(`Acceso quitado a ${esUsuarioEncontrado.email}.`, 'ok');
+            } catch (err) {
+                esMostrarMsg('Error: ' + err.message, 'error');
+            }
+        });
+
         const SIGNAL_ESTADO_LABEL = { ACTIVE: 'Activa', TP_HIT: 'TP alcanzado', SL_HIT: 'SL alcanzado', CANCELLED: 'Cancelada', EXPIRED: 'Expirada' };
 
         const SIGNAL_ORIGEN_CLS = { MANUAL: 'text-gray-400', TRADINGVIEW: 'text-nlt-accent', NLT_SIGNAL_ENGINE: 'text-nlt-success' };
