@@ -31,9 +31,12 @@
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
         .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
-        .nlt-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 0.9rem 1rem; font-size: 0.875rem; color: #fff; transition: border-color var(--nlt-micro, 150ms) ease; }
+        .nlt-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 0.9rem 1rem; font-size: 0.875rem; color: #fff; transition: border-color var(--nlt-micro, 150ms) ease, box-shadow var(--nlt-micro, 150ms) ease; }
         .nlt-input::placeholder { color: #6B7280; }
-        .nlt-input:focus { outline: none; border-color: rgba(67,120,255,0.5); }
+        /* Fase 10 (accesibilidad): no basta con quitar outline y cambiar solo
+           el border-color -- un anillo real (box-shadow) es un indicador de
+           foco mucho más visible, clave para navegación por teclado. */
+        .nlt-input:focus { outline: none; border-color: rgba(67,120,255,0.6); box-shadow: 0 0 0 3px rgba(67,120,255,0.25); }
         .nlt-label { display: block; font-size: 0.75rem; font-weight: 600; color: #9CA6B4; margin-bottom: 0.4rem; }
         /* Honeypot -- oculto por CSS real (no display:none, algunos bots lo
            saltean), fuera de pantalla y sin foco por teclado. Un humano real

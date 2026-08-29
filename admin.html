@@ -1337,7 +1337,30 @@
                 </div>
                 <p class="text-xs text-gray-500">Un prospecto (llega por become-partner.html) y un partner publicado son la misma fila -- cambiá el status interno y publicalo cuando corresponda. Nunca se muestra públicamente hasta que actives "Público" abajo.</p>
 
+                <!-- Contadores (Fase 4: "impacto real, sin analytics avanzado") --
+                     derivados en el propio cliente de la lista ya cargada, sin
+                     ningún endpoint/tabla nueva. -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div class="glass-item p-3">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Total</p>
+                        <p id="pnStatTotal" class="text-xl font-extrabold text-white">--</p>
+                    </div>
+                    <div class="glass-item p-3">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Nuevos</p>
+                        <p id="pnStatNuevos" class="text-xl font-extrabold text-gray-300">--</p>
+                    </div>
+                    <div class="glass-item p-3">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">En proceso</p>
+                        <p id="pnStatEnProceso" class="text-xl font-extrabold text-nlt-accent">--</p>
+                    </div>
+                    <div class="glass-item p-3">
+                        <p class="text-[10px] text-gray-500 uppercase font-bold tracking-wider">Partners activos</p>
+                        <p id="pnStatActivos" class="text-xl font-extrabold text-nlt-success">--</p>
+                    </div>
+                </div>
+
                 <div class="flex flex-wrap gap-2">
+                    <input id="pnBuscar" type="text" placeholder="Buscar por empresa o email..." class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs flex-1 min-w-[180px]">
                     <select id="pnFiltroStatus" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs">
                         <option value="">Todos los status</option>
                         <option value="NEW">NEW</option>
@@ -1400,7 +1423,7 @@
                 <div id="pnPanelDetalle" class="glass-card p-6 hidden">
                     <div class="flex items-center justify-between mb-4">
                         <h3 class="text-sm font-semibold text-white" id="pnDetalleTitulo">Partner</h3>
-                        <button id="btn-pn-cerrar-panel" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph ph-x text-lg"></i></button>
+                        <button id="btn-pn-cerrar-panel" type="button" aria-label="Cerrar panel" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph ph-x text-lg"></i></button>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -4353,8 +4376,16 @@
             PARTNER: 'text-nlt-success', ACTIVE: 'text-nlt-success',
             PAUSED: 'text-nlt-warn', REJECTED: 'text-nlt-danger',
         };
-        let partnersCache = [];
+        const PN_ESTADOS_EN_PROCESO = ['CONTACTED', 'REPLIED', 'MEETING', 'NEGOTIATING'];
+        let partnersCache = []; // SIEMPRE la lista completa sin filtrar -- los stats necesitan el total real, no lo que quede visible tras filtrar/buscar.
         let pnPartnerSeleccionado = null;
+
+        function renderStatsPartners(partners) {
+            document.getElementById('pnStatTotal').textContent = partners.length;
+            document.getElementById('pnStatNuevos').textContent = partners.filter((p) => p.internal_status === 'NEW').length;
+            document.getElementById('pnStatEnProceso').textContent = partners.filter((p) => PN_ESTADOS_EN_PROCESO.includes(p.internal_status)).length;
+            document.getElementById('pnStatActivos').textContent = partners.filter((p) => p.internal_status === 'ACTIVE' && p.is_public).length;
+        }
 
         function renderTablaPartners(partners) {
             document.getElementById('tablaPartners').innerHTML = partners.length ? partners.map((p) => `
@@ -4367,7 +4398,7 @@
                     <td class="px-5 py-3 text-xs text-gray-500">${new Date(p.created_at).toLocaleDateString('es')}</td>
                     <td class="px-5 py-3"><button data-action="gestionar-partner" data-partner-id="${esc(p.id)}" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold hover:bg-white/20 cursor-pointer">Gestionar</button></td>
                 </tr>
-            `).join('') : '<tr><td colspan="7" class="px-5 py-3 text-gray-500">Sin partners/prospectos todavía -- llegan por become-partner.html o se crean acá.</td></tr>';
+            `).join('') : '<tr><td colspan="7" class="px-5 py-3 text-gray-500">Sin partners/prospectos que coincidan con el filtro.</td></tr>';
 
             document.querySelectorAll('button[data-action="gestionar-partner"]').forEach((btn) => {
                 btn.addEventListener('click', () => {
@@ -4377,21 +4408,36 @@
             });
         }
 
+        // Filtro por status/categoría/búsqueda -- todo client-side sobre
+        // partnersCache (ya completo): evita ida y vuelta al backend por cada
+        // tecla de búsqueda, y los contadores de arriba siempre reflejan el
+        // total real sin importar qué filtro esté activo.
+        function aplicarFiltrosPartners() {
+            const status = document.getElementById('pnFiltroStatus').value;
+            const categoria = document.getElementById('pnFiltroCategoria').value;
+            const q = document.getElementById('pnBuscar').value.trim().toLowerCase();
+            const filtrados = partnersCache.filter((p) => {
+                if (status && p.internal_status !== status) return false;
+                if (categoria && p.category !== categoria) return false;
+                if (q && !(p.company_name.toLowerCase().includes(q) || (p.contact_email || '').toLowerCase().includes(q))) return false;
+                return true;
+            });
+            renderTablaPartners(filtrados);
+        }
+
         async function cargarPartnersTodo() {
             try {
-                const filtros = {
-                    internal_status: document.getElementById('pnFiltroStatus').value || undefined,
-                    category: document.getElementById('pnFiltroCategoria').value || undefined,
-                };
-                partnersCache = await NLT_API.adminPartnersListar(filtros);
-                renderTablaPartners(partnersCache);
+                partnersCache = await NLT_API.adminPartnersListar();
+                renderStatsPartners(partnersCache);
+                aplicarFiltrosPartners();
             } catch (err) {
                 document.getElementById('tablaPartners').innerHTML = `<tr><td colspan="7" class="px-5 py-3 text-nlt-danger">Error: ${esc(err.message)}</td></tr>`;
             }
         }
 
-        document.getElementById('pnFiltroStatus').addEventListener('change', cargarPartnersTodo);
-        document.getElementById('pnFiltroCategoria').addEventListener('change', cargarPartnersTodo);
+        document.getElementById('pnFiltroStatus').addEventListener('change', aplicarFiltrosPartners);
+        document.getElementById('pnFiltroCategoria').addEventListener('change', aplicarFiltrosPartners);
+        document.getElementById('pnBuscar').addEventListener('input', aplicarFiltrosPartners);
 
         document.getElementById('btn-nuevo-partner').addEventListener('click', () => {
             document.getElementById('formNuevoPartner').classList.toggle('hidden');
@@ -4471,9 +4517,16 @@
             document.getElementById('pnPanelDetalle').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        document.getElementById('btn-pn-cerrar-panel').addEventListener('click', () => {
+        function cerrarPanelPartner() {
             document.getElementById('pnPanelDetalle').classList.add('hidden');
             pnPartnerSeleccionado = null;
+        }
+        document.getElementById('btn-pn-cerrar-panel').addEventListener('click', cerrarPanelPartner);
+        // Escape cierra el panel -- Fase 10 (accesibilidad). Solo actúa si el
+        // panel está realmente abierto, para no interferir con Escape en
+        // cualquier otro contexto de la página.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && pnPartnerSeleccionado) cerrarPanelPartner();
         });
 
         document.getElementById('btn-pn-guardar-detalle').addEventListener('click', async () => {
