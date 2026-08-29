@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Indicator | Panel</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        html { overflow-x: hidden; }
+        .chip-activo { padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.04); transition: all .15s; cursor: pointer; white-space: nowrap; border: 1px solid transparent; }
+        .chip-activo:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .chip-activo.activo { color: #4378FF; background: rgba(67,120,255,0.12); border-color: rgba(67,120,255,0.25); }
+        .seg { padding: 9px 14px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.02); color: #9CA6B4; transition: all .15s; }
+        .seg.on { color: #fff; border-color: rgba(67,120,255,0.4); background: rgba(67,120,255,0.10); }
+        .grade { display:inline-flex; align-items:center; justify-content:center; min-width: 54px; padding: 4px 10px; border-radius: 10px; font-weight: 800; font-size: 18px; }
+        .g-Splus,.g-Aplus { color:#4378FF; background:rgba(67,120,255,0.14); }
+        .g-A { color:#3fb950; background:rgba(63,185,80,0.14); }
+        .g-B { color:#d29922; background:rgba(210,153,34,0.14); }
+        .g-C { color:#e3742f; background:rgba(227,116,47,0.14); }
+        .g-INVALID { color:#f85149; background:rgba(248,81,73,0.14); }
+        .bar-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.06); overflow: hidden; }
+        .bar-fill { height: 100%; background: linear-gradient(90deg,#4378FF,#5b8bff); }
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+            .responsive-table thead { display: none; }
+            .responsive-table, .responsive-table tbody, .responsive-table tr, .responsive-table td { display: block; width: 100%; }
+            .responsive-table tr { padding: 14px 16px; border-bottom: 1px solid rgba(255,255,255,0.06); }
+            .responsive-table td { padding: 6px 0 !important; }
+            .responsive-table td[data-label]::before { content: attr(data-label); display: block; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #6B7280; margin-bottom: 3px; }
+        }
+        @media (prefers-reduced-motion: reduce) { #sidebar { transition: none; } }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <div>
+                <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Indicator</h1>
+                <p class="text-[11px] text-gray-500 -mt-0.5">AI Zone Analysis · multi-factor zone intelligence</p>
+            </div>
+            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
+
+            <!-- CARGANDO -->
+            <div id="vistaCargando" class="py-24 text-center">
+                <p class="text-sm text-gray-500 animate-pulse">Cargando NLT Indicator...</p>
+            </div>
+
+            <!-- SIN ACCESO AL INDICADOR -->
+            <div id="vistaSinIndicador" class="hidden py-16 max-w-lg mx-auto text-center">
+                <div class="glass-card p-10">
+                    <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
+                    <h2 class="text-xl font-bold text-white mb-2">Necesitás el NLT Indicator</h2>
+                    <p class="text-sm text-gray-500 mb-6">Este panel es para usuarios con acceso al indicador de TradingView.</p>
+                    <a href="indicator.html#planes" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Ver planes</a>
+                </div>
+            </div>
+
+            <!-- TIENE INDICATOR, NO TIENE AI -> UPGRADE -->
+            <div id="vistaUpgrade" class="hidden py-10 max-w-xl mx-auto">
+                <div class="glass-card p-10 text-center">
+                    <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-2">NLT Indicator AI</p>
+                    <h2 class="text-2xl font-bold text-white mb-3">Desbloqueá el análisis avanzado</h2>
+                    <p class="text-sm text-gray-400 mb-6">Multi-factor zone intelligence: seleccioná una zona y recibí un análisis completo dentro de tu cuenta NLT.</p>
+                    <ul class="text-left text-sm text-gray-300 space-y-2 mb-8 max-w-sm mx-auto" id="upgradeFeatures"></ul>
+                    <p class="text-3xl font-extrabold text-white mb-1" id="upgradePrice">—</p>
+                    <p class="text-xs text-gray-500 mb-6" id="upgradePriceSub"></p>
+                    <a href="indicator.html#planes" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Upgrade a NLT Indicator AI</a>
+                    <p class="text-[11px] text-gray-600 mt-4">La probabilidad es una estimación de calidad/confianza del setup, no una garantía de resultado.</p>
+                </div>
+            </div>
+
+            <!-- PANEL -->
+            <div id="vistaPanel" class="hidden space-y-8">
+
+                <div class="flex flex-wrap items-center gap-2" id="tabs">
+                    <span class="chip-activo activo" data-tab="connect">Connect TradingView</span>
+                    <span class="chip-activo" data-tab="analyze">AI Zone Analysis</span>
+                    <span class="chip-activo" data-tab="history">Analysis History</span>
+                    <span class="chip-activo opacity-50 cursor-not-allowed" title="Próximamente">Statistics</span>
+                    <span class="ml-auto text-xs text-gray-500" id="usageBadge"></span>
+                </div>
+
+                <!-- ── TAB: CONNECT TRADINGVIEW ── -->
+                <section data-panel="connect" class="space-y-6">
+                    <div class="glass-card p-6 md:p-8">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-bold text-white">Connect TradingView</h3>
+                            <span id="connStatus" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-white/5 text-gray-400">○ Not connected</span>
+                        </div>
+
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your webhook URL</label>
+                        <div class="flex gap-2 mb-4">
+                            <input id="connUrl" readonly class="flex-1 bg-black/30 border border-white/5 rounded-xl px-4 py-3 text-xs text-gray-300 font-mono" value="—">
+                            <button data-copy="connUrl" class="px-4 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Copiar</button>
+                        </div>
+
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your secret <span class="normal-case font-normal text-gray-600">(opcional / avanzado)</span></label>
+                        <div class="flex gap-2 mb-6">
+                            <input id="connSecret" readonly class="flex-1 bg-black/30 border border-white/5 rounded-xl px-4 py-3 text-xs text-gray-300 font-mono" value="—">
+                            <button data-copy="connSecret" class="px-4 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Copiar</button>
+                        </div>
+
+                        <div class="flex flex-wrap gap-3">
+                            <button id="btnCopyConfig" class="px-5 py-2.5 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Copiar configuración</button>
+                            <button id="btnRotate" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Regenerar token</button>
+                        </div>
+                        <p id="connMsg" class="mt-3 text-xs text-gray-500 hidden"></p>
+                    </div>
+
+                    <div class="glass-card p-6 md:p-8">
+                        <h3 class="text-sm font-bold text-white mb-4">Cómo conectarlo (una sola vez)</h3>
+                        <ol class="space-y-3 text-sm text-gray-400">
+                            <li><span class="text-nlt-accent font-bold mr-2">1.</span> Abrí TradingView y tu gráfico.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">2.</span> Agregá el indicador <span class="text-white">NLT Zone Engine V13</span> y activá <span class="text-white">webhookEmit</span> en su configuración.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">3.</span> Creá una alerta (icono del reloj → Crear alerta).</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">4.</span> En <span class="text-white">Condición</span>, elegí <span class="text-white">Any alert() function call</span>.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">5.</span> En <span class="text-white">Notificaciones → Webhook URL</span>, pegá tu Webhook URL de arriba.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">6.</span> Guardá. En cuanto llegue el primer análisis, este panel dirá <span class="text-white">✓ Connected</span>.</li>
+                        </ol>
+                        <p class="text-[11px] text-gray-600 mt-4">El token de la URL identifica tu cuenta NLT. No lo compartas.</p>
+                    </div>
+                </section>
+
+                <!-- ── TAB: AI ZONE ANALYSIS ── -->
+                <section data-panel="analyze" class="hidden space-y-6">
+                    <div class="glass-card p-6 md:p-8">
+                        <h3 class="text-lg font-bold text-white mb-1">AI Zone Analysis</h3>
+                        <p class="text-xs text-gray-500 mb-6">Seleccioná una zona. NLT AI obtiene el resto del contexto automáticamente.</p>
+
+                        <div class="grid md:grid-cols-2 gap-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Symbol</label>
+                                <input id="azSymbol" placeholder="EURUSD" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent uppercase">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Timeframe</label>
+                                <select id="azTf" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent">
+                                    <option value="5">5m</option><option value="15" selected>15m</option>
+                                    <option value="60">1h</option><option value="240">4h</option><option value="D">1D</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-5 mt-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Type</label>
+                                <div class="flex gap-2"><span class="seg on" data-seg="kind" data-val="OB">Order Block</span><span class="seg" data-seg="kind" data-val="FVG">FVG</span></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Direction</label>
+                                <div class="flex gap-2"><span class="seg on" data-seg="dir" data-val="LONG">Bullish</span><span class="seg" data-seg="dir" data-val="SHORT">Bearish</span></div>
+                            </div>
+                        </div>
+
+                        <div class="grid md:grid-cols-2 gap-5 mt-5">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Zona · precio superior</label>
+                                <input id="azTop" inputmode="decimal" placeholder="1.09250" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Zona · precio inferior</label>
+                                <input id="azBot" inputmode="decimal" placeholder="1.09180" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent">
+                            </div>
+                        </div>
+
+                        <button id="btnAnalyze" class="mt-7 w-full md:w-auto px-8 py-3.5 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Analyze Zone</button>
+                        <p id="azMsg" class="mt-3 text-xs hidden"></p>
+                    </div>
+
+                    <div id="azResult" class="hidden"></div>
+                </section>
+
+                <!-- ── TAB: HISTORY ── -->
+                <section data-panel="history" class="hidden space-y-4">
+                    <div class="glass-card p-0 overflow-hidden">
+                        <div class="p-6 border-b border-white/5"><h3 class="text-lg font-bold text-white">Analysis History</h3></div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm responsive-table">
+                                <thead class="text-[10px] uppercase tracking-wider text-gray-600">
+                                    <tr class="border-b border-white/5">
+                                        <th class="text-left px-5 py-3 font-bold">Fecha</th>
+                                        <th class="text-left px-5 py-3 font-bold">Symbol</th>
+                                        <th class="text-left px-5 py-3 font-bold">Dir</th>
+                                        <th class="text-left px-5 py-3 font-bold">Prob.</th>
+                                        <th class="text-left px-5 py-3 font-bold">Grade</th>
+                                        <th class="text-left px-5 py-3 font-bold">Category</th>
+                                        <th class="text-left px-5 py-3 font-bold">Verdict</th>
+                                        <th class="px-5 py-3"></th>
+                                    </tr>
+                                </thead>
+                                <tbody id="histBody" class="divide-y divide-white/5 text-gray-300">
+                                    <tr><td colspan="8" class="px-5 py-6 text-gray-500">Cargando…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div id="histDetail" class="hidden"></div>
+                </section>
+
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260829"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260829"></script>
+    <script>
+    (function () {
+        const $ = (id) => document.getElementById(id);
+        const show = (id) => $(id).classList.remove('hidden');
+        const hide = (id) => $(id).classList.add('hidden');
+        const gcls = (q) => 'g-' + String(q || '').replace('+', 'plus');
+        const fmt = (n) => (n === null || n === undefined ? '—' : Math.round(n));
+        const azSel = { kind: 'OB', dir: 'LONG' };
+        let entitlement = null;
+        let connPollTimer = null;
+
+        function toast(elId, msg, ok) {
+            const el = $(elId);
+            el.textContent = msg;
+            el.className = 'mt-3 text-xs ' + (ok ? 'text-green-400' : 'text-red-400');
+            el.classList.remove('hidden');
+        }
+
+        // ── tabs ──
+        function activarTab(name) {
+            document.querySelectorAll('[data-tab]').forEach((c) => c.classList.toggle('activo', c.dataset.tab === name));
+            document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== name));
+            if (name === 'history') cargarHistorial();
+            if (name === 'connect') cargarConexion();
+        }
+        document.querySelectorAll('[data-tab]').forEach((c) => c.addEventListener('click', () => c.dataset.tab && activarTab(c.dataset.tab)));
+
+        // ── copiar ──
+        document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => {
+            const v = $(b.dataset.copy).value;
+            navigator.clipboard.writeText(v).then(() => { b.textContent = '✓'; setTimeout(() => b.textContent = 'Copiar', 1200); });
+        }));
+        $('btnCopyConfig').addEventListener('click', () => {
+            const txt = `NLT Indicator AI\nWebhook URL: ${$('connUrl').value}\nSecret: ${$('connSecret').value}\nCondición de alerta: Any alert() function call`;
+            navigator.clipboard.writeText(txt).then(() => toast('connMsg', 'Configuración copiada al portapapeles.', true));
+        });
+        $('btnRotate').addEventListener('click', async () => {
+            if (!confirm('Regenerar el token invalida la URL actual. Vas a tener que actualizar la alerta en TradingView. ¿Seguir?')) return;
+            try { pintarConexion(await NLT_API.indicatorAiConnectionRotate()); toast('connMsg', 'Token regenerado. Actualizá la Webhook URL en tu alerta.', true); }
+            catch (e) { toast('connMsg', e.message, false); }
+        });
+
+        // ── conexión ──
+        function pintarConexion(c) {
+            $('connUrl').value = c.webhook_url || '—';
+            $('connSecret').value = c.secret || '—';
+            const conn = c.status === 'connected';
+            const s = $('connStatus');
+            s.textContent = conn ? '✓ Connected' : '○ Not connected';
+            s.className = 'text-xs font-semibold px-3 py-1.5 rounded-full ' + (conn ? 'bg-green-500/15 text-green-400' : 'bg-white/5 text-gray-400');
+        }
+        async function cargarConexion() {
+            try {
+                const c = await NLT_API.indicatorAiConnection();
+                pintarConexion(c);
+                if (c.status !== 'connected' && !connPollTimer) {
+                    connPollTimer = setInterval(async () => {
+                        try {
+                            const c2 = await NLT_API.indicatorAiConnection();
+                            if (c2.status === 'connected') { pintarConexion(c2); clearInterval(connPollTimer); connPollTimer = null; }
+                        } catch (_) {}
+                    }, 10000);
+                }
+            } catch (e) { toast('connMsg', e.message, false); }
+        }
+
+        // ── AI Zone Analysis ──
+        document.querySelectorAll('.seg').forEach((s) => s.addEventListener('click', () => {
+            document.querySelectorAll(`.seg[data-seg="${s.dataset.seg}"]`).forEach((x) => x.classList.toggle('on', x === s));
+            azSel[s.dataset.seg] = s.dataset.val;
+        }));
+        $('btnAnalyze').addEventListener('click', analizar);
+
+        async function analizar() {
+            const symbol = $('azSymbol').value.trim().toUpperCase();
+            const top = parseFloat($('azTop').value), bot = parseFloat($('azBot').value);
+            if (!symbol) return toast('azMsg', 'Ingresá el símbolo.', false);
+            if (!isFinite(top) || !isFinite(bot) || top === bot) return toast('azMsg', 'Ingresá los dos precios de la zona.', false);
+            const payload = {
+                schema_version: '1.0', event: 'MANUAL_ZONE', symbol, tf: $('azTf').value, mode: 'NORMAL',
+                force_ai: true,
+                zone: { kind: azSel.kind, dir: azSel.dir, top: Math.max(top, bot), bot: Math.min(top, bot), manual: true },
+            };
+            const btn = $('btnAnalyze');
+            btn.disabled = true; btn.textContent = 'Analizando…';
+            hide('azResult'); $('azMsg').classList.add('hidden');
+            try {
+                const a = await NLT_API.indicatorAiAnalizar(payload);
+                $('azResult').innerHTML = tarjetaResultado(a);
+                show('azResult');
+                refrescarUsage();
+            } catch (e) {
+                let m = e.message;
+                try { const j = JSON.parse(m); if (j.code === 'AI_QUOTA_EXCEEDED') m = 'Alcanzaste tu cuota mensual de análisis.'; else if (j.code === 'AI_FEATURE_LOCKED') m = 'Tu plan no incluye NLT Indicator AI.'; else if (j.message) m = j.message; } catch (_) {}
+                toast('azMsg', m, false);
+            } finally { btn.disabled = false; btn.textContent = 'Analyze Zone'; }
+        }
+
+        // ── tarjeta de resultado (compartida con History) ──
+        function bar(label, val) {
+            return `<div class="flex items-center gap-3 text-xs">
+                <span class="w-28 text-gray-400">${label}</span>
+                <span class="flex-1 bar-track"><span class="bar-fill" style="width:${Math.max(0, Math.min(100, val || 0))}%"></span></span>
+                <span class="w-9 text-right text-gray-300">${fmt(val)}</span></div>`;
+        }
+        function lista(titulo, items, icon) {
+            if (!items || !items.length) return '';
+            return `<div><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">${titulo}</p>
+                <ul class="space-y-1.5 text-sm text-gray-300">${items.map((x) => `<li><i class="ph ${icon} text-gray-500 mr-1.5"></i>${x}</li>`).join('')}</ul></div>`;
+        }
+        function tarjetaResultado(a) {
+            const L = a.scores_layers || {}, S = a.claude_scores || {};
+            return `<div class="glass-card p-6 md:p-8 space-y-7">
+                <div class="flex flex-wrap items-start gap-6">
+                    <div>
+                        <p class="text-4xl md:text-5xl font-extrabold text-white leading-none">${fmt(a.probability)}<span class="text-lg text-gray-500">%</span></p>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">AI Quality</p>
+                    </div>
+                    <div><span class="grade ${gcls(a.quality)}">${a.quality || '—'}</span>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">${a.category || ''}</p></div>
+                    <div><p class="text-xl font-bold ${a.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}">${a.direction || '—'}</p>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Bias: ${a.bias || '—'}</p></div>
+                    <div class="ml-auto text-right">
+                        <p class="text-sm font-bold text-white">${(a.verdict || '').replace(/_/g, ' ')}</p>
+                        <p class="text-[11px] text-gray-500 mt-1">Risk ${a.risk_level || '—'} · RR ${a.rr_quality || '—'}</p>
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Capas de score → NLT Final AI Score</p>
+                    <div class="space-y-2">
+                        ${bar('V13 SCORE', L.v13_score)}
+                        ${bar('NLT QUANT', L.nlt_quant_score)}
+                        ${bar('CLAUDE', L.claude_ai_score)}
+                        ${bar('FINAL NLT AI', L.final_ai_score)}
+                    </div>
+                </div>
+
+                <div>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Desglose</p>
+                    <div class="grid md:grid-cols-2 gap-x-8 gap-y-2">
+                        ${bar('Structure', S.structure)}${bar('Liquidity', S.liquidity)}
+                        ${bar('Location', S.location)}${bar('Momentum', S.momentum)}
+                        ${bar('Confluence', S.confluence)}${bar('History', S.historical)}
+                    </div>
+                </div>
+
+                <div class="grid md:grid-cols-2 gap-6">
+                    ${lista('Confluences', a.confluences, 'ph-check')}
+                    ${lista('Warnings', a.warnings, 'ph-warning')}
+                    ${lista('Confirmation', a.confirmation_required, 'ph-arrow-right')}
+                    ${lista('Invalidation', a.invalidation, 'ph-x')}
+                </div>
+
+                ${a.explanation ? `<p class="text-sm text-gray-300 leading-relaxed border-t border-white/5 pt-5">${a.explanation}</p>` : ''}
+                ${a.data_gaps && a.data_gaps.length ? `<p class="text-[11px] text-gray-600">Datos faltantes: ${a.data_gaps.join(', ')}</p>` : ''}
+                <p class="text-[11px] text-gray-600">La probabilidad es una estimación de calidad/confianza del setup, no una garantía de resultado. Snapshot ${a.analysis_id}.</p>
+            </div>`;
+        }
+
+        // ── History ──
+        async function cargarHistorial() {
+            try {
+                const { items } = await NLT_API.indicatorAiHistorial({ limit: 100 });
+                const tb = $('histBody');
+                if (!items.length) { tb.innerHTML = '<tr><td colspan="8" class="px-5 py-6 text-gray-500">Todavía no hiciste ningún análisis.</td></tr>'; return; }
+                tb.innerHTML = items.map((a) => `<tr class="hover:bg-white/[0.02] cursor-pointer" data-id="${a.analysis_id}">
+                    <td data-label="Fecha" class="px-5 py-3 text-gray-500">${(a.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+                    <td data-label="Symbol" class="px-5 py-3 text-white">${a.symbol || '—'}</td>
+                    <td data-label="Dir" class="px-5 py-3 ${a.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}">${a.direction || '—'}</td>
+                    <td data-label="Prob." class="px-5 py-3 font-bold">${fmt(a.probability)}%</td>
+                    <td data-label="Grade" class="px-5 py-3"><span class="grade ${gcls(a.quality)}" style="min-width:0;padding:2px 8px;font-size:13px">${a.quality || '—'}</span></td>
+                    <td data-label="Category" class="px-5 py-3 text-gray-400">${a.category || '—'}</td>
+                    <td data-label="Verdict" class="px-5 py-3 text-gray-400">${(a.verdict || '').replace(/_/g, ' ')}</td>
+                    <td class="px-5 py-3 text-nlt-accent text-xs">ver →</td></tr>`).join('');
+                tb.querySelectorAll('tr[data-id]').forEach((tr) => tr.addEventListener('click', () => verDetalle(tr.dataset.id)));
+            } catch (e) {
+                $('histBody').innerHTML = `<tr><td colspan="8" class="px-5 py-6 text-red-400">${e.message}</td></tr>`;
+            }
+        }
+        async function verDetalle(id) {
+            const box = $('histDetail');
+            box.innerHTML = '<p class="text-sm text-gray-500 animate-pulse px-1">Cargando análisis…</p>';
+            show('histDetail');
+            box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            try { box.innerHTML = tarjetaResultado(await NLT_API.indicatorAiAnalisis(id)); }
+            catch (e) { box.innerHTML = `<p class="text-sm text-red-400 px-1">${e.message}</p>`; }
+        }
+
+        // ── usage badge ──
+        function pintarUsage(e) {
+            if (!e) return;
+            const q = e.quota;
+            $('usageBadge').textContent = q == null ? `${e.used || 0} análisis este mes` : `${e.used || 0} / ${q} analyses used`;
+        }
+        async function refrescarUsage() {
+            try { const s = await NLT_API.indicatorAiStats(); pintarUsage(s.usage); } catch (_) {}
+        }
+
+        // ── init ──
+        (async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'indicator-dashboard', seccion: 'indicator' });
+            NLT.bindLogoutButton('btn-salir');
+
+            try {
+                entitlement = await NLT_API.indicatorAiEntitlement();
+            } catch (e) {
+                hide('vistaCargando');
+                $('vistaSinIndicador').querySelector('p').textContent = e.message;
+                show('vistaSinIndicador');
+                return;
+            }
+            hide('vistaCargando');
+
+            if (!entitlement.indicator_access) { show('vistaSinIndicador'); return; }
+            if (!entitlement.ai_access) {
+                const u = entitlement.upgrade || {};
+                $('upgradeFeatures').innerHTML = ['AI Score & AI Bias', 'Zone Quality & Grade', 'Confluence & conflict analysis', 'Confirmation & invalidation', 'Historical context', 'Analysis History']
+                    .map((f) => `<li><i class="ph-fill ph-check text-nlt-accent mr-2"></i>${f}</li>`).join('');
+                if (u.price_monthly) { $('upgradePrice').textContent = '$' + u.price_monthly + '/mes'; $('upgradePriceSub').textContent = u.billing_period ? '' : ''; }
+                show('vistaUpgrade');
+                return;
+            }
+
+            show('vistaPanel');
+            pintarUsage(entitlement);
+            cargarConexion();
+        })();
+    })();
+    </script>
+</body>
+</html>

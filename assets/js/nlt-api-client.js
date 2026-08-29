@@ -716,6 +716,22 @@
         adminSignalsCrear: (datos) => request('/admin/signals', { method: 'POST', body: JSON.stringify(datos) }),
         adminSignalsActualizarStatus: (signalId, status) => request(`/admin/signals/${signalId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
+        // --- NLT Indicator AI (módulo indicator_ai de NLT_API) ---
+        // El backend resuelve el usuario del JWT y toda la autorización
+        // (indicator access / ai access / cuota) -- el front nunca decide.
+        indicatorAiEntitlement: () => request('/indicator-ai/entitlement'),
+        indicatorAiProducts: () => request('/indicator-ai/products'),
+        indicatorAiConnection: () => request('/indicator-ai/connection'),
+        indicatorAiConnectionRotate: () => request('/indicator-ai/connection/rotate', { method: 'POST' }),
+        indicatorAiAnalizar: (payload) => request('/indicator-ai/analyses', { method: 'POST', body: JSON.stringify(payload) }),
+        indicatorAiHistorial: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request('/indicator-ai/analyses' + (qs ? `?${qs}` : ''));
+        },
+        indicatorAiAnalisis: (id) => request(`/indicator-ai/analyses/${id}`),
+        indicatorAiOutcome: (id, datos) => request(`/indicator-ai/analyses/${id}/outcome`, { method: 'POST', body: JSON.stringify(datos) }),
+        indicatorAiStats: () => request('/indicator-ai/stats'),
+
         // --- NLT Partners (Business Development Foundation) ---
         // Públicos, sin sesión -- partners.html/become-partner.html se ven
         // sin cuenta NLT (una empresa que se postula no necesariamente

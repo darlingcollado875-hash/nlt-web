@@ -554,6 +554,13 @@
         { id: 'signals-landing', href: 'signals.html', icono: 'ph-broadcast', label: 'Elite Signals' },
     ];
 
+    // NLT Indicator -- panel autenticado del indicador (Connect TradingView,
+    // AI Zone Analysis, Analysis History). Mismo patrón que NAV_SIGNALS.
+    const NAV_INDICATOR = [
+        { id: 'indicator-dashboard', href: 'indicator-dashboard.html', icono: 'ph-squares-four', label: 'Panel' },
+        { id: 'indicator-landing', href: 'indicator.html', icono: 'ph-crosshair', label: 'Sobre el Indicador' },
+    ];
+
     // Equipo + Acuerdos + Firma -- una sola página (equipo.html) con
     // secciones ancladas, mismo patrón que NAV_FUTURES_HOME (#seccion-*).
     const NAV_EQUIPO = [
@@ -578,12 +585,12 @@
     // se usa un solo link de vuelta a futuros.html.
     function renderSidebar({ activo, seccion = 'cfd' } = {}) {
         const esFuturesHome = seccion === 'futures' && FUTURES_HOME_IDS.includes(activo);
-        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'equipo' ? NAV_EQUIPO : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
+        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'indicator' ? NAV_INDICATOR : seccion === 'equipo' ? NAV_EQUIPO : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
         const ajustes = seccion === 'futures' ? NAV_FUTURES_AJUSTES : NAV_CFD_AJUSTES;
-        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'equipo' ? 'Equipo NLT' : seccion === 'futures' ? 'Futuros' : null;
+        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'indicator' ? 'NLT Indicator' : seccion === 'equipo' ? 'Equipo NLT' : seccion === 'futures' ? 'Futuros' : null;
         const ajustesLabel = seccion === 'futures' ? 'Ajustes Futures' : 'Ajustes';
         const adminLabel = seccion === 'futures' ? 'Administración' : 'Panel Admin';
-        const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'propfirm' ? 'admin.html#propfirm' : seccion === 'signals' ? 'admin.html#elite_signals' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
+        const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'propfirm' ? 'admin.html#propfirm' : seccion === 'signals' ? 'admin.html#elite_signals' : seccion === 'indicator' ? 'admin.html#indicador' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
         const adminOn = activo === 'admin' || activo === 'futuros-admin';
         const adminCls = adminOn
             ? 'bg-yellow-500/10 text-yellow-400 border border-yellow-500/10'
