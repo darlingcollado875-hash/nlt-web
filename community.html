@@ -243,6 +243,14 @@
             </a>
             <div class="flex items-center gap-2">
                 <div id="notifBellSlot"></div>
+                <!-- "Mi perfil" en el header -- pedido explícito de Francisco:
+                     el chip de tabs (#tab-mi-perfil) ya funcionaba pero
+                     quedaba fácil de perder entre Feed/Chat/Mensajes. Esto
+                     NO es una segunda vista de perfil: es otro punto de
+                     entrada al MISMO mostrarPerfil(miPerfil.username) --
+                     mismo criterio que el chip, ambos quedan (más de un
+                     camino al mismo lugar no es duplicar el componente). -->
+                <div id="miPerfilSlot"></div>
                 <div id="headerCTA"></div>
             </div>
         </div>
@@ -2114,6 +2122,27 @@
             mostrarPerfil(miPerfil.username);
         });
 
+        // Avatar + "Mi perfil" en el header -- mismo destino que el chip de
+        // arriba (mostrarPerfil con el username propio, is_own lo calcula el
+        // backend), solo un punto de entrada más visible. Texto oculto en
+        // mobile (el avatar solo ya se reconoce como "yo"), visible desde sm:.
+        function montarMiPerfilHeader() {
+            if (!miPerfil) return;
+            const avatar = miPerfil.avatar_url
+                ? `<img src="${esc(miPerfil.avatar_url)}" alt="" class="w-full h-full object-cover">`
+                : iniciales(miPerfil.display_name);
+            document.getElementById('miPerfilSlot').innerHTML = `
+                <button id="btn-header-mi-perfil" type="button" aria-label="Mi perfil" class="flex items-center gap-2 pl-1 pr-1 sm:pr-3 py-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer">
+                    <span class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${avatar}</span>
+                    <span class="hidden sm:inline text-xs font-semibold text-gray-300">Mi perfil</span>
+                </button>
+            `;
+            document.getElementById('btn-header-mi-perfil').addEventListener('click', () => {
+                window.history.pushState({}, '', `community.html?u=${miPerfil.username}`);
+                mostrarPerfil(miPerfil.username);
+            });
+        }
+
         // --- Notificaciones (Notification Center global -- ver nlt-shared.js) ---
         // Reemplaza la implementación propia de antes (solo Community) por el
         // mismo componente compartido que usan las 14 páginas del sidebar --
@@ -2141,6 +2170,7 @@
                         document.getElementById('tab-mi-perfil').classList.remove('hidden');
                         document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
                         NLT.mountNotifBell('notifBell');
+                        montarMiPerfilHeader();
                     } catch (_) {}
                 }
             }
