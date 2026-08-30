@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <title>NLT Indicator AI · Admin</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17,21,28,0.7) 0%, rgba(13,16,22,0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.04); border-radius: 20px; }
+        ::-webkit-scrollbar { width: 0; background: transparent; }
+        html { overflow-x: hidden; }
+        .chip { padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.04); cursor: pointer; white-space: nowrap; border: 1px solid transparent; transition: all .15s; }
+        .chip:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .chip.on { color: #4378FF; background: rgba(67,120,255,0.12); border-color: rgba(67,120,255,0.25); }
+        .kpi { font-size: 26px; font-weight: 800; line-height: 1; }
+        .lvl-error { color: #f85149; } .lvl-warn { color: #d29922; } .lvl-info { color: #6B7280; }
+        .g-Splus,.g-Aplus { color:#4378FF; } .g-A { color:#3fb950; } .g-B { color:#d29922; } .g-C { color:#e3742f; } .g-INVALID,.g-unknown { color:#6B7280; }
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; transform: translateX(-100%); transition: transform .3s; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <div>
+                <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Indicator AI · Admin</h1>
+                <p class="text-[11px] text-gray-500 -mt-0.5">Consola de ops del módulo · <span id="apiBadge" class="text-gray-400"></span></p>
+            </div>
+            <div class="flex items-center gap-2">
+                <a href="admin.html#indicador" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg">← Admin</a>
+                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg cursor-pointer">Cerrar sesión</button>
+            </div>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 space-y-8">
+            <div id="vistaCargando" class="py-24 text-center"><p class="text-sm text-gray-500 animate-pulse">Cargando…</p></div>
+            <div id="vistaSinPermiso" class="hidden py-16 max-w-lg mx-auto text-center">
+                <div class="glass-card p-10">
+                    <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
+                    <h2 class="text-xl font-bold mb-2">Sin permiso</h2>
+                    <p class="text-sm text-gray-500">Necesitás el permiso de admin <span class="text-white">"indicador"</span>.</p>
+                </div>
+            </div>
+
+            <div id="vista" class="hidden space-y-8">
+                <div class="flex flex-wrap items-center gap-2">
+                    <span class="chip on" data-tab="overview">Overview</span>
+                    <span class="chip" data-tab="logs">Logs</span>
+                    <span class="chip" data-tab="beta">Acceso beta</span>
+                    <span class="chip" data-tab="versions">Versiones</span>
+                    <span class="ml-auto text-xs text-gray-500" id="healthBadge"></span>
+                </div>
+
+                <!-- OVERVIEW -->
+                <section data-panel="overview" class="space-y-6">
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4" id="kpis"></div>
+                    <div class="grid md:grid-cols-2 gap-4">
+                        <div class="glass-card p-6"><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Análisis por grade</p><div id="byGrade" class="flex flex-wrap gap-3 text-sm"></div></div>
+                        <div class="glass-card p-6"><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Costo IA (estimado)</p><div id="aiCost" class="text-sm text-gray-300 space-y-1"></div></div>
+                    </div>
+                    <div class="glass-card p-0 overflow-hidden">
+                        <div class="p-5 border-b border-white/5"><h3 class="text-sm font-bold">Análisis recientes (todos los usuarios)</h3></div>
+                        <div class="overflow-x-auto"><table class="w-full text-sm">
+                            <thead class="text-[10px] uppercase tracking-wider text-gray-600"><tr class="border-b border-white/5">
+                                <th class="text-left px-5 py-3">Fecha</th><th class="text-left px-5 py-3">Symbol</th><th class="text-left px-5 py-3">Dir</th>
+                                <th class="text-left px-5 py-3">Prob</th><th class="text-left px-5 py-3">Grade</th><th class="text-left px-5 py-3">Verdict</th><th class="text-left px-5 py-3">Status</th><th class="px-5 py-3"></th>
+                            </tr></thead>
+                            <tbody id="recentBody" class="divide-y divide-white/5 text-gray-300"></tbody>
+                        </table></div>
+                    </div>
+                    <div id="anDetail" class="hidden"></div>
+                </section>
+
+                <!-- LOGS -->
+                <section data-panel="logs" class="hidden space-y-4">
+                    <div class="flex items-center gap-3">
+                        <label class="text-xs text-gray-400 flex items-center gap-2"><input type="checkbox" id="logOnlyProblems"> solo warn/error</label>
+                        <button id="logReload" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs">Recargar</button>
+                    </div>
+                    <div class="glass-card p-0 overflow-hidden">
+                        <div class="overflow-x-auto"><table class="w-full text-xs">
+                            <thead class="text-[10px] uppercase tracking-wider text-gray-600"><tr class="border-b border-white/5">
+                                <th class="text-left px-4 py-3">Hora</th><th class="text-left px-4 py-3">Lvl</th><th class="text-left px-4 py-3">Evento</th><th class="text-left px-4 py-3">Detalle</th>
+                            </tr></thead>
+                            <tbody id="logBody" class="divide-y divide-white/5 text-gray-400"></tbody>
+                        </table></div>
+                    </div>
+                </section>
+
+                <!-- BETA ACCESS -->
+                <section data-panel="beta" class="hidden space-y-6">
+                    <div class="glass-card p-6 md:p-8 max-w-2xl">
+                        <h3 class="text-lg font-bold mb-1">Activar acceso beta (entitlement override)</h3>
+                        <p class="text-xs text-gray-500 mb-6">Escribe en <span class="text-gray-300">nlt_ai.entitlement_overrides</span> — no toca <span class="text-gray-300">public</span>. Un override alcanza para activar indicador base + IA a un usuario sin compra real.</p>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">auth.users.id del usuario</label>
+                        <input id="ovUser" placeholder="00000000-0000-0000-0000-000000000000" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm font-mono mb-4">
+                        <div class="grid grid-cols-2 gap-4 mb-4">
+                            <label class="text-sm text-gray-300 flex items-center gap-2"><input type="checkbox" id="ovInd" checked> indicator_access</label>
+                            <label class="text-sm text-gray-300 flex items-center gap-2"><input type="checkbox" id="ovAi" checked> ai_access</label>
+                        </div>
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Cuota mensual</label>
+                        <input id="ovQuota" type="number" value="50" min="0" class="w-40 bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Nota</label>
+                        <input id="ovNote" placeholder="beta V1 — nombre / motivo" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm mb-6">
+                        <button id="ovSave" class="px-6 py-3 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Guardar override</button>
+                        <p id="ovMsg" class="mt-3 text-xs hidden"></p>
+                    </div>
+                </section>
+
+                <!-- VERSIONS -->
+                <section data-panel="versions" class="hidden space-y-4">
+                    <div class="glass-card p-6"><pre id="verBox" class="text-xs text-gray-400 whitespace-pre-wrap"></pre></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260830b"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260830b"></script>
+    <script>
+    (function () {
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+        const fmt = (n) => (n == null ? '—' : Math.round(n));
+        const gcls = (q) => 'g-' + String(q || 'unknown').replace('+', 'plus');
+
+        function tab(name) {
+            document.querySelectorAll('[data-tab]').forEach((c) => c.classList.toggle('on', c.dataset.tab === name));
+            document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== name));
+            if (name === 'logs') cargarLogs();
+            if (name === 'versions') cargarVersiones();
+        }
+        document.querySelectorAll('[data-tab]').forEach((c) => c.addEventListener('click', () => tab(c.dataset.tab)));
+
+        function toast(el, msg, ok) { el.textContent = msg; el.className = 'mt-3 text-xs ' + (ok ? 'text-green-400' : 'text-red-400'); el.classList.remove('hidden'); }
+
+        async function cargarOverview() {
+            try {
+                const d = await NLT_API.adminIndicatorAiOverview();
+                $('kpis').innerHTML = [
+                    ['Análisis', d.totals.analyses], ['Con IA (Claude)', d.totals.ai_called],
+                    ['Tokens in', d.ai_cost.tokens_in], ['Tokens out', d.ai_cost.tokens_out],
+                ].map(([k, v]) => `<div class="glass-card p-5"><p class="kpi">${v ?? 0}</p><p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">${k}</p></div>`).join('');
+                $('byGrade').innerHTML = Object.entries(d.analyses_by_grade || {}).map(([g, n]) => `<span class="${gcls(g)} font-bold">${g}: ${n}</span>`).join('') || '<span class="text-gray-600">sin datos</span>';
+                $('aiCost').innerHTML = `<div>USD estimado: <span class="text-white font-semibold">$${(d.ai_cost.usd_est_total || 0).toFixed(4)}</span></div><div>Tokens in / out: ${d.ai_cost.tokens_in || 0} / ${d.ai_cost.tokens_out || 0}</div>`;
+                $('recentBody').innerHTML = (d.recent || []).map((a) => `<tr class="hover:bg-white/[0.02] cursor-pointer" data-id="${a.analysis_id}">
+                    <td class="px-5 py-3 text-gray-500">${esc((a.created_at || '').slice(0, 16).replace('T', ' '))}</td>
+                    <td class="px-5 py-3 text-white">${esc(a.symbol)}</td>
+                    <td class="px-5 py-3 ${a.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}">${esc(a.direction)}</td>
+                    <td class="px-5 py-3 font-bold">${fmt(a.probability)}%</td>
+                    <td class="px-5 py-3 ${gcls(a.quality)} font-bold">${esc(a.quality)}</td>
+                    <td class="px-5 py-3 text-gray-400">${esc((a.verdict || '').replace(/_/g, ' '))}</td>
+                    <td class="px-5 py-3 text-gray-500">${esc(a.status)}</td>
+                    <td class="px-5 py-3 text-nlt-accent text-xs">ver →</td></tr>`).join('') || '<tr><td colspan="8" class="px-5 py-6 text-gray-500">Sin análisis todavía.</td></tr>';
+                $('recentBody').querySelectorAll('tr[data-id]').forEach((tr) => tr.addEventListener('click', () => verAnalisis(tr.dataset.id)));
+            } catch (e) { $('kpis').innerHTML = `<p class="text-red-400 text-sm col-span-full">${esc(e.message)}</p>`; }
+        }
+
+        async function verAnalisis(id) {
+            const box = $('anDetail'); box.classList.remove('hidden');
+            box.innerHTML = '<p class="text-sm text-gray-500 animate-pulse px-1">Cargando…</p>';
+            box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            try {
+                const a = await NLT_API.adminIndicatorAiAnalisis(id);
+                const L = a.scores_layers || {}, S = a.claude_scores || {};
+                box.innerHTML = `<div class="glass-card p-6 space-y-4">
+                    <div class="flex flex-wrap items-center gap-6">
+                        <div><p class="text-3xl font-extrabold">${fmt(a.probability)}<span class="text-lg text-gray-500">%</span></p><p class="text-[11px] text-gray-500 uppercase">${esc(a.quality)}/${esc(a.category)}</p></div>
+                        <div><p class="text-sm font-bold ${a.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}">${esc(a.direction)}</p><p class="text-[11px] text-gray-500">bias ${esc(a.bias)}</p></div>
+                        <div class="text-xs text-gray-400">V13 ${fmt(L.v13_score)} · QUANT ${fmt(L.nlt_quant_score)} · CLAUDE ${fmt(L.claude_ai_score)} → <span class="text-white font-bold">FINAL ${fmt(L.final_ai_score)}</span></div>
+                        <div class="ml-auto text-right text-xs text-gray-500">modelo ${esc((a.ai || {}).model)} · ${esc((a.versions || {}).prompt || '')}<br>snapshot ${esc(a.analysis_id)}</div>
+                    </div>
+                    <div class="text-xs text-gray-400">structure ${fmt(S.structure)} · liquidity ${fmt(S.liquidity)} · location ${fmt(S.location)} · momentum ${fmt(S.momentum)} · confluence ${fmt(S.confluence)} · historical ${fmt(S.historical)}</div>
+                    ${a.explanation ? `<p class="text-sm text-gray-300 border-t border-white/5 pt-4">${esc(a.explanation)}</p>` : ''}
+                    ${(a.warnings || []).length ? `<p class="text-xs text-yellow-400">⚠ ${a.warnings.map(esc).join(' · ')}</p>` : ''}
+                    <button onclick="document.getElementById('anDetail').classList.add('hidden')" class="text-xs text-gray-500 hover:text-white">cerrar</button>
+                </div>`;
+            } catch (e) { box.innerHTML = `<p class="text-sm text-red-400 px-1">${esc(e.message)}</p>`; }
+        }
+
+        async function cargarLogs() {
+            const only = $('logOnlyProblems').checked;
+            $('logBody').innerHTML = '<tr><td colspan="4" class="px-4 py-6 text-gray-500">Cargando…</td></tr>';
+            try {
+                const d = await NLT_API.adminIndicatorAiLogs({ only_problems: only, limit: 150 });
+                $('logBody').innerHTML = (d.items || []).map((r) => `<tr>
+                    <td class="px-4 py-2 text-gray-600 whitespace-nowrap">${esc((r.created_at || '').slice(11, 19))}</td>
+                    <td class="px-4 py-2 lvl-${esc(r.level)} font-bold uppercase">${esc(r.level)}</td>
+                    <td class="px-4 py-2 text-gray-300">${esc(r.event)}</td>
+                    <td class="px-4 py-2 text-gray-500 font-mono">${esc(JSON.stringify(r.detail || {}).slice(0, 200))}</td></tr>`).join('') || '<tr><td colspan="4" class="px-4 py-6 text-gray-500">Sin logs.</td></tr>';
+            } catch (e) { $('logBody').innerHTML = `<tr><td colspan="4" class="px-4 py-6 text-red-400">${esc(e.message)}</td></tr>`; }
+        }
+        $('logReload').addEventListener('click', cargarLogs);
+        $('logOnlyProblems').addEventListener('change', cargarLogs);
+
+        async function cargarVersiones() {
+            try { $('verBox').textContent = JSON.stringify(await NLT_API.adminIndicatorAiModelVersions(), null, 2); }
+            catch (e) { $('verBox').textContent = e.message; }
+        }
+
+        $('ovSave').addEventListener('click', async () => {
+            const uid = $('ovUser').value.trim();
+            if (!/^[0-9a-f-]{36}$/i.test(uid)) return toast($('ovMsg'), 'user_id inválido (UUID).', false);
+            try {
+                const r = await NLT_API.adminIndicatorAiSetOverride(uid, {
+                    indicator_access: $('ovInd').checked, ai_access: $('ovAi').checked,
+                    monthly_quota: parseInt($('ovQuota').value, 10) || 0, note: $('ovNote').value.trim() || 'beta',
+                });
+                toast($('ovMsg'), 'Override guardado: ' + JSON.stringify(r.override), true);
+            } catch (e) { toast($('ovMsg'), e.message, false); }
+        });
+
+        (async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            NLT.bindLogoutButton && NLT.bindLogoutButton('btn-salir');
+            try { await NLT.mountSidebar(session, { activo: 'admin', seccion: 'indicator', planLabel: 'Admin' }); } catch (_) {}
+
+            let permitido = NLT.isGlobalAdmin(session);
+            if (!permitido) {
+                try { const p = await NLT_API.adminMisPermisos(); permitido = !!(p.permissions && p.permissions.indicador); } catch (_) {}
+            }
+            $('vistaCargando').classList.add('hidden');
+            if (!permitido) { $('vistaSinPermiso').classList.remove('hidden'); return; }
+
+            $('apiBadge').textContent = 'API: ' + NLT_API.indicatorAiApiBase();
+            $('vista').classList.remove('hidden');
+            try { const h = await NLT_API.adminIndicatorAiHealth(); $('healthBadge').textContent = 'nlt_ai db: ' + (h.nlt_ai_db || '?'); $('healthBadge').className = 'ml-auto text-xs ' + (h.nlt_ai_db === 'ok' ? 'text-green-400' : 'text-red-400'); } catch (_) {}
+            cargarOverview();
+        })();
+    })();
+    </script>
+</body>
+</html>

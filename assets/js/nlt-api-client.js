@@ -26,6 +26,22 @@
     // quedaría bloqueada como "contenido mixto" por el navegador.
     const BASE_URL = esLocal ? `${window.location.protocol}//127.0.0.1:8091` : 'https://nlt-api-production.up.railway.app';
 
+    // NLT Indicator AI está en BETA y corre en el environment de STAGING de
+    // Railway (todavía NO en producción). Por eso sus endpoints usan una base
+    // distinta a la del resto de NLT_API. Se puede sobreescribir con
+    // ?ai_api=<url> o localStorage 'NLT_AI_API' (para QA). Cuando el módulo
+    // pase a producción, basta con poner INDICATOR_AI_BASE = BASE_URL.
+    const INDICATOR_AI_BASE = (() => {
+        try {
+            const q = new URLSearchParams(window.location.search).get('ai_api');
+            if (q) return q.replace(/\/+$/, '');
+            const ls = window.localStorage && localStorage.getItem('NLT_AI_API');
+            if (ls) return ls.replace(/\/+$/, '');
+        } catch (_) { /* sin query/localStorage -- default abajo */ }
+        if (esLocal) return BASE_URL;                       // dev local -> backend local
+        return 'https://nlt-api-staging.up.railway.app';    // beta -> staging
+    })();
+
     async function _token() {
         // Reusa la misma sesión cacheada por nlt-shared.js -- antes esto
         // pedía su propia sesión a Supabase en cada llamada a la API,
@@ -79,9 +95,9 @@
         }
     }
 
-    async function request(path, options = {}) {
+    async function request(path, options = {}, base = BASE_URL) {
         const token = await _token();
-        const resp = await _fetchConReintento(BASE_URL + path, {
+        const resp = await _fetchConReintento(base + path, {
             ...options,
             headers: {
                 'Content-Type': 'application/json',
@@ -155,13 +171,13 @@
     // request()). Para endpoints públicos que opcionalmente devuelven más
     // datos a un usuario logueado (ej. perfil de comunidad: is_following/
     // is_own solo tienen sentido si hay un viewer real).
-    async function requestConSesionOpcional(path) {
+    async function requestConSesionOpcional(path, base = BASE_URL) {
         const headers = {};
         try {
             const session = await NLT.getSession();
             if (session) headers['Authorization'] = `Bearer ${session.access_token}`;
         } catch (_) { /* sin sesión -- sigue como visitante público */ }
-        const resp = await _fetchConTimeout(BASE_URL + path, { headers });
+        const resp = await _fetchConTimeout(base + path, { headers });
         let body = null;
         try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
         if (!resp.ok) {
@@ -719,19 +735,32 @@
         // --- NLT Indicator AI (módulo indicator_ai de NLT_API) ---
         // El backend resuelve el usuario del JWT y toda la autorización
         // (indicator access / ai access / cuota) -- el front nunca decide.
-        indicatorAiEntitlement: () => request('/indicator-ai/entitlement'),
-        indicatorAiProducts: () => request('/indicator-ai/products'),
-        indicatorAiConnection: () => request('/indicator-ai/connection'),
-        indicatorAiConnectionRotate: () => request('/indicator-ai/connection/rotate', { method: 'POST' }),
+        // En beta estos endpoints apuntan a STAGING (INDICATOR_AI_BASE).
+        indicatorAiApiBase: () => INDICATOR_AI_BASE,
+        indicatorAiEntitlement: () => request('/indicator-ai/entitlement', {}, INDICATOR_AI_BASE),
+        indicatorAiProducts: () => requestConSesionOpcional('/indicator-ai/products', INDICATOR_AI_BASE),
+        indicatorAiConnection: () => request('/indicator-ai/connection', {}, INDICATOR_AI_BASE),
+        indicatorAiConnectionRotate: () => request('/indicator-ai/connection/rotate', { method: 'POST' }, INDICATOR_AI_BASE),
         // No hay crear-análisis desde NLT Web: la zona nace en NLT V13.4 / TradingView
         // y entra por el webhook. NLT Web solo lee y muestra.
         indicatorAiHistorial: (params = {}) => {
             const qs = new URLSearchParams(params).toString();
-            return request('/indicator-ai/analyses' + (qs ? `?${qs}` : ''));
+            return request('/indicator-ai/analyses' + (qs ? `?${qs}` : ''), {}, INDICATOR_AI_BASE);
         },
-        indicatorAiAnalisis: (id) => request(`/indicator-ai/analyses/${id}`),
-        indicatorAiOutcome: (id, datos) => request(`/indicator-ai/analyses/${id}/outcome`, { method: 'POST', body: JSON.stringify(datos) }),
-        indicatorAiStats: () => request('/indicator-ai/stats'),
+        indicatorAiAnalisis: (id) => request(`/indicator-ai/analyses/${id}`, {}, INDICATOR_AI_BASE),
+        indicatorAiOutcome: (id, datos) => request(`/indicator-ai/analyses/${id}/outcome`, { method: 'POST', body: JSON.stringify(datos) }, INDICATOR_AI_BASE),
+        indicatorAiStats: () => request('/indicator-ai/stats', {}, INDICATOR_AI_BASE),
+
+        // --- NLT Indicator AI · ADMIN (requiere permiso "indicador") ---
+        adminIndicatorAiHealth: () => request('/admin/indicator-ai/health', {}, INDICATOR_AI_BASE),
+        adminIndicatorAiOverview: () => request('/admin/indicator-ai/overview', {}, INDICATOR_AI_BASE),
+        adminIndicatorAiLogs: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request('/admin/indicator-ai/logs' + (qs ? `?${qs}` : ''), {}, INDICATOR_AI_BASE);
+        },
+        adminIndicatorAiAnalisis: (id) => request(`/admin/indicator-ai/analyses/${id}`, {}, INDICATOR_AI_BASE),
+        adminIndicatorAiModelVersions: () => request('/admin/indicator-ai/model-versions', {}, INDICATOR_AI_BASE),
+        adminIndicatorAiSetOverride: (userId, datos) => request(`/admin/indicator-ai/overrides/${userId}`, { method: 'POST', body: JSON.stringify(datos) }, INDICATOR_AI_BASE),
 
         // --- NLT Partners (Business Development Foundation) ---
         // Públicos, sin sesión -- partners.html/become-partner.html se ven

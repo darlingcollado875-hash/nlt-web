@@ -35,6 +35,42 @@
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .plan-option { transition: all 0.3s ease; cursor: pointer; }
         .plan-option.selected { border-color: rgba(67,120,255,0.5); background: rgba(67,120,255,0.06); }
+
+        /* --- Tarjeta animada NLT Indicator AI --- */
+        .ia-hero {
+            background: linear-gradient(135deg, rgba(17,21,28,0.92) 0%, rgba(13,16,22,0.96) 100%);
+            border: 1px solid rgba(67,120,255,0.18);
+            box-shadow: 0 0 0 1px rgba(67,120,255,0.04), 0 30px 80px -40px rgba(67,120,255,0.35);
+        }
+        .ia-hero-glow {
+            position: absolute; inset: -40%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                rgba(67,120,255,0.00), rgba(67,120,255,0.18), rgba(34,197,94,0.10),
+                rgba(67,120,255,0.18), rgba(67,120,255,0.00));
+            filter: blur(60px);
+            animation: iaSpin 14s linear infinite;
+            pointer-events: none; opacity: .55;
+        }
+        @keyframes iaSpin { to { transform: rotate(360deg); } }
+        .ia-gradient-text {
+            background: linear-gradient(90deg, #8fb0ff 0%, #4378FF 40%, #7de3a8 75%, #8fb0ff 100%);
+            background-size: 220% auto;
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            animation: iaShimmer 6s linear infinite;
+        }
+        @keyframes iaShimmer { to { background-position: 220% center; } }
+        .ia-pill { background: rgba(67,120,255,0.10); animation: iaPulse 3.2s ease-in-out infinite; }
+        @keyframes iaPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(67,120,255,0.30); } 50% { box-shadow: 0 0 0 8px rgba(67,120,255,0); } }
+        .ia-mini { transition: transform .25s ease, border-color .25s ease; }
+        .ia-mini:hover { transform: translateY(-3px); border-color: rgba(67,120,255,0.30); }
+        .ia-plan-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+        .ia-plan-card.is-ai { border-color: rgba(67,120,255,0.28); box-shadow: 0 20px 60px -40px rgba(67,120,255,0.5); }
+        .ia-plan-card:hover { transform: translateY(-4px); }
+        .ia-save-badge { background: rgba(34,197,94,0.12); color: #7de3a8; border: 1px solid rgba(34,197,94,0.25); }
+        @media (prefers-reduced-motion: reduce) {
+            .ia-hero-glow, .ia-gradient-text, .ia-pill { animation: none; }
+            .ia-gradient-text { color: #8fb0ff; }
+        }
     </style>
 </head>
 <body class="min-h-screen relative">
@@ -143,12 +179,46 @@
 
     <!-- COMPARATIVA DE PRODUCTO: NLT Indicator vs NLT Indicator AI -->
     <section id="comparativa" class="relative z-10 max-w-5xl mx-auto px-6 py-16">
-        <div class="text-center mb-12" data-reveal>
-            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Dos formas de usarlo</p>
-            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">NLT Indicator &amp; NLT Indicator AI</h2>
-            <p class="text-gray-400 mt-4 max-w-2xl mx-auto">El indicador de zonas para TradingView. Con <span class="text-white">NLT Indicator AI</span> cada zona que marcás recibe un análisis multi-factor dentro de tu cuenta NLT.</p>
+
+        <!-- TARJETA ANIMADA — NLT Indicator AI -->
+        <div class="ia-hero relative overflow-hidden rounded-3xl p-8 md:p-12 mb-10" data-reveal>
+            <div class="ia-hero-glow"></div>
+            <div class="relative z-10">
+                <div class="flex items-center gap-2 mb-4">
+                    <span class="ia-pill text-[10px] font-bold uppercase tracking-[0.2em] text-nlt-accent px-3 py-1 rounded-full border border-nlt-accent/30">NLT Indicator AI</span>
+                    <span class="text-[10px] font-semibold uppercase tracking-wider text-green-400">Beta activa</span>
+                </div>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-tight mb-4">
+                    No es solo un indicador.<br class="hidden md:block">
+                    <span class="ia-gradient-text">Es un analista de zonas que trabaja por vos.</span>
+                </h2>
+                <p class="text-gray-300 md:text-lg max-w-2xl leading-relaxed mb-6">
+                    Marcás una zona en TradingView y el motor la analiza a fondo: fusiona el
+                    <span class="text-white">score de V13</span>, un
+                    <span class="text-white">motor cuantitativo determinista</span> y un
+                    <span class="text-white">veredicto de IA</span> que evalúa estructura, liquidez,
+                    ubicación, momentum, confluencias, conflictos y contexto histórico —
+                    y te lo deja explicado, con calidad, probabilidad e invalidación, guardado como
+                    snapshot inmutable en tu cuenta.
+                </p>
+                <div class="grid sm:grid-cols-3 gap-4 mb-6">
+                    <div class="ia-mini glass-card p-4"><i class="ph-fill ph-stack text-nlt-accent text-xl mb-2"></i><p class="text-sm font-semibold text-white">3 capas de score</p><p class="text-xs text-gray-400">V13 · Quant · IA → NLT Final AI Score</p></div>
+                    <div class="ia-mini glass-card p-4"><i class="ph-fill ph-scan text-nlt-accent text-xl mb-2"></i><p class="text-sm font-semibold text-white">Multi-factor</p><p class="text-xs text-gray-400">estructura, liquidez, OTE, sesiones, correlación</p></div>
+                    <div class="ia-mini glass-card p-4"><i class="ph-fill ph-lock-simple text-nlt-accent text-xl mb-2"></i><p class="text-sm font-semibold text-white">Snapshot inmutable</p><p class="text-xs text-gray-400">reanalizar la zona crea una entrada nueva</p></div>
+                </div>
+                <p class="text-xs text-gray-500 max-w-2xl">
+                    <span class="text-gray-400">Y lo que viene:</span> estadísticas avanzadas, seguimiento
+                    automático de resultados y un learning loop que ajusta los pesos con tus outcomes reales.
+                    La probabilidad es una estimación de calidad/confianza del setup, no una garantía de resultado.
+                </p>
+            </div>
         </div>
-        <div id="comparativaCards" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+
+        <div class="text-center mb-10" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Elegí tu plan</p>
+            <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight">NLT Indicator &amp; NLT Indicator AI</h2>
+        </div>
+        <div id="comparativaCards" class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
             <p class="text-sm text-gray-500 col-span-full text-center animate-pulse">Cargando…</p>
         </div>
         <p id="comparativaDisclaimer" class="text-[11px] text-gray-600 text-center mt-6"></p>
@@ -254,8 +324,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260829b"></script>
+    <script src="assets/js/nlt-shared.js?v=20260830b"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260830b"></script>
     <script>
         let sesionActual = null;
         let planesCache = [];
@@ -310,45 +380,56 @@
             }
         }
 
-        // --- Comparativa de producto (precios SIEMPRE desde public.plans, vía /indicator-ai/products) ---
-        function precioProducto(pr) {
-            if (!pr) return '';
-            const m = pr.monthly != null ? `$${pr.monthly}<span class="text-base text-gray-500">/mes</span>` : '';
-            const y = pr.yearly != null ? `<span class="text-sm text-gray-400 ml-2">o $${pr.yearly}/año</span>` : '';
-            return `${m}${y}`;
-        }
+        // --- Comparativa de producto (precios y textos SIEMPRE desde /indicator-ai/products) ---
+        const _e = (s) => String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
         function featList(feats, max) {
-            const shown = (feats || []).slice(0, max || 8);
-            return shown.map((f) => {
+            return (feats || []).slice(0, max || 9).map((f) => {
                 const soon = f.status === 'COMING_SOON';
                 return `<li class="flex items-start gap-2 ${soon ? 'text-gray-500' : 'text-gray-300'}">
                     <i class="ph-fill ${soon ? 'ph-clock' : 'ph-check'} ${soon ? 'text-gray-600' : 'text-nlt-accent'} mt-0.5"></i>
-                    <span>${f.label}${soon ? ' <span class="text-[10px] uppercase tracking-wide">(próximamente)</span>' : ''}</span></li>`;
+                    <span>${_e(f.label)}${soon ? ' <span class="text-[10px] uppercase tracking-wide">(próximamente)</span>' : ''}</span></li>`;
             }).join('');
+        }
+        function tarjetaPlan(p) {
+            const isAI = p.ai_included;
+            const pr = p.price || {};
+            const soon = p.status === 'COMING_SOON' && pr.monthly == null;
+            const precio = soon ? 'Próximamente'
+                : `$${pr.monthly}<span class="text-base font-semibold text-gray-500">/mes</span>`;
+            const anualLinea = (!soon && pr.yearly != null)
+                ? `<div class="mt-2 flex flex-wrap items-center gap-2">
+                       <span class="text-sm text-gray-300">o <span class="text-white font-semibold">$${pr.yearly}/año</span></span>
+                       ${pr.yearly_saving > 0 ? `<span class="ia-save-badge text-[11px] font-bold px-2 py-0.5 rounded-full">ahorrás $${pr.yearly_saving}</span>` : ''}
+                   </div>` : '';
+            const anualNota = (!soon && p.annual_note) ? `<p class="text-[11px] text-gray-500 mt-2">${_e(p.annual_note)}</p>` : '';
+            const does = (isAI && p.does && p.does.length)
+                ? `<div class="mb-5"><p class="text-[11px] font-bold text-nlt-accent uppercase tracking-wider mb-2">Qué hace la IA</p>
+                     <ul class="space-y-1.5 text-sm text-gray-300">${p.does.map((d) => `<li class="flex items-start gap-2"><i class="ph-fill ph-sparkle text-nlt-accent mt-0.5"></i><span>${_e(d)}</span></li>`).join('')}</ul></div>` : '';
+            return `<div class="ia-plan-card glass-card p-8 flex flex-col ${isAI ? 'is-ai' : 'border border-transparent'}" data-reveal>
+                <div class="flex items-center justify-between mb-1">
+                    <h3 class="text-xl font-bold text-white">${_e(p.name)}</h3>
+                    ${isAI ? '<span class="text-[10px] font-bold uppercase tracking-wider text-nlt-accent bg-nlt-accent/10 px-2 py-1 rounded-full">AI</span>' : ''}
+                </div>
+                ${p.tagline ? `<p class="text-xs text-nlt-accent font-semibold mb-3">${_e(p.tagline)}</p>` : ''}
+                <p class="text-3xl font-extrabold text-white">${precio}</p>
+                ${anualLinea}${anualNota}
+                ${p.description ? `<p class="text-sm text-gray-400 leading-relaxed mt-4 mb-5">${_e(p.description)}</p>` : ''}
+                ${does}
+                ${p.includes ? `<p class="text-xs text-gray-500 mb-3 font-semibold">${_e(p.includes)}</p>` : ''}
+                <ul class="space-y-2 text-sm mb-6 flex-1">${featList(p.features, isAI ? 10 : 8)}</ul>
+                <a href="#planes" class="mt-auto text-center px-6 py-3 rounded-xl ${isAI ? 'bg-nlt-accent text-white hover:bg-blue-500' : 'bg-white/5 text-gray-200 hover:bg-white/10'} font-semibold text-sm transition-all ${soon ? 'pointer-events-none opacity-50' : ''}">
+                    ${soon ? 'Disponible en breve' : 'Elegir plan'}</a>
+            </div>`;
         }
         async function renderComparativa() {
             const box = document.getElementById('comparativaCards');
             try {
                 const data = await NLT_API.indicatorAiProducts();
                 document.getElementById('comparativaDisclaimer').textContent = (data.messaging || {}).disclaimer || '';
-                box.innerHTML = (data.products || []).map((p) => {
-                    const isAI = p.ai_included;
-                    const soon = p.status === 'COMING_SOON';
-                    return `<div class="glass-card p-8 flex flex-col ${isAI ? 'border border-nlt-accent/25' : 'border border-transparent'}" data-reveal>
-                        <div class="flex items-center justify-between mb-1">
-                            <h3 class="text-lg font-bold text-white">${p.name}</h3>
-                            ${isAI ? '<span class="text-[10px] font-bold uppercase tracking-wider text-nlt-accent bg-nlt-accent/10 px-2 py-1 rounded-full">AI</span>' : ''}
-                        </div>
-                        <p class="text-3xl font-extrabold text-white my-3">${soon && p.price.monthly == null ? 'Próximamente' : precioProducto(p.price)}</p>
-                        ${p.includes ? `<p class="text-xs text-gray-500 mb-3">${p.includes}</p>` : ''}
-                        <ul class="space-y-2 text-sm mb-6 flex-1">${featList(p.features, isAI ? 9 : 8)}</ul>
-                        <a href="#planes" class="mt-auto text-center px-6 py-3 rounded-xl ${isAI ? 'bg-nlt-accent text-white hover:bg-blue-500' : 'bg-white/5 text-gray-200 hover:bg-white/10'} font-semibold text-sm transition-all ${soon && p.price.monthly == null ? 'pointer-events-none opacity-50' : ''}">
-                            ${soon && p.price.monthly == null ? 'Disponible en breve' : 'Elegir plan'}</a>
-                    </div>`;
-                }).join('');
+                box.innerHTML = (data.products || []).map(tarjetaPlan).join('');
                 if (window.NLT && NLT.mountReveal) NLT.mountReveal();
             } catch (err) {
-                box.innerHTML = `<p class="text-sm text-nlt-danger col-span-full text-center">No se pudo cargar el catálogo: ${err.message}</p>`;
+                box.innerHTML = `<p class="text-sm text-nlt-danger col-span-full text-center">No se pudo cargar el catálogo: ${_e(err.message)}</p>`;
             }
         }
 
