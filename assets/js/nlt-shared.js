@@ -222,18 +222,23 @@
         // header real de usuario logueado -- comportamiento visual idéntico
         // al de antes, solo que ya no bloquea la existencia del botón.
         if (box && session) {
-            const inicial = (session.user.email || '??').slice(0, 2).toUpperCase();
-            box.innerHTML = `
-                <div class="flex items-center gap-3">
-                    <a href="dashboard.html" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-xs tracking-wide transition-all glow-button">Dashboard</a>
-                    <div class="hidden sm:flex items-center gap-2 pl-1">
-                        <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white" title="${session.user.email}">${inicial}</div>
-                        <button id="headerLogoutBtn" class="text-xs text-gray-500 hover:text-white transition-colors cursor-pointer">Cerrar sesión</button>
+            // skipProfileAvatar: usado por community.html, que ya tiene su
+            // propio punto de entrada de perfil (#miPerfilSlot) -- sin esto,
+            // un usuario con membresía de Community terminaba viendo DOS
+            // avatares en el mismo header (bug real confirmado, no
+            // hipotético). El resto de las páginas públicas no pasa esta
+            // opción y se comporta como siempre.
+            if (opts.skipProfileAvatar) {
+                box.innerHTML = `<a href="dashboard.html" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-xs tracking-wide transition-all glow-button">Dashboard</a>`;
+            } else {
+                box.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <a href="dashboard.html" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-xs tracking-wide transition-all glow-button">Dashboard</a>
+                        ${profileMenuHTML('publicProfile')}
                     </div>
-                </div>
-            `;
-            const logoutBtn = document.getElementById('headerLogoutBtn');
-            if (logoutBtn) logoutBtn.addEventListener('click', () => signOut());
+                `;
+                mountProfileMenu(session, 'publicProfile');
+            }
             _mountMobileNavToggle(box);
         }
         return session;
@@ -605,6 +610,9 @@
                 ${notifBellHTML('sidebarNotifBell')}
             </div>
             <nav class="flex-1 px-4 py-4 space-y-1.5 overflow-y-auto">
+                <a href="ecosystem.html" class="flex items-center gap-3 px-4 py-3 mb-2 pb-4 border-b border-white/5 rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
+                    <i class="ph ph-compass text-lg"></i> Ecosistema
+                </a>
                 ${grupoLabel ? `<p class="px-4 pb-2 text-[10px] font-bold text-gray-600 uppercase tracking-widest">${grupoLabel}</p>` : ''}
                 ${nav.map((i) => _navItemHTML(i, activo)).join('')}
                 <div class="pt-6 pb-2 px-4"><p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">${ajustesLabel}</p></div>
@@ -616,14 +624,16 @@
                     <i class="ph-fill ph-shield-star text-lg"></i> ${adminLabel}
                 </a>
             </nav>
-            <div class="p-6">
-                <div class="glass-item p-3 flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white" id="userAvatarInitial">·</div>
+            <div class="p-6 relative" id="sidebarProfileBox">
+                <button id="sidebarProfileBtn" type="button" class="w-full glass-item p-3 flex items-center gap-3 cursor-pointer hover:bg-white/5 transition-colors text-left">
+                    <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white overflow-hidden shrink-0" id="userAvatarInitial" data-nlt-profile-avatar>·</div>
                     <div class="flex-1 overflow-hidden">
                         <p class="text-sm font-semibold text-white truncate" id="userEmail">Cargando...</p>
                         <p class="text-[11px] text-nlt-accent font-medium" id="userPlanLabel"></p>
                     </div>
-                </div>
+                    <i class="ph ph-caret-up text-gray-500 text-sm shrink-0"></i>
+                </button>
+                <div id="sidebarProfilePanel" class="hidden glass-card p-0 overflow-hidden nlt-profile-panel"></div>
             </div>
         `;
     }
@@ -696,8 +706,7 @@
         mountNotifBell('sidebarNotifBell');
 
         document.getElementById('userEmail').textContent = session.user.email;
-        const avatar = document.getElementById('userAvatarInitial');
-        if (avatar) avatar.textContent = (session.user.email || '??').slice(0, 2).toUpperCase();
+        mountProfileMenu(session, 'sidebarProfile');
 
         function _revelarNavAdmin() {
             const navAdmin = document.getElementById('nav-admin');
@@ -1027,6 +1036,239 @@
         return { refrescarBadge };
     }
 
+    // --- Perfil global (menú de cuenta) ---------------------------------------
+    // Reemplaza dos puntos sueltos que existían antes: la tarjeta estática del
+    // fondo del sidebar (solo mostraba iniciales, sin click) y el botón de
+    // texto "Cerrar sesión" repetido a mano en el <header> de 18 páginas
+    // distintas. Un solo componente: click en el avatar abre un dropdown con
+    // "Mi perfil", "Configuración" y "Cerrar sesión" al final. Reutiliza 100%
+    // el mecanismo de foto/nombre ya construido para Community
+    // (GET/PATCH /community/profile/me) -- confirmado que ese endpoint solo
+    // exige sesión (get_current_user_id), sin requiere_membresia, así que
+    // sirve como identidad "global" del ecosistema para CUALQUIER usuario
+    // logueado, sin ninguna tabla/endpoint nuevo.
+
+    function _inicialesPerfil(nombre) {
+        return String(nombre || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('').toUpperCase();
+    }
+
+    // Avatar compacto + panel -- usado por mountPublicHeader() y por
+    // community.html (#miPerfilSlot, ver Fase 2). El sidebar autenticado NO
+    // usa esto: su tarjeta (avatar+email+plan) ya viene escrita a mano en
+    // renderSidebar(), pero se conecta con el mismo mountProfileMenu() de abajo.
+    function profileMenuHTML(idPrefix) {
+        return `
+            <div class="relative" id="${idPrefix}Box">
+                <button id="${idPrefix}Btn" type="button" aria-label="Mi cuenta" class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden cursor-pointer" data-nlt-profile-avatar>·</button>
+                <div id="${idPrefix}Panel" class="hidden glass-card p-0 overflow-hidden nlt-profile-panel"></div>
+            </div>
+        `;
+    }
+
+    // El bundle de Tailwind de este proyecto está PRECOMPILADO (sin build
+    // JIT) -- clases arbitrarias nuevas que ningún .html use ya (ej.
+    // top-full/bottom-full/w-64/shadow-2xl, confirmado con grep contra
+    // tailwind.css: 0 matches) simplemente no existen y no tienen efecto,
+    // igual que el caso ya documentado en _posicionarPanel() del notif bell.
+    // Por eso el panel de perfil se posiciona con position:fixed calculado
+    // en JS (ver _posicionarPerfilPanel), nunca con clases de posición
+    // nuevas -- mismo patrón ya probado acá mismo para el notif bell.
+    let _profileMenuCSSInyectado = false;
+    function _inyectarProfileMenuCSS() {
+        if (_profileMenuCSSInyectado) return;
+        _profileMenuCSSInyectado = true;
+        const style = document.createElement('style');
+        style.textContent = `.nlt-profile-panel { width: 256px; max-width: calc(100vw - 24px); box-shadow: 0 20px 45px -12px rgba(0,0,0,0.55); z-index: 50; }`;
+        document.head.appendChild(style);
+    }
+    function _posicionarPerfilPanel(btn, panel) {
+        const rect = btn.getBoundingClientRect();
+        const alturaEstimada = 220;
+        const abrirArriba = (window.innerHeight - rect.bottom) < alturaEstimada && rect.top > alturaEstimada;
+        panel.style.position = 'fixed';
+        const ancho = Math.min(256, window.innerWidth - 24);
+        panel.style.width = `${ancho}px`;
+        if (rect.right - ancho >= 8) {
+            panel.style.left = 'auto';
+            panel.style.right = `${window.innerWidth - rect.right}px`;
+        } else {
+            panel.style.right = 'auto';
+            panel.style.left = '12px';
+        }
+        if (abrirArriba) {
+            panel.style.top = 'auto';
+            panel.style.bottom = `${window.innerHeight - rect.top + 8}px`;
+        } else {
+            panel.style.bottom = 'auto';
+            panel.style.top = `${rect.bottom + 8}px`;
+        }
+    }
+
+    // idPrefix debe tener ya insertado el markup de profileMenuHTML() (o, en
+    // el caso del sidebar, el markup equivalente escrito a mano en
+    // renderSidebar()) -- mismo patrón que mountNotifBell(). opts:
+    //   - perfilInicial: {avatar_url, display_name} ya cargado (evita un
+    //     fetch duplicado si la página que llama ya lo tiene, ej. community.html).
+    //   - onMiPerfil: handler custom para "Mi perfil" (community.html lo usa
+    //     para abrir SU vista de perfil en vez del modal genérico).
+    //   - miPerfilLabel: texto custom del ítem "Mi perfil" en el menú.
+    async function mountProfileMenu(session, idPrefix, opts = {}) {
+        const box = document.getElementById(`${idPrefix}Box`);
+        const btn = document.getElementById(`${idPrefix}Btn`);
+        const panel = document.getElementById(`${idPrefix}Panel`);
+        if (!box || !btn || !panel || !session) return;
+        const avatarSlot = box.querySelector('[data-nlt-profile-avatar]');
+
+        function pintarAvatar(p) {
+            if (!avatarSlot) return;
+            avatarSlot.innerHTML = p && p.avatar_url
+                ? `<img src="${_escNotif(p.avatar_url)}" alt="" class="w-full h-full object-cover">`
+                : _escNotif(_inicialesPerfil(p ? p.display_name : session.user.email));
+        }
+
+        if (avatarSlot) avatarSlot.textContent = (session.user.email || '??').slice(0, 2).toUpperCase();
+        if (opts.perfilInicial) {
+            pintarAvatar(opts.perfilInicial);
+        } else if (typeof window.NLT_API !== 'undefined') {
+            // Fire-and-forget: si falla (red, o esta página no cargó
+            // nlt-api-client.js) se queda con las iniciales del email, igual
+            // que se comportaba antes -- nunca bloquea el resto de la página.
+            window.NLT_API.communityMiPerfil().then(pintarAvatar).catch(() => {});
+        }
+
+        _inyectarProfileMenuCSS();
+        function cerrarPanel() { panel.classList.add('hidden'); }
+        function abrirPanel() {
+            _posicionarPerfilPanel(btn, panel);
+            const label = opts.miPerfilLabel || 'Mi perfil';
+            panel.innerHTML = `
+                <div class="px-4 py-3 border-b border-white/5">
+                    <p class="text-xs font-semibold text-white truncate">${_escNotif(session.user.email)}</p>
+                </div>
+                <button id="${idPrefix}MenuPerfil" type="button" class="w-full text-left px-4 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors cursor-pointer flex items-center gap-2"><i class="ph ph-user-circle text-sm"></i> ${_escNotif(label)}</button>
+                <a href="configuracion.html" class="block px-4 py-2.5 text-xs text-gray-300 hover:bg-white/5 hover:text-white transition-colors flex items-center gap-2"><i class="ph ph-gear-six text-sm"></i> Configuración</a>
+                <div class="border-t border-white/5"></div>
+                <button id="${idPrefix}MenuSalir" type="button" class="w-full text-left px-4 py-2.5 text-xs text-nlt-danger hover:bg-nlt-danger/10 transition-colors cursor-pointer flex items-center gap-2"><i class="ph ph-sign-out text-sm"></i> Cerrar sesión</button>
+            `;
+            panel.classList.remove('hidden');
+            document.getElementById(`${idPrefix}MenuPerfil`).addEventListener('click', () => {
+                cerrarPanel();
+                if (typeof opts.onMiPerfil === 'function') opts.onMiPerfil();
+                else abrirModalPerfilGlobal();
+            });
+            document.getElementById(`${idPrefix}MenuSalir`).addEventListener('click', () => signOut());
+        }
+
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            panel.classList.contains('hidden') ? abrirPanel() : cerrarPanel();
+        });
+        document.addEventListener('click', (e) => {
+            if (!panel.classList.contains('hidden') && !box.contains(e.target)) cerrarPanel();
+        });
+    }
+
+    // --- Modal "Mi perfil" (global, dos campos: foto + nombre) ----------------
+    // Reutiliza EXACTAMENTE el mismo mecanismo que ya usa community.html para
+    // editar avatar/nombre (mismo upload, mismo PATCH parcial) pero como modal
+    // centrado, para poder abrirse desde cualquier página, no solo desde el
+    // feed de Community. Username/bio/privacidad quedan en el editor completo
+    // de Community (link al final del modal) -- son conceptos propios de esa
+    // sección, no de la identidad global del ecosistema.
+    let _modalPerfilGlobalMontado = false;
+    function _montarModalPerfilGlobalDOM() {
+        if (_modalPerfilGlobalMontado) return;
+        _modalPerfilGlobalMontado = true;
+        const overlay = document.createElement('div');
+        overlay.id = 'nltPerfilGlobalModal';
+        overlay.className = 'fixed inset-0 z-[100] hidden bg-black/85 backdrop-blur-sm flex items-center justify-center p-5';
+        overlay.innerHTML = `
+            <div class="nlt-modal-panel glass-card w-full max-w-sm p-6">
+                <div class="flex items-center justify-between mb-5">
+                    <h3 class="text-sm font-semibold text-white">Mi perfil</h3>
+                    <button id="btn-cerrar-perfil-global" type="button" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph-bold ph-x text-lg"></i></button>
+                </div>
+                <div id="perfilGlobalBody"><p class="text-xs text-gray-500 animate-pulse">Cargando...</p></div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+        overlay.addEventListener('click', (e) => { if (e.target === overlay) cerrarModalPerfilGlobal(); });
+        document.getElementById('btn-cerrar-perfil-global').addEventListener('click', cerrarModalPerfilGlobal);
+    }
+    function cerrarModalPerfilGlobal() {
+        const overlay = document.getElementById('nltPerfilGlobalModal');
+        if (overlay) overlay.classList.add('hidden');
+    }
+    async function abrirModalPerfilGlobal() {
+        _montarModalPerfilGlobalDOM();
+        const overlay = document.getElementById('nltPerfilGlobalModal');
+        const body = document.getElementById('perfilGlobalBody');
+        overlay.classList.remove('hidden');
+        body.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando...</p>';
+        animarEntradaModal(overlay.firstElementChild);
+
+        if (typeof window.NLT_API === 'undefined') {
+            body.innerHTML = '<p class="text-xs text-nlt-danger">No se pudo cargar tu perfil.</p>';
+            return;
+        }
+        let perfil;
+        try {
+            perfil = await window.NLT_API.communityMiPerfil();
+        } catch (err) {
+            body.innerHTML = `<p class="text-xs text-nlt-danger">No se pudo cargar tu perfil: ${_escNotif(err.message)}</p>`;
+            return;
+        }
+
+        let avatarUrlActual = perfil.avatar_url || null;
+        body.innerHTML = `
+            <div class="flex items-center gap-3 mb-4">
+                <div id="pgAvatarPreview" class="w-14 h-14 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-sm font-bold text-white overflow-hidden shrink-0">${avatarUrlActual ? `<img src="${_escNotif(avatarUrlActual)}" class="w-full h-full object-cover" alt="">` : _escNotif(_inicialesPerfil(perfil.display_name))}</div>
+                <div>
+                    <input type="file" id="pgAvatarInput" accept="image/jpeg,image/png,image/webp,image/gif" class="hidden">
+                    <button id="btn-pg-cambiar-avatar" type="button" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer">Cambiar foto</button>
+                    <p id="pgAvatarMsg" class="text-[11px] text-gray-500 mt-1 hidden"></p>
+                </div>
+            </div>
+            <input id="pgDisplayName" placeholder="Nombre visible" value="${_escNotif(perfil.display_name)}" class="w-full bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-white mb-4">
+            <div class="flex items-center gap-2 mb-4">
+                <button id="btn-pg-guardar" type="button" class="px-4 py-2 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
+                <p id="pgMsg" class="text-xs hidden"></p>
+            </div>
+            <a href="community.html?editar_perfil=1" class="text-[11px] text-nlt-accent hover:underline">Editar perfil completo de Community →</a>
+        `;
+        document.getElementById('btn-pg-cambiar-avatar').addEventListener('click', () => document.getElementById('pgAvatarInput').click());
+        document.getElementById('pgAvatarInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const msg = document.getElementById('pgAvatarMsg');
+            msg.classList.remove('hidden'); msg.className = 'text-[11px] text-gray-500 mt-1'; msg.textContent = 'Subiendo...';
+            try {
+                const { url } = await window.NLT_API.communitySubirImagen(file);
+                avatarUrlActual = url;
+                document.getElementById('pgAvatarPreview').innerHTML = `<img src="${_escNotif(url)}" class="w-full h-full object-cover" alt="">`;
+                msg.className = 'text-[11px] text-nlt-success mt-1'; msg.textContent = '✓ Foto lista -- hacé click en Guardar';
+            } catch (err) {
+                msg.className = 'text-[11px] text-nlt-danger mt-1'; msg.textContent = 'Error: ' + err.message;
+            }
+        });
+        document.getElementById('btn-pg-guardar').addEventListener('click', async () => {
+            const msg = document.getElementById('pgMsg');
+            const nombre = document.getElementById('pgDisplayName').value.trim();
+            msg.classList.remove('hidden'); msg.className = 'text-xs text-gray-400'; msg.textContent = 'Guardando...';
+            try {
+                await window.NLT_API.communityActualizarPerfil({ display_name: nombre, avatar_url: avatarUrlActual });
+                msg.className = 'text-xs text-nlt-success'; msg.textContent = '✓ Guardado';
+                // Refresca cualquier avatar de perfil ya montado en esta misma
+                // página (sidebar y/o header) sin recargar.
+                document.querySelectorAll('[data-nlt-profile-avatar]').forEach((el) => {
+                    el.innerHTML = avatarUrlActual ? `<img src="${_escNotif(avatarUrlActual)}" alt="" class="w-full h-full object-cover">` : _escNotif(_inicialesPerfil(nombre));
+                });
+            } catch (err) {
+                msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
+            }
+        });
+    }
+
     // --- Motion System NLT (Performance Sprint, Fase F/11-13) ---------------
     // Reemplazo nativo de GSAP+ScrollTrigger para el patrón de scroll-reveal
     // que se repetía IDÉNTICO en las 10 páginas públicas (academy, broker,
@@ -1181,6 +1423,8 @@
         pollWhileVisible,
         notifBellHTML,
         mountNotifBell,
+        profileMenuHTML,
+        mountProfileMenu,
         mountReveal,
         animateCounter,
         mountCounters,

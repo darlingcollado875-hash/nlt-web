@@ -62,7 +62,6 @@
             </div>
             <div class="flex items-center gap-3 md:gap-4">
                 <div id="marketToggle" class="flex gap-2"></div>
-                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
             </div>
         </header>
 
@@ -313,7 +312,6 @@
             await cargarHistorial(session.user.id);
         }
 
-        NLT.bindLogoutButton('btn-salir');
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
         init();
     </script>

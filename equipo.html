@@ -139,7 +139,6 @@
                 <h1 class="text-lg md:text-2xl font-bold tracking-tight">Equipo</h1>
                 <p id="miRolLabel" class="text-xs text-gray-500 mt-0.5">&nbsp;</p>
             </div>
-            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
         </header>
 
         <div class="flex-1 overflow-y-auto p-6 md:p-10 space-y-10 max-w-5xl mx-auto w-full">
@@ -569,7 +568,6 @@
             const session = await NLT.requireSession();
             if (!session) return;
             await NLT.mountSidebar(session, { activo: 'equipo-roster', seccion: 'equipo' });
-            NLT.bindLogoutButton('btn-salir');
 
             try {
                 MI_ROL = await NLT_API.teamMiRol();

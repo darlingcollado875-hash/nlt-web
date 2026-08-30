@@ -76,7 +76,6 @@
         <header class="flex flex-wrap items-center justify-between gap-y-2 mb-8 pb-6 border-b border-white/5">
             <h1 class="text-lg md:text-2xl font-bold">Suscripción</h1>
             <div id="marketToggle" class="flex gap-2"></div>
-            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-colors cursor-pointer">Cerrar Sesión</button>
         </header>
 
         <div class="max-w-6xl mx-auto w-full space-y-10">
@@ -484,7 +483,6 @@
             }
         }
 
-        NLT.bindLogoutButton('btn-salir');
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
         init();
     </script>

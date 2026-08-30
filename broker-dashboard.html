@@ -65,7 +65,6 @@
     <main class="flex-1 min-w-0 flex flex-col h-full">
         <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
             <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Broker</h1>
-            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">Cerrar Sesión</button>
         </header>
 
         <div class="flex-1 overflow-y-auto p-10 space-y-8">
@@ -244,7 +243,6 @@
             await cargarDashboard();
         }
 
-        NLT.bindLogoutButton('btn-salir');
         init();
     </script>
 </body>

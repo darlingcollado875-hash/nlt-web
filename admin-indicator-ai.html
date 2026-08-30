@@ -46,7 +46,6 @@
             </div>
             <div class="flex items-center gap-2">
                 <a href="admin.html#indicador" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg">← Admin</a>
-                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg cursor-pointer">Cerrar sesión</button>
             </div>
         </header>
 
@@ -232,7 +231,6 @@
         (async function init() {
             const session = await NLT.requireSession();
             if (!session) return;
-            NLT.bindLogoutButton && NLT.bindLogoutButton('btn-salir');
             try { await NLT.mountSidebar(session, { activo: 'admin', seccion: 'indicator', planLabel: 'Admin' }); } catch (_) {}
 
             let permitido = NLT.isGlobalAdmin(session);

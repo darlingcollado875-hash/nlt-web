@@ -59,9 +59,6 @@
         <header class="flex flex-wrap items-center justify-between gap-y-2 mb-10 pb-6 border-b border-white/5">
             <h1 class="text-lg md:text-2xl font-bold">Configuración Maestra</h1>
             <div id="marketToggle" class="flex gap-2"></div>
-            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">
-                Cerrar Sesión
-            </button>
         </header>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -244,7 +241,6 @@
             }
         }
 
-        NLT.bindLogoutButton('btn-salir');
         NLT.injectServerDatalist();
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
 

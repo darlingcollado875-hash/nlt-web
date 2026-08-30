@@ -70,10 +70,6 @@
             <h1 class="text-lg md:text-2xl font-bold tracking-tight">Visión General</h1>
             <div id="marketToggle" class="flex gap-2"></div>
             <div class="flex items-center gap-3 md:gap-5">
-                <!-- LE QUITAMOS EL ONCLICK Y LE PUSIMOS UN ID "btn-salir" -->
-                <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white transition-colors border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg cursor-pointer">
-                    Cerrar Sesión
-                </button>
                 <div class="hidden sm:flex px-3 py-1.5 rounded-full bg-nlt-success/10 border border-nlt-success/20 items-center gap-2">
                     <span class="w-1.5 h-1.5 rounded-full bg-nlt-success animate-pulse"></span>
                     <span class="text-[11px] font-semibold text-nlt-success uppercase">Sistema Activo</span>
@@ -310,7 +306,6 @@
             ]);
         }
 
-        NLT.bindLogoutButton('btn-salir');
         NLT.injectServerDatalist();
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
 

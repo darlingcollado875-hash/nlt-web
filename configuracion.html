@@ -58,9 +58,6 @@
         <header class="flex flex-wrap items-center justify-between gap-y-2 mb-10 pb-6 border-b border-white/5">
             <h1 class="text-lg md:text-2xl font-bold">Ajustes de Plataforma</h1>
             <div id="marketToggle" class="flex gap-2"></div>
-            <button id="btn-salir" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 md:px-4 md:py-2 rounded-lg transition-colors cursor-pointer flex items-center gap-2">
-                <i class="ph-bold ph-sign-out"></i> Cerrar Sesión
-            </button>
         </header>
 
         <div class="grid grid-cols-1 max-w-2xl gap-8">
@@ -86,14 +83,6 @@
                 </a>
             </div>
 
-            <div class="glass-card p-8">
-                <h3 class="text-lg font-bold mb-2 text-red-400">Zona de Peligro</h3>
-                <p class="text-xs text-gray-500 mb-6">Acciones destructivas que afectan tu cuenta operativa.</p>
-
-                <button id="btn-salir-2" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm font-semibold hover:bg-red-500/20 transition-colors">
-                    Cerrar Sesión Global
-                </button>
-            </div>
         </div>
     </main>
 
@@ -114,8 +103,6 @@
             }
         }
 
-        NLT.bindLogoutButton('btn-salir');
-        NLT.bindLogoutButton('btn-salir-2');
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');
 
         cargarDatosPerfil();

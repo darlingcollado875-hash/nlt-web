@@ -2122,24 +2122,25 @@
             mostrarPerfil(miPerfil.username);
         });
 
-        // Avatar + "Mi perfil" en el header -- mismo destino que el chip de
-        // arriba (mostrarPerfil con el username propio, is_own lo calcula el
-        // backend), solo un punto de entrada más visible. Texto oculto en
-        // mobile (el avatar solo ya se reconoce como "yo"), visible desde sm:.
+        // Avatar + dropdown en el header -- ÚNICO punto de entrada de perfil
+        // en esta página (ver mountPublicHeader({skipProfileAvatar:true}) en
+        // init(): antes esto convivía con OTRO avatar que pintaba
+        // mountPublicHeader() al lado, bug real confirmado de "doble avatar"
+        // para cualquier miembro con membresía activa). Reusa el mismo
+        // componente compartido que el resto del sitio (NLT.mountProfileMenu),
+        // con "Mi perfil" apuntando a la vista de Community (mostrarPerfil)
+        // en vez del modal genérico -- mismo destino que el chip de tabs
+        // #tab-mi-perfil, que sigue intacto.
         function montarMiPerfilHeader() {
             if (!miPerfil) return;
-            const avatar = miPerfil.avatar_url
-                ? `<img src="${esc(miPerfil.avatar_url)}" alt="" class="w-full h-full object-cover">`
-                : iniciales(miPerfil.display_name);
-            document.getElementById('miPerfilSlot').innerHTML = `
-                <button id="btn-header-mi-perfil" type="button" aria-label="Mi perfil" class="flex items-center gap-2 pl-1 pr-1 sm:pr-3 py-1 rounded-full hover:bg-white/5 transition-colors cursor-pointer">
-                    <span class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${avatar}</span>
-                    <span class="hidden sm:inline text-xs font-semibold text-gray-300">Mi perfil</span>
-                </button>
-            `;
-            document.getElementById('btn-header-mi-perfil').addEventListener('click', () => {
-                window.history.pushState({}, '', `community.html?u=${miPerfil.username}`);
-                mostrarPerfil(miPerfil.username);
+            document.getElementById('miPerfilSlot').innerHTML = NLT.profileMenuHTML('miPerfil');
+            NLT.mountProfileMenu(sesionActual, 'miPerfil', {
+                perfilInicial: miPerfil,
+                miPerfilLabel: 'Ver mi perfil de Community',
+                onMiPerfil: () => {
+                    window.history.pushState({}, '', `community.html?u=${miPerfil.username}`);
+                    mostrarPerfil(miPerfil.username);
+                },
             });
         }
 
@@ -2152,11 +2153,15 @@
 
         // --- Init ---
         async function init() {
-            sesionActual = await NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+            // skipProfileAvatar: el perfil/logout de esta página vive en
+            // #miPerfilSlot (más abajo), no en el bloque genérico de
+            // mountPublicHeader -- ver montarMiPerfilHeader().
+            sesionActual = await NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT', skipProfileAvatar: true });
 
             const params = new URLSearchParams(window.location.search);
             const usernameParam = params.get('u');
             const vistaParam = params.get('vista');
+            const editarPerfilParam = params.get('editar_perfil');
 
             if (sesionActual) {
                 try {
@@ -2170,8 +2175,19 @@
                         document.getElementById('tab-mi-perfil').classList.remove('hidden');
                         document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
                         NLT.mountNotifBell('notifBell');
-                        montarMiPerfilHeader();
                     } catch (_) {}
+                }
+                // Perfil global (foto/nombre/Configuración/Cerrar sesión) --
+                // un solo punto de entrada en el header para CUALQUIER
+                // usuario logueado, sea o no miembro de Community. Si es
+                // miembro, "Mi perfil" lleva a su vista de Community; si no,
+                // usa el modal genérico (mismo comportamiento default que el
+                // resto del sitio).
+                if (esMiembro && miPerfil) {
+                    montarMiPerfilHeader();
+                } else {
+                    document.getElementById('miPerfilSlot').innerHTML = NLT.profileMenuHTML('miPerfil');
+                    NLT.mountProfileMenu(sesionActual, 'miPerfil');
                 }
             }
 
@@ -2182,8 +2198,18 @@
                 document.getElementById('joinBanner').classList.remove('hidden');
             }
 
-            if (usernameParam) {
-                await mostrarPerfil(usernameParam);
+            // editarPerfilParam: deep-link desde el modal global "Mi perfil"
+            // ("Editar perfil completo de Community") -- se resuelve acá,
+            // junto con usernameParam, para no competir con la carga del
+            // feed más abajo (mostrar el perfil Y el feed a la vez sería un
+            // bug real, no una mejora).
+            if (usernameParam || (editarPerfilParam && esMiembro && miPerfil)) {
+                await mostrarPerfil(usernameParam || miPerfil.username);
+                if (editarPerfilParam && esMiembro && miPerfil) {
+                    window.history.replaceState({}, '', usernameParam ? `community.html?u=${usernameParam}` : 'community.html');
+                    const btnEditar = document.getElementById('btn-editar-perfil');
+                    if (btnEditar) btnEditar.click();
+                }
             } else {
                 document.getElementById('chatTabs').classList.remove('hidden');
                 document.getElementById('vistaFeed').classList.remove('hidden');
