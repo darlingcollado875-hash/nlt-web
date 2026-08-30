@@ -791,6 +791,18 @@
             await NLT_API.adminActualizarPlacementsMedia(asset.id, ['partners']);
             return NLT_API.adminPartnersActualizar(partnerId, { logo_url: asset.video_url });
         },
+
+        // --- NLT "Contact us" (chat de soporte) ---
+        supportConversacion: () => request('/support/conversation'),
+        supportMensajes: (before) => request(`/support/conversation/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
+        supportEnviarMensaje: (datos) => request('/support/conversation/messages', { method: 'POST', body: JSON.stringify(datos) }),
+        supportMarcarLeido: () => request('/support/conversation/read', { method: 'POST' }),
+        supportNoLeidos: () => request('/support/conversation/unread-count'),
+        adminSupportConversaciones: () => request('/admin/support/conversations'),
+        adminSupportMensajes: (conversationId, before) => request(`/admin/support/conversations/${conversationId}/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
+        adminSupportResponder: (conversationId, datos) => request(`/admin/support/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify(datos) }),
+        adminSupportMarcarLeido: (conversationId) => request(`/admin/support/conversations/${conversationId}/read`, { method: 'POST' }),
+        adminSupportNoLeidos: () => request('/admin/support/unread-count'),
     };
 
     window.NLT_API = NLT_API;

@@ -99,6 +99,12 @@
             window.location.href = 'index.html';
             return null;
         }
+        // "Contact us" -- se monta acá porque TODA página autenticada pasa
+        // por requireSession() (incluida academy-dashboard.html, que no usa
+        // mountSidebar ni mountPublicHeader) -- un solo punto cubre las ~15
+        // páginas del sidebar + esa. Las páginas públicas (mountPublicHeader)
+        // tienen su propio punto de montaje, ver esa función más abajo.
+        mountSupportChat(session);
         return session;
     }
 
@@ -241,6 +247,10 @@
             }
             _mountMobileNavToggle(box);
         }
+        // "Contact us" -- cubre las páginas públicas (community.html,
+        // tools.html, partners.html, etc.) cuando SÍ hay sesión. El otro
+        // punto de montaje vive en requireSession() (arriba en este archivo).
+        mountSupportChat(session);
         return session;
     }
 
@@ -870,6 +880,7 @@
         payment_confirmed: 'ph-credit-card', payment_failed: 'ph-credit-card',
         subscription_renewal: 'ph-arrows-clockwise', subscription_cancelled: 'ph-x-circle',
         promotion: 'ph-tag', new_feature: 'ph-sparkle',
+        support_message_new: 'ph-lifebuoy', support_reply: 'ph-lifebuoy',
     };
 
     // Navegación al hacer click (Fase 5: "abrir el recurso correspondiente
@@ -886,6 +897,12 @@
         payment_confirmed: 'suscripcion.html', payment_failed: 'suscripcion.html',
         subscription_renewal: 'suscripcion.html', subscription_cancelled: 'suscripcion.html',
         promotion: 'dashboard.html', new_feature: 'dashboard.html',
+        // support_message_new: le llega a un admin con permiso "soporte" ->
+        // directo a la bandeja de Admin. support_reply: le llega al usuario
+        // que escribió -> el fallback es Dashboard, pero _irAlRecurso (abajo)
+        // abre el widget flotante en el momento si ya está montado en la
+        // página actual, en vez de navegar.
+        support_message_new: 'admin.html#soporte', support_reply: 'dashboard.html',
     };
 
     function notifBellHTML(idPrefix = 'notifBell') {
@@ -929,6 +946,15 @@
             if (n.type === 'new_dm' && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.mostrarVista === 'function') {
                 panel.classList.add('hidden');
                 window.mostrarVista('mensajes');
+                return;
+            }
+            // support_reply: si el widget de "Contact us" ya está montado en
+            // esta misma página (está en casi todas, ver mountSupportChat),
+            // se abre directo en vez de navegar -- mejor UX que mandar a
+            // Dashboard para terminar abriendo el mismo panel igual.
+            if (n.type === 'support_reply' && typeof window.NLT !== 'undefined' && typeof window.NLT.abrirSupportChat === 'function') {
+                panel.classList.add('hidden');
+                window.NLT.abrirSupportChat();
                 return;
             }
             window.location.href = href;
@@ -1269,6 +1295,183 @@
         });
     }
 
+    // --- "Contact us" (chat de soporte flotante) ------------------------------
+    // Burbuja + panel flotante, montada UNA sola vez por página para
+    // CUALQUIER usuario logueado, sin exigir ninguna suscripción -- reusa
+    // GET/POST /support/conversation/* (ver NLT_API/app/api/routes/support.py:
+    // ese endpoint NUNCA exige membresía, a propósito). Se monta
+    // automáticamente desde requireSession() y mountPublicHeader() (ver esas
+    // funciones más arriba) -- ninguna de las ~39 páginas necesita llamarla a
+    // mano. Del lado del equipo (admin.html -> tab Soporte) se responde con
+    // adminSupportResponder -- acá solo vive el lado usuario.
+    let _supportChatCSSInyectado = false;
+    function _inyectarSupportChatCSS() {
+        if (_supportChatCSSInyectado) return;
+        _supportChatCSSInyectado = true;
+        const style = document.createElement('style');
+        style.textContent = `
+            .nlt-support-bubble {
+                position: fixed; bottom: 20px; right: 20px; z-index: 55;
+                width: 56px; height: 56px; border-radius: 9999px; border: none;
+                background: var(--color-nlt-accent, #4378ff); color: #fff;
+                display: flex; align-items: center; justify-content: center;
+                box-shadow: 0 10px 30px -8px rgba(67,120,255,0.55);
+                cursor: pointer; transition: transform 180ms ease;
+            }
+            .nlt-support-bubble:hover { transform: scale(1.06); }
+            .nlt-support-badge {
+                position: absolute; top: -2px; right: -2px; min-width: 18px; height: 18px;
+                padding: 0 4px; border-radius: 9999px; background: var(--color-nlt-danger, #ef4444);
+                color: #fff; font-size: 10px; font-weight: 700; display: none;
+                align-items: center; justify-content: center; border: 2px solid var(--color-nlt-bg, #05070d);
+            }
+            .nlt-support-panel {
+                position: fixed; bottom: 88px; right: 20px; z-index: 55;
+                width: 340px; max-width: calc(100vw - 24px);
+                height: 480px; max-height: calc(100vh - 120px);
+                display: flex; flex-direction: column; overflow: hidden; border-radius: 24px;
+                box-shadow: 0 25px 50px -12px rgba(0,0,0,0.55);
+            }
+            @media (max-width: 480px) {
+                .nlt-support-panel { right: 12px; left: 12px; width: auto; bottom: 84px; }
+            }
+            @media (prefers-reduced-motion: reduce) {
+                .nlt-support-bubble { transition: none; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function _renderMensajesSupportChat(mensajes) {
+        const cont = document.getElementById('supportChatMensajes');
+        if (!cont) return;
+        if (!mensajes.length) {
+            cont.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">Escribinos lo que necesites -- el equipo NLT te responde acá mismo.</p>';
+            return;
+        }
+        cont.innerHTML = mensajes.map((m) => {
+            const esMio = m.sender_role === 'user';
+            // Nunca se muestra QUÉ persona del equipo respondió (ver
+            // support.sql) -- siempre "Equipo NLT" genérico.
+            const quien = esMio ? '' : '<p class="text-[10px] text-nlt-accent font-semibold mb-0.5">Equipo NLT</p>';
+            return `
+                <div class="flex ${esMio ? 'justify-end' : 'justify-start'}">
+                    <div class="max-w-[80%] ${esMio ? 'bg-nlt-accent text-white' : 'bg-white/5 text-gray-200'} rounded-2xl px-3 py-2">
+                        ${quien}
+                        <p class="text-xs whitespace-pre-wrap break-words">${_escNotif(m.content)}</p>
+                    </div>
+                </div>
+            `;
+        }).join('');
+        cont.scrollTop = cont.scrollHeight;
+    }
+
+    function mountSupportChat(session) {
+        if (!session || document.getElementById('supportChatBubble') || typeof window.NLT_API === 'undefined') return;
+        _inyectarSupportChatCSS();
+
+        const bubble = document.createElement('button');
+        bubble.id = 'supportChatBubble';
+        bubble.type = 'button';
+        bubble.setAttribute('aria-label', 'Contact us');
+        bubble.className = 'nlt-support-bubble';
+        bubble.innerHTML = '<i class="ph-fill ph-chats-circle" style="font-size:26px"></i><span id="supportChatBadge" class="nlt-support-badge"></span>';
+        document.body.appendChild(bubble);
+
+        const panel = document.createElement('div');
+        panel.id = 'supportChatPanel';
+        panel.className = 'nlt-support-panel glass-card hidden';
+        panel.innerHTML = `
+            <div class="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
+                <p class="text-sm font-semibold text-white flex items-center gap-2"><i class="ph-fill ph-lifebuoy text-nlt-accent"></i> Contact us</p>
+                <button id="btn-cerrar-support-chat" type="button" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph-bold ph-x text-lg"></i></button>
+            </div>
+            <div id="supportChatMensajes" class="flex-1 overflow-y-auto px-3 py-3 space-y-2"></div>
+            <div class="p-3 border-t border-white/5 shrink-0 flex items-end gap-2">
+                <textarea id="supportChatInput" rows="1" placeholder="Escribí tu mensaje..." class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-white resize-none"></textarea>
+                <button id="btn-support-enviar" type="button" aria-label="Enviar" class="w-9 h-9 rounded-full bg-nlt-accent text-white flex items-center justify-center cursor-pointer shrink-0"><i class="ph-fill ph-paper-plane-tilt text-sm"></i></button>
+            </div>
+        `;
+        document.body.appendChild(panel);
+
+        let abierto = false;
+        let cargado = false;
+
+        async function _cargarMensajes() {
+            try {
+                _renderMensajesSupportChat(await window.NLT_API.supportMensajes());
+            } catch (err) {
+                const cont = document.getElementById('supportChatMensajes');
+                if (cont) cont.innerHTML = '<p class="text-xs text-nlt-danger text-center py-6">No se pudo cargar la conversación.</p>';
+            }
+        }
+
+        async function _refrescarBadge() {
+            try {
+                const { count } = await window.NLT_API.supportNoLeidos();
+                const badge = document.getElementById('supportChatBadge');
+                if (!badge) return;
+                if (count > 0) { badge.textContent = count > 9 ? '9+' : String(count); badge.style.display = 'flex'; }
+                else badge.style.display = 'none';
+            } catch (_) {}
+        }
+
+        async function abrir() {
+            panel.classList.remove('hidden');
+            abierto = true;
+            if (!cargado) { cargado = true; await _cargarMensajes(); }
+            try { await window.NLT_API.supportMarcarLeido(); } catch (_) {}
+            _refrescarBadge();
+        }
+        function cerrar() {
+            panel.classList.add('hidden');
+            abierto = false;
+        }
+        bubble._nltAbrir = abrir;  // hook para abrirSupportChat() -- ver Notification Center más arriba
+
+        bubble.addEventListener('click', () => (abierto ? cerrar() : abrir()));
+        document.getElementById('btn-cerrar-support-chat').addEventListener('click', cerrar);
+
+        async function enviar() {
+            const input = document.getElementById('supportChatInput');
+            const contenido = input.value.trim();
+            if (!contenido) return;
+            input.value = '';
+            input.disabled = true;
+            try {
+                await window.NLT_API.supportEnviarMensaje({
+                    content: contenido,
+                    client_message_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                });
+                await _cargarMensajes();
+            } catch (err) {
+                alert('No se pudo enviar el mensaje: ' + err.message);
+            } finally {
+                input.disabled = false;
+                input.focus();
+            }
+        }
+        document.getElementById('btn-support-enviar').addEventListener('click', enviar);
+        document.getElementById('supportChatInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+        });
+
+        _refrescarBadge();
+        pollWhileVisible(_refrescarBadge, 20000);
+        // Poll de mensajes nuevos SOLO mientras el panel está abierto -- no
+        // gastar requests si el usuario ni lo tiene abierto (mismo criterio
+        // de auto-pausa que el resto de los pollers de este archivo).
+        pollWhileVisible(() => { if (abierto) _cargarMensajes(); }, 15000);
+    }
+
+    // Usado por el Notification Center (_irAlRecurso, más arriba) para abrir
+    // el panel directo en vez de navegar, cuando el widget ya está montado
+    // en la página actual.
+    function abrirSupportChat() {
+        const bubble = document.getElementById('supportChatBubble');
+        if (bubble && typeof bubble._nltAbrir === 'function') bubble._nltAbrir();
+    }
+
     // --- Motion System NLT (Performance Sprint, Fase F/11-13) ---------------
     // Reemplazo nativo de GSAP+ScrollTrigger para el patrón de scroll-reveal
     // que se repetía IDÉNTICO en las 10 páginas públicas (academy, broker,
@@ -1425,6 +1628,8 @@
         mountNotifBell,
         profileMenuHTML,
         mountProfileMenu,
+        mountSupportChat,
+        abrirSupportChat,
         mountReveal,
         animateCounter,
         mountCounters,

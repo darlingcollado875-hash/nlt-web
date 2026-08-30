@@ -113,6 +113,7 @@
             <button data-seccion="journal" class="tab-admin"><i class="ph-fill ph-notebook mr-1.5"></i>Trader Journal</button>
             <button data-seccion="elite_signals" class="tab-admin"><i class="ph-fill ph-broadcast mr-1.5"></i>Elite Signals</button>
             <button data-seccion="partners" class="tab-admin"><i class="ph-fill ph-handshake mr-1.5"></i>Partners</button>
+            <button data-seccion="soporte" class="tab-admin"><i class="ph-fill ph-lifebuoy mr-1.5"></i>Soporte</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
@@ -1537,6 +1538,25 @@
                         <button id="btn-pn-archivar" class="px-4 py-2 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer">Archivar</button>
                     </div>
                     <p id="pnDetalleMsg" class="mt-2 text-xs hidden"></p>
+                </div>
+            </div>
+
+            <!-- SOPORTE ("Contact us") -- bandeja compartida, ver
+                 admin_support.py: cualquier admin con el permiso "soporte"
+                 ve y responde TODAS las conversaciones. -->
+            <div id="seccion-soporte" class="seccion-admin hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-lifebuoy text-nlt-accent"></i> Soporte -- Contact us</h2>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-1 glass-card p-4 space-y-2 overflow-y-auto" style="max-height: 70vh" id="soporteListaConversaciones">
+                        <p class="text-xs text-gray-500 animate-pulse">Cargando conversaciones...</p>
+                    </div>
+                    <div class="lg:col-span-2 glass-card p-0 flex flex-col" style="max-height: 70vh" id="soporteDetalleBox">
+                        <div class="flex-1 flex items-center justify-center p-10">
+                            <p class="text-sm text-gray-500 text-center">Elegí una conversación de la lista para ver los mensajes.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -4810,6 +4830,106 @@
             }
         });
 
+        // --- Soporte ("Contact us") -- bandeja compartida: cualquier admin
+        // con el permiso "soporte" ve y responde TODAS las conversaciones,
+        // no hay asignación 1-a-1 fija (pedido explícito). Ver
+        // NLT_API/app/api/routes/admin_support.py. ---
+        let soporteConversacionActual = null;
+
+        function tiempoRelativoSoporte(iso) {
+            if (!iso) return '';
+            const diffMin = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+            if (diffMin < 1) return 'ahora';
+            if (diffMin < 60) return `${diffMin}m`;
+            const diffH = Math.round(diffMin / 60);
+            if (diffH < 24) return `${diffH}h`;
+            return `${Math.round(diffH / 24)}d`;
+        }
+
+        async function cargarSoporteTodo() {
+            await cargarSoporteConversaciones();
+        }
+
+        async function cargarSoporteConversaciones() {
+            const cont = document.getElementById('soporteListaConversaciones');
+            try {
+                const conversaciones = await NLT_API.adminSupportConversaciones();
+                if (!conversaciones.length) {
+                    cont.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">Sin conversaciones todavía.</p>';
+                    return;
+                }
+                cont.innerHTML = conversaciones.map((c) => `
+                    <button type="button" data-id="${c.id}" class="btn-soporte-conv w-full text-left glass-item p-3 hover:bg-white/5 transition-colors cursor-pointer ${soporteConversacionActual === c.id ? 'border border-nlt-accent/30' : ''}">
+                        <div class="flex items-center justify-between gap-2">
+                            <p class="text-xs font-semibold text-white truncate">${esc(c.user_email || c.user_id)}</p>
+                            ${c.unread_count > 0 ? `<span class="shrink-0 min-w-[18px] h-[18px] px-1 rounded-full bg-nlt-danger text-white text-[10px] font-bold flex items-center justify-center">${c.unread_count}</span>` : ''}
+                        </div>
+                        <p class="text-[11px] text-gray-500 truncate mt-0.5">${c.last_message_content ? esc(c.last_message_content) : 'Sin mensajes'}</p>
+                        <p class="text-[10px] text-gray-600 mt-0.5">${tiempoRelativoSoporte(c.last_message_at || c.updated_at)}</p>
+                    </button>
+                `).join('');
+                cont.querySelectorAll('.btn-soporte-conv').forEach((btn) => {
+                    btn.addEventListener('click', () => abrirConversacionSoporte(btn.getAttribute('data-id')));
+                });
+            } catch (err) {
+                cont.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        function renderMensajesSoporteAdmin(mensajes) {
+            const cont = document.getElementById('soporteMensajes');
+            if (!cont) return;
+            cont.innerHTML = mensajes.map((m) => {
+                const esEquipo = m.sender_role === 'team';
+                return `
+                    <div class="flex ${esEquipo ? 'justify-end' : 'justify-start'}">
+                        <div class="max-w-[75%] ${esEquipo ? 'bg-nlt-accent text-white' : 'bg-white/5 text-gray-200'} rounded-2xl px-3 py-2">
+                            <p class="text-xs whitespace-pre-wrap break-words">${esc(m.content)}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            cont.scrollTop = cont.scrollHeight;
+        }
+
+        async function abrirConversacionSoporte(conversationId) {
+            soporteConversacionActual = conversationId;
+            const box = document.getElementById('soporteDetalleBox');
+            box.innerHTML = '<div class="flex-1 flex items-center justify-center p-10"><p class="text-xs text-gray-500 animate-pulse">Cargando...</p></div>';
+            try {
+                const mensajes = await NLT_API.adminSupportMensajes(conversationId);
+                box.innerHTML = `
+                    <div id="soporteMensajes" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+                    <div class="p-3 border-t border-white/5 flex items-end gap-2">
+                        <textarea id="soporteRespuestaInput" rows="2" placeholder="Responder..." class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-white resize-none"></textarea>
+                        <button id="btn-soporte-responder" class="px-4 py-2 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer shrink-0">Enviar</button>
+                    </div>
+                `;
+                renderMensajesSoporteAdmin(mensajes);
+                await NLT_API.adminSupportMarcarLeido(conversationId);
+                cargarSoporteConversaciones();  // refresca los no-leídos de la lista
+                document.getElementById('btn-soporte-responder').addEventListener('click', async () => {
+                    const input = document.getElementById('soporteRespuestaInput');
+                    const contenido = input.value.trim();
+                    if (!contenido) return;
+                    input.value = '';
+                    input.disabled = true;
+                    try {
+                        await NLT_API.adminSupportResponder(conversationId, {
+                            content: contenido, client_message_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+                        });
+                        renderMensajesSoporteAdmin(await NLT_API.adminSupportMensajes(conversationId));
+                    } catch (err) {
+                        alert('Error: ' + err.message);
+                    } finally {
+                        input.disabled = false;
+                    }
+                });
+            } catch (err) {
+                box.innerHTML = `<div class="p-4"><p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p></div>`;
+            }
+        }
+
         // --- Init ---
         // Mapea cada data-seccion (excepto "general", que hoy no es un
         // módulo asignable -- ver plan) a los loaders que la llenan. Se usa
@@ -4836,6 +4956,7 @@
             journal: [cargarJournalTodo],
             elite_signals: [cargarSignalsTodo],
             partners: [cargarPartnersTodo],
+            soporte: [cargarSoporteTodo],
         };
 
         let _esGlobalAdmin = false;
