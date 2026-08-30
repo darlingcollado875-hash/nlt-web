@@ -533,8 +533,12 @@
         teamActualizarPermisos: (id, permissions) => request(`/team/members/${id}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) }),
         teamAuditoria: (entidad, limite) => request(`/team/audit?${entidad ? 'entidad=' + encodeURIComponent(entidad) + '&' : ''}limite=${limite || 200}`),
         agreementsListar: () => request('/agreements'),
-        agreementsCrear: (slug, title) => request('/agreements', { method: 'POST', body: JSON.stringify({ slug, title }) }),
+        // agreementType: 'FOUNDER' | 'GENERAL' -- ver app/models/agreements.py
+        // (default 'GENERAL' del lado backend si no se manda nada).
+        agreementsCrear: (slug, title, agreementType) => request('/agreements', { method: 'POST', body: JSON.stringify(agreementType ? { slug, title, agreement_type: agreementType } : { slug, title }) }),
         agreementsListarVersiones: (agreementId) => request(`/agreements/${agreementId}/versions`),
+        agreementsAsignacionesDeMiembro: (memberId) => request(`/agreements/members/${memberId}/assignments`),
+        agreementsAsignarManual: (versionId, teamMemberId) => request(`/agreements/versions/${versionId}/assign`, { method: 'POST', body: JSON.stringify({ team_member_id: teamMemberId }) }),
         agreementsCrearVersion: (agreementId, file, version, title, onProgress) => {
             const fd = new FormData();
             fd.append('file', file);

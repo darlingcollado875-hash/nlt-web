@@ -415,6 +415,12 @@
                     <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Permisos</p>
                     <div id="listaPermisos"></div>
                 </div>
+                ${(MI_ROL.is_super_admin || MI_ROL.permissions['agreements.view_all_signatures']) ? `
+                <div class="mt-3 pt-3 border-t border-white/5">
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Acuerdos</p>
+                    <div id="miembroAcuerdosBox" class="space-y-2"><p class="text-xs text-gray-500">Cargando...</p></div>
+                </div>
+                ` : ''}
                 ${puedeRoles || puedePermisos || puedeMiembros ? '<button id="btn-guardar-miembro" class="btn-primario w-full mt-4">Guardar cambios</button>' : ''}
             `;
 
@@ -459,6 +465,52 @@
                     catch (err) { alert('Error: ' + err.message); }
                 });
             }
+
+            _cargarAcuerdosDeMiembro(memberId);
+        }
+
+        // Sección "Acuerdos" del modal de miembro -- solo General se puede
+        // asignar manualmente acá (Founder sigue vía auto-assign-on-publish,
+        // ver publicar_version en el backend); si el viewer no tiene
+        // agreements.founder, ni las opciones ni las asignaciones Founder de
+        // este miembro aparecen (el backend ya las filtra en la respuesta).
+        async function _cargarAcuerdosDeMiembro(memberId) {
+            const box = document.getElementById('miembroAcuerdosBox');
+            if (!box) return;  // viewer sin agreements.view_all_signatures -- la sección ni se renderizó
+            const puedeAsignar = MI_ROL.is_super_admin || MI_ROL.permissions['agreements.publish'];
+            try {
+                const asignadas = await NLT_API.agreementsAsignacionesDeMiembro(memberId);
+                let disponibles = [];
+                if (puedeAsignar) {
+                    const familias = (await NLT_API.agreementsListar()).filter(f => f.agreement_type === 'GENERAL');
+                    const versionesPorFamilia = await Promise.all(familias.map(f => NLT_API.agreementsListarVersiones(f.id)));
+                    const yaAsignadasIds = new Set(asignadas.map(a => a.id));
+                    disponibles = versionesPorFamilia.flat().filter(v => v.status === 'published' && !yaAsignadasIds.has(v.id));
+                }
+                box.innerHTML = `
+                    ${asignadas.length ? asignadas.map(a => `
+                        <div class="flex items-center justify-between py-1">
+                            <span class="text-xs text-gray-300">${esc(a.title)}</span>
+                            ${chipEstado(a.mi_estado || 'PENDIENTE')}
+                        </div>
+                    `).join('') : '<p class="text-xs text-gray-500">Sin acuerdos asignados.</p>'}
+                    ${puedeAsignar && disponibles.length ? `
+                        <div class="flex items-center gap-2 mt-2">
+                            <select id="selectAsignarAcuerdo" class="post-input flex-1 text-xs">${disponibles.map(v => `<option value="${v.id}">${esc(v.title)}</option>`).join('')}</select>
+                            <button id="btn-asignar-acuerdo" class="btn-primario btn-sm">Asignar</button>
+                        </div>
+                    ` : ''}
+                `;
+                const btnAsignar = document.getElementById('btn-asignar-acuerdo');
+                if (btnAsignar) btnAsignar.addEventListener('click', async () => {
+                    const versionId = document.getElementById('selectAsignarAcuerdo').value;
+                    btnAsignar.disabled = true; btnAsignar.textContent = 'Asignando...';
+                    try { await NLT_API.agreementsAsignarManual(versionId, memberId); await _cargarAcuerdosDeMiembro(memberId); }
+                    catch (err) { alert('Error: ' + err.message); btnAsignar.disabled = false; btnAsignar.textContent = 'Asignar'; }
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
         }
         document.getElementById('btn-cerrar-modal-miembro').addEventListener('click', () => {
             document.getElementById('modalMiembro').classList.add('hidden');
@@ -466,36 +518,61 @@
         });
 
         // --- Acuerdos (Admin) ---
+        // Founder Agreements / General Agreements SIEMPRE separados en dos
+        // bloques -- nunca mezclados en una sola lista (pedido explícito).
+        // El backend ya filtra qué familias devuelve según el permiso real
+        // del viewer (ver GET /agreements) -- acá solo se agrupa por
+        // agreement_type lo que ya vino filtrado, nunca se decide acá qué
+        // mostrar u ocultar.
+        async function _bloqueDeFamiliaAcuerdo(fam) {
+            const versiones = await NLT_API.agreementsListarVersiones(fam.id);
+            return `
+                <div class="glass-card p-5">
+                    <p class="text-sm font-bold text-white mb-3">${esc(fam.title)}</p>
+                    <div class="space-y-2">
+                        ${versiones.map(v => `
+                            <div class="glass-item p-4 flex flex-col sm:flex-row sm-items-center justify-between gap-2">
+                                <div>
+                                    <p class="text-sm font-semibold text-white">Versión ${esc(v.version)} <span class="chip ${v.status === 'published' ? 'chip-firmado' : v.status === 'archived' ? 'chip-requiere' : 'chip-pendiente'} ml-1">${v.status}</span></p>
+                                    <p class="text-xs text-gray-500 mt-0.5">Firmados: ${v.firmados}/${v.total_asignados} · Pendientes: ${v.pendientes}/${v.total_asignados}</p>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button class="btn-ver-asignaciones btn-secundario btn-sm" data-version-id="${v.id}">Ver firmas</button>
+                                    ${v.status === 'draft' ? `<button class="btn-publicar btn-primario btn-sm" data-version-id="${v.id}">Publicar</button>` : ''}
+                                    ${v.status === 'published' ? `<button class="btn-archivar btn-secundario btn-sm" data-version-id="${v.id}">Archivar</button>` : ''}
+                                </div>
+                            </div>
+                            <div class="asignaciones-box hidden glass-item p-3" data-version-box="${v.id}"></div>
+                        `).join('')}
+                    </div>
+                </div>
+            `;
+        }
         async function cargarAcuerdosAdmin() {
             const box = document.getElementById('listaAcuerdosAdmin');
             try {
                 const familias = await NLT_API.agreementsListar();
                 if (!familias.length) { box.innerHTML = '<p class="text-sm text-gray-500 glass-card p-6 text-center">Sin acuerdos todavía.</p>'; return; }
-                const bloques = await Promise.all(familias.map(async (fam) => {
-                    const versiones = await NLT_API.agreementsListarVersiones(fam.id);
-                    return `
-                        <div class="glass-card p-5">
-                            <p class="text-sm font-bold text-white mb-3">${esc(fam.title)}</p>
-                            <div class="space-y-2">
-                                ${versiones.map(v => `
-                                    <div class="glass-item p-4 flex flex-col sm:flex-row sm-items-center justify-between gap-2">
-                                        <div>
-                                            <p class="text-sm font-semibold text-white">Versión ${esc(v.version)} <span class="chip ${v.status === 'published' ? 'chip-firmado' : v.status === 'archived' ? 'chip-requiere' : 'chip-pendiente'} ml-1">${v.status}</span></p>
-                                            <p class="text-xs text-gray-500 mt-0.5">Firmados: ${v.firmados}/${v.total_asignados} · Pendientes: ${v.pendientes}/${v.total_asignados}</p>
-                                        </div>
-                                        <div class="flex items-center gap-2">
-                                            <button class="btn-ver-asignaciones btn-secundario btn-sm" data-version-id="${v.id}">Ver firmas</button>
-                                            ${v.status === 'draft' ? `<button class="btn-publicar btn-primario btn-sm" data-version-id="${v.id}">Publicar</button>` : ''}
-                                            ${v.status === 'published' ? `<button class="btn-archivar btn-secundario btn-sm" data-version-id="${v.id}">Archivar</button>` : ''}
-                                        </div>
-                                    </div>
-                                    <div class="asignaciones-box hidden glass-item p-3" data-version-box="${v.id}"></div>
-                                `).join('')}
-                            </div>
+                const founder = familias.filter(f => f.agreement_type === 'FOUNDER');
+                const general = familias.filter(f => f.agreement_type === 'GENERAL');
+                const [bloquesFounder, bloquesGeneral] = await Promise.all([
+                    Promise.all(founder.map(_bloqueDeFamiliaAcuerdo)),
+                    Promise.all(general.map(_bloqueDeFamiliaAcuerdo)),
+                ]);
+                box.innerHTML = `
+                    ${founder.length ? `
+                        <div>
+                            <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Founder Agreements</p>
+                            <div class="space-y-4">${bloquesFounder.join('')}</div>
                         </div>
-                    `;
-                }));
-                box.innerHTML = bloques.join('');
+                    ` : ''}
+                    ${general.length ? `
+                        <div class="${founder.length ? 'mt-8' : ''}">
+                            <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">General Agreements</p>
+                            <div class="space-y-4">${bloquesGeneral.join('')}</div>
+                        </div>
+                    ` : ''}
+                `;
                 box.querySelectorAll('.btn-publicar').forEach(b => b.addEventListener('click', async () => {
                     if (!confirm('¿Publicar esta versión? Quedará disponible para que todo el equipo activo la firme.')) return;
                     try { await NLT_API.agreementsPublicar(b.getAttribute('data-version-id')); cargarAcuerdosAdmin(); } catch (err) { alert('Error: ' + err.message); }
@@ -528,7 +605,18 @@
         document.getElementById('btn-nueva-version').addEventListener('click', async () => {
             const familias = await NLT_API.agreementsListar();
             if (!familias.length) { alert('Primero necesitás un acuerdo (familia) creado.'); return; }
-            const agreementId = familias[0].id; // NLT hoy tiene un solo acuerdo activo (Acuerdo Marco)
+            // El backend ya devuelve solo las familias que este admin puede
+            // ver (Founder solo con agreements.founder/Super Admin) -- acá
+            // solo se deja elegir entre lo que YA vino filtrado, nunca se
+            // agrega una familia oculta a la lista.
+            let agreementId = familias[0].id;
+            if (familias.length > 1) {
+                const opciones = familias.map((f, i) => `${i + 1}. ${f.title} (${f.agreement_type})`).join('\n');
+                const elegido = prompt(`¿Para qué acuerdo es la nueva versión?\n${opciones}\n\nEscribí el número:`);
+                const idx = parseInt(elegido, 10) - 1;
+                if (!(idx >= 0 && idx < familias.length)) return;
+                agreementId = familias[idx].id;
+            }
             const version = prompt('Número de versión (ej. 1.1):');
             if (!version) return;
             const title = prompt('Título de la versión:', 'NLT Agreement v' + version);
