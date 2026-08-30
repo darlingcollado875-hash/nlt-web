@@ -1329,9 +1329,18 @@
                 position: fixed; bottom: 88px; right: 20px; z-index: 55;
                 width: 340px; max-width: calc(100vw - 24px);
                 height: 480px; max-height: calc(100vh - 120px);
-                display: flex; flex-direction: column; overflow: hidden; border-radius: 24px;
+                display: none; flex-direction: column; overflow: hidden; border-radius: 24px;
                 box-shadow: 0 25px 50px -12px rgba(0,0,0,0.55);
             }
+            /* display:none/flex propio, en vez de depender de la clase
+               compartida .hidden -- este <style> se inyecta en <head> DESPUÉS
+               de tailwind.css (recién cuando se monta el widget), así que en
+               un empate de especificidad esta regla siempre le gana a
+               .hidden{display:none} y el panel quedaba SIEMPRE visible (bug
+               real reportado: "el chat aparece abierto siempre"). Con el
+               estado manejado 100% acá adentro (.nlt-support-panel-open) no
+               hay cascada compartida de la que depender. */
+            .nlt-support-panel.nlt-support-panel-open { display: flex; }
             @media (max-width: 480px) {
                 .nlt-support-panel { right: 12px; left: 12px; width: auto; bottom: 84px; }
             }
@@ -1380,7 +1389,7 @@
 
         const panel = document.createElement('div');
         panel.id = 'supportChatPanel';
-        panel.className = 'nlt-support-panel glass-card hidden';
+        panel.className = 'nlt-support-panel glass-card';
         panel.innerHTML = `
             <div class="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
                 <p class="text-sm font-semibold text-white flex items-center gap-2"><i class="ph-fill ph-lifebuoy text-nlt-accent"></i> Contact us</p>
@@ -1417,14 +1426,14 @@
         }
 
         async function abrir() {
-            panel.classList.remove('hidden');
+            panel.classList.add('nlt-support-panel-open');
             abierto = true;
             if (!cargado) { cargado = true; await _cargarMensajes(); }
             try { await window.NLT_API.supportMarcarLeido(); } catch (_) {}
             _refrescarBadge();
         }
         function cerrar() {
-            panel.classList.add('hidden');
+            panel.classList.remove('nlt-support-panel-open');
             abierto = false;
         }
         bubble._nltAbrir = abrir;  // hook para abrirSupportChat() -- ver Notification Center más arriba
