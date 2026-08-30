@@ -141,6 +141,19 @@
         </div>
     </section>
 
+    <!-- COMPARATIVA DE PRODUCTO: NLT Indicator vs NLT Indicator AI -->
+    <section id="comparativa" class="relative z-10 max-w-5xl mx-auto px-6 py-16">
+        <div class="text-center mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Dos formas de usarlo</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">NLT Indicator &amp; NLT Indicator AI</h2>
+            <p class="text-gray-400 mt-4 max-w-2xl mx-auto">El indicador de zonas para TradingView. Con <span class="text-white">NLT Indicator AI</span> cada zona que marcás recibe un análisis multi-factor dentro de tu cuenta NLT.</p>
+        </div>
+        <div id="comparativaCards" class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <p class="text-sm text-gray-500 col-span-full text-center animate-pulse">Cargando…</p>
+        </div>
+        <p id="comparativaDisclaimer" class="text-[11px] text-gray-600 text-center mt-6"></p>
+    </section>
+
     <!-- PLANES + CHECKOUT -->
     <section id="planes" class="relative z-10 max-w-5xl mx-auto px-6 py-16">
         <div class="text-center mb-12" data-reveal>
@@ -242,7 +255,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260829b"></script>
     <script>
         let sesionActual = null;
         let planesCache = [];
@@ -297,7 +310,50 @@
             }
         }
 
+        // --- Comparativa de producto (precios SIEMPRE desde public.plans, vía /indicator-ai/products) ---
+        function precioProducto(pr) {
+            if (!pr) return '';
+            const m = pr.monthly != null ? `$${pr.monthly}<span class="text-base text-gray-500">/mes</span>` : '';
+            const y = pr.yearly != null ? `<span class="text-sm text-gray-400 ml-2">o $${pr.yearly}/año</span>` : '';
+            return `${m}${y}`;
+        }
+        function featList(feats, max) {
+            const shown = (feats || []).slice(0, max || 8);
+            return shown.map((f) => {
+                const soon = f.status === 'COMING_SOON';
+                return `<li class="flex items-start gap-2 ${soon ? 'text-gray-500' : 'text-gray-300'}">
+                    <i class="ph-fill ${soon ? 'ph-clock' : 'ph-check'} ${soon ? 'text-gray-600' : 'text-nlt-accent'} mt-0.5"></i>
+                    <span>${f.label}${soon ? ' <span class="text-[10px] uppercase tracking-wide">(próximamente)</span>' : ''}</span></li>`;
+            }).join('');
+        }
+        async function renderComparativa() {
+            const box = document.getElementById('comparativaCards');
+            try {
+                const data = await NLT_API.indicatorAiProducts();
+                document.getElementById('comparativaDisclaimer').textContent = (data.messaging || {}).disclaimer || '';
+                box.innerHTML = (data.products || []).map((p) => {
+                    const isAI = p.ai_included;
+                    const soon = p.status === 'COMING_SOON';
+                    return `<div class="glass-card p-8 flex flex-col ${isAI ? 'border border-nlt-accent/25' : 'border border-transparent'}" data-reveal>
+                        <div class="flex items-center justify-between mb-1">
+                            <h3 class="text-lg font-bold text-white">${p.name}</h3>
+                            ${isAI ? '<span class="text-[10px] font-bold uppercase tracking-wider text-nlt-accent bg-nlt-accent/10 px-2 py-1 rounded-full">AI</span>' : ''}
+                        </div>
+                        <p class="text-3xl font-extrabold text-white my-3">${soon && p.price.monthly == null ? 'Próximamente' : precioProducto(p.price)}</p>
+                        ${p.includes ? `<p class="text-xs text-gray-500 mb-3">${p.includes}</p>` : ''}
+                        <ul class="space-y-2 text-sm mb-6 flex-1">${featList(p.features, isAI ? 9 : 8)}</ul>
+                        <a href="#planes" class="mt-auto text-center px-6 py-3 rounded-xl ${isAI ? 'bg-nlt-accent text-white hover:bg-blue-500' : 'bg-white/5 text-gray-200 hover:bg-white/10'} font-semibold text-sm transition-all ${soon && p.price.monthly == null ? 'pointer-events-none opacity-50' : ''}">
+                            ${soon && p.price.monthly == null ? 'Disponible en breve' : 'Elegir plan'}</a>
+                    </div>`;
+                }).join('');
+                if (window.NLT && NLT.mountReveal) NLT.mountReveal();
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger col-span-full text-center">No se pudo cargar el catálogo: ${err.message}</p>`;
+            }
+        }
+
         async function init() {
+            renderComparativa();
             try {
                 planesCache = await NLT_API.planesPorProducto('indicator');
                 renderPlanes();

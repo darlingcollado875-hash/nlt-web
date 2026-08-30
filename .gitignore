@@ -1,2 +1,4 @@
 __pycache__/
 *.pyc
+dev_server_local.log
+*.log

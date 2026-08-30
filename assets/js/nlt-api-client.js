@@ -723,7 +723,8 @@
         indicatorAiProducts: () => request('/indicator-ai/products'),
         indicatorAiConnection: () => request('/indicator-ai/connection'),
         indicatorAiConnectionRotate: () => request('/indicator-ai/connection/rotate', { method: 'POST' }),
-        indicatorAiAnalizar: (payload) => request('/indicator-ai/analyses', { method: 'POST', body: JSON.stringify(payload) }),
+        // No hay crear-análisis desde NLT Web: la zona nace en NLT V13.4 / TradingView
+        // y entra por el webhook. NLT Web solo lee y muestra.
         indicatorAiHistorial: (params = {}) => {
             const qs = new URLSearchParams(params).toString();
             return request('/indicator-ai/analyses' + (qs ? `?${qs}` : ''));
