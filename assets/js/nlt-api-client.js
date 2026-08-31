@@ -754,6 +754,32 @@
         indicatorAiAnalisis: (id) => request(`/indicator-ai/analyses/${id}`, {}, INDICATOR_AI_BASE),
         indicatorAiOutcome: (id, datos) => request(`/indicator-ai/analyses/${id}/outcome`, { method: 'POST', body: JSON.stringify(datos) }, INDICATOR_AI_BASE),
         indicatorAiStats: () => request('/indicator-ai/stats', {}, INDICATOR_AI_BASE),
+        // Guía de uso (PDF). El <a href> no puede mandar Authorization, así que
+        // se pide autenticado y se abre/descarga como blob: URL. El backend
+        // devuelve 403 (AI_FEATURE_LOCKED) si el usuario no tiene el plan IA.
+        indicatorAiAbrirGuia: async (descargar = false) => {
+            const token = await _token();
+            const resp = await fetch(
+                `${INDICATOR_AI_BASE}/indicator-ai/guide${descargar ? '?download=1' : ''}`,
+                { headers: { 'Authorization': `Bearer ${token}` } },
+            );
+            if (!resp.ok) {
+                let d; try { d = (await resp.json()).detail; } catch (_) { /* sin cuerpo */ }
+                throw new Error(d === 'AI_FEATURE_LOCKED'
+                    ? 'La guía es parte de NLT Indicator AI. Activá el plan para acceder.'
+                    : (d || `No se pudo abrir la guía (HTTP ${resp.status})`));
+            }
+            const url = URL.createObjectURL(await resp.blob());
+            if (descargar) {
+                const a = document.createElement('a');
+                a.href = url; a.download = 'NLT-Indicator-AI-Guia.pdf';
+                document.body.appendChild(a); a.click(); a.remove();
+                setTimeout(() => URL.revokeObjectURL(url), 4000);
+            } else {
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 60000);
+            }
+        },
 
         // --- NLT Indicator AI · ADMIN (requiere permiso "indicador") ---
         adminIndicatorAiHealth: () => request('/admin/indicator-ai/health', {}, INDICATOR_AI_BASE),

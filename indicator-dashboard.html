@@ -94,6 +94,22 @@
             <!-- PANEL -->
             <div id="vistaPanel" class="hidden space-y-8">
 
+                <!-- ── GUÍA DE USO (PDF) ── -->
+                <div class="glass-card p-5 md:p-6 flex flex-wrap items-center gap-4">
+                    <div class="flex items-center gap-3 min-w-0">
+                        <i class="ph-fill ph-book-open-text text-2xl text-nlt-accent shrink-0"></i>
+                        <div class="min-w-0">
+                            <p class="text-sm font-bold text-white">Guía de uso — NLT Indicator AI</p>
+                            <p class="text-xs text-gray-500">Cómo leer el análisis para tomar una entrada — y cuándo no. PDF · 9 páginas.</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 ml-auto">
+                        <button id="btnVerGuia" class="px-4 py-2 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ver PDF</button>
+                        <button id="btnBajarGuia" class="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Descargar</button>
+                    </div>
+                    <p id="guiaMsg" class="w-full text-xs text-red-400 hidden"></p>
+                </div>
+
                 <div class="flex flex-wrap items-center gap-2" id="tabs">
                     <span class="chip-activo activo" data-tab="connect">Connect TradingView</span>
                     <span class="chip-activo" data-tab="history">Analysis History</span>
@@ -177,8 +193,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260830b"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260830b"></script>
+    <script src="assets/js/nlt-shared.js?v=20260831a"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260831a"></script>
     <script>
     (function () {
         const $ = (id) => document.getElementById(id);
@@ -219,6 +235,18 @@
             try { pintarConexion(await NLT_API.indicatorAiConnectionRotate()); toast('connMsg', 'Token regenerado. Actualizá la Webhook URL en tu alerta.', true); }
             catch (e) { toast('connMsg', e.message, false); }
         });
+
+        // ── guía de uso (PDF) ──
+        async function abrirGuia(descargar) {
+            const msg = $('guiaMsg'); msg.classList.add('hidden');
+            const btn = descargar ? $('btnBajarGuia') : $('btnVerGuia');
+            const orig = btn.textContent; btn.textContent = '…'; btn.disabled = true;
+            try { await NLT_API.indicatorAiAbrirGuia(descargar); }
+            catch (e) { msg.textContent = e.message; msg.classList.remove('hidden'); }
+            finally { btn.textContent = orig; btn.disabled = false; }
+        }
+        $('btnVerGuia').addEventListener('click', () => abrirGuia(false));
+        $('btnBajarGuia').addEventListener('click', () => abrirGuia(true));
 
         // ── conexión ──
         function pintarConexion(c) {
