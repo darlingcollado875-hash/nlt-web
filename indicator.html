@@ -354,7 +354,9 @@
         document.getElementById('btn-login-checkout').addEventListener('click', irALogin);
 
         function precioTexto(p) {
-            return p.billing_period === 'one_time' ? `$${p.precio_mensual} pago único` : `$${p.precio_mensual}/mes`;
+            if (p.billing_period === 'one_time') return `$${p.precio_mensual} pago único`;
+            if (p.billing_period === 'yearly') return `$${p.precio_mensual}/año`;
+            return `$${p.precio_mensual}/mes`;
         }
 
         function renderPlanes() {
@@ -396,9 +398,11 @@
             const soon = p.status === 'COMING_SOON' && pr.monthly == null;
             const precio = soon ? 'Próximamente'
                 : `$${pr.monthly}<span class="text-base font-semibold text-gray-500">/mes</span>`;
+            const esPagoUnico = pr.yearly_period === 'one_time';
+            const sufijoSegundoTramo = esPagoUnico ? ' pago único' : '/año';
             const anualLinea = (!soon && pr.yearly != null)
                 ? `<div class="mt-2 flex flex-wrap items-center gap-2">
-                       <span class="text-sm text-gray-300">o <span class="text-white font-semibold">$${pr.yearly}/año</span></span>
+                       <span class="text-sm text-gray-300">o <span class="text-white font-semibold">$${pr.yearly}${sufijoSegundoTramo}</span></span>
                        ${pr.yearly_saving > 0 ? `<span class="ia-save-badge text-[11px] font-bold px-2 py-0.5 rounded-full">ahorrás $${pr.yearly_saving}</span>` : ''}
                    </div>` : '';
             const anualNota = (!soon && p.annual_note) ? `<p class="text-[11px] text-gray-500 mt-2">${_e(p.annual_note)}</p>` : '';
