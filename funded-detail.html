@@ -91,24 +91,56 @@
             return `<div class="flex items-center gap-3 py-2.5"><i class="ph ${icono} text-nlt-accent text-lg w-5"></i><span class="text-xs text-gray-500 w-32 shrink-0">${label}</span><span class="text-sm text-white font-medium">${valor}</span></div>`;
         }
 
-        function filaChallenge(c) {
-            const reglas = [
-                c.target_percent != null ? `Target ${c.target_percent}%` : null,
-                c.max_daily_loss_percent != null ? `Daily Loss ${c.max_daily_loss_percent}%` : null,
-                c.max_drawdown_percent != null ? `Drawdown ${c.max_drawdown_percent}%` : null,
+        // Un partner real puede ofrecer VARIOS modelos de challenge (ej.
+        // Institutional Funding: Instant / 1-Step / 2-Step / Standard 2-Step),
+        // cada uno con varios tamaños de cuenta -- se agrupan por
+        // challenge_type para que se vea como en el sitio real de la empresa
+        // (una tarjeta por modelo, tamaños dentro), no como una lista plana.
+        function _grupoChallenge(tipo, filas, p) {
+            const primero = filas[0];
+            const compraUrl = p.affiliate_url || p.official_url || '';
+            const reglasResumen = [
+                primero.target_percent != null ? `Target ${primero.target_percent}%` : null,
+                primero.max_daily_loss_percent != null ? `Daily DD ${primero.max_daily_loss_percent}%` : null,
+                primero.max_drawdown_percent != null ? `Max DD ${primero.max_drawdown_percent}%` : null,
             ].filter(Boolean).join(' · ');
-            return `
-                <div class="challenge-row py-4 flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                        <p class="font-bold text-white">$${Number(c.account_size).toLocaleString()}</p>
-                        <p class="text-xs text-gray-500">${esc(c.challenge_type || '')}${c.platform ? ' · ' + esc(c.platform) : ''}</p>
-                    </div>
-                    <div class="text-right">
-                        ${c.fee != null ? `<p class="text-sm font-semibold text-nlt-accent">$${Number(c.fee).toLocaleString()}</p>` : ''}
-                        ${reglas ? `<p class="text-[11px] text-gray-500">${esc(reglas)}</p>` : ''}
-                        ${c.payout_rules ? `<p class="text-[11px] text-gray-600 mt-0.5">${esc(c.payout_rules)}</p>` : ''}
-                    </div>
+            const filasHTML = filas.map((c) => `
+                <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                    <span class="text-sm text-gray-300">$${Number(c.account_size).toLocaleString()}</span>
+                    <span class="text-sm font-semibold text-white">${c.fee != null ? '$' + Number(c.fee).toLocaleString() : '-'}</span>
                 </div>
+            `).join('');
+            return `
+                <div class="glass-card p-6 flex flex-col" data-reveal>
+                    <div class="flex items-center justify-between mb-1">
+                        <h3 class="font-bold text-white">${esc(tipo)}</h3>
+                        ${primero.platform ? `<span class="text-[10px] text-gray-500 uppercase tracking-wider">${esc(primero.platform)}</span>` : ''}
+                    </div>
+                    ${reglasResumen ? `<p class="text-[11px] text-gray-500 mb-3">${esc(reglasResumen)}</p>` : ''}
+                    <div class="mb-4 flex-1">${filasHTML}</div>
+                    ${primero.payout_rules ? `<p class="text-[11px] text-gray-600 mb-4 leading-relaxed">${esc(primero.payout_rules)}</p>` : ''}
+                    ${compraUrl
+                        ? `<button class="btn-comprar-challenge mt-auto w-full text-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-nlt-accent text-white hover:bg-blue-500 transition-all cursor-pointer" data-url="${esc(compraUrl)}">Comprar</button>`
+                        : `<p class="mt-auto text-center text-xs text-gray-600 py-2.5">Próximamente</p>`}
+                </div>
+            `;
+        }
+
+        function seccionChallenges(p) {
+            if (!p.challenges || !p.challenges.length) return '';
+            const grupos = {};
+            p.challenges.forEach((c) => {
+                const key = c.challenge_type || 'Challenge';
+                (grupos[key] = grupos[key] || []).push(c);
+            });
+            const tipos = Object.keys(grupos).sort((a, b) => (grupos[a][0].sort_order || 0) - (grupos[b][0].sort_order || 0));
+            return `
+                <section data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Challenges</p>
+                    <div class="grid sm:grid-cols-2 gap-4">
+                        ${tipos.map((tipo) => _grupoChallenge(tipo, grupos[tipo].sort((a, b) => a.account_size - b.account_size), p)).join('')}
+                    </div>
+                </section>
             `;
         }
 
@@ -210,11 +242,7 @@
                     <p class="text-sm text-gray-300 leading-relaxed">${esc(p.description)}</p>
                 </section>` : ''}
 
-                ${p.challenges && p.challenges.length ? `
-                <section class="glass-card p-8" data-reveal>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Challenges</p>
-                    <div>${p.challenges.map(filaChallenge).join('')}</div>
-                </section>` : ''}
+                ${seccionChallenges(p)}
 
                 ${seccionNltExperience(p)}
                 ${seccionVerdict(p)}
@@ -241,6 +269,14 @@
                 </div>
             `;
 
+            document.querySelectorAll('.btn-comprar-challenge').forEach((btnComprar) => {
+                btnComprar.addEventListener('click', () => {
+                    const url = btnComprar.getAttribute('data-url');
+                    if (!url) return;
+                    _enviarEvento({ event_type: 'click_cta', partner_id: p.id, source_page: 'funded-detail.html' });
+                    window.open(url, '_blank', 'noopener,noreferrer');
+                });
+            });
             document.querySelectorAll('.btn-copiar-codigo').forEach((btnCopiar) => {
                 btnCopiar.addEventListener('click', () => {
                     const codigo = btnCopiar.getAttribute('data-codigo');

@@ -151,3 +151,16 @@ alter table prop_hub_partners
   add column if not exists discount_code_2 text,
   add column if not exists discount_percent_2 numeric(5,2),
   add column if not exists discount_note_2 text;
+
+-- ── Migración de seguimiento (ya aplicada, 01/09) ──────────────────────
+-- Catálogo REAL y completo de challenges, leído directamente de cada
+-- sitio oficial (institutional-funding.com/challenges, funded-profit.com,
+-- propcapital.net) -- reemplaza los 3 challenges placeholder del seed
+-- inicial (que eran notas de contexto de NLT, no un catálogo comprable).
+-- Institutional Funding: 4 modelos (Instant/1-Step/2-Step/Standard 2-Step)
+-- x hasta 6 tamaños de cuenta = 21 filas. FundedProfit: 2 modelos (One
+-- Phase/Instant Funding) x 5 tamaños = 10 filas. PropCapital: 1 modelo
+-- (2-Step) x 5 tamaños = 5 filas. Precios, targets, drawdowns y payout
+-- rules copiados tal cual de cada sitio -- nada inventado. Ver la
+-- migración real aplicada vía Supabase MCP (mismo día) para el SQL
+-- completo de los 36 inserts.
