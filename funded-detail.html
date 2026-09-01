@@ -256,8 +256,23 @@
             `;
         }
 
+        function _leerSlugDeUrl() {
+            // El rewrite de _redirects (/funded/:slug -> /funded-detail?slug=:slug,
+            // status 200) es transparente para el navegador -- la URL visible
+            // sigue siendo /funded/<slug>, NUNCA /funded-detail?slug=... (eso es
+            // solo lo que el servidor resuelve internamente). Por eso
+            // window.location.search viene SIEMPRE vacío al entrar por la URL
+            // bonita real -- hay que leer el slug del PATH. Se mantiene también
+            // el fallback por query string para acceso directo a
+            // funded-detail.html?slug=... (dev local, o un futuro acceso directo).
+            const porQuery = new URLSearchParams(window.location.search).get('slug');
+            if (porQuery) return porQuery;
+            const m = window.location.pathname.match(/^\/funded\/([^/]+)\/?$/);
+            return m ? decodeURIComponent(m[1]) : null;
+        }
+
         async function init() {
-            const slug = new URLSearchParams(window.location.search).get('slug');
+            const slug = _leerSlugDeUrl();
             if (!slug) { renderNoEncontrado(); return; }
             try {
                 const partner = await NLT_API.propHubObtenerPartner(slug);
