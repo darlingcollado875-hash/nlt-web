@@ -38,6 +38,10 @@ create table if not exists prop_hub_partners (
   payout_info text,
   discount_percent numeric(5,2),
   discount_code text,
+  discount_note text,          -- condición del código (ej. "para clientes nuevos en su primera compra")
+  discount_code_2 text,        -- segundo código opcional (ej. FundedProfit: 25% nuevos vs 20% vitalicio referidos)
+  discount_percent_2 numeric(5,2),
+  discount_note_2 text,
   affiliate_url text,
   rules_url text,
   terms_url text,
@@ -135,3 +139,15 @@ select id, 10000, 'Community Giveaway 2-Step' from prop_hub_partners where slug 
 union all
 select id, 25000, 'NLT Challenge' from prop_hub_partners where slug = 'propcapital'
 on conflict (partner_id, account_size, challenge_type) do nothing;
+
+-- ── Migración de seguimiento (ya aplicada, 01/09) ──────────────────────
+-- Soporte para un SEGUNDO código de descuento con su propia condición --
+-- caso real: FundedProfit da 25% OFF a clientes nuevos en su primera
+-- compra Y, por separado, 20% OFF vitalicio en las compras de sus
+-- referidos. Un solo par discount_code/discount_percent no alcanza para
+-- representar ambas condiciones sin perder información real.
+alter table prop_hub_partners
+  add column if not exists discount_note text,
+  add column if not exists discount_code_2 text,
+  add column if not exists discount_percent_2 numeric(5,2),
+  add column if not exists discount_note_2 text;

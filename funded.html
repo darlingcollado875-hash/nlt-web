@@ -87,7 +87,7 @@
         <section class="glass-card p-10 md:p-14 text-center" data-reveal>
             <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">Join the NLT Community</h2>
             <p class="text-gray-400 text-sm mb-8 max-w-lg mx-auto">Get exclusive discounts, giveaways, trading education and community benefits.</p>
-            <a href="community.html" class="glow-button inline-block px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ir a Community</a>
+            <a href="https://chat.whatsapp.com/LbSwvslpzFSBIqYKty7ZT4" target="_blank" rel="noopener noreferrer" class="glow-button inline-block px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer"><i class="ph-fill ph-whatsapp-logo mr-1.5"></i>Unirme por WhatsApp</a>
         </section>
 
         <!-- Disclosure -->
@@ -169,7 +169,7 @@
                     ${p.discount_code ? `
                         <div class="flex items-center gap-2 mb-5 p-3 rounded-xl bg-nlt-accent/5 border border-nlt-accent/10">
                             <i class="ph-fill ph-ticket text-nlt-accent"></i>
-                            <span class="text-xs text-gray-300">Code <span class="font-bold text-white">${esc(p.discount_code)}</span>${p.discount_percent ? ` · ${p.discount_percent}% OFF` : ''}</span>
+                            <span class="text-xs text-gray-300">Code <span class="font-bold text-white">${esc(p.discount_code)}</span>${p.discount_percent ? ` · ${p.discount_percent}% OFF` : ''}${p.discount_code_2 ? ' · +1 código más' : ''}</span>
                         </div>` : ''}
                     <span class="mt-auto text-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-white/5 text-gray-200 group-hover:bg-white/10 transition-all">Ver detalles</span>
                 </a>

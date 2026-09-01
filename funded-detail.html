@@ -145,6 +145,30 @@
             `;
         }
 
+        function _bloqueDescuento(codigo, porcentaje, nota) {
+            if (!codigo) return '';
+            const titulo = porcentaje ? `${porcentaje}% OFF` : 'Discount';
+            return `
+                <div class="glass-card p-6 text-center flex-1 min-w-[220px]" data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">${esc(titulo)}</p>
+                    ${nota ? `<p class="text-[11px] text-gray-600 mb-3">${esc(nota)}</p>` : '<div class="mb-3"></div>'}
+                    <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10">
+                        <span class="font-mono font-bold text-lg text-white">${esc(codigo)}</span>
+                        <button class="btn-copiar-codigo text-xs font-semibold text-nlt-accent hover:underline" data-codigo="${esc(codigo)}">COPY CODE</button>
+                    </div>
+                </div>
+            `;
+        }
+
+        function seccionDescuentos(p) {
+            const bloques = [
+                _bloqueDescuento(p.discount_code, p.discount_percent, p.discount_note),
+                _bloqueDescuento(p.discount_code_2, p.discount_percent_2, p.discount_note_2),
+            ].filter(Boolean);
+            if (!bloques.length) return '';
+            return `<div class="flex flex-wrap gap-4">${bloques.join('')}</div>`;
+        }
+
         function actualizarSEO(p) {
             document.title = `${p.name} | NLT Prop Hub`;
             document.getElementById('metaDescripcion').setAttribute('content', p.description || `Compará ${p.name}, prop firm partner de NLT.`);
@@ -177,7 +201,7 @@
                     ${filaResumen('ph-desktop', 'Platform', (p.platforms || []).join(', ') || null)}
                     ${filaResumen('ph-percent', 'Profit Split', p.profit_split_percent != null ? `Up to ${p.profit_split_percent}%` : null)}
                     ${filaResumen('ph-money', 'Payout', p.payout_info)}
-                    ${filaResumen('ph-ticket', 'Discount', p.discount_percent != null ? `${p.discount_percent}% OFF` : (p.discount_code ? 'Ver código abajo' : null))}
+                    ${filaResumen('ph-ticket', 'Discount', p.discount_code ? 'Ver código(s) abajo' : null)}
                 </section>
 
                 ${p.description ? `
@@ -195,14 +219,7 @@
                 ${seccionNltExperience(p)}
                 ${seccionVerdict(p)}
 
-                ${p.discount_code ? `
-                <section class="glass-card p-8 text-center" data-reveal>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">${p.discount_percent ? `GET ${p.discount_percent}% OFF` : 'Discount'}</p>
-                    <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10">
-                        <span class="font-mono font-bold text-lg text-white">${esc(p.discount_code)}</span>
-                        <button id="btnCopiarCodigo" class="text-xs font-semibold text-nlt-accent hover:underline">COPY CODE</button>
-                    </div>
-                </section>` : ''}
+                ${seccionDescuentos(p)}
 
                 <!-- CTA final -->
                 <section class="glass-card p-10 text-center" data-reveal>
@@ -214,7 +231,7 @@
 
                 <!-- Community CTA secundario -->
                 <section class="text-center py-4" data-reveal>
-                    <a href="/community.html" class="text-sm text-gray-400 hover:text-white transition-colors"><i class="ph ph-users-three mr-1"></i> Join the NLT Community -- descuentos exclusivos, giveaways y educación.</a>
+                    <a href="https://chat.whatsapp.com/LbSwvslpzFSBIqYKty7ZT4" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-400 hover:text-white transition-colors"><i class="ph-fill ph-whatsapp-logo mr-1"></i> Join the NLT Community -- descuentos exclusivos, giveaways y educación.</a>
                 </section>
 
                 <!-- Legal/Trust -->
@@ -224,16 +241,16 @@
                 </div>
             `;
 
-            const btnCopiar = document.getElementById('btnCopiarCodigo');
-            if (btnCopiar) {
+            document.querySelectorAll('.btn-copiar-codigo').forEach((btnCopiar) => {
                 btnCopiar.addEventListener('click', () => {
-                    navigator.clipboard.writeText(p.discount_code).then(() => {
+                    const codigo = btnCopiar.getAttribute('data-codigo');
+                    navigator.clipboard.writeText(codigo).then(() => {
                         btnCopiar.textContent = 'COPIED!';
                         setTimeout(() => { btnCopiar.textContent = 'COPY CODE'; }, 2000);
                     });
                     _enviarEvento({ event_type: 'copy_code', partner_id: p.id, source_page: 'funded-detail.html' });
                 });
-            }
+            });
             const btnVisitar = document.getElementById('btnVisitarOficial');
             if (btnVisitar) {
                 btnVisitar.addEventListener('click', () => {

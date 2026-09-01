@@ -27,7 +27,11 @@
 # "Maximum (50) redirects followed" en cada una de esas 9 rutas). Sacarlas
 # de acá no rompe nada -- la plataforma ya hace exactamente lo mismo sola.
 
-/verify/:code  /verify.html?code=:code  200
+# BUG REAL confirmado en producción (01/09, mismo hallazgo que motivó el fix
+# de /funded/:slug más abajo): un destino CON extensión (/verify.html)
+# dispara el auto-clean de arriba sobre el resultado de ESTE rewrite --
+# 307 a /verify SIN el query string. Destino sin extensión = sin el problema.
+/verify/:code  /verify?code=:code  200
 
 # NLT Prop Hub -- /funded ya es gratis solo con nombrar el archivo funded.html
 # (la plataforma limpia .html sola, ver arriba). /funded/<slug> SÍ necesita

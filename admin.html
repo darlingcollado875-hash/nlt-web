@@ -1300,8 +1300,12 @@
                         <input id="phMaxAccount" type="number" placeholder="Max Account" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
                         <input id="phProfitSplit" type="number" placeholder="Profit Split %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
                         <input id="phPayoutInfo" placeholder="Payout Info" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
-                        <input id="phDiscountPercent" type="number" placeholder="Discount %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
-                        <input id="phDiscountCode" placeholder="Discount Code" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountPercent" type="number" placeholder="Discount % (código 1)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountCode" placeholder="Discount Code (código 1)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountNote" placeholder="Condición del código 1 (ej: clientes nuevos)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountPercent2" type="number" placeholder="Discount % (código 2, opcional)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountCode2" placeholder="Discount Code (código 2, opcional)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountNote2" placeholder="Condición del código 2 (ej: vitalicio referidos)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
                         <textarea id="phDescription" placeholder="Description (What They Offer)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm col-span-2 md:col-span-3" rows="2"></textarea>
                         <label class="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" id="phIsTested"> Tested by NLT</label>
                         <label class="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" id="phIsRecommended"> Recommended by NLT</label>
@@ -4474,6 +4478,10 @@
                     payout_info: document.getElementById('phPayoutInfo').value.trim() || null,
                     discount_percent: Number(document.getElementById('phDiscountPercent').value) || null,
                     discount_code: document.getElementById('phDiscountCode').value.trim() || null,
+                    discount_note: document.getElementById('phDiscountNote').value.trim() || null,
+                    discount_percent_2: Number(document.getElementById('phDiscountPercent2').value) || null,
+                    discount_code_2: document.getElementById('phDiscountCode2').value.trim() || null,
+                    discount_note_2: document.getElementById('phDiscountNote2').value.trim() || null,
                     description: document.getElementById('phDescription').value.trim() || null,
                     is_tested: document.getElementById('phIsTested').checked,
                     is_recommended: document.getElementById('phIsRecommended').checked,
