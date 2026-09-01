@@ -32,4 +32,13 @@
 # NLT Prop Hub -- /funded ya es gratis solo con nombrar el archivo funded.html
 # (la plataforma limpia .html sola, ver arriba). /funded/<slug> SÍ necesita
 # esta reescritura -- no hay un archivo estático por cada prop firm.
-/funded/:slug  /funded-detail.html?slug=:slug  200
+#
+# BUG REAL confirmado en producción (01/09): apuntar el destino CON extensión
+# (/funded-detail.html?slug=:slug) dispara el mismo auto-clean de arriba
+# sobre el resultado de ESTE rewrite -- Cloudflare responde 307 a
+# /funded-detail SIN el query string, perdiendo el slug (mismo bug real que
+# ya afecta a /verify/:code de arriba, confirmado con curl -- no introducido
+# acá, pero si el destino del rewrite ya viene SIN extensión, coincide con
+# la forma "limpia" que la plataforma sirve directo sin redirigir, y el
+# problema desaparece).
+/funded/:slug  /funded-detail?slug=:slug  200
