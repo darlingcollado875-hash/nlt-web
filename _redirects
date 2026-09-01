@@ -28,3 +28,8 @@
 # de acá no rompe nada -- la plataforma ya hace exactamente lo mismo sola.
 
 /verify/:code  /verify.html?code=:code  200
+
+# NLT Prop Hub -- /funded ya es gratis solo con nombrar el archivo funded.html
+# (la plataforma limpia .html sola, ver arriba). /funded/<slug> SÍ necesita
+# esta reescritura -- no hay un archivo estático por cada prop firm.
+/funded/:slug  /funded-detail.html?slug=:slug  200

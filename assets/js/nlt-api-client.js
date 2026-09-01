@@ -677,6 +677,26 @@
         propfirmMisPayouts: () => request('/propfirm/me/payouts'),
         propfirmSolicitarPayout: (accountId, amount) => request('/propfirm/me/payouts/request', { method: 'POST', body: JSON.stringify({ account_id: accountId, amount }) }),
         propfirmMisTransacciones: () => request('/propfirm/me/transactions'),
+
+        // --- NLT Prop Hub (directorio de prop firms externas, distinto de NLT PropFirm de arriba) ---
+        // Público -- igual criterio que propfirmListarChallenges: sin sesión también se puede explorar.
+        propHubListarPartners: (filtros = {}) => {
+            const qs = new URLSearchParams();
+            Object.entries(filtros).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') qs.set(k, v); });
+            const query = qs.toString();
+            return requestPublico(`/prop-hub/partners${query ? '?' + query : ''}`);
+        },
+        propHubObtenerPartner: (slug) => requestPublico(`/prop-hub/partners/${encodeURIComponent(slug)}`),
+        // Best-effort: el caller debe envolver esto en try/catch y nunca bloquear la UX si falla (ver funded.html).
+        propHubRegistrarEventos: (events) => requestPublico('/prop-hub/events', { method: 'POST', body: JSON.stringify({ events }) }),
+
+        // --- Admin: NLT Prop Hub ---
+        adminPropHubListarPartners: () => request('/admin/prop-hub/partners'),
+        adminPropHubCrearPartner: (datos) => request('/admin/prop-hub/partners', { method: 'POST', body: JSON.stringify(datos) }),
+        adminPropHubActualizarPartner: (id, datos) => request(`/admin/prop-hub/partners/${id}`, { method: 'PATCH', body: JSON.stringify(datos) }),
+        adminPropHubListarChallenges: (partnerId) => request(`/admin/prop-hub/partners/${partnerId}/challenges`),
+        adminPropHubCrearChallenge: (partnerId, datos) => request(`/admin/prop-hub/partners/${partnerId}/challenges`, { method: 'POST', body: JSON.stringify(datos) }),
+        adminPropHubActualizarChallenge: (challengeId, datos) => request(`/admin/prop-hub/challenges/${challengeId}`, { method: 'PATCH', body: JSON.stringify(datos) }),
         tradingMiResumen: () => request('/trading/me/summary'),
 
         adminPropfirmListarConfigs: () => request('/admin/propfirm/challenge-configs'),

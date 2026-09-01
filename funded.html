@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Prop Hub | Compare Prop Firms & Challenges</title>
+    <meta name="description" content="Descubrí y comparé prop firms partner de NLT -- tamaños de cuenta, plataformas, profit split, payouts y descuentos exclusivos, en un solo lugar.">
+    <link rel="canonical" href="https://nltnextlevel.uk/funded">
+    <meta property="og:title" content="NLT Prop Hub | Compare Prop Firms & Challenges">
+    <meta property="og:description" content="Descubrí y comparé prop firms partner de NLT en un solo lugar.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://nltnextlevel.uk/funded">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="NLT Prop Hub">
+    <meta name="twitter:description" content="Descubrí y comparé prop firms partner de NLT en un solo lugar.">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        /* Mobile Sweep -- mismo fix real que propfirm.html/indicator.html:
+           overflow-x:hidden en <html> también, no solo <body> (position:fixed
+           escapa al overflow del body). */
+        html { overflow-x: hidden; }
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .partner-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease; }
+        .partner-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
+        .filter-chip { transition: all 0.2s ease; }
+        .filter-chip.active { background: rgba(67, 120, 255, 0.12); color: #4378FF; border-color: rgba(67, 120, 255, 0.3); }
+        .badge-tested { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); }
+        .badge-recommended { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+        .badge-partner { background: rgba(255, 255, 255, 0.05); color: #9ca3af; border: 1px solid rgba(255, 255, 255, 0.08); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="propfirm.html" class="hover:text-white transition-colors">NLT Funded</a>
+                <a href="community.html" class="hover:text-white transition-colors">Community</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="relative z-10 pt-44 pb-16 px-6 max-w-4xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT PROP HUB</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>Explore. Compare. Decide.</h1>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto" data-reveal>NLT te ayuda a tomar una decisión informada sobre a qué prop firm acceder -- comparación estructurada, experiencia real cuando existe, y beneficios exclusivos.</p>
+    </section>
+
+    <main class="relative z-10 max-w-6xl mx-auto px-6 pb-24 space-y-14">
+
+        <!-- Filtros -->
+        <div class="glass-card p-6" data-reveal>
+            <div id="filtrosPropHub" class="space-y-4">
+                <p class="text-xs text-gray-500 animate-pulse">Cargando filtros...</p>
+            </div>
+        </div>
+
+        <!-- Cards -->
+        <div id="listaPartners" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <p class="text-sm text-gray-500 animate-pulse col-span-full text-center">Cargando prop firms...</p>
+        </div>
+
+        <!-- Community CTA -->
+        <section class="glass-card p-10 md:p-14 text-center" data-reveal>
+            <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-3">Join the NLT Community</h2>
+            <p class="text-gray-400 text-sm mb-8 max-w-lg mx-auto">Get exclusive discounts, giveaways, trading education and community benefits.</p>
+            <a href="community.html" class="glow-button inline-block px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ir a Community</a>
+        </section>
+
+        <!-- Disclosure -->
+        <div class="glass-card p-5 flex items-start gap-3 max-w-3xl mx-auto" data-reveal>
+            <i class="ph-fill ph-info text-nlt-accent text-xl mt-0.5 shrink-0"></i>
+            <p class="text-xs text-gray-400 leading-relaxed">Information is provided for educational and informational purposes. Challenge rules, prices, platforms and offers may change. Always verify the current terms on the provider's official website before purchasing. <span class="text-gray-500">Affiliate disclosure: NLT may earn a commission from qualifying purchases through some partner links, at no additional cost to the user.</span></p>
+        </div>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <div class="flex items-center gap-4">
+                <a href="aviso-riesgo.html" class="hover:text-gray-300 transition-colors">Aviso de Riesgo</a>
+                <a href="terminos.html" class="hover:text-gray-300 transition-colors">Términos</a>
+                <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260828"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260901"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        let partnersCache = [];
+        const filtrosActivos = { platform: null, is_tested: null, is_recommended: null };
+
+        // --- Tracking best-effort: batchea impressions de card, nunca un
+        // fetch por card. Un evento inmediato (no bacheado) por click de CTA
+        // o copy-code. Todo catch-and-ignore -- nunca bloquea la UX real.
+        const _eventQueue = [];
+        let _flushTimer = null;
+        function _queueEvento(evento) {
+            _eventQueue.push(evento);
+            if (_flushTimer) return;
+            _flushTimer = setTimeout(_flushEventos, 2000);
+        }
+        function _flushEventos() {
+            _flushTimer = null;
+            if (!_eventQueue.length) return;
+            const lote = _eventQueue.splice(0, _eventQueue.length);
+            NLT_API.propHubRegistrarEventos(lote).catch(() => { /* best-effort, nunca romper la UX */ });
+        }
+        window.addEventListener('pagehide', _flushEventos);
+
+        function badgeHTML(p) {
+            if (p.is_recommended) return '<span class="badge-recommended text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Recommended by NLT</span>';
+            if (p.is_tested) return '<span class="badge-tested text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">Tested by NLT</span>';
+            return `<span class="badge-partner text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full">${esc(p.status || 'Partner')}</span>`;
+        }
+
+        function rangoCuenta(p) {
+            if (p.min_account == null && p.max_account == null) return 'Account size: por confirmar';
+            const min = p.min_account != null ? `$${Number(p.min_account).toLocaleString()}` : '';
+            const max = p.max_account != null ? `$${Number(p.max_account).toLocaleString()}` : '';
+            return min && max ? `${min} – ${max}` : (min || max);
+        }
+
+        function tarjetaPartner(p) {
+            const logo = p.logo_url
+                ? `<img src="${esc(p.logo_url)}" alt="${esc(p.name)}" class="w-12 h-12 rounded-xl object-contain bg-white/5 p-1.5">`
+                : `<div class="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-lg font-bold text-gray-500">${esc((p.name || '?')[0])}</div>`;
+            return `
+                <a href="funded/${esc(p.slug)}" data-partner-id="${esc(p.id)}" class="partner-card glass-card p-7 flex flex-col" data-reveal>
+                    <div class="flex items-start justify-between mb-4">
+                        ${logo}
+                        ${badgeHTML(p)}
+                    </div>
+                    <h3 class="font-bold text-white text-lg mb-1">${esc(p.name)}</h3>
+                    <p class="text-sm text-gray-500 mb-4">${rangoCuenta(p)}</p>
+                    <div class="text-xs text-gray-400 space-y-1.5 mb-6 flex-1">
+                        ${p.platforms && p.platforms.length ? `<p><i class="ph ph-desktop mr-1.5"></i>${esc(p.platforms.join(', '))}</p>` : ''}
+                        ${p.profit_split_percent != null ? `<p><i class="ph ph-percent mr-1.5"></i>Up to ${p.profit_split_percent}% profit split</p>` : ''}
+                    </div>
+                    ${p.discount_code ? `
+                        <div class="flex items-center gap-2 mb-5 p-3 rounded-xl bg-nlt-accent/5 border border-nlt-accent/10">
+                            <i class="ph-fill ph-ticket text-nlt-accent"></i>
+                            <span class="text-xs text-gray-300">Code <span class="font-bold text-white">${esc(p.discount_code)}</span>${p.discount_percent ? ` · ${p.discount_percent}% OFF` : ''}</span>
+                        </div>` : ''}
+                    <span class="mt-auto text-center px-5 py-2.5 rounded-xl text-sm font-semibold bg-white/5 text-gray-200 group-hover:bg-white/10 transition-all">Ver detalles</span>
+                </a>
+            `;
+        }
+
+        function renderFiltros() {
+            const plataformas = [...new Set(partnersCache.flatMap((p) => p.platforms || []))].sort();
+            const box = document.getElementById('filtrosPropHub');
+            box.innerHTML = `
+                ${plataformas.length ? `
+                <div>
+                    <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Platform</p>
+                    <div class="flex flex-wrap gap-2" id="filtroPlatform">
+                        ${plataformas.map((pl) => `<button data-valor="${esc(pl)}" class="filter-chip px-4 py-1.5 rounded-full text-xs font-semibold border border-white/10 text-gray-400 hover:text-white transition-all">${esc(pl)}</button>`).join('')}
+                    </div>
+                </div>` : ''}
+                <div>
+                    <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-2">Status</p>
+                    <div class="flex flex-wrap gap-2" id="filtroStatus">
+                        <button data-tipo="is_tested" class="filter-chip px-4 py-1.5 rounded-full text-xs font-semibold border border-white/10 text-gray-400 hover:text-white transition-all">Tested by NLT</button>
+                        <button data-tipo="is_recommended" class="filter-chip px-4 py-1.5 rounded-full text-xs font-semibold border border-white/10 text-gray-400 hover:text-white transition-all">Recommended</button>
+                    </div>
+                </div>
+            `;
+            box.querySelectorAll('#filtroPlatform button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const valor = btn.getAttribute('data-valor');
+                    filtrosActivos.platform = filtrosActivos.platform === valor ? null : valor;
+                    box.querySelectorAll('#filtroPlatform button').forEach((b) => b.classList.toggle('active', b.getAttribute('data-valor') === filtrosActivos.platform));
+                    cargarPartners();
+                });
+            });
+            box.querySelectorAll('#filtroStatus button').forEach((btn) => {
+                btn.addEventListener('click', () => {
+                    const tipo = btn.getAttribute('data-tipo');
+                    filtrosActivos[tipo] = filtrosActivos[tipo] ? null : true;
+                    btn.classList.toggle('active', !!filtrosActivos[tipo]);
+                    cargarPartners();
+                });
+            });
+        }
+
+        function _observarImpressions() {
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach((entry) => {
+                    if (!entry.isIntersecting) return;
+                    const partnerId = entry.target.getAttribute('data-partner-id');
+                    if (partnerId) _queueEvento({ event_type: 'impression', partner_id: partnerId, source_page: 'funded.html' });
+                    observer.unobserve(entry.target);
+                });
+            }, { threshold: 0.5 });
+            document.querySelectorAll('#listaPartners [data-partner-id]').forEach((el) => observer.observe(el));
+        }
+
+        async function cargarPartners() {
+            const cont = document.getElementById('listaPartners');
+            try {
+                const filtros = {};
+                if (filtrosActivos.platform) filtros.platform = filtrosActivos.platform;
+                if (filtrosActivos.is_tested) filtros.is_tested = true;
+                if (filtrosActivos.is_recommended) filtros.is_recommended = true;
+                const partners = await NLT_API.propHubListarPartners(filtros);
+                cont.innerHTML = partners.map(tarjetaPartner).join('') || '<p class="text-sm text-gray-500 col-span-full text-center">No hay prop firms que coincidan con estos filtros.</p>';
+                _observarImpressions();
+                return partners;
+            } catch (err) {
+                cont.innerHTML = `<p class="text-sm text-nlt-danger col-span-full text-center">Error cargando prop firms: ${esc(err.message)}</p>`;
+                return [];
+            }
+        }
+
+        async function init() {
+            partnersCache = await cargarPartners();
+            renderFiltros();
+            NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        }
+
+        init();
+
+        // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
+        NLT.mountReveal();
+        setTimeout(() => {
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                if (getComputedStyle(el).opacity === '0') el.style.opacity = '1';
+            });
+        }, 2500);
+    </script>
+</body>
+</html>

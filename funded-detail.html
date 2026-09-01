@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title id="tituloPagina">NLT Prop Hub | Next Level Trading</title>
+    <meta id="metaDescripcion" name="description" content="Compará esta prop firm partner de NLT -- tamaños de cuenta, plataforma, profit split, payouts y descuento exclusivo.">
+    <link id="linkCanonical" rel="canonical" href="https://nltnextlevel.uk/funded">
+    <meta id="ogTitulo" property="og:title" content="NLT Prop Hub">
+    <meta id="ogDescripcion" property="og:description" content="Compará esta prop firm partner de NLT.">
+    <meta property="og:type" content="website">
+    <meta id="ogUrl" property="og:url" content="https://nltnextlevel.uk/funded">
+    <meta name="twitter:card" content="summary">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        html { overflow-x: hidden; }
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .badge-tested { background: rgba(34, 197, 94, 0.1); color: #22c55e; border: 1px solid rgba(34, 197, 94, 0.2); }
+        .badge-recommended { background: rgba(251, 191, 36, 0.1); color: #fbbf24; border: 1px solid rgba(251, 191, 36, 0.2); }
+        .badge-partner { background: rgba(255, 255, 255, 0.05); color: #9ca3af; border: 1px solid rgba(255, 255, 255, 0.08); }
+        .challenge-row:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    </style>
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="funded.html" class="hover:text-white transition-colors"><i class="ph ph-arrow-left mr-1"></i> Prop Hub</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <main id="contenido" class="relative z-10 max-w-4xl mx-auto px-6 pt-40 pb-24 space-y-10">
+        <p class="text-sm text-gray-500 animate-pulse text-center py-20">Cargando...</p>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <div class="flex items-center gap-4">
+                <a href="aviso-riesgo.html" class="hover:text-gray-300 transition-colors">Aviso de Riesgo</a>
+                <a href="terminos.html" class="hover:text-gray-300 transition-colors">Términos</a>
+                <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260828"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260901"></script>
+    <script>
+        function esc(texto) {
+            return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+
+        // Best-effort, mismo criterio que funded.html -- nunca bloquea la UX.
+        function _enviarEvento(evento) {
+            NLT_API.propHubRegistrarEventos([evento]).catch(() => { /* best-effort */ });
+        }
+
+        function badgeHTML(p) {
+            if (p.is_recommended) return '<span class="badge-recommended text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">Recommended by NLT</span>';
+            if (p.is_tested) return '<span class="badge-tested text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">Tested by NLT</span>';
+            return `<span class="badge-partner text-[11px] font-bold uppercase tracking-wider px-3 py-1.5 rounded-full">${esc(p.status || 'Partner')}</span>`;
+        }
+
+        function filaResumen(icono, label, valor) {
+            if (valor == null || valor === '') return '';
+            return `<div class="flex items-center gap-3 py-2.5"><i class="ph ${icono} text-nlt-accent text-lg w-5"></i><span class="text-xs text-gray-500 w-32 shrink-0">${label}</span><span class="text-sm text-white font-medium">${valor}</span></div>`;
+        }
+
+        function filaChallenge(c) {
+            const reglas = [
+                c.target_percent != null ? `Target ${c.target_percent}%` : null,
+                c.max_daily_loss_percent != null ? `Daily Loss ${c.max_daily_loss_percent}%` : null,
+                c.max_drawdown_percent != null ? `Drawdown ${c.max_drawdown_percent}%` : null,
+            ].filter(Boolean).join(' · ');
+            return `
+                <div class="challenge-row py-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <p class="font-bold text-white">$${Number(c.account_size).toLocaleString()}</p>
+                        <p class="text-xs text-gray-500">${esc(c.challenge_type || '')}${c.platform ? ' · ' + esc(c.platform) : ''}</p>
+                    </div>
+                    <div class="text-right">
+                        ${c.fee != null ? `<p class="text-sm font-semibold text-nlt-accent">$${Number(c.fee).toLocaleString()}</p>` : ''}
+                        ${reglas ? `<p class="text-[11px] text-gray-500">${esc(reglas)}</p>` : ''}
+                        ${c.payout_rules ? `<p class="text-[11px] text-gray-600 mt-0.5">${esc(c.payout_rules)}</p>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function seccionNltExperience(p) {
+            if (!p.challenge_status) return ''; // "Solo mostrar si existe" -- nunca fabricado.
+            const statusLabel = { in_progress: 'IN PROGRESS', passed: 'PASSED', failed: 'FAILED', funded: 'FUNDED' }[p.challenge_status] || p.challenge_status;
+            const payoutLabel = { none: 'NO', requested: 'REQUESTED', paid: 'YES' }[p.payout_status] || null;
+            const media = [...(p.video_urls || []), ...(p.screenshots || [])];
+            return `
+                <section class="glass-card p-8" data-reveal>
+                    <p class="text-xs font-bold text-nlt-accent uppercase tracking-widest mb-4">NLT Experience</p>
+                    <div class="flex flex-wrap items-center gap-x-8 gap-y-2 mb-4">
+                        <p class="text-sm"><span class="text-gray-500">Status:</span> <span class="font-semibold text-white">${esc(statusLabel)}</span></p>
+                        ${payoutLabel ? `<p class="text-sm"><span class="text-gray-500">Payout:</span> <span class="font-semibold text-white">${esc(payoutLabel)}</span>${p.payout_amount != null ? ` ($${Number(p.payout_amount).toLocaleString()})` : ''}</p>` : ''}
+                        ${p.payout_proof_url ? `<a href="${esc(p.payout_proof_url)}" target="_blank" rel="noopener noreferrer" class="text-sm text-nlt-accent hover:underline">Ver evidencia</a>` : ''}
+                    </div>
+                    ${media.length ? `<div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-4">${media.map((u) => `<a href="${esc(u)}" target="_blank" rel="noopener noreferrer" class="block rounded-xl overflow-hidden border border-white/5 aspect-video bg-white/5 flex items-center justify-center text-gray-600"><i class="ph ph-play text-2xl"></i></a>`).join('')}</div>` : ''}
+                </section>
+            `;
+        }
+
+        function seccionVerdict(p) {
+            if (!(p.advantages || []).length && !(p.considerations || []).length) return '';
+            const lista = (items, icono, color) => (items || []).map((t) => `<li class="flex items-start gap-2 text-sm text-gray-300"><i class="ph-fill ${icono} ${color} mt-0.5"></i>${esc(t)}</li>`).join('');
+            return `
+                <section class="glass-card p-8" data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">NLT Verdict</p>
+                    <p class="text-[11px] text-gray-600 mb-5">Compartimos nuestra experiencia, no garantizamos resultados.</p>
+                    <div class="grid sm:grid-cols-2 gap-6">
+                        ${(p.advantages || []).length ? `<div><p class="text-xs font-bold text-nlt-success uppercase tracking-wider mb-3">Things we liked</p><ul class="space-y-2">${lista(p.advantages, 'ph-check-circle', 'text-nlt-success')}</ul></div>` : ''}
+                        ${(p.considerations || []).length ? `<div><p class="text-xs font-bold text-nlt-warn uppercase tracking-wider mb-3">Things to consider</p><ul class="space-y-2">${lista(p.considerations, 'ph-warning-circle', 'text-nlt-warn')}</ul></div>` : ''}
+                    </div>
+                </section>
+            `;
+        }
+
+        function actualizarSEO(p) {
+            document.title = `${p.name} | NLT Prop Hub`;
+            document.getElementById('metaDescripcion').setAttribute('content', p.description || `Compará ${p.name}, prop firm partner de NLT.`);
+            document.getElementById('linkCanonical').setAttribute('href', `https://nltnextlevel.uk/funded/${p.slug}`);
+            document.getElementById('ogTitulo').setAttribute('content', `${p.name} | NLT Prop Hub`);
+            document.getElementById('ogDescripcion').setAttribute('content', p.description || `Compará ${p.name}, prop firm partner de NLT.`);
+            document.getElementById('ogUrl').setAttribute('content', `https://nltnextlevel.uk/funded/${p.slug}`);
+        }
+
+        function render(p) {
+            actualizarSEO(p);
+            const logo = p.logo_url
+                ? `<img src="${esc(p.logo_url)}" alt="${esc(p.name)}" class="w-16 h-16 rounded-2xl object-contain bg-white/5 p-2">`
+                : `<div class="w-16 h-16 rounded-2xl bg-white/5 flex items-center justify-center text-2xl font-bold text-gray-500">${esc((p.name || '?')[0])}</div>`;
+
+            document.getElementById('contenido').innerHTML = `
+                <!-- Header -->
+                <div class="flex items-start gap-5" data-reveal>
+                    ${logo}
+                    <div>
+                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">${esc(p.name)}</h1>
+                        ${badgeHTML(p)}
+                    </div>
+                </div>
+
+                <!-- Resumen -->
+                <section class="glass-card p-8" data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">Resumen</p>
+                    ${filaResumen('ph-wallet', 'Account', p.min_account != null || p.max_account != null ? `$${p.min_account != null ? Number(p.min_account).toLocaleString() : '?'} – $${p.max_account != null ? Number(p.max_account).toLocaleString() : '?'}` : null)}
+                    ${filaResumen('ph-desktop', 'Platform', (p.platforms || []).join(', ') || null)}
+                    ${filaResumen('ph-percent', 'Profit Split', p.profit_split_percent != null ? `Up to ${p.profit_split_percent}%` : null)}
+                    ${filaResumen('ph-money', 'Payout', p.payout_info)}
+                    ${filaResumen('ph-ticket', 'Discount', p.discount_percent != null ? `${p.discount_percent}% OFF` : (p.discount_code ? 'Ver código abajo' : null))}
+                </section>
+
+                ${p.description ? `
+                <section class="glass-card p-8" data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4">What They Offer</p>
+                    <p class="text-sm text-gray-300 leading-relaxed">${esc(p.description)}</p>
+                </section>` : ''}
+
+                ${p.challenges && p.challenges.length ? `
+                <section class="glass-card p-8" data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Challenges</p>
+                    <div>${p.challenges.map(filaChallenge).join('')}</div>
+                </section>` : ''}
+
+                ${seccionNltExperience(p)}
+                ${seccionVerdict(p)}
+
+                ${p.discount_code ? `
+                <section class="glass-card p-8 text-center" data-reveal>
+                    <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">${p.discount_percent ? `GET ${p.discount_percent}% OFF` : 'Discount'}</p>
+                    <div class="inline-flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/5 border border-white/10">
+                        <span class="font-mono font-bold text-lg text-white">${esc(p.discount_code)}</span>
+                        <button id="btnCopiarCodigo" class="text-xs font-semibold text-nlt-accent hover:underline">COPY CODE</button>
+                    </div>
+                </section>` : ''}
+
+                <!-- CTA final -->
+                <section class="glass-card p-10 text-center" data-reveal>
+                    ${p.official_url || p.affiliate_url ? `
+                        <a id="btnVisitarOficial" href="${esc(p.affiliate_url || p.official_url)}" target="_blank" rel="noopener noreferrer sponsored" class="glow-button inline-block px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Visit Official Website</a>
+                    ` : `<p class="text-sm text-gray-500">El enlace oficial todavía no está confirmado -- muy pronto.</p>`}
+                    <p class="text-[11px] text-gray-600 mt-4">Vas a ser redirigido al sitio oficial de ${esc(p.name)}.</p>
+                </section>
+
+                <!-- Community CTA secundario -->
+                <section class="text-center py-4" data-reveal>
+                    <a href="community.html" class="text-sm text-gray-400 hover:text-white transition-colors"><i class="ph ph-users-three mr-1"></i> Join the NLT Community -- descuentos exclusivos, giveaways y educación.</a>
+                </section>
+
+                <!-- Legal/Trust -->
+                <div class="glass-card p-5 flex items-start gap-3" data-reveal>
+                    <i class="ph-fill ph-info text-nlt-accent text-xl mt-0.5 shrink-0"></i>
+                    <p class="text-xs text-gray-400 leading-relaxed">Information is provided for educational and informational purposes. Challenge rules, prices, platforms and offers may change. Always verify the current terms on the provider's official website before purchasing. <span class="text-gray-500">Affiliate disclosure: NLT may earn a commission from qualifying purchases through some partner links, at no additional cost to the user.</span></p>
+                </div>
+            `;
+
+            const btnCopiar = document.getElementById('btnCopiarCodigo');
+            if (btnCopiar) {
+                btnCopiar.addEventListener('click', () => {
+                    navigator.clipboard.writeText(p.discount_code).then(() => {
+                        btnCopiar.textContent = 'COPIED!';
+                        setTimeout(() => { btnCopiar.textContent = 'COPY CODE'; }, 2000);
+                    });
+                    _enviarEvento({ event_type: 'copy_code', partner_id: p.id, source_page: 'funded-detail.html' });
+                });
+            }
+            const btnVisitar = document.getElementById('btnVisitarOficial');
+            if (btnVisitar) {
+                btnVisitar.addEventListener('click', () => {
+                    _enviarEvento({ event_type: 'click_cta', partner_id: p.id, source_page: 'funded-detail.html' });
+                });
+            }
+
+            if (window.NLT && NLT.mountReveal) NLT.mountReveal();
+            _enviarEvento({ event_type: 'view_detail', partner_id: p.id, source_page: 'funded-detail.html' });
+        }
+
+        function renderNoEncontrado(slug) {
+            document.getElementById('contenido').innerHTML = `
+                <div class="text-center py-24" data-reveal>
+                    <i class="ph ph-magnifying-glass text-4xl text-gray-600 mb-4"></i>
+                    <h1 class="text-xl font-bold text-white mb-2">No encontramos esta prop firm</h1>
+                    <p class="text-sm text-gray-500 mb-8">"${esc(slug || '')}" no existe o ya no está disponible.</p>
+                    <a href="funded.html" class="inline-block px-6 py-3 rounded-xl bg-white/5 text-gray-200 hover:bg-white/10 transition-all text-sm font-semibold">Volver a Prop Hub</a>
+                </div>
+            `;
+        }
+
+        async function init() {
+            const slug = new URLSearchParams(window.location.search).get('slug');
+            if (!slug) { renderNoEncontrado(); return; }
+            try {
+                const partner = await NLT_API.propHubObtenerPartner(slug);
+                render(partner);
+            } catch (err) {
+                renderNoEncontrado(slug);
+            }
+            NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        }
+
+        init();
+        NLT.mountReveal();
+        setTimeout(() => {
+            document.querySelectorAll('[data-reveal]').forEach((el) => {
+                if (getComputedStyle(el).opacity === '0') el.style.opacity = '1';
+            });
+        }, 2500);
+    </script>
+</body>
+</html>

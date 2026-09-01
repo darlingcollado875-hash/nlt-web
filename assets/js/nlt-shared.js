@@ -560,6 +560,10 @@
     const NAV_PROPFIRM = [
         { id: 'propfirm-dashboard', href: 'propfirm-dashboard.html', icono: 'ph-squares-four', label: 'Dashboard' },
         { id: 'propfirm-landing', href: 'propfirm.html', icono: 'ph-trophy', label: 'Challenges' },
+        // Prop Hub -- directorio de prop firms EXTERNAS con salida por referral,
+        // distinto del challenge propio de NLT (propfirm-landing/-dashboard de
+        // arriba). Ver nlt-web/supabase/prop_hub.sql.
+        { id: 'prop-hub', href: 'funded.html', icono: 'ph-buildings', label: 'Prop Hub' },
     ];
 
     // NLT Elite Signals -- mismo patrón que NAV_BROKER/NAV_PROPFIRM (un solo

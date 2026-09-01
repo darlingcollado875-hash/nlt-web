@@ -110,6 +110,7 @@
             <button data-seccion="afiliados" class="tab-admin"><i class="ph-fill ph-share-network mr-1.5"></i>Affiliates</button>
             <button data-seccion="broker" class="tab-admin"><i class="ph-fill ph-briefcase mr-1.5"></i>Broker</button>
             <button data-seccion="propfirm" class="tab-admin"><i class="ph-fill ph-trophy mr-1.5"></i>Prop Firm</button>
+            <button data-seccion="prop_hub" class="tab-admin"><i class="ph-fill ph-buildings mr-1.5"></i>Prop Hub</button>
             <button data-seccion="journal" class="tab-admin"><i class="ph-fill ph-notebook mr-1.5"></i>Trader Journal</button>
             <button data-seccion="elite_signals" class="tab-admin"><i class="ph-fill ph-broadcast mr-1.5"></i>Elite Signals</button>
             <button data-seccion="partners" class="tab-admin"><i class="ph-fill ph-handshake mr-1.5"></i>Partners</button>
@@ -1277,6 +1278,43 @@
                     <p class="text-xs text-gray-500">Vista unificada de Broker + Prop Firm + Futures -- nunca muestra "Connected" sin una conexión real.</p>
                     <div id="listaTradingProviders" class="grid grid-cols-1 md:grid-cols-3 gap-4"><p class="text-sm text-gray-500 col-span-full">Cargando...</p></div>
                 </div>
+            </div>
+
+            <!-- NLT PROP HUB (directorio de prop firms EXTERNAS con salida por referral -- distinto de Prop Firm de arriba, que es el challenge propio de NLT) -->
+            <div id="seccion-prop_hub" class="seccion-admin hidden space-y-6">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-buildings text-nlt-accent"></i> NLT Prop Hub -- Partners</h2>
+                    <button id="btn-nuevo-ph-partner" class="px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer"><i class="ph-bold ph-plus"></i> Nuevo partner</button>
+                </div>
+                <p class="text-xs text-gray-500">"Recommended" y "Tested by NLT" se marcan a mano acá -- NUNCA se calculan automáticamente por existir un affiliate_url/comisión.</p>
+
+                <div id="formNuevoPhPartner" class="glass-card p-6 hidden">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <input id="phSlug" placeholder="slug (ej: institutional-funding)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phName" placeholder="Nombre" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phLogoUrl" placeholder="Logo URL" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phPlatforms" placeholder="Platforms (coma: MT5, TradeLocker)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phOfficialUrl" placeholder="Official URL" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phAffiliateUrl" placeholder="Affiliate/Referral URL" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phMinAccount" type="number" placeholder="Min Account" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phMaxAccount" type="number" placeholder="Max Account" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phProfitSplit" type="number" placeholder="Profit Split %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phPayoutInfo" placeholder="Payout Info" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountPercent" type="number" placeholder="Discount %" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="phDiscountCode" placeholder="Discount Code" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <textarea id="phDescription" placeholder="Description (What They Offer)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm col-span-2 md:col-span-3" rows="2"></textarea>
+                        <label class="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" id="phIsTested"> Tested by NLT</label>
+                        <label class="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" id="phIsRecommended"> Recommended by NLT</label>
+                        <label class="flex items-center gap-2 text-xs text-gray-300"><input type="checkbox" id="phActivo" checked> Activo (publicar en /funded)</label>
+                    </div>
+                    <div class="flex gap-2 mt-3">
+                        <button id="btn-guardar-ph-partner" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Guardar</button>
+                        <button id="btn-cancelar-ph-partner" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Cancelar</button>
+                    </div>
+                    <p id="phPartnerMsg" class="mt-2 text-xs hidden"></p>
+                </div>
+
+                <div id="listaPhPartners" class="space-y-4"><p class="text-sm text-gray-500">Cargando...</p></div>
             </div>
 
             <!-- NLT TRADER JOURNAL (Fase 23 -- solo métricas agregadas, nunca trades/screenshots privados de un usuario) -->
@@ -4314,6 +4352,146 @@
             await cargarTradingProviders();
         }
 
+        // --- NLT Prop Hub (admin) -- directorio de prop firms EXTERNAS, distinto de Prop Firm de arriba ---
+
+        function _phBadgeChip(activo, label, dataAttr, id, valorActual) {
+            const cls = activo ? 'bg-nlt-accent/10 text-nlt-accent border-nlt-accent/20' : 'bg-white/5 text-gray-500 border-white/10';
+            return `<button data-toggle="${dataAttr}" data-id="${id}" data-valor="${valorActual}" class="px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-widest border ${cls} cursor-pointer">${label}</button>`;
+        }
+
+        function _phChallengeRow(c) {
+            return `<div class="flex items-center justify-between text-xs text-gray-400 py-1.5 border-b border-white/5 last:border-0">
+                <span>$${Number(c.account_size).toLocaleString()} · ${esc(c.challenge_type || '-')} ${c.fee != null ? `· fee $${c.fee}` : ''}</span>
+                <button data-toggle-challenge="${c.id}" data-valor="${c.activo}" class="text-[10px] font-semibold ${c.activo ? 'text-nlt-success' : 'text-gray-600'} cursor-pointer">${c.activo ? 'ACTIVO' : 'INACTIVO'}</button>
+            </div>`;
+        }
+
+        async function _renderPhChallenges(partnerId, box) {
+            try {
+                const challenges = await NLT_API.adminPropHubListarChallenges(partnerId);
+                box.innerHTML = challenges.map(_phChallengeRow).join('') || '<p class="text-xs text-gray-600">Sin challenges todavía.</p>';
+                box.querySelectorAll('[data-toggle-challenge]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        await NLT_API.adminPropHubActualizarChallenge(btn.getAttribute('data-toggle-challenge'), { activo: btn.getAttribute('data-valor') !== 'true' });
+                        await _renderPhChallenges(partnerId, box);
+                    });
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        function _phPartnerCard(p) {
+            return `
+                <div class="glass-item p-5" data-partner-card="${p.id}">
+                    <div class="flex items-center justify-between mb-2">
+                        <div>
+                            <p class="text-sm text-white font-semibold">${esc(p.name)} <span class="text-gray-600 font-normal">/${esc(p.slug)}</span></p>
+                            <p class="text-xs text-gray-500">${p.discount_code ? `Code: ${esc(p.discount_code)}` : 'Sin código todavía'} ${p.affiliate_url ? '· referral configurado' : '· sin referral URL todavía'}</p>
+                        </div>
+                        <div class="flex items-center gap-1.5">
+                            ${_phBadgeChip(p.activo, 'Activo', 'activo', p.id, p.activo)}
+                            ${_phBadgeChip(p.is_tested, 'Tested', 'is_tested', p.id, p.is_tested)}
+                            ${_phBadgeChip(p.is_recommended, 'Recommended', 'is_recommended', p.id, p.is_recommended)}
+                        </div>
+                    </div>
+                    <details class="mt-3">
+                        <summary class="text-xs text-gray-500 cursor-pointer hover:text-gray-300">Challenges</summary>
+                        <div class="mt-2 space-y-1" id="phChallenges-${p.id}"><p class="text-xs text-gray-600">Cargando...</p></div>
+                        <div class="grid grid-cols-2 md:grid-cols-5 gap-2 mt-3">
+                            <input placeholder="Account size" type="number" class="ph-new-challenge-size bg-black/20 border border-white/5 rounded-lg px-2 py-1.5 text-xs">
+                            <input placeholder="Fee" type="number" class="ph-new-challenge-fee bg-black/20 border border-white/5 rounded-lg px-2 py-1.5 text-xs">
+                            <input placeholder="Type (1-Step, 2-Step...)" class="ph-new-challenge-type bg-black/20 border border-white/5 rounded-lg px-2 py-1.5 text-xs">
+                            <input placeholder="Platform" class="ph-new-challenge-platform bg-black/20 border border-white/5 rounded-lg px-2 py-1.5 text-xs">
+                            <button data-add-challenge="${p.id}" class="px-2 py-1.5 rounded-lg bg-nlt-accent/10 text-nlt-accent text-xs font-semibold cursor-pointer">+ Agregar</button>
+                        </div>
+                    </details>
+                </div>
+            `;
+        }
+
+        async function cargarPhPartners() {
+            const box = document.getElementById('listaPhPartners');
+            try {
+                const partners = await NLT_API.adminPropHubListarPartners();
+                box.innerHTML = partners.map(_phPartnerCard).join('') || '<p class="text-sm text-gray-500">Sin partners todavía.</p>';
+
+                box.querySelectorAll('[data-toggle]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        const campo = btn.getAttribute('data-toggle');
+                        await NLT_API.adminPropHubActualizarPartner(btn.getAttribute('data-id'), { [campo]: btn.getAttribute('data-valor') !== 'true' });
+                        await cargarPhPartners();
+                    });
+                });
+                box.querySelectorAll('[data-add-challenge]').forEach((btn) => {
+                    btn.addEventListener('click', async () => {
+                        const partnerId = btn.getAttribute('data-add-challenge');
+                        const card = box.querySelector(`[data-partner-card="${partnerId}"]`);
+                        const size = Number(card.querySelector('.ph-new-challenge-size').value);
+                        if (!size) { alert('Account size es obligatorio.'); return; }
+                        await NLT_API.adminPropHubCrearChallenge(partnerId, {
+                            account_size: size,
+                            fee: Number(card.querySelector('.ph-new-challenge-fee').value) || null,
+                            challenge_type: card.querySelector('.ph-new-challenge-type').value.trim() || null,
+                            platform: card.querySelector('.ph-new-challenge-platform').value.trim() || null,
+                        });
+                        card.querySelector('.ph-new-challenge-size').value = '';
+                        card.querySelector('.ph-new-challenge-fee').value = '';
+                        card.querySelector('.ph-new-challenge-type').value = '';
+                        card.querySelector('.ph-new-challenge-platform').value = '';
+                        await _renderPhChallenges(partnerId, document.getElementById(`phChallenges-${partnerId}`));
+                    });
+                });
+                partners.forEach((p) => {
+                    const el = document.getElementById(`phChallenges-${p.id}`);
+                    if (el) _renderPhChallenges(p.id, el);
+                });
+            } catch (err) {
+                box.innerHTML = `<p class="text-sm text-nlt-danger">Error: ${esc(err.message)}</p>`;
+            }
+        }
+
+        document.getElementById('btn-nuevo-ph-partner').addEventListener('click', () => {
+            document.getElementById('formNuevoPhPartner').classList.toggle('hidden');
+        });
+        document.getElementById('btn-cancelar-ph-partner').addEventListener('click', () => {
+            document.getElementById('formNuevoPhPartner').classList.add('hidden');
+        });
+        document.getElementById('btn-guardar-ph-partner').addEventListener('click', async () => {
+            const msg = document.getElementById('phPartnerMsg');
+            try {
+                const platformsRaw = document.getElementById('phPlatforms').value.trim();
+                await NLT_API.adminPropHubCrearPartner({
+                    slug: document.getElementById('phSlug').value.trim(),
+                    name: document.getElementById('phName').value.trim(),
+                    logo_url: document.getElementById('phLogoUrl').value.trim() || null,
+                    platforms: platformsRaw ? platformsRaw.split(',').map((s) => s.trim()).filter(Boolean) : null,
+                    official_url: document.getElementById('phOfficialUrl').value.trim() || null,
+                    affiliate_url: document.getElementById('phAffiliateUrl').value.trim() || null,
+                    min_account: Number(document.getElementById('phMinAccount').value) || null,
+                    max_account: Number(document.getElementById('phMaxAccount').value) || null,
+                    profit_split_percent: Number(document.getElementById('phProfitSplit').value) || null,
+                    payout_info: document.getElementById('phPayoutInfo').value.trim() || null,
+                    discount_percent: Number(document.getElementById('phDiscountPercent').value) || null,
+                    discount_code: document.getElementById('phDiscountCode').value.trim() || null,
+                    description: document.getElementById('phDescription').value.trim() || null,
+                    is_tested: document.getElementById('phIsTested').checked,
+                    is_recommended: document.getElementById('phIsRecommended').checked,
+                    activo: document.getElementById('phActivo').checked,
+                });
+                document.getElementById('formNuevoPhPartner').classList.add('hidden');
+                await cargarPhPartners();
+            } catch (err) {
+                msg.className = 'text-xs text-nlt-danger';
+                msg.textContent = 'Error: ' + err.message;
+                msg.classList.remove('hidden');
+            }
+        });
+
+        async function cargarPropHubTodo() {
+            await cargarPhPartners();
+        }
+
         // --- NLT Trader Journal (Fase 23 -- solo agregados) ---
         async function cargarJournalTodo() {
             try {
@@ -4953,6 +5131,7 @@
             afiliados: [cargarAfiliadosTodo],
             broker: [cargarBrokerTodo],
             propfirm: [cargarPropfirmTodo],
+            prop_hub: [cargarPropHubTodo],
             journal: [cargarJournalTodo],
             elite_signals: [cargarSignalsTodo],
             partners: [cargarPartnersTodo],
