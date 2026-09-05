@@ -756,6 +756,9 @@
         adminSignalsCrear: (datos) => request('/admin/signals', { method: 'POST', body: JSON.stringify(datos) }),
         adminSignalsActualizarStatus: (signalId, status) => request(`/admin/signals/${signalId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
+        // --- NLT Bot Supreme (Fase 4, ver RATIFIED INTEGRATION CONTRACT v1) ---
+        botMiLicencia: () => request('/bot/mi-licencia'),
+
         // --- NLT Indicator AI (módulo indicator_ai de NLT_API) ---
         // El backend resuelve el usuario del JWT y toda la autorización
         // (indicator access / ai access / cuota) -- el front nunca decide.

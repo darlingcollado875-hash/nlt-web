@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Bot Supreme | Dashboard</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* Safety net -- mismo fix que las otras páginas del Mobile Sweep:
+           documentElement es el único nivel que contiene de verdad overflow
+           horizontal (position:fixed no queda contenido por overflow de body). */
+        html { overflow-x: hidden; }
+
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #sidebar { transition: none; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Bot Supreme</h1>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-6 md:p-10 space-y-6">
+
+            <!-- CARGANDO -->
+            <div id="vistaCargando" class="py-24 text-center">
+                <p class="text-sm text-gray-500 animate-pulse">Cargando NLT Bot Supreme...</p>
+            </div>
+
+            <!-- SIN ACCESO (estado 5: usuario sin entitlement) -->
+            <div id="vistaSinAcceso" class="hidden py-16 max-w-lg mx-auto text-center">
+                <div class="glass-card p-10">
+                    <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
+                    <h2 class="text-xl font-bold text-white mb-2">Necesitás una suscripción activa</h2>
+                    <p class="text-sm text-gray-500 mb-6">Todavía no tenés acceso a NLT Bot Supreme.</p>
+                    <a href="ecosystem.html" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Ver el ecosistema NLT</a>
+                </div>
+            </div>
+
+            <!-- DASHBOARD -->
+            <div id="vistaDashboard" class="hidden space-y-6">
+
+                <!-- Banner de estado -- una sola de estas 4 se muestra a la vez -->
+                <div id="bannerActive" class="hidden glass-card p-4 flex items-center gap-3 border-nlt-success/30">
+                    <i class="ph-fill ph-check-circle text-nlt-success text-xl"></i>
+                    <p class="text-sm text-nlt-success"><strong>Licencia activa</strong> -- tu instalación de NLT Bot Supreme puede operar con normalidad.</p>
+                </div>
+                <div id="bannerPending" class="hidden glass-card p-4 flex items-center gap-3 border-nlt-warn/30">
+                    <i class="ph-fill ph-hourglass-medium text-nlt-warn text-xl"></i>
+                    <p class="text-sm text-nlt-warn"><strong>Activando tu licencia</strong> -- tu suscripción está confirmada, estamos generando tu licencia. Esto normalmente toma solo unos minutos; si sigue así después de un rato, escribinos a soporte.</p>
+                </div>
+                <div id="bannerBlocked" class="hidden glass-card p-4 flex items-center gap-3 border-nlt-danger/30">
+                    <i class="ph-fill ph-warning-circle text-nlt-danger text-xl"></i>
+                    <p id="bannerBlockedTexto" class="text-sm text-nlt-danger"></p>
+                </div>
+                <div id="bannerUnverifiable" class="hidden glass-card p-4 flex items-center gap-3 border-nlt-warn/30">
+                    <i class="ph-fill ph-cloud-warning text-nlt-warn text-xl"></i>
+                    <p class="text-sm text-nlt-warn"><strong>No pudimos verificar tu licencia en vivo</strong> -- puede ser algo temporal del lado del servidor de licencias. Volvé a intentar en unos minutos.</p>
+                </div>
+                <!-- Aviso secundario -- se muestra ADEMÁS del banner de arriba
+                     cuando el estado mostrado viene de un cache que no se pudo
+                     refrescar recién (nunca reemplaza el estado real conocido). -->
+                <div id="avisoNoVerificado" class="hidden glass-item p-3 flex items-center gap-2 text-xs text-gray-500">
+                    <i class="ph ph-info text-gray-500"></i>
+                    <span id="avisoNoVerificadoTexto"></span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+                    <div class="glass-card p-5 md:p-6">
+                        <p class="text-[11px] font-medium text-gray-400 mb-2 uppercase tracking-wider">License Key</p>
+                        <div class="flex items-center gap-2">
+                            <code id="licenseKeyValor" class="flex-1 text-sm md:text-base font-mono text-white bg-black/20 rounded-lg px-3 py-2.5 truncate">--</code>
+                            <button id="btnCopiarKey" type="button" class="shrink-0 w-10 h-10 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-300 cursor-pointer" title="Copiar">
+                                <i class="ph ph-copy text-lg"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="glass-card p-5 md:p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Estado</p>
+                            <p id="estadoValor" class="text-xl md:text-2xl font-bold text-white">--</p>
+                        </div>
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph-fill ph-robot text-xl md:text-2xl"></i></div>
+                    </div>
+                    <div class="glass-card p-5 md:p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Dispositivos</p>
+                            <div class="flex items-baseline gap-1"><h2 class="text-2xl md:text-3xl font-bold text-white" id="devicesUsados">--</h2><span class="text-lg text-gray-500">/ <span id="devicesMax">--</span></span></div>
+                        </div>
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-desktop text-xl md:text-2xl"></i></div>
+                    </div>
+                    <div class="glass-card p-5 md:p-6 flex justify-between items-center">
+                        <div>
+                            <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Cuentas</p>
+                            <div class="flex items-baseline gap-1"><h2 class="text-2xl md:text-3xl font-bold text-white" id="accountsUsadas">--</h2><span class="text-lg text-gray-500">/ <span id="accountsMax">--</span></span></div>
+                        </div>
+                        <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-plugs-connected text-xl md:text-2xl"></i></div>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <h3 class="text-sm font-bold text-white mb-1">Instalador de NLT Bot Supreme</h3>
+                        <p class="text-xs text-gray-500">La descarga todavía no está disponible desde acá -- la vamos a habilitar pronto.</p>
+                    </div>
+                    <button type="button" disabled class="shrink-0 px-6 py-3 rounded-xl bg-white/5 text-gray-500 font-semibold text-sm cursor-not-allowed flex items-center gap-2">
+                        <i class="ph ph-download-simple"></i> Descargar installer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=20260905"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260905"></script>
+    <script>
+        const ESTADO_LABEL = {
+            active: 'Activa', pending_activation: 'Pendiente de activación', suspended: 'Suspendida',
+            revoked: 'Revocada', expired: 'Expirada', unverifiable: 'No verificable',
+        };
+        const ESTADO_BLOQUEADO_TEXTO = {
+            suspended: 'Tu licencia está suspendida -- contactá a soporte para más información.',
+            revoked: 'Tu licencia fue revocada -- contactá a soporte si creés que esto es un error.',
+            expired: 'Tu licencia expiró -- contactá a soporte para reactivarla.',
+        };
+
+        function ocultarBanners() {
+            ['bannerActive', 'bannerPending', 'bannerBlocked', 'bannerUnverifiable', 'avisoNoVerificado'].forEach((id) => {
+                document.getElementById(id).classList.add('hidden');
+            });
+        }
+
+        function renderLicencia(datos) {
+            ocultarBanners();
+
+            document.getElementById('licenseKeyValor').textContent = datos.license_key || '--';
+            document.getElementById('estadoValor').textContent = ESTADO_LABEL[datos.state] || datos.state;
+            document.getElementById('devicesUsados').textContent = (datos.devices || []).length;
+            document.getElementById('devicesMax').textContent = datos.max_devices ?? '--';
+            document.getElementById('accountsUsadas').textContent = (datos.accounts || []).length;
+            document.getElementById('accountsMax').textContent = datos.max_accounts ?? '--';
+
+            if (datos.state === 'active') {
+                document.getElementById('bannerActive').classList.remove('hidden');
+            } else if (datos.state === 'pending_activation') {
+                document.getElementById('bannerPending').classList.remove('hidden');
+            } else if (datos.state === 'unverifiable') {
+                document.getElementById('bannerUnverifiable').classList.remove('hidden');
+            } else if (ESTADO_BLOQUEADO_TEXTO[datos.state]) {
+                document.getElementById('bannerBlockedTexto').textContent = ESTADO_BLOQUEADO_TEXTO[datos.state];
+                document.getElementById('bannerBlocked').classList.remove('hidden');
+            }
+
+            // Aviso secundario -- el backend ya decidió mostrar el último
+            // estado conocido (ver app/services/nlt_bot_dashboard.py); acá
+            // solo se informa que no se pudo confirmar en vivo, sin ocultar
+            // ese estado.
+            if (datos.verified_live === false && datos.verification_note && datos.state !== 'unverifiable') {
+                document.getElementById('avisoNoVerificadoTexto').textContent = datos.verification_note;
+                document.getElementById('avisoNoVerificado').classList.remove('hidden');
+            }
+        }
+
+        async function cargarDashboard() {
+            const datos = await NLT_API.botMiLicencia();
+            renderLicencia(datos);
+        }
+
+        document.getElementById('btnCopiarKey').addEventListener('click', async () => {
+            const valor = document.getElementById('licenseKeyValor').textContent;
+            if (!valor || valor === '--') return;
+            try {
+                await navigator.clipboard.writeText(valor);
+                const btn = document.getElementById('btnCopiarKey');
+                btn.innerHTML = '<i class="ph-fill ph-check text-lg text-nlt-success"></i>';
+                setTimeout(() => { btn.innerHTML = '<i class="ph ph-copy text-lg"></i>'; }, 1500);
+            } catch (_) { /* clipboard no disponible -- no rompe la página */ }
+        });
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            await NLT.mountSidebar(session, { activo: 'bot-dashboard', seccion: 'bot' });
+
+            document.getElementById('vistaCargando').classList.add('hidden');
+
+            try {
+                await cargarDashboard();
+            } catch (err) {
+                document.getElementById('vistaSinAcceso').classList.remove('hidden');
+                return;
+            }
+
+            document.getElementById('vistaDashboard').classList.remove('hidden');
+
+            // Mismo patrón que signals-dashboard.html/dashboard.html -- se
+            // auto-pausa en tab oculta y refresca al volver.
+            NLT.pollWhileVisible(async () => {
+                try { await cargarDashboard(); } catch (_) { /* si perdió el acceso a mitad de sesión, se queda con lo último mostrado */ }
+            }, 60000);
+        }
+
+        init();
+    </script>
+</body>
+</html>
