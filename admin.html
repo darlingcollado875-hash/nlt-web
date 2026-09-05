@@ -115,6 +115,7 @@
             <button data-seccion="elite_signals" class="tab-admin"><i class="ph-fill ph-broadcast mr-1.5"></i>Elite Signals</button>
             <button data-seccion="partners" class="tab-admin"><i class="ph-fill ph-handshake mr-1.5"></i>Partners</button>
             <button data-seccion="soporte" class="tab-admin"><i class="ph-fill ph-lifebuoy mr-1.5"></i>Soporte</button>
+            <button data-seccion="nlt_bot" class="tab-admin"><i class="ph-fill ph-robot mr-1.5"></i>NLT Bot Supreme</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
         </nav>
 
@@ -1602,6 +1603,103 @@
                 </div>
             </div>
 
+            <!-- NLT BOT SUPREME (Fase 6, ver RATIFIED INTEGRATION CONTRACT v1) --
+                 nlt_bot_view puede consultar; nlt_bot_manage además puede
+                 mutar (ver nbPuedeGestionar() más abajo) -- los botones/
+                 controles de mutación se ocultan del todo si no hay permiso,
+                 pero la protección real está en el backend, no acá. -->
+            <div id="seccion-nlt_bot" class="seccion-admin hidden space-y-6">
+                <div class="flex items-center justify-between flex-wrap gap-2">
+                    <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-robot text-nlt-accent"></i> NLT Bot Supreme -- Licencias</h2>
+                    <button id="btn-nb-nueva-licencia" class="hidden px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer"><i class="ph-bold ph-plus"></i> Crear licencia manual</button>
+                </div>
+                <p class="text-xs text-gray-500">El listado es el índice local del Ecosystem -- el estado en vivo se consulta al License Server recién al abrir el detalle de una licencia puntual (no hay endpoint bulk del otro lado).</p>
+
+                <div id="formNbNuevaLicencia" class="glass-card p-6 hidden">
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input id="nbNuevoEmail" type="email" placeholder="Email del usuario (pago manual, soporte, recuperación)" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <button id="btn-nb-guardar-licencia" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer whitespace-nowrap">Crear</button>
+                        <button id="btn-nb-cancelar-licencia" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer whitespace-nowrap">Cancelar</button>
+                    </div>
+                    <p id="nbNuevaLicenciaMsg" class="mt-2 text-xs hidden"></p>
+                </div>
+
+                <div class="glass-card p-4 flex flex-col sm:flex-row gap-2 flex-wrap">
+                    <select id="nbFiltroStatus" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs">
+                        <option value="">Todos los estados</option>
+                        <option value="ACTIVE">ACTIVE</option>
+                        <option value="SUSPENDED">SUSPENDED</option>
+                        <option value="REVOKED">REVOKED</option>
+                        <option value="EXPIRED">EXPIRED</option>
+                    </select>
+                    <input id="nbFiltroLicenseKey" placeholder="Buscar por license key..." class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs">
+                    <button id="btn-nb-buscar" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer whitespace-nowrap">Buscar</button>
+                </div>
+
+                <div class="glass-card overflow-x-auto">
+                    <table class="responsive-table w-full text-left text-sm">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
+                            <tr>
+                                <th class="px-5 py-3 font-semibold">Usuario (user_id)</th>
+                                <th class="px-5 py-3 font-semibold">License Key</th>
+                                <th class="px-5 py-3 font-semibold">Estado (cache)</th>
+                                <th class="px-5 py-3 font-semibold">Dispositivos</th>
+                                <th class="px-5 py-3 font-semibold">Cuentas</th>
+                                <th class="px-5 py-3 font-semibold">Creada</th>
+                                <th class="px-5 py-3 font-semibold">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaNbLicencias" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="7" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
+                    </table>
+                </div>
+
+                <!-- Detalle de licencia -- panel, no navegación aparte (mismo
+                     patrón que abrirPanelPermisos de Administración Global). -->
+                <div id="nbPanelDetalle" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                    <div class="glass-card w-full max-w-2xl max-h-[85vh] overflow-y-auto p-6 space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-bold text-white">Detalle de licencia</h3>
+                            <button id="btn-nb-cerrar-detalle" class="text-gray-400 hover:text-white cursor-pointer"><i class="ph-bold ph-x text-lg"></i></button>
+                        </div>
+                        <div id="nbDetalleAvisoNoVerificado" class="hidden glass-item p-3 text-xs text-nlt-warn"></div>
+                        <div class="grid grid-cols-2 gap-3 text-xs">
+                            <div class="glass-item p-3"><p class="text-gray-500 uppercase tracking-wider mb-1">Usuario</p><p id="nbDetalleEmail" class="text-white font-semibold break-all">--</p></div>
+                            <div class="glass-item p-3"><p class="text-gray-500 uppercase tracking-wider mb-1">Estado</p><p id="nbDetalleEstado" class="text-white font-semibold">--</p></div>
+                            <div class="glass-item p-3 col-span-2"><p class="text-gray-500 uppercase tracking-wider mb-1">License Key</p><p id="nbDetalleLicenseKey" class="text-white font-mono break-all">--</p></div>
+                            <div class="glass-item p-3"><p class="text-gray-500 uppercase tracking-wider mb-1">license_server_id</p><p id="nbDetalleServerId" class="text-white">--</p></div>
+                            <div class="glass-item p-3"><p class="text-gray-500 uppercase tracking-wider mb-1">Creada</p><p id="nbDetalleCreada" class="text-white">--</p></div>
+                        </div>
+
+                        <!-- Cambiar estado: nlt_bot_manage únicamente (mutación) -->
+                        <div id="nbAccionesGestion" class="hidden border-t border-white/5 pt-4">
+                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Cambiar estado</p>
+                            <div class="flex flex-wrap gap-2">
+                                <button data-nb-status="ACTIVE" class="nb-btn-status px-3 py-1.5 rounded-lg bg-nlt-success/10 border border-nlt-success/20 text-nlt-success text-xs font-semibold cursor-pointer">Reactivar</button>
+                                <button data-nb-status="SUSPENDED" class="nb-btn-status px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold cursor-pointer">Suspender</button>
+                                <button data-nb-status="REVOKED" class="nb-btn-status px-3 py-1.5 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer">Revocar</button>
+                            </div>
+                        </div>
+
+                        <!-- Dispositivos/Cuentas: la LISTA es nlt_bot_view (soporte
+                             necesita verlas); el botón "Liberar"/"Vincular" de cada
+                             una es nlt_bot_manage, renderizado condicionalmente en JS. -->
+                        <div class="border-t border-white/5 pt-4">
+                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Dispositivos</p>
+                            <div id="nbDetalleDevices" class="space-y-1.5"></div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-gray-500 uppercase tracking-wider mb-2">Cuentas</p>
+                            <div id="nbBindAccountForm" class="hidden flex gap-2 mb-2">
+                                <input id="nbBindBrokerAccountId" placeholder="broker_account_id" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs">
+                                <button id="btn-nb-bind-account" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer whitespace-nowrap">Vincular</button>
+                            </div>
+                            <div id="nbDetalleAccounts" class="space-y-1.5"></div>
+                        </div>
+                        <p id="nbDetalleMsg" class="text-xs hidden"></p>
+                    </div>
+                </div>
+            </div>
+
             <!-- ADMINISTRACIÓN GLOBAL (exclusivo Global Admin) -->
             <div id="seccion-admin-global" class="seccion-admin hidden space-y-6">
                 <div>
@@ -1652,7 +1750,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260905c"></script>
     <script src="assets/js/nlt-certificate.js?v=20260814c"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -4500,6 +4598,181 @@
             await cargarPhPartners();
         }
 
+        // --- NLT Bot Supreme (Fase 6, ver RATIFIED INTEGRATION CONTRACT v1) ---
+        // El listado es 100% el índice local (nlt_bot_licenses) -- el
+        // License Server no tiene endpoint bulk. El detalle sí intenta un
+        // refresh en vivo (ver GET /admin/nlt-bot/licenses/{id} en el
+        // backend); los controles de mutación (cambiar estado, liberar
+        // dispositivo, vincular cuenta) se ocultan del todo para un admin
+        // sin nlt_bot_manage -- la protección real está en el backend.
+        let nbLicenciaActual = null;
+
+        function nbMostrarMsg(elId, texto, tipo) {
+            const msg = document.getElementById(elId);
+            msg.classList.remove('hidden');
+            msg.className = `mt-2 text-xs ${tipo === 'ok' ? 'text-nlt-success' : 'text-nlt-danger'}`;
+            msg.textContent = texto;
+        }
+
+        function nbRenderTabla(licencias) {
+            document.getElementById('tablaNbLicencias').innerHTML = licencias.length ? licencias.map((l) => `
+                <tr>
+                    <td data-label="Usuario" class="px-5 py-3 font-mono text-xs text-gray-400 break-all">${esc(l.user_id)}</td>
+                    <td data-label="License Key" class="px-5 py-3 font-mono text-xs text-white break-all">${esc(l.license_key)}</td>
+                    <td data-label="Estado" class="px-5 py-3">${esc(l.status_cache)}</td>
+                    <td data-label="Dispositivos" class="px-5 py-3">${l.devices.length}${l.max_devices != null ? ' / ' + l.max_devices : ''}</td>
+                    <td data-label="Cuentas" class="px-5 py-3">${l.accounts.length}${l.max_accounts != null ? ' / ' + l.max_accounts : ''}</td>
+                    <td data-label="Creada" class="px-5 py-3 text-xs text-gray-500">${new Date(l.created_at).toLocaleString('es')}</td>
+                    <td data-label="Acciones" class="px-5 py-3">
+                        <button data-nb-detalle="${l.id}" class="px-2.5 py-1 rounded-lg bg-white/10 text-xs font-semibold hover:bg-white/20 cursor-pointer">Ver detalle</button>
+                    </td>
+                </tr>
+            `).join('') : '<tr><td colspan="7" class="px-5 py-3 text-gray-500">Sin licencias todavía.</td></tr>';
+
+            document.querySelectorAll('[data-nb-detalle]').forEach((btn) => {
+                btn.addEventListener('click', () => nbAbrirDetalle(btn.getAttribute('data-nb-detalle')));
+            });
+        }
+
+        async function nbBuscar() {
+            const tbody = document.getElementById('tablaNbLicencias');
+            tbody.innerHTML = '<tr><td colspan="7" class="px-5 py-3 text-gray-500 animate-pulse">Cargando...</td></tr>';
+            try {
+                const licencias = await NLT_API.adminNltBotListar({
+                    status_cache: document.getElementById('nbFiltroStatus').value || undefined,
+                    q: document.getElementById('nbFiltroLicenseKey').value.trim() || undefined,
+                });
+                nbRenderTabla(licencias);
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="7" class="px-5 py-3 text-nlt-danger">Error: ${esc(err.message)}</td></tr>`;
+            }
+        }
+
+        async function cargarNltBotTodo() {
+            document.getElementById('btn-nb-nueva-licencia').classList.toggle('hidden', !puedeGestionarNltBot());
+            await nbBuscar();
+        }
+
+        document.getElementById('btn-nb-buscar').addEventListener('click', nbBuscar);
+        document.getElementById('nbFiltroLicenseKey').addEventListener('keydown', (e) => { if (e.key === 'Enter') nbBuscar(); });
+
+        document.getElementById('btn-nb-nueva-licencia').addEventListener('click', () => {
+            document.getElementById('formNbNuevaLicencia').classList.toggle('hidden');
+        });
+        document.getElementById('btn-nb-cancelar-licencia').addEventListener('click', () => {
+            document.getElementById('formNbNuevaLicencia').classList.add('hidden');
+            document.getElementById('nbNuevoEmail').value = '';
+        });
+        document.getElementById('btn-nb-guardar-licencia').addEventListener('click', async () => {
+            const email = document.getElementById('nbNuevoEmail').value.trim();
+            if (!email) return;
+            try {
+                const fila = await NLT_API.adminNltBotCrearLicencia(email);
+                nbMostrarMsg('nbNuevaLicenciaMsg', fila.ya_existia ? `Ya existía una licencia para ${email} -- se muestra la existente.` : `Licencia creada para ${email}.`, 'ok');
+                document.getElementById('formNbNuevaLicencia').classList.add('hidden');
+                document.getElementById('nbNuevoEmail').value = '';
+                await nbBuscar();
+            } catch (err) {
+                nbMostrarMsg('nbNuevaLicenciaMsg', 'Error: ' + err.message, 'error');
+            }
+        });
+
+        function nbRenderDevicesYAccounts(datos) {
+            const puedeGestionar = puedeGestionarNltBot();
+            document.getElementById('nbDetalleDevices').innerHTML = datos.devices.length ? datos.devices.map((fp) => `
+                <div class="flex items-center justify-between bg-black/20 rounded-lg px-3 py-2">
+                    <span class="text-xs font-mono text-gray-300 break-all">${esc(fp)}</span>
+                    ${puedeGestionar ? `<button data-nb-liberar="${esc(fp)}" class="px-2 py-1 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer whitespace-nowrap">Liberar</button>` : ''}
+                </div>
+            `).join('') : '<p class="text-xs text-gray-500">Sin dispositivos vinculados.</p>';
+
+            document.getElementById('nbDetalleAccounts').innerHTML = datos.accounts.length
+                ? datos.accounts.map((a) => `<div class="bg-black/20 rounded-lg px-3 py-2 text-xs font-mono text-gray-300">${esc(a)}</div>`).join('')
+                : '<p class="text-xs text-gray-500">Sin cuentas vinculadas.</p>';
+
+            document.getElementById('nbBindAccountForm').classList.toggle('hidden', !puedeGestionar);
+
+            document.querySelectorAll('[data-nb-liberar]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const fingerprint = btn.getAttribute('data-nb-liberar');
+                    if (!confirm(`¿Liberar el dispositivo ${fingerprint}? El bot instalado ahí perderá la validación de licencia hasta que se reactive en un nuevo dispositivo.`)) return;
+                    try {
+                        const actualizado = await NLT_API.adminNltBotLiberarDispositivo(nbLicenciaActual.id, fingerprint);
+                        nbLicenciaActual = { ...nbLicenciaActual, ...actualizado };
+                        nbRenderDevicesYAccounts(nbLicenciaActual);
+                        nbMostrarMsg('nbDetalleMsg', 'Dispositivo liberado.', 'ok');
+                        await nbBuscar();
+                    } catch (err) {
+                        nbMostrarMsg('nbDetalleMsg', 'Error: ' + err.message, 'error');
+                    }
+                });
+            });
+        }
+
+        async function nbAbrirDetalle(licenciaId) {
+            document.getElementById('nbPanelDetalle').classList.remove('hidden');
+            document.getElementById('nbDetalleMsg').classList.add('hidden');
+            document.getElementById('nbDetalleAvisoNoVerificado').classList.add('hidden');
+            document.getElementById('nbDetalleEmail').textContent = 'Cargando...';
+            document.getElementById('nbAccionesGestion').classList.add('hidden');
+            try {
+                const datos = await NLT_API.adminNltBotDetalle(licenciaId);
+                nbLicenciaActual = datos;
+                document.getElementById('nbDetalleEmail').textContent = datos.email || datos.user_id;
+                document.getElementById('nbDetalleEstado').textContent = datos.status_cache;
+                document.getElementById('nbDetalleLicenseKey').textContent = datos.license_key;
+                document.getElementById('nbDetalleServerId').textContent = datos.license_server_id;
+                document.getElementById('nbDetalleCreada').textContent = new Date(datos.created_at).toLocaleString('es');
+                if (datos.verification_note) {
+                    document.getElementById('nbDetalleAvisoNoVerificado').textContent = datos.verification_note;
+                    document.getElementById('nbDetalleAvisoNoVerificado').classList.remove('hidden');
+                }
+                document.getElementById('nbAccionesGestion').classList.toggle('hidden', !puedeGestionarNltBot());
+                nbRenderDevicesYAccounts(datos);
+            } catch (err) {
+                document.getElementById('nbDetalleEmail').textContent = 'Error';
+                nbMostrarMsg('nbDetalleMsg', 'Error: ' + err.message, 'error');
+            }
+        }
+
+        document.querySelectorAll('.nb-btn-status').forEach((btn) => {
+            btn.addEventListener('click', async () => {
+                if (!nbLicenciaActual) return;
+                const nuevoStatus = btn.getAttribute('data-nb-status');
+                if (nuevoStatus === 'REVOKED' && !confirm(`¿Revocar esta licencia (${nbLicenciaActual.license_key})? El bot dejará de funcionar de inmediato para este usuario.`)) return;
+                try {
+                    const actualizado = await NLT_API.adminNltBotCambiarStatus(nbLicenciaActual.id, nuevoStatus, nuevoStatus === 'REVOKED');
+                    nbLicenciaActual = { ...nbLicenciaActual, ...actualizado };
+                    document.getElementById('nbDetalleEstado').textContent = nbLicenciaActual.status_cache;
+                    nbMostrarMsg('nbDetalleMsg', `Estado actualizado a ${nbLicenciaActual.status_cache}.`, 'ok');
+                    await nbBuscar();
+                } catch (err) {
+                    nbMostrarMsg('nbDetalleMsg', 'Error: ' + err.message, 'error');
+                }
+            });
+        });
+
+        document.getElementById('btn-nb-bind-account').addEventListener('click', async () => {
+            if (!nbLicenciaActual) return;
+            const brokerAccountId = document.getElementById('nbBindBrokerAccountId').value.trim();
+            if (!brokerAccountId) return;
+            try {
+                const actualizado = await NLT_API.adminNltBotBindAccount(nbLicenciaActual.id, brokerAccountId);
+                nbLicenciaActual = { ...nbLicenciaActual, ...actualizado };
+                nbRenderDevicesYAccounts(nbLicenciaActual);
+                document.getElementById('nbBindBrokerAccountId').value = '';
+                nbMostrarMsg('nbDetalleMsg', 'Cuenta vinculada.', 'ok');
+                await nbBuscar();
+            } catch (err) {
+                nbMostrarMsg('nbDetalleMsg', 'Error: ' + err.message, 'error');
+            }
+        });
+
+        document.getElementById('btn-nb-cerrar-detalle').addEventListener('click', () => {
+            document.getElementById('nbPanelDetalle').classList.add('hidden');
+            nbLicenciaActual = null;
+        });
+
         // --- NLT Trader Journal (Fase 23 -- solo agregados) ---
         async function cargarJournalTodo() {
             try {
@@ -5144,13 +5417,24 @@
             elite_signals: [cargarSignalsTodo],
             partners: [cargarPartnersTodo],
             soporte: [cargarSoporteTodo],
+            nlt_bot: [cargarNltBotTodo],
         };
 
         let _esGlobalAdmin = false;
         let _misPermisos = { permissions: {}, modules: [] };
 
         function puede(modulo) {
+            // NLT Bot Supreme es el único módulo con 2 permisos reales
+            // (nlt_bot_view/nlt_bot_manage) mapeados a UNA sola pestaña de
+            // UI ('nlt_bot' es solo un id de agrupación visual, no una
+            // clave de MODULOS_ADMIN) -- cualquiera de los dos permisos
+            // real la habilita (gestionar implica poder ver).
+            if (modulo === 'nlt_bot') return _esGlobalAdmin || !!_misPermisos.permissions.nlt_bot_view || !!_misPermisos.permissions.nlt_bot_manage;
             return _esGlobalAdmin || !!_misPermisos.permissions[modulo];
+        }
+
+        function puedeGestionarNltBot() {
+            return _esGlobalAdmin || !!_misPermisos.permissions.nlt_bot_manage;
         }
 
         async function init() {

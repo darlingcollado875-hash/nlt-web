@@ -762,6 +762,20 @@
         // temporal (600s), nunca un bucket/storage_key hardcodeado acá.
         botDescargarInstaller: () => request('/bot/download'),
 
+        // --- admin: NLT Bot Supreme (Fase 6) ---
+        adminNltBotListar: (filtros = {}) => {
+            const qs = new URLSearchParams();
+            if (filtros.status_cache) qs.set('status_cache', filtros.status_cache);
+            if (filtros.q) qs.set('q', filtros.q);
+            const query = qs.toString();
+            return request(`/admin/nlt-bot/licenses${query ? '?' + query : ''}`);
+        },
+        adminNltBotDetalle: (licenciaId) => request(`/admin/nlt-bot/licenses/${licenciaId}`),
+        adminNltBotCrearLicencia: (email) => request('/admin/nlt-bot/licenses', { method: 'POST', body: JSON.stringify({ email }) }),
+        adminNltBotCambiarStatus: (licenciaId, status, confirmar = false) => request(`/admin/nlt-bot/licenses/${licenciaId}/status`, { method: 'PATCH', body: JSON.stringify({ status, confirmar }) }),
+        adminNltBotBindAccount: (licenciaId, brokerAccountId) => request(`/admin/nlt-bot/licenses/${licenciaId}/accounts`, { method: 'POST', body: JSON.stringify({ broker_account_id: brokerAccountId }) }),
+        adminNltBotLiberarDispositivo: (licenciaId, fingerprint) => request(`/admin/nlt-bot/licenses/${licenciaId}/devices/${encodeURIComponent(fingerprint)}?confirmar=true`, { method: 'DELETE' }),
+
         // --- NLT Indicator AI (módulo indicator_ai de NLT_API) ---
         // El backend resuelve el usuario del JWT y toda la autorización
         // (indicator access / ai access / cuota) -- el front nunca decide.
