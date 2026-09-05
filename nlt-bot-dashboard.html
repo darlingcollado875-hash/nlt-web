@@ -129,9 +129,9 @@
                 <div class="glass-card p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
                         <h3 class="text-sm font-bold text-white mb-1">Instalador de NLT Bot Supreme</h3>
-                        <p class="text-xs text-gray-500">La descarga todavía no está disponible desde acá -- la vamos a habilitar pronto.</p>
+                        <p id="descargaEstadoTexto" class="text-xs text-gray-500">El link de descarga se genera al momento -- válido por 10 minutos.</p>
                     </div>
-                    <button type="button" disabled class="shrink-0 px-6 py-3 rounded-xl bg-white/5 text-gray-500 font-semibold text-sm cursor-not-allowed flex items-center gap-2">
+                    <button id="btnDescargarInstaller" type="button" class="shrink-0 px-6 py-3 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer flex items-center gap-2">
                         <i class="ph ph-download-simple"></i> Descargar installer
                     </button>
                 </div>
@@ -141,7 +141,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=20260905"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260905"></script>
+    <script src="assets/js/nlt-api-client.js?v=20260905b"></script>
     <script>
         const ESTADO_LABEL = {
             active: 'Activa', pending_activation: 'Pendiente de activación', suspended: 'Suspendida',
@@ -204,6 +204,40 @@
                 btn.innerHTML = '<i class="ph-fill ph-check text-lg text-nlt-success"></i>';
                 setTimeout(() => { btn.innerHTML = '<i class="ph ph-copy text-lg"></i>'; }, 1500);
             } catch (_) { /* clipboard no disponible -- no rompe la página */ }
+        });
+
+        // Fase 5 (Secure Download) -- el frontend NUNCA conoce el bucket,
+        // la storage_key ni ningún dato de infraestructura: solo llama al
+        // endpoint del Ecosystem, recibe una signed URL temporal (600s) y
+        // arranca la descarga con ella. Ningún hardcode de R2/storage acá.
+        document.getElementById('btnDescargarInstaller').addEventListener('click', async () => {
+            const btn = document.getElementById('btnDescargarInstaller');
+            const estado = document.getElementById('descargaEstadoTexto');
+            const htmlOriginal = btn.innerHTML;
+            btn.disabled = true;
+            btn.classList.add('opacity-60', 'cursor-not-allowed');
+            btn.innerHTML = '<i class="ph ph-spinner-gap animate-spin"></i> Preparando descarga...';
+            estado.className = 'text-xs text-gray-500';
+            estado.textContent = 'Generando tu link de descarga...';
+            try {
+                const { download_url, version } = await NLT_API.botDescargarInstaller();
+                estado.className = 'text-xs text-nlt-success';
+                estado.textContent = `Descarga iniciada -- versión ${version}. Si no arrancó sola, volvé a intentar.`;
+                // Navegación directa (no fetch+blob): es una signed URL de
+                // un solo uso efectivo dentro de su TTL, el navegador maneja
+                // la descarga del .exe nativamente.
+                window.location.href = download_url;
+            } catch (err) {
+                // err.message ya es el `detail` que el backend arma a
+                // propósito para mostrarse tal cual (nunca un stack trace
+                // ni un detalle de infraestructura -- ver GET /bot/download).
+                estado.className = 'text-xs text-nlt-danger';
+                estado.textContent = err.message || 'No pudimos iniciar la descarga -- probá de nuevo en unos minutos.';
+            } finally {
+                btn.disabled = false;
+                btn.classList.remove('opacity-60', 'cursor-not-allowed');
+                btn.innerHTML = htmlOriginal;
+            }
         });
 
         async function init() {
