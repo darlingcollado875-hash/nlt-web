@@ -348,10 +348,19 @@
         // resolucion del canvas por pasos (hasta 50%) en vez de trabarse.
         // En pantallas tactiles se limita a ~30 fps (el fondo se mueve
         // despacio: no se nota y se ahorra la mitad de GPU/bateria).
-        const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        // En móvil el fondo se dibuja a la mitad de resolución CSS (el shader
+        // es un degradado suave: reescalado no se nota) y a ~24 fps, y se
+        // congela mientras el dedo está desplazando la página -- el scroll
+        // compite por la misma GPU y es lo que el usuario sí nota.
         const coarse = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
-        const minGap = coarse ? 32 : 0;
-        let scale = 1;
+        const dpr = coarse ? 0.5 : Math.min(window.devicePixelRatio || 1, 1.5);
+        const minGap = coarse ? 41 : 0;
+        let scale = 1, scrollingUntil = 0;
+        if (coarse) {
+            const marcar = () => { scrollingUntil = performance.now() + 180; };
+            window.addEventListener('scroll', marcar, { passive: true });
+            window.addEventListener('touchmove', marcar, { passive: true });
+        }
         function resize() {
             const d = dpr * scale;
             canvas.width = Math.floor(window.innerWidth * d);
@@ -365,8 +374,9 @@
         const start = performance.now();
         function frame(now) {
             raf = requestAnimationFrame(frame);
+            if (now < scrollingUntil) { last = 0; return; }
             if (minGap && now - last < minGap) return;
-            const dt = last ? now - last : 16;
+            const dt = last ? now - last : (minGap || 16);
             last = now;
             gl.uniform2f(uRes, canvas.width, canvas.height);
             gl.uniform1f(uTime, (now - start) / 1000);
@@ -374,7 +384,7 @@
             acc += dt; cnt++;
             if (cnt === 45) {
                 const avg = acc / cnt; acc = 0; cnt = 0;
-                if (avg > (minGap ? 44 : 26) && scale > 0.5) { scale = Math.max(0.5, scale * 0.75); resize(); }
+                if (avg > (minGap ? 70 : 26) && scale > 0.5) { scale = Math.max(0.5, scale * 0.75); resize(); }
             }
         }
         // Pausa el rAF cuando la pestaña no esta visible -- evita quemar GPU
@@ -456,6 +466,22 @@
             @media (prefers-reduced-motion: reduce) {
                 .icon-wrap i { animation: none !important; transform: none !important; }
             }
+            /* Móvil: sin hover no hay spotlight ni inclinación que mostrar, y
+               el grano parpadeante (mix-blend-mode) + el vaivén de cada ícono
+               repintaban todas las tarjetas visibles 2-60 veces por segundo.
+               Queda el mismo grano, estático. */
+            @media (hover: none), (pointer: coarse) {
+                /* El blur(24px) de cada tarjeta sobre el fondo animado obligaba
+                   a la GPU a re-desenfocar todas las tarjetas visibles en cada
+                   frame del fondo -- la causa principal de los tirones al hacer
+                   scroll en el celular. El fondo es un degradado suave: sin
+                   el blur la tarjeta se ve prácticamente igual. */
+                .glass-card { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+                .glass-card::after { animation: none; opacity: 0.045; }
+                .glass-card::before { display: none; }
+                .icon-wrap { perspective: none; transform-style: flat; }
+                .icon-wrap i { animation: none; transform: none; transition: none; }
+            }
         `;
         document.head.appendChild(style);
 
@@ -510,6 +536,13 @@
                 -webkit-backdrop-filter: blur(20px) saturate(1.4) !important;
                 box-shadow: 0 8px 30px -10px rgba(0, 0, 0, 0.5);
             }
+            @media (hover: none), (pointer: coarse) {
+                header.nav-blur.nlt-nav-scrolled {
+                    background-color: rgba(8, 10, 15, 0.78) !important;
+                    backdrop-filter: blur(12px) !important;
+                    -webkit-backdrop-filter: blur(12px) !important;
+                }
+            }
         `;
         document.head.appendChild(style);
 
@@ -552,7 +585,9 @@
         .nlt-story-grid { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
         @media (min-width: 480px)  { .nlt-story-grid { grid-template-columns: 1fr 1fr; gap: 2rem; } }
         @media (min-width: 1024px) { .nlt-story-grid { gap: 4rem; } }
-        @media (max-width: 479px)  { .nlt-story-grid > .nlt-chip-stack { order: -1; } }
+        /* En teléfono el objeto va arriba del texto: si quedara sticky, los
+           pasos pasarían por debajo de él al hacer scroll (texto tapado). */
+        @media (max-width: 479px)  { .nlt-story-grid > .nlt-chip-stack { order: -1; position: relative; top: auto; } }
 
         .nlt-chip-stack {
             perspective: 1100px; height: clamp(160px, 44vw, 300px);
@@ -609,6 +644,12 @@
             .nlt-chip-part { transition: none; }
             .nlt-story .nlt-step, .nlt-story .nlt-step::before { transition: none; }
         }
+        /* Móvil: el desenfoque detrás de capas 3D se recalcula en cada frame
+           y era lo más caro de la sección; las capas ya son casi opacas. */
+        @media (hover: none), (pointer: coarse) {
+            .nlt-chip-part.nlt-shape-layer { backdrop-filter: none; -webkit-backdrop-filter: none; }
+            .nlt-shape-layer::after { box-shadow: 0 0 22px -6px rgba(var(--acc), 0.8); }
+        }
         `;
         document.head.appendChild(style);
         (function () {
@@ -650,9 +691,21 @@
             if (!stories.length) return;
 
             const layerOf = (s, step) => clamp(s.layers.length - 1 - step, 0, s.layers.length - 1);
+            // Rendimiento (móvil): la escala se mide solo al montar y en resize
+            // -- leerla en cada frame (offsetWidth + getComputedStyle entre
+            // escrituras de transform) forzaba un layout síncrono por frame.
+            // En pantallas táctiles no hay vaivén continuo: el loop se apaga
+            // solo en cuanto todo llega a reposo y el scroll lo vuelve a encender.
+            const touch = window.matchMedia && window.matchMedia('(hover: none), (pointer: coarse)').matches;
+            function medir() {
+                stories.forEach((s) => {
+                    s.scale = (s.inner.offsetWidth / (parseFloat(getComputedStyle(s.inner).getPropertyValue('--w')) || 1)) / 190 || 1;
+                });
+            }
+            medir();
 
             function render(s, t) {
-                const scale = (s.inner.offsetWidth / (parseFloat(getComputedStyle(s.inner).getPropertyValue('--w')) || 1)) / 190 || 1;
+                const scale = s.scale;
                 const spread = (0.3 + 0.85 * s.e) * s.reveal;
                 const N = Math.max(1, s.steps.length);
                 const q = clamp((s.p - 0.3) / 0.4, 0, 0.999);
@@ -669,25 +722,34 @@
                 s.layers.forEach((l, i) => {
                     const want = i === target ? 1 : 0;
                     s.act[i] += (want - s.act[i]) * (reduce ? 1 : 0.16);
-                    const z = s.zs[i] * spread * scale + s.act[i] * 18 * scale;
-                    l.style.transform = 'translateZ(' + z.toFixed(2) + 'px)';
-                    l.style.setProperty('--a', s.act[i].toFixed(3));
+                    if (Math.abs(want - s.act[i]) < 0.002) s.act[i] = want;
+                    const z = (s.zs[i] * spread * scale + s.act[i] * 18 * scale).toFixed(1);
+                    const a = s.act[i].toFixed(2);
+                    // Solo se escribe lo que cambió: cada escritura de --a
+                    // recalcula estilos de la capa y repinta su aro de luz.
+                    if (l._z !== z) { l._z = z; l.style.transform = 'translateZ(' + z + 'px)'; }
+                    if (l._a !== a) { l._a = a; l.style.setProperty('--a', a); }
                 });
                 const rx = 55 - s.sty * 9;
                 const rz = -45 + (s.p - 0.5) * 46 + s.stx * 12;
-                const bob = reduce ? 0 : Math.sin(t * 0.9 + s.idx) * 3;
-                s.inner.style.transform = 'translateY(' + bob.toFixed(2) + 'px) rotateX(' + rx.toFixed(2) + 'deg) rotateZ(' + rz.toFixed(2) + 'deg)';
-                s.sec.style.setProperty('--sheen', (s.p * 1.5 - 0.25).toFixed(3));
+                const bob = (reduce || touch) ? 0 : Math.sin(t * 0.9 + s.idx) * 3;
+                const tr = 'translateY(' + bob.toFixed(2) + 'px) rotateX(' + rx.toFixed(2) + 'deg) rotateZ(' + rz.toFixed(2) + 'deg)';
+                if (s._tr !== tr) { s._tr = tr; s.inner.style.transform = tr; }
+                // --sheen va en el objeto (no en la sección): así solo
+                // recalcula estilos de las capas, no de todo el texto.
+                const sh = (s.p * 1.5 - 0.25).toFixed(3);
+                if (s._sh !== sh) { s._sh = sh; s.inner.style.setProperty('--sheen', sh); }
             }
 
             let running = false;
             function frame(now) {
                 const t = now / 1000, vh = window.innerHeight;
-                let any = false;
-                stories.forEach((s) => {
-                    if (!s.visible) return;
-                    any = true;
-                    const r = s.sec.getBoundingClientRect();
+                const vis = stories.filter((s) => s.visible);
+                // Primero todas las lecturas de layout, después todas las escrituras.
+                const rects = vis.map((s) => s.sec.getBoundingClientRect());
+                let moving = false;
+                vis.forEach((s, k) => {
+                    const r = rects[k];
                     const d = ((r.top + r.height / 2) - vh / 2) / (vh / 2 + r.height / 2); // +1 abajo .. -1 arriba
                     const p = clamp((1 - d) / 2, 0, 1);
                     const e = clamp(1 - Math.pow(Math.abs(d), 1.5), 0, 1);
@@ -697,10 +759,14 @@
                     s.stx += (s.tx - s.stx) * 0.10;
                     s.sty += (s.ty - s.sty) * 0.10;
                     render(s, t);
+                    if (!touch || Math.abs(p - s.p) + Math.abs(e - s.e) + (1 - s.reveal) + Math.abs(s.tx - s.stx) + Math.abs(s.ty - s.sty) > 0.003
+                        || s.act.some((v) => v > 0.002 && v < 0.998)) moving = true;
                 });
-                if (any) requestAnimationFrame(frame); else running = false;
+                if (vis.length && moving) requestAnimationFrame(frame); else running = false;
             }
             function ensure() { if (!running && !reduce) { running = true; requestAnimationFrame(frame); } }
+            if (touch) window.addEventListener('scroll', ensure, { passive: true });
+            window.addEventListener('resize', () => { medir(); ensure(); }, { passive: true });
 
             if (reduce) {
                 stories.forEach((s) => { s.reveal = 1; s.e = 0.7; s.p = 0.5; s.stack.classList.add('nlt-in'); render(s, 0); });
@@ -716,7 +782,6 @@
                 ensure();
             }, { rootMargin: '120px 0px 120px 0px' });
             stories.forEach((s) => io.observe(s.sec));
-            window.addEventListener('resize', ensure, { passive: true });
         })();
     }
 
@@ -1115,9 +1180,9 @@
                 if (started) return;
                 started = true;
                 // primero el frame 0 y el ultimo, despues el resto en orden
-                // en movil / ahorro de datos: solo los frames pares (mitad de descarga; nearest() cubre los huecos)
+                // en movil / ahorro de datos: 1 de cada 3 frames (un tercio de descarga; nearest() cubre los huecos)
                 const lite = (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) || (navigator.connection && navigator.connection.saveData);
-                const order = [0, n - 1]; for (let i = 1; i < n - 1; i++) { if (!lite || i % 2 === 0) order.push(i); }
+                const order = [0, n - 1]; for (let i = 1; i < n - 1; i++) { if (!lite || i % 3 === 0) order.push(i); }
                 order.forEach((i) => {
                     const im = new Image();
                     im.onload = () => { imgs[i] = im; dirty = true; if (!raf && live) raf = requestAnimationFrame(frame); else if (reduce) draw(); };
@@ -1190,24 +1255,35 @@
         frames.forEach((wrap) => {
             const frame = wrap.querySelector('.nlt-frame');
             if (!frame || reduce) return;
-            let px = 0, py = 0, cx = 0, cy = 0, live = false, raf = 0;
+            let px = 0, py = 0, cx = 0, cy = 0, live = false, raf = 0, prev = '';
+            // Solo corre mientras algo se mueve (scroll, cursor o inercia):
+            // en reposo no hay rAF ni recálculo de estilos.
             function loop() {
                 const r = wrap.getBoundingClientRect(), vh = window.innerHeight;
                 const p = Math.max(0, Math.min(1, (vh * 0.98 - r.top) / (vh * 0.75)));
                 const e = p * p * (3 - 2 * p);
                 cx += (px - cx) * 0.08; cy += (py - cy) * 0.08;
-                wrap.style.setProperty('--rx', ((1 - e) * 15 + cy * -3).toFixed(2) + 'deg');
-                wrap.style.setProperty('--ry', (cx * 4).toFixed(2) + 'deg');
-                wrap.style.setProperty('--s', (0.9 + 0.1 * e).toFixed(3));
-                raf = live ? requestAnimationFrame(loop) : 0;
+                const rx = ((1 - e) * 15 + cy * -3).toFixed(2), ry = (cx * 4).toFixed(2), sc = (0.9 + 0.1 * e).toFixed(3);
+                const key = rx + ry + sc;
+                if (key !== prev) {
+                    wrap.style.setProperty('--rx', rx + 'deg');
+                    wrap.style.setProperty('--ry', ry + 'deg');
+                    wrap.style.setProperty('--s', sc);
+                }
+                const quieto = key === prev && Math.abs(px - cx) + Math.abs(py - cy) < 0.002;
+                prev = key;
+                raf = (live && !quieto) ? requestAnimationFrame(loop) : 0;
             }
-            new IntersectionObserver((es) => { live = es[0].isIntersecting; if (live && !raf) raf = requestAnimationFrame(loop); }, { rootMargin: '200px 0px' }).observe(wrap);
+            const kick = () => { if (live && !raf) raf = requestAnimationFrame(loop); };
+            new IntersectionObserver((es) => { live = es[0].isIntersecting; kick(); }, { rootMargin: '200px 0px' }).observe(wrap);
+            window.addEventListener('scroll', kick, { passive: true });
             wrap.addEventListener('pointermove', (e) => {
+                kick();
                 const r = wrap.getBoundingClientRect();
                 px = ((e.clientX - r.left) / r.width) * 2 - 1; py = ((e.clientY - r.top) / r.height) * 2 - 1;
                 wrap.style.setProperty('--mx', (e.clientX - r.left) + 'px'); wrap.style.setProperty('--my', (e.clientY - r.top) + 'px');
             }, { passive: true });
-            wrap.addEventListener('pointerleave', () => { px = 0; py = 0; });
+            wrap.addEventListener('pointerleave', () => { px = 0; py = 0; kick(); });
         });
     }
 
@@ -1626,6 +1702,9 @@
             .glow-button { will-change: translate; transition: translate 0.25s cubic-bezier(0.16, 1, 0.3, 1); }
             #nlt-liquid-bg { will-change: transform; }
             @media (prefers-reduced-motion: reduce) { .nlt-w { animation: none; opacity: 1; transform: none; filter: none; } }
+            /* Móvil: el blur animado por palabra es caro en el primer segundo de carga. */
+            @media (hover: none), (pointer: coarse) { .nlt-w { filter: none; animation-name: nlt-word-in-lite; } }
+            @keyframes nlt-word-in-lite { to { opacity: 1; transform: none; } }
         `;
         document.head.appendChild(style);
 
@@ -1999,6 +2078,13 @@
             id: 'propfirm', nombre: 'NLT Funded', status: 'live', href: 'propfirm.html',
             icono: 'ph-trophy', descripcion: 'Compra tu challenge y accede a una cuenta funded a través de nuestro partner de PropFirm.',
             color: '245,158,11',
+        },
+        {
+            // Directorio de prop firms EXTERNAS con descuento NLT (salida por
+            // referral, sin checkout propio) -- distinto de NLT Funded.
+            id: 'prop-hub', nombre: 'NLT Prop Hub', status: 'live', href: 'funded.html',
+            icono: 'ph-buildings', descripcion: 'Compara las prop firms partner de NLT y entra con descuentos exclusivos para la comunidad.',
+            color: '129,140,248',
         },
         {
             id: 'journal', nombre: 'NLT Trader Journal', status: 'live', href: 'journal.html',
@@ -3242,7 +3328,141 @@
         }));
     }
 
+    // NLT Prop Hub -- vitrina de partners REALES (/prop-hub/partners) con su
+    // descuento y código. Se usa en index.html y ecosystem.html. Sin partners
+    // (o si falla la API) la sección que la contiene se oculta: nunca se
+    // muestra un partner o un descuento inventado.
+    const HUB_RGB = '129,140,248';
+    function _cssPropHub() {
+        if (document.getElementById('nlt-hub-css')) return;
+        const st = document.createElement('style');
+        st.id = 'nlt-hub-css';
+        st.textContent = `
+        .hub-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(178px,1fr)); gap:14px; }
+        .hub-ticket { --hub:${HUB_RGB}; position:relative; display:flex; flex-direction:column; gap:14px; padding:18px 18px 16px;
+            border-radius:20px; overflow:hidden; contain:layout paint;
+            background:linear-gradient(180deg, rgba(20,24,34,0.78), rgba(12,15,21,0.92));
+            border:1px solid rgba(var(--hub),0.18);
+            transition:transform .35s cubic-bezier(.2,.8,.2,1), border-color .35s ease, box-shadow .35s ease; }
+        .hub-ticket::before { content:''; position:absolute; inset:-1px; border-radius:inherit; pointer-events:none; opacity:0;
+            background:radial-gradient(120% 70% at 50% -10%, rgba(var(--hub),0.22), transparent 60%); transition:opacity .35s ease; }
+        @media (hover:hover) { .hub-ticket:hover { transform:translateY(-4px); border-color:rgba(var(--hub),0.5);
+            box-shadow:0 22px 50px -28px rgba(var(--hub),0.85); } .hub-ticket:hover::before { opacity:1; } }
+        .hub-link { position:absolute; inset:0; z-index:1; border-radius:inherit; }
+        .hub-link:focus-visible { outline:2px solid rgb(var(--hub)); outline-offset:2px; }
+        .hub-head { display:flex; align-items:center; gap:12px; }
+        .hub-logo { width:40px; height:40px; border-radius:12px; object-fit:contain; background:rgba(255,255,255,0.06); padding:5px; flex-shrink:0; }
+        .hub-mono { width:40px; height:40px; border-radius:12px; flex-shrink:0; display:flex; align-items:center; justify-content:center;
+            font-weight:800; font-size:17px; color:#fff; background:linear-gradient(135deg, rgba(var(--hub),0.9), rgba(168,85,247,0.75)); }
+        .hub-name { font-weight:700; color:#fff; font-size:15px; line-height:1.2; }
+        .hub-kind { font-size:11px; color:#9ca3af; letter-spacing:.04em; }
+        .hub-off { display:flex; align-items:baseline; gap:6px; padding-bottom:12px; border-bottom:1px dashed rgba(255,255,255,0.1); }
+        .hub-pct { font-size:42px; line-height:1; font-weight:800; letter-spacing:-0.035em;
+            background:linear-gradient(135deg,#fff 20%, rgb(var(--hub)) 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
+        .hub-offl { font-size:12px; font-weight:800; letter-spacing:.18em; color:rgb(var(--hub)); }
+        .hub-foot { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px; margin-top:auto; }
+        .hub-code { position:relative; z-index:2; display:inline-flex; align-items:center; gap:6px; padding:6px 10px; border-radius:10px;
+            border:1px dashed rgba(var(--hub),0.55); background:rgba(var(--hub),0.08); color:#e5e7eb; font-size:12px; cursor:pointer;
+            transition:background .2s ease, border-color .2s ease; }
+        .hub-code b { letter-spacing:.06em; }
+        .hub-code:hover { background:rgba(var(--hub),0.16); }
+        .hub-code.is-ok { border-style:solid; border-color:rgba(34,197,94,0.7); color:#86efac; }
+        .hub-go { font-size:12px; font-weight:700; color:rgb(var(--hub)); display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
+        /* Teléfono: carrusel horizontal con snap (se desliza con el dedo) en
+           vez de una columna larga de tarjetas. */
+        @media (max-width: 639px) {
+            .hub-grid { grid-template-columns:none; grid-auto-flow:column; grid-auto-columns:78%; overflow-x:auto; overscroll-behavior-x:contain;
+                scroll-snap-type:x mandatory; scrollbar-width:none; --b:var(--hub-bleed,24px); margin:0 calc(-1 * var(--b)); padding:4px var(--b) 8px; scroll-padding:0 var(--b); }
+            .hub-grid::-webkit-scrollbar { display:none; }
+            .hub-ticket { scroll-snap-align:start; }
+        }
+        @media (prefers-reduced-motion: reduce) { .hub-ticket, .hub-ticket::before { transition:none; } }
+        `;
+        document.head.appendChild(st);
+    }
+
+    function _escHub(s) {
+        return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    async function _copiarTexto(texto) {
+        try { await navigator.clipboard.writeText(texto); return true; } catch (e) { /* fallback abajo */ }
+        try {
+            const t = document.createElement('textarea');
+            t.value = texto; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
+            document.body.appendChild(t); t.select();
+            const ok = document.execCommand('copy'); t.remove(); return ok;
+        } catch (e) { return false; }
+    }
+
+    // box: contenedor de las tarjetas. seccion: elemento a ocultar si no hay
+    // partners. Devuelve la lista usada (para textos dinámicos, ej. "hasta 25%").
+    async function mountPropHubShowcase(box, { seccion = null, max = 6, origen = 'web' } = {}) {
+        if (!box || !window.NLT_API || !NLT_API.propHubListarPartners) return [];
+        _cssPropHub();
+        let lista = [];
+        try { lista = await NLT_API.propHubListarPartners(); } catch (e) { lista = []; }
+        lista = (Array.isArray(lista) ? lista : [])
+            .filter((p) => p && p.name && p.slug)
+            .sort((a, b) => (a.sort_order ?? 99) - (b.sort_order ?? 99))
+            .slice(0, max);
+        if (!lista.length) { if (seccion) seccion.hidden = true; return []; }
+        if (seccion) seccion.hidden = false;
+
+        box.classList.add('hub-grid');
+        box.innerHTML = lista.map((p) => {
+            const pct = Number(p.discount_percent) > 0 ? Math.round(Number(p.discount_percent)) : null;
+            const logo = p.logo_url
+                ? `<img class="hub-logo" src="${_escHub(p.logo_url)}" alt="" loading="lazy" decoding="async" width="40" height="40">`
+                : `<span class="hub-mono" aria-hidden="true">${_escHub(p.name.trim()[0].toUpperCase())}</span>`;
+            const oferta = pct
+                ? `<span class="hub-pct">${pct}%</span><span class="hub-offl">OFF</span>`
+                : `<span class="hub-pct" style="font-size:26px">Partner</span>`;
+            const codigo = p.discount_code
+                ? `<button type="button" class="hub-code" data-code="${_escHub(p.discount_code)}" data-pid="${_escHub(p.id)}" aria-label="Copiar código ${_escHub(p.discount_code)}"><span>Código</span><b>${_escHub(p.discount_code)}</b><i class="ph ph-copy"></i></button>`
+                : '<span></span>';
+            return `
+                <article class="hub-ticket" data-pid="${_escHub(p.id)}">
+                    <a class="hub-link" href="/funded/${encodeURIComponent(p.slug)}" aria-label="Ver ${_escHub(p.name)} en Prop Hub"></a>
+                    <div class="hub-head">${logo}<div><p class="hub-name">${_escHub(p.name)}</p><p class="hub-kind">Partner NLT</p></div></div>
+                    <div class="hub-off">${oferta}</div>
+                    <div class="hub-foot">${codigo}<span class="hub-go">Ver oferta <i class="ph ph-arrow-right"></i></span></div>
+                </article>`;
+        }).join('');
+
+        const evento = (tipo, pid) => {
+            try { NLT_API.propHubRegistrarEventos([{ event_type: tipo, partner_id: pid, source_page: origen }]).catch(() => {}); } catch (e) { /* best-effort */ }
+        };
+        box.querySelectorAll('.hub-code').forEach((b) => b.addEventListener('click', async (ev) => {
+            ev.preventDefault(); ev.stopPropagation();
+            const ok = await _copiarTexto(b.dataset.code);
+            if (!ok) {
+                // Sin permiso de portapapeles: deja el código seleccionado para copiarlo a mano.
+                try { const r = document.createRange(); r.selectNodeContents(b.querySelector('b')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) { /* nada */ }
+                return;
+            }
+            const original = b.innerHTML;
+            b.classList.add('is-ok');
+            b.innerHTML = '<i class="ph-fill ph-check-circle"></i><b>¡Copiado!</b>';
+            setTimeout(() => { b.classList.remove('is-ok'); b.innerHTML = original; }, 1600);
+            evento('copy_code', b.dataset.pid);
+        }));
+        // Una impresión por partner cuando la vitrina entra en pantalla (un solo envío).
+        if ('IntersectionObserver' in window) {
+            const io = new IntersectionObserver((es) => {
+                if (!es.some((e) => e.isIntersecting)) return;
+                io.disconnect();
+                try {
+                    NLT_API.propHubRegistrarEventos(lista.map((p) => ({ event_type: 'impression', partner_id: p.id, source_page: origen }))).catch(() => {});
+                } catch (e) { /* best-effort */ }
+            }, { threshold: 0.2 });
+            io.observe(box);
+        }
+        return lista;
+    }
+
     window.NLT = {
+        mountPropHubShowcase,
         mountMetodosPago,
         supabase,
         ADMIN_EMAIL,

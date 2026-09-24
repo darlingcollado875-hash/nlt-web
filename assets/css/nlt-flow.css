@@ -40,6 +40,8 @@ body { overflow-x: clip !important; }
 .nlt-glowborder > .glass-card { flex: 1; border: 0; border-radius: 24px; background: linear-gradient(180deg, rgba(14,18,28,.97), rgba(8,10,16,.99)); }
 @keyframes nlt-glowspin { to { --nlt-ang: 360deg; } }
 @media (prefers-reduced-motion: reduce) { .nlt-glowborder { animation: none; } }
+/* Movil: el giro repinta el degradado y su halo desenfocado en cada frame -- queda fijo. */
+@media (hover: none), (pointer: coarse) { .nlt-glowborder { animation: none; --nlt-ang: 30deg; } }
 
 /* Chips de filtro (periodo de facturacion, etc.) */
 .nlt-chips { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.07); }

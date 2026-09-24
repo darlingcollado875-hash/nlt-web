@@ -49,7 +49,7 @@
     }
     </script>
     <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -74,7 +74,7 @@
          el parser -- los <script> inline del body ya se protegen solos
          (chequean document.readyState, o esperan a load/DOMContentLoaded). -->
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script defer src="assets/js/nlt-shared.js?v=376bb378"></script>
     <script defer src="assets/js/nlt-api-client.js?v=250fdb79"></script>
 
     <style>
@@ -114,6 +114,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="#modulos" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="/funded" class="hover:text-white transition-colors">Prop Hub</a>
                 <button id="nav-ecosystem" class="hover:text-white transition-colors cursor-pointer">Red en vivo</button>
             </nav>
             <div id="headerCTA"></div>
@@ -410,6 +411,37 @@
         </div>
     </section>
 
+    <!-- NLT PROP HUB -- directorio de prop firms/plataformas partner con descuento NLT.
+         La vitrina se llena con /prop-hub/partners (datos reales); sin partners se oculta. -->
+    <section id="prop-hub" class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(129,140,248)">NLT Prop Hub</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Fondéate con ventaja.<br>Descuentos exclusivos NLT.</h2>
+                <p class="text-gray-400 text-sm md:text-base leading-relaxed mb-5">Prop Hub reúne a las prop firms y plataformas partner de Next Level Trading en un solo lugar. Compara, elige y entra con el descuento de la comunidad<span data-hub-max></span>.</p>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(129,140,248)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Explora los partners</h3><p class="text-sm text-gray-400">Prop firms y plataformas que trabajan con NLT, en un solo directorio.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(129,140,248)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Compara condiciones</h3><p class="text-sm text-gray-400">Tamaños de cuenta, plataformas y reglas, con la información clara.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(129,140,248)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Copia tu código</h3><p class="text-sm text-gray-400">Códigos exclusivos para la comunidad NLT, a un toque.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(129,140,248)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Entra desde nuestro enlace</h3><p class="text-sm text-gray-400">La compra ocurre siempre en la web oficial de cada empresa.</p></div></div>
+                </div>
+                <a href="/funded" class="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-full text-white font-semibold text-sm glow-button" style="background:rgb(99,102,241)">Explorar Prop Hub <i class="ph ph-arrow-right"></i></a>
+            </div>
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(129,140,248,0.16), rgba(129,140,248,0.06)); border:1px solid rgba(129,140,248,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(129,140,248,0.24), rgba(20,24,32,0.95)); border:1px solid rgba(129,140,248,0.42); box-shadow:0 0 60px -10px rgba(129,140,248,0.55); color:rgb(129,140,248); font-size:2.2rem;">
+                        <i class="ph-fill ph-buildings"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div id="propHubShowcase" class="mt-8 md:mt-10" data-reveal></div>
+        <p class="text-[11px] text-gray-500 mt-4">NLT puede recibir una comisión por compras hechas desde estos enlaces, sin costo extra para ti. Verifica siempre las condiciones vigentes en la web oficial de cada empresa.</p>
+    </section>
+
     <!-- MÓDULOS -->
     <section id="modulos" class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-16">
         <div class="text-center mb-12" data-reveal>
@@ -582,6 +614,8 @@
         #hero-title { --nlt-hero-y: 28px; --nlt-hero-blur: 10px; animation-duration: 600ms; animation-delay: 120ms; }
         #hero-sub { --nlt-hero-y: 16px; animation-duration: 450ms; animation-delay: 320ms; }
         #hero-cta { --nlt-hero-y: 16px; animation-duration: 450ms; animation-delay: 420ms; }
+        /* Móvil: sin blur animado en la entrada (caro justo durante la carga). */
+        @media (hover: none), (pointer: coarse) { #hero-badge, #hero-title { --nlt-hero-blur: 0px; } }
         @media (prefers-reduced-motion: reduce) {
             #hero-badge, #hero-title, #hero-sub, #hero-cta { animation: none; opacity: 1; transform: none; filter: none; }
         }
@@ -756,6 +790,17 @@
                 if (!modal.classList.contains('hidden')) resize();
             });
         })();
+    </script>
+    <script>
+        // Prop Hub: vitrina con partners reales + "hasta X% OFF" calculado del mayor descuento real.
+        document.addEventListener('DOMContentLoaded', async () => {
+            const box = document.getElementById('propHubShowcase');
+            if (!box || !window.NLT || !NLT.mountPropHubShowcase) return;
+            const lista = await NLT.mountPropHubShowcase(box, { seccion: box, origen: 'index' });
+            const max = Math.max(0, ...lista.map((p) => Number(p.discount_percent) || 0));
+            const el = document.querySelector('[data-hub-max]');
+            if (el && max > 0) el.textContent = ': hasta ' + Math.round(max) + '% OFF';
+        });
     </script>
 </body>
 </html>

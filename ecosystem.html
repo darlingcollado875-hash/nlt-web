@@ -12,7 +12,7 @@
     <meta name="description" content="Qué es el ecosistema NLT: análisis, automatización, Copy System, Academy, Tools e Intelligence -- distintas soluciones de trading, una misma plataforma.">
     <link rel="canonical" href="https://nltnextlevel.uk/ecosystem">
     <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -28,7 +28,7 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script defer src="assets/js/nlt-shared.js?v=376bb378"></script>
     <script defer src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <style>
         /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
@@ -273,12 +273,49 @@
             .botx-tag.t2 { right: -2%; }
             .botx-tag.t1 { left: -2%; }
         }
+        /* Móvil: el borde giratorio (conic-gradient + halo con blur) se repintaba
+           en cada frame; queda fijo. El vaivén del motor pasa de un loop JS a
+           una animación CSS de transform (la hace el compositor, no el hilo principal). */
+        @media (hover: none), (pointer: coarse) {
+            .botx { animation: none; --botx-ang: 40deg; }
+            .botx-aurora { animation: none; }
+            .botx-stage { animation: botxSway 7s ease-in-out infinite alternate; }
+        }
+        @keyframes botxSway { from { transform: rotateX(8deg) rotateY(-18deg); } to { transform: rotateX(16deg) rotateY(-6deg); } }
         @media (prefers-reduced-motion: reduce) {
             .botx, .botx *, .botx *::before, .botx *::after { animation: none !important; transition: none !important; }
             .botx-lock .botx-l-closed { display: none; }
             .botx-lock .botx-l-open { opacity: 1; transform: none; }
             .botx-stage { transform: rotateX(12deg) rotateY(-12deg); }
         }
+
+        /* NLT Prop Hub -- panel índigo con borde degradado estático (sin
+           animaciones infinitas ni blur en vivo: cuesta cero en móvil). */
+        .hubx {
+            position: relative; isolation: isolate; overflow: hidden; border-radius: 28px;
+            padding: 34px 22px 26px;
+            background: linear-gradient(180deg, rgba(15,17,30,.96), rgba(8,9,15,.98)) padding-box,
+                        linear-gradient(135deg, rgba(129,140,248,.55), rgba(255,255,255,.06) 40%, rgba(34,211,238,.35)) border-box;
+            border: 1px solid transparent; --hub-bleed: 22px;
+        }
+        .hubx-top { display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px; align-items: center; }
+        @media (min-width: 768px) {
+            .hubx { padding: 48px 48px 34px; }
+            .hubx-top { grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 40px; }
+            #propHubShowcase { margin-top: 40px; }
+        }
+        .hubx-glow {
+            position: absolute; z-index: -1; pointer-events: none; inset: -40% -10% auto auto; width: 70%; height: 120%;
+            background: radial-gradient(closest-side, rgba(99,102,241,.22), transparent);
+        }
+        .hubx-grad { background: linear-gradient(100deg, #a5b4fc, #67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+        .hubx-stat {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 16px 14px; border-radius: 18px;
+            background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07);
+        }
+        .hubx-stat i { color: rgb(129,140,248); font-size: 20px; margin-bottom: 6px; }
+        .hubx-stat b { font-size: clamp(1.25rem, 3vw, 1.7rem); font-weight: 800; letter-spacing: -.02em; color: #fff; line-height: 1; }
+        .hubx-stat span { font-size: 11px; color: #9ca3af; }
     </style>
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="NLT">
@@ -306,6 +343,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="index.html#modulos" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="#prop-hub" class="hover:text-white transition-colors">Prop Hub</a>
                 <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
             </nav>
             <div id="headerCTA"></div>
@@ -454,6 +492,30 @@
         <div id="modulesGrid" class="bento"></div>
     </section>
 
+    <!-- NLT PROP HUB -- directorio de prop firms partner con descuentos NLT.
+         Las tarjetas vienen de /prop-hub/partners (NLT.mountPropHubShowcase);
+         sin partners activos la sección entera queda oculta. -->
+    <section id="prop-hub" class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="hubx" data-reveal>
+            <div class="hubx-glow" aria-hidden="true"></div>
+            <div class="hubx-top">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(129,140,248)">NLT Prop Hub</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.05] mb-4">Tu próxima cuenta fondeada,<br><span class="hubx-grad">con descuento NLT.</span></h2>
+                    <p class="text-gray-400 text-sm md:text-base leading-relaxed max-w-xl">Prop Hub es el directorio de prop firms y plataformas partner de Next Level Trading. Compara tamaños de cuenta, plataformas y reglas en un solo lugar, copia el código exclusivo de la comunidad y entra desde nuestro enlace para asegurar el descuento. La compra siempre ocurre en la web oficial de cada empresa.</p>
+                    <a href="/funded" class="inline-flex items-center gap-2 mt-6 px-6 py-3 rounded-full text-white font-semibold text-sm glow-button" style="background:rgb(99,102,241)">Explorar Prop Hub <i class="ph ph-arrow-right"></i></a>
+                </div>
+                <div class="grid grid-cols-3 gap-3">
+                    <div class="hubx-stat"><i class="ph-fill ph-buildings"></i><b data-hub-count>—</b><span>Partners</span></div>
+                    <div class="hubx-stat"><i class="ph-fill ph-seal-percent"></i><b data-hub-max>—</b><span>Descuento máx.</span></div>
+                    <div class="hubx-stat"><i class="ph-fill ph-link-simple"></i><b>100%</b><span>Web oficial</span></div>
+                </div>
+            </div>
+            <div id="propHubShowcase" class="mt-8"></div>
+            <p class="text-[11px] text-gray-500 mt-4">NLT puede recibir una comisión por compras hechas desde estos enlaces, sin costo extra para ti. Verifica siempre las condiciones vigentes en la web oficial de cada empresa.</p>
+        </div>
+    </section>
+
     <!-- ALIADOS DEL ECOSISTEMA -- constelacion con partners REALES (partnersPublicos + brokers activos + Prop Hub); sin partners queda oculta. -->
     <section class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-14 md:py-20" hidden>
         <div class="text-center mb-10 md:mb-12" data-reveal>
@@ -550,8 +612,9 @@
         (function () {
             // Bento: orden y tamaño por producto (4 columnas). Un producto nuevo
             // que no figure acá entra al final como tarjeta chica.
-            const ORDEN = ['copy', 'indicator', 'news', 'tools', 'elite-signals', 'futures-calc', 'forex-calc', 'academy', 'community', 'propfirm', 'broker', 'journal'];
-            const TAMANO = { copy: 'bt-feat', indicator: 'bt-wide', 'elite-signals': 'bt-wide', propfirm: 'bt-wide', broker: 'bt-wide', journal: 'bt-wide' };
+            // 24 celdas = 6 filas completas: NLT Funded y Prop Hub quedan lado a lado.
+            const ORDEN = ['copy', 'indicator', 'news', 'tools', 'elite-signals', 'futures-calc', 'forex-calc', 'academy', 'community', 'propfirm', 'prop-hub', 'broker', 'journal'];
+            const TAMANO = { copy: 'bt-feat', indicator: 'bt-wide', 'elite-signals': 'bt-wide', academy: 'bt-wide', community: 'bt-wide', propfirm: 'bt-wide', 'prop-hub': 'bt-wide', broker: 'bt-wide', journal: 'bt-wide' };
             const ARTE = {
                 copy: `<div class="bt-art bt-copy" aria-hidden="true">
                         <i class="ln" style="--len:193px; --ang:-21.2deg; --d:0s"></i><i class="ln" style="--len:198px; --ang:0deg; --d:-.9s"></i><i class="ln" style="--len:193px; --ang:21.2deg; --d:-1.8s"></i>
@@ -669,6 +732,21 @@
             }
             NLT.mountReveal('#videosBox [data-reveal]');
         })();
+
+        // NLT Prop Hub: tarjetas reales de /prop-hub/partners; sin partners la sección se oculta.
+        (async function () {
+            if (document.readyState === 'loading') {
+                await new Promise((resolve) => document.addEventListener('DOMContentLoaded', resolve));
+            }
+            const box = document.getElementById('propHubShowcase');
+            if (!box || !window.NLT || !NLT.mountPropHubShowcase) return;
+            const lista = await NLT.mountPropHubShowcase(box, { seccion: document.getElementById('prop-hub'), origen: 'ecosystem' });
+            const max = Math.max(0, ...lista.map((p) => Number(p.discount_percent) || 0));
+            const elMax = document.querySelector('#prop-hub [data-hub-max]');
+            const elCount = document.querySelector('#prop-hub [data-hub-count]');
+            if (elMax && max > 0) elMax.textContent = Math.round(max) + '%';
+            if (elCount && lista.length) elCount.textContent = String(lista.length);
+        })();
     </script>
 
     <!-- NLT Bot Supreme (tarjeta destacada): el motor 3D se inclina hacia el cursor
@@ -682,6 +760,8 @@
             const stage = document.getElementById('botxStage');
             const term = document.getElementById('botxTerm');
             const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            // En táctil el vaivén lo hace CSS (botxSway): sin loop rAF.
+            const touch = window.matchMedia('(hover: none), (pointer: coarse)').matches;
 
             // Toda la tarjeta lleva a la página del bot (los <a> internos conservan su destino).
             body.addEventListener('click', (e) => { if (!e.target.closest('a')) window.location.href = 'nlt-bot.html'; });
@@ -733,7 +813,7 @@
                 card.classList.toggle('is-live', on);
                 if (reduce) return;
                 if (on) {
-                    if (!raf) raf = requestAnimationFrame(loop);
+                    if (!raf && !touch) raf = requestAnimationFrame(loop);
                     if (!tickTimer) tickTimer = setInterval(tick, 2400);
                 } else if (tickTimer) {
                     clearInterval(tickTimer);
