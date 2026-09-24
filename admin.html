@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Admin Center</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -219,17 +224,19 @@
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
                             <tr>
                                 <th class="px-5 py-3 font-semibold">Orden</th>
+                                <th class="px-5 py-3 font-semibold">Cliente</th>
                                 <th class="px-5 py-3 font-semibold">Plan</th>
                                 <th class="px-5 py-3 font-semibold">Importe</th>
+                                <th class="px-5 py-3 font-semibold">Red</th>
                                 <th class="px-5 py-3 font-semibold">Cupón</th>
                                 <th class="px-5 py-3 font-semibold">Fecha</th>
                                 <th class="px-5 py-3 font-semibold">Estado</th>
-                                <th class="px-5 py-3 font-semibold">Referencia</th>
+                                <th class="px-5 py-3 font-semibold">Referencia / TX Hash</th>
                                 <th class="px-5 py-3 font-semibold">Acción</th>
                             </tr>
                         </thead>
                         <tbody id="tablaPagos" class="divide-y divide-white/5 text-gray-300">
-                            <tr><td colspan="8" class="px-5 py-6 text-center text-nlt-accent animate-pulse">Cargando pagos...</td></tr>
+                            <tr><td colspan="10" class="px-5 py-6 text-center text-nlt-accent animate-pulse">Cargando pagos...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1749,9 +1756,9 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260905c"></script>
-    <script src="assets/js/nlt-certificate.js?v=20260814c"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
+    <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
         // comillas -- varios usos interpolan dentro de atributos donde una comilla
@@ -1854,22 +1861,25 @@
             try {
                 const ordenes = await NLT_API.adminListarOrdenes(filtroPagoActual);
                 if (!ordenes || ordenes.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="px-5 py-6 text-center text-gray-500">No hay pagos en este filtro.</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="10" class="px-5 py-6 text-center text-gray-500">No hay pagos en este filtro.</td></tr>`;
                     return;
                 }
                 tbody.innerHTML = ordenes.map(o => {
                     const estado = ESTADO_PAGO_LABELS[o.status] || { texto: o.status, clase: 'text-gray-400' };
                     const accionable = o.status === 'pending' || o.status === 'payment_verification';
+                    const esCrypto = o.payment_provider === 'crypto_manual';
                     return `
                     <tr data-order="${o.order_id}">
                         <td data-label="Orden" class="px-5 py-3 font-mono text-xs">${esc(o.order_id)}</td>
+                        <td data-label="Cliente" class="px-5 py-3 font-mono text-xs text-gray-500" title="${esc(o.user_id)}">${esc(o.user_id.slice(0, 8))}...</td>
                         <td data-label="Plan" class="px-5 py-3">${esc(o.plan)}</td>
                         <td data-label="Importe" class="px-5 py-3">$${o.final_amount.toFixed(2)}</td>
+                        <td data-label="Red" class="px-5 py-3">${o.network ? `<span class="text-[10px] font-bold uppercase tracking-wider text-nlt-accent bg-nlt-accent/10 border border-nlt-accent/20 rounded-full px-2 py-0.5">${esc(o.network)}</span>` : '-'}</td>
                         <td data-label="Cupón" class="px-5 py-3">${esc(o.coupon_code || '-')}</td>
                         <td data-label="Fecha" class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}</td>
                         <td data-label="Estado" class="px-5 py-3 font-semibold ${estado.clase}">${esc(estado.texto)}</td>
-                        <td data-label="Referencia" class="px-5 py-3">
-                            ${accionable ? `<input type="text" placeholder="Referencia (opcional)" class="ref-input bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs w-full md:w-32">` : esc(o.payment_reference || '-')}
+                        <td data-label="Referencia / TX Hash" class="px-5 py-3">
+                            ${accionable ? `<input type="text" placeholder="${esCrypto ? 'TX hash (verificado en el explorer)' : 'Referencia (opcional)'}" class="ref-input bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs w-full md:w-40">` : esc(o.payment_reference || '-')}
                         </td>
                         <td data-label="Acción" class="px-5 py-3 flex gap-2">
                             ${accionable ? `

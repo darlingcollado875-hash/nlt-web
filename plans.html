@@ -11,7 +11,12 @@
     <title>NLT | Planes</title>
     <meta name="description" content="Todos los planes de NLT -- Copy System, Indicator, Academy -- en un solo lugar.">
     <link rel="canonical" href="https://nltnextlevel.uk/plans">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -36,6 +41,18 @@
         .plan-card { transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.4s ease; }
         .plan-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
     </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT | Planes">
+    <meta property="og:description" content="Todos los planes de NLT -- Copy System, Indicator, Academy -- en un solo lugar.">
+    <meta property="og:url" content="https://nltnextlevel.uk/plans">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-plans.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT | Planes">
+    <meta name="twitter:description" content="Todos los planes de NLT -- Copy System, Indicator, Academy -- en un solo lugar.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-plans.jpg">
 </head>
 <body class="min-h-screen relative">
 
@@ -43,7 +60,7 @@
 
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
-            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
@@ -63,6 +80,36 @@
         <p class="text-center text-sm text-gray-500 animate-pulse">Cargando planes...</p>
     </main>
 
+
+    <section id="faq" class="relative z-10 max-w-3xl mx-auto px-6 pb-24">
+        <div class="text-center mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Preguntas frecuentes</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Antes de elegir</h2>
+        </div>
+        <div class="space-y-3">
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between gap-4 font-semibold text-white"><span>¿Cómo se cobra mi plan?</span><i class="ph ph-plus text-gray-400 shrink-0"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">Los planes se cobran por adelantado según el período de facturación (por ejemplo, mensual) y se renuevan hasta que canceles. El cobro se procesa a través de Pay2Commerce con el método de pago que registraste.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between gap-4 font-semibold text-white"><span>¿Cómo cancelo?</span><i class="ph ph-plus text-gray-400 shrink-0"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">Hoy la cancelación se gestiona directamente con el equipo de NLT, indicando el email de tu cuenta. Mantienes el acceso a tu plan hasta el final del período ya facturado. Los detalles están en la <a href="reembolsos.html" class="text-nlt-accent hover:underline">política de reembolsos y cancelación</a>.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between gap-4 font-semibold text-white"><span>¿Hay reembolsos?</span><i class="ph ph-plus text-gray-400 shrink-0"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">Los pagos de un período que ya comenzó no son reembolsables, porque el acceso ya estuvo disponible. Se evalúan caso por caso los cobros duplicados, los errores de facturación comprobables y las fallas prolongadas de la plataforma.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between gap-4 font-semibold text-white"><span>¿Necesito instalar algo?</span><i class="ph ph-plus text-gray-400 shrink-0"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">En Copy System no: la conexión de cuentas y el motor de copiado corren en la infraestructura de NLT.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between gap-4 font-semibold text-white"><span>¿NLT garantiza resultados?</span><i class="ph ph-plus text-gray-400 shrink-0"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">No. Operar conlleva riesgo real de pérdida de capital y ningún plan asegura ganancias. Lee el <a href="aviso-riesgo.html" class="text-nlt-accent hover:underline">aviso de riesgo</a> antes de operar.</p>
+            </details>
+        </div>
+    </section>
+
     <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
         <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
             <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
@@ -71,8 +118,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         const NOMBRE_PRODUCTO = {
             copy_system: { titulo: 'NLT Copy System', href: 'copy-system.html', desc: 'Copiado de operaciones en tiempo real, CFDs/Forex y Futuros.' },
@@ -89,8 +136,8 @@
         }
 
         function tarjetaPlan(p) {
-            return `
-                <div class="plan-card glass-card p-7 flex flex-col ${p.popular ? 'border-nlt-accent/40' : ''}" data-reveal>
+            const card = `
+                <div class="plan-card glass-card p-7 flex flex-col flex-1" data-reveal>
                     ${p.popular ? '<span class="text-[9px] font-bold uppercase tracking-widest text-nlt-accent mb-2">Más elegido</span>' : ''}
                     <h3 class="font-bold text-white text-lg mb-1">${p.nombre}</h3>
                     ${p.descripcion ? `<p class="text-xs text-gray-500 mb-3">${p.descripcion}</p>` : ''}
@@ -101,6 +148,20 @@
                     </ul>
                 </div>
             `;
+            const period = p.billing_period || 'monthly';
+            return p.popular
+                ? `<div class="nlt-glowborder plan-wrap" data-period="${period}">${card}</div>`
+                : `<div class="plan-wrap flex" data-period="${period}">${card}</div>`;
+        }
+
+        const ETIQUETA_PERIODO = { monthly: 'Mensual', yearly: 'Anual', one_time: 'Pago único' };
+        function chipsPeriodo(planes, id) {
+            const periodos = [...new Set(planes.map((p) => p.billing_period || 'monthly'))];
+            if (periodos.length < 2) return '';
+            return `<div class="nlt-chips" role="group" aria-label="Período de facturación" data-chips="${id}">
+                <button type="button" class="nlt-chip on" data-p="all">Todos</button>
+                ${periodos.map((k) => `<button type="button" class="nlt-chip" data-p="${k}">${ETIQUETA_PERIODO[k] || k}</button>`).join('')}
+            </div>`;
         }
 
         function seccionProducto(producto, planes) {
@@ -115,7 +176,8 @@
                         </div>
                         ${info.href ? `<a href="${info.href}" class="text-xs font-bold text-nlt-accent uppercase tracking-wider hover:underline whitespace-nowrap">Conocer más →</a>` : ''}
                     </div>
-                    <div class="grid grid-cols-1 ${gridCols} gap-5">${planes.map(tarjetaPlan).join('')}</div>
+                    ${chipsPeriodo(planes, producto) ? `<div class="mb-6" data-reveal>${chipsPeriodo(planes, producto)}</div>` : ''}
+                    <div class="grid grid-cols-1 ${gridCols} gap-5" data-plangrid="${producto}">${planes.map(tarjetaPlan).join('')}</div>
                 </div>
             `;
         }
@@ -132,6 +194,15 @@
                 contenido.innerHTML = secciones.join('') || '<p class="text-center text-sm text-gray-500">Sin planes publicados todavía.</p>';
 
                 NLT.mountReveal();
+                // filtro por periodo de facturacion (solo aparece si un producto mezcla periodos)
+                contenido.querySelectorAll('[data-chips]').forEach((box) => {
+                    box.addEventListener('click', (e) => {
+                        const b = e.target.closest('.nlt-chip'); if (!b) return;
+                        box.querySelectorAll('.nlt-chip').forEach((c) => c.classList.toggle('on', c === b));
+                        const grid = contenido.querySelector(`[data-plangrid="${box.dataset.chips}"]`);
+                        grid.querySelectorAll('.plan-wrap').forEach((w) => { w.style.display = (b.dataset.p === 'all' || w.dataset.period === b.dataset.p) ? '' : 'none'; });
+                    });
+                });
             } catch (err) {
                 contenido.innerHTML = `<p class="text-center text-sm text-nlt-danger">No se pudieron cargar los planes: ${err.message}</p>`;
             }

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT | Estado del sistema</title>
+    <meta name="description" content="Estado en vivo de la API y la base de datos de NLT, medido desde tu navegador.">
+    <link rel="canonical" href="https://nltnextlevel.uk/status">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        html { overflow-x: hidden; }
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* Orbe de estado: anillos que laten con el color del estado */
+        .st-orb { --c: 148,163,184; position: relative; width: 120px; height: 120px; margin: 0 auto 28px; display: grid; place-items: center; transition: --c .4s ease; }
+        .st-orb.ok { --c: 34,197,94; } .st-orb.warn { --c: 251,146,60; } .st-orb.down { --c: 248,113,113; }
+        .st-orb b { position: relative; z-index: 2; width: 46px; height: 46px; border-radius: 50%; background: rgb(var(--c)); box-shadow: 0 0 50px 6px rgba(var(--c), .7), inset 0 2px 6px rgba(255,255,255,.35); display: grid; place-items: center; font-size: 22px; color: #06120a; }
+        .st-orb i { position: absolute; inset: 22px; border-radius: 50%; border: 1px solid rgba(var(--c), .7); animation: st-ping 3.2s ease-out infinite; }
+        .st-orb i:nth-child(2) { animation-delay: 1.06s; } .st-orb i:nth-child(3) { animation-delay: 2.12s; }
+        @keyframes st-ping { 0% { transform: scale(.6); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
+        .st-row { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 16px; padding: 20px 24px; }
+        .st-dot { width: 10px; height: 10px; border-radius: 50%; background: rgb(var(--c, 148,163,184)); box-shadow: 0 0 12px rgb(var(--c, 148,163,184)); }
+        .st-row[data-s="ok"] { --c: 34,197,94; } .st-row[data-s="down"] { --c: 248,113,113; } .st-row[data-s="load"] .st-dot { animation: st-blink 1s ease-in-out infinite; }
+        @keyframes st-blink { 50% { opacity: .25; } }
+        .st-ms { font: 700 13px 'SFMono-Regular', Consolas, monospace; color: #cbd5e1; text-align: right; }
+        .st-hist { display: flex; align-items: flex-end; gap: 3px; height: 42px; }
+        .st-hist i { flex: 1; min-width: 4px; border-radius: 3px; background: rgba(34,197,94,.55); transition: height .5s cubic-bezier(.16,1,.3,1); }
+        .st-hist i.bad { background: rgba(248,113,113,.7); }
+        @media (prefers-reduced-motion: reduce) { .st-orb i { animation: none; } .st-row[data-s="load"] .st-dot { animation: none; } }
+    </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT | Estado del sistema">
+    <meta property="og:description" content="Estado en vivo de la API y la base de datos de NLT, medido desde tu navegador.">
+    <meta property="og:url" content="https://nltnextlevel.uk/status">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT | Estado del sistema">
+    <meta name="twitter:description" content="Estado en vivo de la API y la base de datos de NLT, medido desde tu navegador.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <section class="relative z-10 pt-44 pb-10 px-6 max-w-3xl mx-auto text-center">
+        <div id="stOrb" class="st-orb" aria-hidden="true"><i></i><i></i><i></i><b><i class="ph-bold ph-check" id="stIcon" style="position:static;border:0;animation:none;inset:auto"></i></b></div>
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4" data-reveal>Estado del sistema</p>
+        <h1 id="stTitle" class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-5" data-reveal>Comprobando…</h1>
+        <p id="stSub" class="text-gray-400 text-base md:text-lg max-w-xl mx-auto leading-relaxed" data-reveal>Medimos la API y la base de datos de NLT desde tu navegador, en vivo.</p>
+    </section>
+
+    <main class="relative z-10 max-w-3xl mx-auto px-6 pb-24">
+        <div class="space-y-3" role="list" aria-live="polite">
+            <div class="glass-card st-row" id="stApi" data-s="load" role="listitem">
+                <span class="st-dot"></span>
+                <div><p class="font-bold text-white text-sm">API de NLT</p><p class="text-xs text-gray-500 mt-0.5">Copy System, dashboard, cuentas y suscripciones.</p></div>
+                <span class="st-ms" id="stApiMs">…</span>
+            </div>
+            <div class="glass-card st-row" id="stDb" data-s="load" role="listitem">
+                <span class="st-dot"></span>
+                <div><p class="font-bold text-white text-sm">Base de datos</p><p class="text-xs text-gray-500 mt-0.5">Autenticación y datos de tu cuenta (Supabase).</p></div>
+                <span class="st-ms" id="stDbMs">…</span>
+            </div>
+        </div>
+
+        <div class="glass-card p-6 md:p-7 mt-6" data-reveal>
+            <div class="flex items-center justify-between gap-4 mb-4">
+                <div><p class="text-[10px] font-bold uppercase tracking-widest text-gray-500 mb-1">Comprobaciones de esta sesión</p><p class="text-xs text-gray-500">Cada barra es una comprobación (altura = tiempo de respuesta). No es un historial de disponibilidad.</p></div>
+                <span class="text-[11px] text-gray-500 shrink-0" id="stNext">—</span>
+            </div>
+            <div class="st-hist" id="stHist" aria-hidden="true"></div>
+        </div>
+
+        <p class="text-center text-[11px] text-gray-600 mt-8 max-w-xl mx-auto leading-relaxed">Los tiempos incluyen tu conexión a internet y pueden variar. Si algo no responde, prueba a recargar; si persiste, escríbenos desde tu cuenta.</p>
+    </main>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
+    <script>
+        (function () {
+            const INTERVALO = 30;                        // segundos entre comprobaciones
+            const historial = [];                        // { ok, ms } -- solo esta sesion
+            const $ = (id) => document.getElementById(id);
+            let restante = INTERVALO;
+
+            function fila(id, msId, estado, ms) {
+                $(id).dataset.s = estado;
+                $(msId).textContent = estado === 'ok' ? `${ms} ms` : estado === 'down' ? 'sin respuesta' : '…';
+            }
+            function pintarHistorial() {
+                const max = Math.max(400, ...historial.map((h) => h.ms || 0));
+                $('stHist').innerHTML = historial.slice(-40).map((h) => `<i class="${h.ok ? '' : 'bad'}" style="height:${Math.max(10, Math.min(100, ((h.ms || max) / max) * 100))}%"></i>`).join('');
+            }
+            function resumen(apiOk, dbOk) {
+                const orb = $('stOrb');
+                orb.className = 'st-orb ' + (apiOk && dbOk ? 'ok' : apiOk ? 'warn' : 'down');
+                $('stIcon').className = 'ph-bold ' + (apiOk && dbOk ? 'ph-check' : apiOk ? 'ph-warning' : 'ph-x');
+                $('stTitle').textContent = apiOk && dbOk ? 'Todos los sistemas operativos' : apiOk ? 'Base de datos con problemas' : 'No podemos conectar con la API';
+                $('stSub').textContent = apiOk && dbOk ? 'La API y la base de datos responden con normalidad.' : apiOk ? 'La API responde, pero la base de datos no confirma su estado.' : 'La API no respondió desde tu navegador. Puede ser tu conexión o un problema del servicio.';
+            }
+            async function comprobar() {
+                const t0 = performance.now();
+                try {
+                    const r = await NLT_API.salud();
+                    const ms = Math.round(performance.now() - t0);
+                    const apiOk = !!r, dbOk = !!(r && r.status === 'ok' && r.supabase === 'ok');
+                    fila('stApi', 'stApiMs', 'ok', ms);
+                    fila('stDb', 'stDbMs', dbOk ? 'ok' : 'down', ms);
+                    historial.push({ ok: apiOk && dbOk, ms });
+                    resumen(apiOk, dbOk);
+                } catch (_) {
+                    fila('stApi', 'stApiMs', 'down'); fila('stDb', 'stDbMs', 'down');
+                    historial.push({ ok: false, ms: 0 });
+                    resumen(false, false);
+                }
+                pintarHistorial();
+                restante = INTERVALO;
+            }
+            comprobar();
+            setInterval(() => {
+                if (document.hidden) return;
+                restante -= 1;
+                $('stNext').textContent = `Próxima comprobación en ${restante}s`;
+                if (restante <= 0) comprobar();
+            }, 1000);
+        })();
+
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        NLT.mountReveal('section [data-reveal], main [data-reveal]');
+    </script>
+</body>
+</html>

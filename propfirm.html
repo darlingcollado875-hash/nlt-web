@@ -9,9 +9,14 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Funded | Next Level Trading</title>
-    <meta name="description" content="Comprá tu challenge de trading y accedé a una cuenta funded -- toda la experiencia desde el ecosistema NLT.">
+    <meta name="description" content="Compra tu challenge de trading y accede a una cuenta funded -- toda la experiencia desde el ecosistema NLT.">
     <link rel="canonical" href="https://nltnextlevel.uk/propfirm">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -37,6 +42,18 @@
         .challenge-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
         .step-num { width: 2.25rem; height: 2.25rem; border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 0.85rem; background: rgba(67,120,255,0.12); color: #4378FF; border: 1px solid rgba(67,120,255,0.2); }
     </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT Funded | Next Level Trading">
+    <meta property="og:description" content="Compra tu challenge de trading y accede a una cuenta funded -- toda la experiencia desde el ecosistema NLT.">
+    <meta property="og:url" content="https://nltnextlevel.uk/propfirm">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT Funded | Next Level Trading">
+    <meta name="twitter:description" content="Compra tu challenge de trading y accede a una cuenta funded -- toda la experiencia desde el ecosistema NLT.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
 </head>
 <body class="min-h-screen relative">
 
@@ -44,7 +61,7 @@
 
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
-            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="funded.html" class="hover:text-white transition-colors">Prop Hub</a>
@@ -59,7 +76,7 @@
     <section class="relative z-10 pt-44 pb-20 px-6 max-w-4xl mx-auto text-center">
         <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT FUNDED</p>
         <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>Trade with NLT.</h1>
-        <p class="text-gray-400 text-lg max-w-xl mx-auto mb-10" data-reveal>Comprá tu challenge, demostrá tu estrategia, accedé a una cuenta funded -- todo desde el ecosistema NLT.</p>
+        <p class="text-gray-400 text-lg max-w-xl mx-auto mb-10" data-reveal>Compra tu challenge, demuestra tu estrategia, accede a una cuenta funded -- todo desde el ecosistema NLT.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4" data-reveal>
             <a href="#challenges" class="glow-button w-full sm:w-auto px-7 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ver Challenges</a>
             <a href="propfirm-dashboard.html" class="w-full sm:w-auto px-7 py-3.5 rounded-2xl border border-white/10 text-gray-300 font-semibold text-sm hover:bg-white/5 transition-all">Mi Dashboard</a>
@@ -78,7 +95,7 @@
         <section id="challenges">
             <div class="text-center max-w-2xl mx-auto mb-12" data-reveal>
                 <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Challenges</h2>
-                <p class="text-gray-400 text-sm md:text-base">Elegí el tamaño de cuenta que se ajuste a tu estrategia.</p>
+                <p class="text-gray-400 text-sm md:text-base">Elige el tamaño de cuenta que se ajuste a tu estrategia.</p>
             </div>
             <div id="listaChallenges" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <p class="text-sm text-gray-500 animate-pulse col-span-full text-center">Cargando challenges...</p>
@@ -91,13 +108,13 @@
                 <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">How It Works</h2>
             </div>
             <div class="space-y-4 max-w-2xl mx-auto">
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">1</span><p class="text-sm text-gray-300">Elegí tu challenge y revisá las reglas</p></div>
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">2</span><p class="text-sm text-gray-300">Comprá el challenge</p></div>
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">3</span><p class="text-sm text-gray-300">Completá el KYC cuando el proveedor lo requiera</p></div>
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">4</span><p class="text-sm text-gray-300">Recibí tu cuenta y credenciales de trading</p></div>
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">5</span><p class="text-sm text-gray-300">Operá bajo las reglas del challenge</p></div>
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">6</span><p class="text-sm text-gray-300">Pasá el challenge y accedé a tu cuenta funded</p></div>
-                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">7</span><p class="text-sm text-gray-300">Solicitá tus payouts cuando corresponda</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">1</span><p class="text-sm text-gray-300">Elige tu challenge y revisa las reglas</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">2</span><p class="text-sm text-gray-300">Compra el challenge</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">3</span><p class="text-sm text-gray-300">Completa el KYC cuando el proveedor lo requiera</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">4</span><p class="text-sm text-gray-300">Recibe tu cuenta y credenciales de trading</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">5</span><p class="text-sm text-gray-300">Opera bajo las reglas del challenge</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">6</span><p class="text-sm text-gray-300">Pasa el challenge y accede a tu cuenta funded</p></div>
+                <div class="glass-card p-5 flex items-center gap-4" data-reveal><span class="step-num">7</span><p class="text-sm text-gray-300">Solicita tus payouts cuando corresponda</p></div>
             </div>
         </section>
 
@@ -114,7 +131,7 @@
         <!-- CTA final -->
         <section class="glass-card p-10 md:p-14 text-center" data-reveal>
             <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-4">Ready to get funded?</h2>
-            <p class="text-gray-400 text-sm mb-8 max-w-lg mx-auto">Elegí tu challenge y empezá tu camino hacia una cuenta funded.</p>
+            <p class="text-gray-400 text-sm mb-8 max-w-lg mx-auto">Elige tu challenge y empieza tu camino hacia una cuenta funded.</p>
             <a href="#challenges" class="glow-button inline-block px-8 py-3.5 rounded-2xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Ver Challenges</a>
         </section>
     </main>
@@ -131,8 +148,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');

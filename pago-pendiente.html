@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Pago en verificación</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -36,14 +41,14 @@
             <p class="text-xs text-gray-500 animate-pulse">Cargando datos de la orden...</p>
         </div>
 
-        <p class="text-xs text-gray-500 mb-6">Si el proveedor de pagos te pide una referencia o concepto de pago, usá el Order ID de arriba.</p>
+        <p class="text-xs text-gray-500 mb-6">Esta página se actualiza sola. Un pago con tarjeta se confirma en segundos; uno con cripto puede tardar unos minutos mientras la red lo confirma.</p>
 
         <a href="dashboard.html" class="inline-block w-full py-3 rounded-xl bg-white/10 hover:bg-white/20 font-semibold text-sm transition-all">Ir al Dashboard</a>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         async function init() {
             const sesion = await NLT.requireSession();
@@ -57,23 +62,59 @@
                 return;
             }
 
-            try {
-                const orden = await NLT_API.obtenerOrden(orderId);
-                if (orden.status === 'paid') {
-                    window.location.href = `pago-confirmado.html?order=${encodeURIComponent(orderId)}`;
-                    return;
+            // Las órdenes de NLT Indicator viven en otra tabla (/indicator/orders):
+            // pagadas quedan en 'pending' hasta que el equipo te invita en TradingView.
+            async function leerOrden() {
+                try {
+                    return { tipo: 'orders', orden: await NLT_API.obtenerOrden(orderId) };
+                } catch (err) {
+                    const propias = await NLT_API.indicadorMisOrdenes();
+                    const orden = propias.find(o => o.order_id === orderId);
+                    if (!orden) throw err;
+                    return { tipo: 'indicator', orden };
                 }
+            }
+
+            function render(orden, estado, tono) {
                 box.innerHTML = `
                     <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Referencia de pago</p>
-                    <p class="text-lg font-mono font-bold text-white mb-4">${orden.order_id}</p>
+                    <p class="text-lg font-mono font-bold text-white mb-4">${esc(orden.order_id)}</p>
                     <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Importe</p>
-                    <p class="text-lg font-bold text-white mb-4">$${orden.final_amount.toFixed(2)} ${orden.currency}</p>
+                    <p class="text-lg font-bold text-white mb-4">$${Number(orden.final_amount).toFixed(2)} ${esc(orden.currency || 'USD')}</p>
                     <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Estado</p>
-                    <p class="text-sm font-bold text-yellow-400 uppercase">Pendiente</p>
+                    <p class="text-sm font-bold ${tono} uppercase">${estado}</p>
                 `;
-            } catch (err) {
-                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
             }
+
+            let intentos = 0;
+            async function revisar() {
+                intentos += 1;
+                try {
+                    const { tipo, orden } = await leerOrden();
+                    if (tipo === 'orders' && orden.status === 'paid') {
+                        window.location.href = `pago-confirmado.html?order=${encodeURIComponent(orderId)}`;
+                        return true;
+                    }
+                    if (tipo === 'indicator' && orden.status !== 'awaiting_payment') {
+                        render(orden, 'Pago recibido -- activando tu acceso en TradingView', 'text-nlt-success');
+                        return true;
+                    }
+                    render(orden, 'Esperando confirmación del pago...', 'text-yellow-400');
+                } catch (err) {
+                    box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`;
+                }
+                return false;
+            }
+
+            if (await revisar()) return;
+            // Hasta ~45 min: cubre la confirmación en blockchain de un pago cripto.
+            const timer = setInterval(async () => {
+                if (document.hidden) return;
+                if (await revisar() || intentos > 270) clearInterval(timer);
+            }, 10000);
+        }
+        function esc(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
         }
         init();
     </script>

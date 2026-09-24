@@ -15,7 +15,12 @@
     <meta property="og:description" content="Companies building with Next Level Trading.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://nltnextlevel.uk/partners">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -46,7 +51,7 @@
 
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
-            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="business.html" class="hover:text-white transition-colors">For Business</a>
@@ -86,8 +91,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -150,7 +155,7 @@
                 <div class="glass-card p-12 md:p-16 text-center max-w-2xl mx-auto" data-reveal>
                     <i class="ph-fill ph-handshake text-4xl text-nlt-accent mb-5"></i>
                     <h2 class="text-xl md:text-2xl font-bold tracking-tight mb-3">NLT is currently building its strategic partner network.</h2>
-                    <p class="text-sm text-gray-400 max-w-md mx-auto">Estamos en conversaciones activas con brokers, proveedores de tecnología y partners estratégicos. Volvé pronto.</p>
+                    <p class="text-sm text-gray-400 max-w-md mx-auto">Estamos en conversaciones activas con brokers, proveedores de tecnología y partners estratégicos. Vuelve pronto.</p>
                 </div>
             `;
         }

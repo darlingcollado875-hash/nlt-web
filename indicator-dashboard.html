@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Indicator | Panel</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -56,7 +61,7 @@
         <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
             <div>
                 <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Indicator</h1>
-                <p class="text-[11px] text-gray-500 -mt-0.5">Las zonas se marcan en NLT V13.4 · acá recibís y ves el análisis</p>
+                <p class="text-[11px] text-gray-500 -mt-0.5">Las zonas se marcan en NLT V13.4 · acá recibes y ves el análisis</p>
             </div>
         </header>
 
@@ -71,7 +76,7 @@
             <div id="vistaSinIndicador" class="hidden py-16 max-w-lg mx-auto text-center">
                 <div class="glass-card p-10">
                     <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
-                    <h2 class="text-xl font-bold text-white mb-2">Necesitás el NLT Indicator</h2>
+                    <h2 class="text-xl font-bold text-white mb-2">Necesitas el NLT Indicator</h2>
                     <p class="text-sm text-gray-500 mb-6">Este panel es para usuarios con acceso al indicador de TradingView.</p>
                     <a href="indicator.html#planes" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Ver planes</a>
                 </div>
@@ -81,8 +86,8 @@
             <div id="vistaUpgrade" class="hidden py-10 max-w-xl mx-auto">
                 <div class="glass-card p-10 text-center">
                     <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-2">NLT Indicator AI</p>
-                    <h2 class="text-2xl font-bold text-white mb-3">Desbloqueá el análisis avanzado</h2>
-                    <p class="text-sm text-gray-400 mb-6">Multi-factor zone intelligence: seleccioná una zona y recibí un análisis completo dentro de tu cuenta NLT.</p>
+                    <h2 class="text-2xl font-bold text-white mb-3">Desbloquea el análisis avanzado</h2>
+                    <p class="text-sm text-gray-400 mb-6">Multi-factor zone intelligence: selecciona una zona y recibe un análisis completo dentro de tu cuenta NLT.</p>
                     <ul class="text-left text-sm text-gray-300 space-y-2 mb-8 max-w-sm mx-auto" id="upgradeFeatures"></ul>
                     <p class="text-3xl font-extrabold text-white mb-1" id="upgradePrice">—</p>
                     <p class="text-xs text-gray-500 mb-6" id="upgradePriceSub"></p>
@@ -147,12 +152,12 @@
                     <div class="glass-card p-6 md:p-8">
                         <h3 class="text-sm font-bold text-white mb-4">Cómo conectarlo (una sola vez)</h3>
                         <ol class="space-y-3 text-sm text-gray-400">
-                            <li><span class="text-nlt-accent font-bold mr-2">1.</span> En TradingView, Pine Editor → pegá <span class="text-white">NLT Zone Engine V13.4</span> → Save → Add to chart. Marcá la zona con los 2 clics que te pide.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">2.</span> En la config del indicador, grupo <span class="text-white">🌐 NLT AI (webhook)</span>, activá <span class="text-white">webhookEmit</span>.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">3.</span> Creá una alerta (icono del reloj → Crear alerta).</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">4.</span> En <span class="text-white">Condición</span>, elegí <span class="text-white">Any alert() function call</span>.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">5.</span> En <span class="text-white">Notificaciones → Webhook URL</span>, pegá tu Webhook URL de arriba.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">6.</span> Guardá. En cuanto llegue el primer análisis, este panel dirá <span class="text-white">✓ Connected</span> y aparecerá en <span class="text-white">Analysis History</span>.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">1.</span> En TradingView, Pine Editor → pega <span class="text-white">NLT Zone Engine V13.4</span> → Save → Add to chart. Marca la zona con los 2 clics que te pide.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">2.</span> En la config del indicador, grupo <span class="text-white">🌐 NLT AI (webhook)</span>, activa <span class="text-white">webhookEmit</span>.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">3.</span> Crea una alerta (icono del reloj → Crear alerta).</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">4.</span> En <span class="text-white">Condición</span>, elige <span class="text-white">Any alert() function call</span>.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">5.</span> En <span class="text-white">Notificaciones → Webhook URL</span>, pega tu Webhook URL de arriba.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">6.</span> Guarda. En cuanto llegue el primer análisis, este panel dirá <span class="text-white">✓ Connected</span> y aparecerá en <span class="text-white">Analysis History</span>.</li>
                         </ol>
                         <p class="text-[11px] text-gray-600 mt-4">El token de la URL identifica tu cuenta NLT. No lo compartas. La zona se marca y se cambia siempre desde V13.4 en TradingView — este panel solo recibe y muestra el resultado.</p>
                     </div>
@@ -163,7 +168,7 @@
                     <div class="glass-card p-0 overflow-hidden">
                         <div class="p-6 border-b border-white/5 flex flex-wrap items-center justify-between gap-2">
                             <h3 class="text-lg font-bold text-white">Analysis History</h3>
-                            <span class="text-[11px] text-gray-500">Cada zona que marcás en V13.4 y cada ENTRY_READY del motor genera una fila acá.</span>
+                            <span class="text-[11px] text-gray-500">Cada zona que marcas en V13.4 y cada ENTRY_READY del motor genera una fila acá.</span>
                         </div>
                         <div class="overflow-x-auto">
                             <table class="w-full text-sm responsive-table">
@@ -193,8 +198,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260831a"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260831a"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
     (function () {
         const $ = (id) => document.getElementById(id);
@@ -232,7 +237,7 @@
         });
         $('btnRotate').addEventListener('click', async () => {
             if (!confirm('Regenerar el token invalida la URL actual. Vas a tener que actualizar la alerta en TradingView. ¿Seguir?')) return;
-            try { pintarConexion(await NLT_API.indicatorAiConnectionRotate()); toast('connMsg', 'Token regenerado. Actualizá la Webhook URL en tu alerta.', true); }
+            try { pintarConexion(await NLT_API.indicatorAiConnectionRotate()); toast('connMsg', 'Token regenerado. Actualiza la Webhook URL en tu alerta.', true); }
             catch (e) { toast('connMsg', e.message, false); }
         });
 

@@ -14,3 +14,11 @@
 
 /robots.txt
   Content-Type: text/plain; charset=utf-8
+
+# Frames/capturas/video del showcase: nombres estables y contenido que solo cambia
+# al regenerarlos -- una semana de cache alcanza y evita re-descargar ~2 MB.
+/assets/img/showcase/*
+  Cache-Control: public, max-age=604800
+
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8

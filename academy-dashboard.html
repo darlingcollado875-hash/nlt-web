@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>Mi Academia | NLT Academy</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -84,8 +89,8 @@
         <div id="vistaSinAcceso" class="hidden py-16 max-w-lg mx-auto text-center">
             <div class="glass-card p-10">
                 <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
-                <h2 class="text-xl font-bold text-white mb-2">Necesitás una suscripción activa</h2>
-                <p id="sinAccesoMotivo" class="text-sm text-gray-500 mb-6">Todavía no tenés acceso a NLT Academy.</p>
+                <h2 class="text-xl font-bold text-white mb-2">Necesitas una suscripción activa</h2>
+                <p id="sinAccesoMotivo" class="text-sm text-gray-500 mb-6">Todavía no tienes acceso a NLT Academy.</p>
                 <a href="academy.html#suscribite" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all">Ver suscripción</a>
                 <button id="btn-ver-certificados-sin-acceso" class="block mx-auto mt-4 text-xs text-gray-500 hover:text-white transition-colors cursor-pointer">Ya tengo certificados ganados -- verlos</button>
             </div>
@@ -153,7 +158,7 @@
         <div id="subvistaCertificados" class="hidden space-y-6">
             <div>
                 <h2 class="text-2xl font-bold tracking-tight mb-1">Mis certificados</h2>
-                <p class="text-sm text-gray-500">Los 6 certificados de NLT Academy -- se desbloquean a medida que avanzás, del LEVEL 1 hasta el MASTER Certification.</p>
+                <p class="text-sm text-gray-500">Los 6 certificados de NLT Academy -- se desbloquean a medida que avanzas, del LEVEL 1 hasta el MASTER Certification.</p>
             </div>
             <div id="certificadosGrid" class="grid grid-cols-1 md:grid-cols-3 gap-5"></div>
             <div id="certificadoDetalle" class="hidden max-w-4xl mx-auto"></div>
@@ -162,9 +167,9 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
-    <script src="assets/js/nlt-certificate.js?v=20260814c"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
+    <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         let sesionActual = null;
         let cursoActual = null;
@@ -210,7 +215,7 @@
                     <div class="glass-card p-8 text-center">
                         <i class="ph-fill ph-confetti text-3xl text-nlt-accent mb-2"></i>
                         <p class="text-lg font-bold text-white">¡Completaste todo el contenido publicado!</p>
-                        <p class="text-sm text-gray-500 mt-1">Revisá tus certificados o esperá a que se publiquen nuevas clases.</p>
+                        <p class="text-sm text-gray-500 mt-1">Revisa tus certificados o espera a que se publiquen nuevas clases.</p>
                     </div>`;
                 return;
             }
@@ -402,7 +407,7 @@
             if (leccion.has_quiz && (leccion.video_progress_percent || 0) >= leccion.min_watch_percent) {
                 cargarQuizDeLeccion(leccion.id);
             } else if (leccion.has_quiz) {
-                document.getElementById('quizContainer').innerHTML = `<p class="text-xs text-gray-600 border border-dashed border-white/10 rounded-xl p-4">Mirá al menos el ${leccion.min_watch_percent}% del video para desbloquear el quiz de esta clase.</p>`;
+                document.getElementById('quizContainer').innerHTML = `<p class="text-xs text-gray-600 border border-dashed border-white/10 rounded-xl p-4">Mira al menos el ${leccion.min_watch_percent}% del video para desbloquear el quiz de esta clase.</p>`;
             }
         }
 
@@ -467,7 +472,7 @@
             box.innerHTML = `
                 <div id="quizForm" class="border-t border-white/5 pt-5">
                     <p class="text-sm font-bold text-white mb-1">Quiz de la clase</p>
-                    <p class="text-xs text-gray-500 mb-4">Necesitás ${quiz.passing_score_percent}% para aprobar.</p>
+                    <p class="text-xs text-gray-500 mb-4">Necesitas ${quiz.passing_score_percent}% para aprobar.</p>
                     <div class="space-y-5">
                         ${quiz.questions.map((q, qi) => `
                             <div>
@@ -492,7 +497,7 @@
                     const sel = document.querySelector(`input[name="q-${q.id}"]:checked`);
                     if (sel) answers[q.id] = parseInt(sel.value);
                 });
-                if (Object.keys(answers).length !== quiz.questions.length) { alert('Respondé todas las preguntas.'); return; }
+                if (Object.keys(answers).length !== quiz.questions.length) { alert('Responde todas las preguntas.'); return; }
                 const btn = document.getElementById('btn-enviar-quiz');
                 btn.disabled = true;
                 btn.textContent = 'Enviando...';
@@ -517,7 +522,7 @@
             box.innerHTML = `
                 <div class="p-4 rounded-xl ${resultado.passed ? 'bg-nlt-success/10 border border-nlt-success/20' : 'bg-nlt-danger/10 border border-nlt-danger/20'}">
                     <p class="text-sm font-bold ${resultado.passed ? 'text-nlt-success' : 'text-nlt-danger'}">${resultado.passed ? '¡Aprobado!' : 'No alcanzaste el mínimo'} -- ${Math.round(resultado.score_percent)}%</p>
-                    ${resultado.lesson_completed ? '<p class="text-xs text-gray-400 mt-1">Clase marcada como completada.</p>' : '<p class="text-xs text-gray-400 mt-1">Podés volver a intentarlo.</p>'}
+                    ${resultado.lesson_completed ? '<p class="text-xs text-gray-400 mt-1">Clase marcada como completada.</p>' : '<p class="text-xs text-gray-400 mt-1">Puedes volver a intentarlo.</p>'}
                 </div>
                 <div class="mt-3 space-y-2">
                     ${quiz.questions.map((q, qi) => resultado.explanations && resultado.explanations[q.id] ? `<p class="text-[11px] text-gray-500"><span class="text-gray-400 font-semibold">${qi + 1}.</span> ${resultado.explanations[q.id]}</p>` : '').join('')}
@@ -637,7 +642,7 @@
 
             if (!access.has_access) {
                 document.getElementById('vistaSinAcceso').classList.remove('hidden');
-                document.getElementById('sinAccesoMotivo').textContent = access.reason || 'Todavía no tenés una suscripción activa a NLT Academy.';
+                document.getElementById('sinAccesoMotivo').textContent = access.reason || 'Todavía no tienes una suscripción activa a NLT Academy.';
                 return;
             }
 

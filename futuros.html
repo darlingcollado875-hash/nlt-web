@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Futuros</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -120,7 +125,7 @@
             <div id="seccion-operaciones">
                 <h2 class="text-lg font-bold mb-4">Operaciones abiertas / Simular copia (MOCK)</h2>
                 <div class="glass-card p-6 mb-6">
-                    <p class="text-xs text-gray-500 mb-4">Mientras no haya conector real de Tradovate, esto simula lo que en producción dispararía el propio broker -- abrí una operación en una cuenta MASTER acá y confirmá que se copia sola a sus SLAVES configuradas.</p>
+                    <p class="text-xs text-gray-500 mb-4">Mientras no haya conector real de Tradovate, esto simula lo que en producción dispararía el propio broker -- abre una operación en una cuenta MASTER acá y confirma que se copia sola a sus SLAVES configuradas.</p>
                     <form id="formSimular" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
                         <div class="md:col-span-2">
                             <label class="block text-[11px] text-gray-500 uppercase tracking-wider mb-1.5">Cuenta Master</label>
@@ -149,7 +154,7 @@
 
                 <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Posiciones por cuenta (seleccionada)</h3>
                 <div id="listaPosiciones" class="space-y-3">
-                    <p class="text-sm text-gray-500">Seleccioná una cuenta arriba para ver sus posiciones abiertas.</p>
+                    <p class="text-sm text-gray-500">Selecciona una cuenta arriba para ver sus posiciones abiertas.</p>
                 </div>
             </div>
 
@@ -169,7 +174,7 @@
                             </tr>
                         </thead>
                         <tbody id="tablaHistorial" class="divide-y divide-white/5 text-gray-300">
-                            <tr><td class="px-5 py-3 text-gray-500" colspan="6">Seleccioná una cuenta en "Mis cuentas" para ver su historial.</td></tr>
+                            <tr><td class="px-5 py-3 text-gray-500" colspan="6">Selecciona una cuenta en "Mis cuentas" para ver su historial.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -179,15 +184,15 @@
             <div id="seccion-logs">
                 <h2 class="text-lg font-bold mb-4">Logs</h2>
                 <div id="listaLogs" class="glass-card p-4 font-mono text-xs text-gray-400 space-y-1 max-h-80 overflow-y-auto">
-                    <p class="text-gray-600">Seleccioná una cuenta para ver sus eventos.</p>
+                    <p class="text-gray-600">Selecciona una cuenta para ver sus eventos.</p>
                 </div>
             </div>
         </div>
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '')
@@ -244,7 +249,7 @@
                 selectSimular.innerHTML = cuentasCache.filter(c => c.tipo_cuenta === 'MASTER').map(c => `<option value="${c.id}">${c.nombre_cuenta}</option>`).join('') || '<option value="">Sin cuentas Master</option>';
 
                 if (!cuentasCache.length) {
-                    container.innerHTML = `<div class="col-span-full p-8 border border-dashed border-white/20 rounded-2xl text-center"><p class="text-gray-400">No tenés cuentas Futures todavía.</p></div>`;
+                    container.innerHTML = `<div class="col-span-full p-8 border border-dashed border-white/20 rounded-2xl text-center"><p class="text-gray-400">No tienes cuentas Futures todavía.</p></div>`;
                     return;
                 }
 
@@ -305,7 +310,7 @@
         async function cargarRelacionMasterSlaves() {
             const container = document.getElementById('listaRelacionMasterSlaves');
             if (!cuentasCache.length) {
-                container.innerHTML = `<p class="text-sm text-gray-500">No tenés cuentas Futures todavía.</p>`;
+                container.innerHTML = `<p class="text-sm text-gray-500">No tienes cuentas Futures todavía.</p>`;
                 return;
             }
             try {
@@ -320,7 +325,7 @@
                 const eventosFallidos = eventosPorSlave.flat().filter(e => ['COPIA_FALLIDA', 'COPIA_OMITIDA'].includes(e.tipo_evento));
 
                 if (!posiciones.length && !eventosFallidos.length) {
-                    container.innerHTML = `<p class="text-sm text-gray-500">Sin posiciones abiertas en ninguna cuenta todavía. Abrí una operación en una cuenta Master para ver acá su relación con las Slaves.</p>`;
+                    container.innerHTML = `<p class="text-sm text-gray-500">Sin posiciones abiertas en ninguna cuenta todavía. Abre una operación en una cuenta Master para ver acá su relación con las Slaves.</p>`;
                     return;
                 }
 
@@ -496,7 +501,7 @@
             if (!cuentaId) {
                 msg.classList.remove('hidden');
                 msg.className = 'mt-3 text-xs p-3 rounded-lg bg-red-500/10 text-red-500';
-                msg.textContent = 'Creá primero una cuenta Master.';
+                msg.textContent = 'Crea primero una cuenta Master.';
                 return;
             }
             msg.classList.remove('hidden');
@@ -509,7 +514,7 @@
                     quantity: parseInt(document.getElementById('sQuantity').value, 10),
                 });
                 msg.className = 'mt-3 text-xs p-3 rounded-lg bg-green-500/10 text-green-500';
-                msg.textContent = '¡Operación abierta! El motor de copiado la va a propagar a las cuentas Slave en los próximos segundos -- mirá "Relación Master → Slaves" más abajo.';
+                msg.textContent = '¡Operación abierta! El motor de copiado la va a propagar a las cuentas Slave en los próximos segundos -- mira "Relación Master → Slaves" más abajo.';
                 await cargarPosiciones(cuentaId);
                 setTimeout(cargarRelacionMasterSlaves, 1500);
                 setTimeout(cargarRelacionMasterSlaves, 4000);

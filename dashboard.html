@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Visión General</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -24,6 +29,36 @@
 
     <style>
         body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        /* Carga: shimmer en vez de "—" / "0" mientras llegan los datos reales */
+        [data-skel] { position: relative; color: transparent !important; min-width: 3.2ch; display: inline-block; border-radius: 10px; background: linear-gradient(100deg, rgba(255,255,255,0.05) 30%, rgba(255,255,255,0.13) 50%, rgba(255,255,255,0.05) 70%) 0 0 / 220% 100%; animation: nlt-skel 1.4s ease-in-out infinite; text-shadow: none; }
+        @keyframes nlt-skel { to { background-position: -120% 0; } }
+        @media (prefers-reduced-motion: reduce) { [data-skel] { animation: none; } }
+        /* Primeros pasos */
+        .ob-step { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.025); transition: border-color .25s ease, background .25s ease, transform .25s ease; }
+        a.ob-step:hover { border-color: rgba(var(--c), 0.5); background: rgba(var(--c), 0.07); transform: translateX(3px); }
+        .ob-num { width: 30px; height: 30px; border-radius: 10px; flex: none; display: grid; place-items: center; font-size: 13px; font-weight: 800; color: rgb(var(--c)); background: rgba(var(--c), 0.12); border: 1px solid rgba(var(--c), 0.3); }
+        .ob-step.done { opacity: .55; } .ob-step.done .ob-num { background: rgb(var(--c)); color: #07090e; }
+        .ob-bar { height: 4px; border-radius: 4px; background: rgba(255,255,255,0.07); overflow: hidden; } .ob-bar i { display: block; height: 100%; width: var(--w, 0%); border-radius: 4px; background: linear-gradient(90deg, #4378ff, #22d3ee, #22c55e); transition: width .8s cubic-bezier(.16,1,.3,1); }
+        /* Mapa de cuentas */
+        .am { position: relative; }
+        .am-stage { position: relative; }
+        .am-stage svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+        .am-ln { fill: none; stroke-width: 1.4; stroke-linecap: round; stroke-dasharray: 3 7; opacity: .5; }
+        .am-ln.live { opacity: .95; animation: am-dash 2.2s linear infinite; }
+        @keyframes am-dash { to { stroke-dashoffset: -20; } }
+        .am-node { --c: 34,197,94; position: absolute; transform: translate(-50%, -50%); display: flex; align-items: center; gap: 10px; padding: 9px 14px 9px 10px; border-radius: 14px; text-decoration: none;
+                   background: linear-gradient(180deg, #161c2a, #0d111a); border: 1px solid rgba(var(--c), 0.4); box-shadow: 0 0 26px -12px rgba(var(--c), .8);
+                   transition: transform .3s cubic-bezier(.16,1,.3,1), box-shadow .3s ease; white-space: nowrap; }
+        .am-node:hover { transform: translate(-50%, -50%) translateY(-2px); box-shadow: 0 14px 34px -14px rgba(var(--c), .9); }
+        .am-node.master { padding: 12px 18px 12px 12px; --c: 67,120,255; }
+        .am-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: rgb(var(--c)); box-shadow: 0 0 10px rgb(var(--c)); }
+        .am-node.pending .am-dot { animation: am-blink 1.2s ease-in-out infinite; } @keyframes am-blink { 50% { opacity: .3; } }
+        .am-ic { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 15px; flex: none; color: rgb(var(--c)); background: rgba(var(--c), .12); border: 1px solid rgba(var(--c), .3); }
+        .am-t { display: block; font: 700 12.5px/1.1 Geist, Inter, sans-serif; color: #fff; }
+        .am-s { display: block; margin-top: 3px; font: 700 8.5px/1 'SFMono-Regular', Consolas, monospace; letter-spacing: .14em; text-transform: uppercase; color: rgba(var(--c), .95); }
+        .am-more { position: absolute; transform: translate(-50%, -50%); font-size: 11px; font-weight: 700; color: #8b94a5; }
+        @media (max-width: 720px) { .am-node { padding: 7px 10px 7px 8px; gap: 7px; } .am-ic { width: 24px; height: 24px; font-size: 12px; } .am-t { font-size: 11px; } .am-s { font-size: 7.5px; } }
+        @media (prefers-reduced-motion: reduce) { .am-ln.live, .am-node.pending .am-dot { animation: none; } }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
@@ -86,30 +121,32 @@
             </div>
 
             <div id="connectionAlertWidget"></div>
+            <div id="onboardingWidget"></div>
+            <div id="accountMapWidget"></div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-                <div class="glass-card p-4 md:p-6 flex justify-between items-center">
+            <div id="metricsRow" class="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
+                <div class="glass-card p-4 md:p-6 flex justify-between items-center" style="--card-glow-rgb:67,120,255">
                     <div>
                         <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Volumen Hoy</p>
-                        <div class="flex items-baseline gap-2"><h2 class="text-3xl md:text-4xl font-bold text-nlt-accent glow-text" id="metricVolumen">—</h2><span class="text-sm text-gray-500">Lotes</span></div>
+                        <div class="flex items-baseline gap-2"><h2 class="text-3xl md:text-4xl font-bold text-nlt-accent glow-text" id="metricVolumen" data-countup data-skel>—</h2><span class="text-sm text-gray-500">Lotes</span></div>
                         <p class="text-[11px] text-gray-600 mt-1" id="metricVolumenNota">Sin operaciones copiadas hoy todavía</p>
                     </div>
-                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-stack text-xl md:text-2xl"></i></div>
+                    <div class="icon-wrap w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0" style="background:rgba(67,120,255,0.12); border:1px solid rgba(67,120,255,0.28); color:rgb(67,120,255)"><i class="ph ph-stack text-xl md:text-2xl"></i></div>
                 </div>
-                <div class="glass-card p-4 md:p-6 flex justify-between items-center">
+                <div class="glass-card p-4 md:p-6 flex justify-between items-center" style="--card-glow-rgb:34,211,238">
                     <div>
                         <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Cuentas Destino</p>
-                        <div class="flex items-baseline gap-1"><h2 class="text-3xl md:text-4xl font-bold text-white" id="metricCuentasUsadas">0</h2><span class="text-xl text-gray-500">/ <span id="metricCuentasLimite">2</span></span></div>
+                        <div class="flex items-baseline gap-1"><h2 class="text-3xl md:text-4xl font-bold text-white" id="metricCuentasUsadas" data-countup data-skel>0</h2><span class="text-xl text-gray-500">/ <span id="metricCuentasLimite">2</span></span></div>
                     </div>
-                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-plugs-connected text-xl md:text-2xl"></i></div>
+                    <div class="icon-wrap w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0" style="background:rgba(34,211,238,0.12); border:1px solid rgba(34,211,238,0.28); color:rgb(34,211,238)"><i class="ph ph-plugs-connected text-xl md:text-2xl"></i></div>
                 </div>
-                <div class="glass-card p-4 md:p-6 flex justify-between items-center">
+                <div class="glass-card p-4 md:p-6 flex justify-between items-center" style="--card-glow-rgb:34,197,94">
                     <div>
                         <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Tasa de Éxito</p>
-                        <h2 class="text-3xl md:text-4xl font-bold text-white" id="metricTasaExito">—</h2>
+                        <h2 class="text-3xl md:text-4xl font-bold text-white" id="metricTasaExito" data-countup data-skel>—</h2>
                         <p class="text-[11px] text-gray-600 mt-1" id="metricTasaExitoNota">Sin operaciones cerradas todavía</p>
                     </div>
-                    <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-500 shrink-0"><i class="ph-fill ph-check-circle text-xl md:text-2xl"></i></div>
+                    <div class="icon-wrap w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center shrink-0" style="background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.28); color:rgb(34,197,94)"><i class="ph-fill ph-check-circle text-xl md:text-2xl"></i></div>
                 </div>
             </div>
 
@@ -136,8 +173,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         const db = NLT.supabase;
         let sesionActual = null;
@@ -167,6 +204,7 @@
                 .gte('fecha_apertura', inicioHoy.toISOString());
 
             const volumenHoy = (ops || []).reduce((sum, op) => sum + Number(op.volumen), 0);
+            _mapaState.opsHoy = (ops || []).length; renderMapaCuentas();
             document.getElementById('metricVolumen').textContent = volumenHoy > 0 ? volumenHoy.toFixed(2) : '—';
             document.getElementById('metricVolumenNota').textContent = volumenHoy > 0
                 ? `${(ops || []).length} operaciones copiadas hoy`
@@ -182,16 +220,100 @@
                 document.getElementById('metricTasaExito').textContent = '—';
                 document.getElementById('metricTasaExitoNota').textContent = 'Sin operaciones cerradas todavía';
             }
+            document.querySelectorAll('[data-skel]').forEach((e) => e.removeAttribute('data-skel'));
         }
 
         // Antes esto no se mostraba en ningún lado del Dashboard -- una cuenta
         // podía quedar SESION_FRIA días sin que nadie la notara, salvo que el
         // usuario entrara puntualmente a Cuentas/Maestra y mirara el badge de
         // cada tarjeta. Ahora es lo primero que se ve al loguearse.
+        // Mapa de cuentas: la maestra al centro-izquierda y tus destinos como nodos con el color de su estado REAL.
+        // Los puntos de luz solo viajan cuando hay copias reales hoy (historial_operaciones) y ambas puntas estan conectadas.
+        const _mapaState = { cuentas: null, opsHoy: null };
+        const _ESTADO_MAPA = {
+            CONECTADA: ['34,197,94', 'Conectada'], PENDIENTE: ['234,179,8', 'En cola'], CONNECTING: ['234,179,8', 'Conectando'],
+            SESION_FRIA: ['251,146,60', 'Reconectar'], DESCONECTADA: ['248,113,113', 'Desconectada'], ERROR_CONEXION: ['248,113,113', 'Error'],
+            CREDENCIALES_INVALIDAS: ['248,113,113', 'Credenciales'], TRADING_DISABLED: ['248,113,113', 'Trading off'],
+        };
+        function renderMapaCuentas() {
+            const box = document.getElementById('accountMapWidget');
+            const cuentas = _mapaState.cuentas;
+            if (!box || !Array.isArray(cuentas)) return;
+            const maestra = cuentas.find((c) => c.tipo_cuenta === 'MAESTRA');
+            const destinos = cuentas.filter((c) => c.tipo_cuenta === 'DESTINO');
+            if (!maestra && !destinos.length) { box.innerHTML = ''; return; }
+            const MAX = 7, shown = destinos.slice(0, MAX), extra = destinos.length - shown.length;
+            const slots = Math.max(1, shown.length) + (extra > 0 ? 1 : 0);
+            const H = Math.max(150, slots * 64 + 28), W = 900, mx = 13, dx = 84;   // porcentajes horizontales
+            const ys = Array.from({ length: slots }, (_, i) => (H / slots) * (i + 0.5));
+            const masc = (n) => (n == null ? '' : '••' + String(n).slice(-4));
+            const inf = (c) => _ESTADO_MAPA[c && c.estado] || ['248,113,113', (c && c.estado) || 'Desconocido'];
+            const hayCopias = (_mapaState.opsHoy || 0) > 0;
+            const mOk = maestra && maestra.estado === 'CONECTADA';
+            const lines = shown.map((d, i) => {
+                const [rgb] = inf(d), live = hayCopias && mOk && d.estado === 'CONECTADA';
+                const x0 = (mx / 100) * W, x1 = (dx / 100) * W, y0 = H / 2, y1 = ys[i];
+                const path = `M${x0},${y0} C${(x0 + x1) / 2},${y0} ${(x0 + x1) / 2},${y1} ${x1},${y1}`;
+                return `<path class="am-ln${live ? ' live' : ''}" stroke="rgb(${rgb})" d="${path}"/>` +
+                    (live ? `<circle r="2.6" fill="rgb(${rgb})" style="filter:drop-shadow(0 0 5px rgb(${rgb}))"><animateMotion dur="${(2.2 + (i % 3) * 0.5).toFixed(1)}s" begin="${(i * 0.35).toFixed(2)}s" repeatCount="indefinite" path="${path}"/></circle>` : '');
+            }).join('');
+            const nodoM = maestra ? (() => { const [rgb, tx] = inf(maestra); return `<a href="maestra.html" class="am-node master${maestra.estado === 'PENDIENTE' || maestra.estado === 'CONNECTING' ? ' pending' : ''}" style="left:${mx}%;top:${H / 2}px;--c:${rgb}" title="Cuenta maestra ${masc(maestra.login_numero)} - ${tx}"><span class="am-ic"><i class="ph-fill ph-crown"></i></span><span><span class="am-t">Maestra ${masc(maestra.login_numero)}</span><span class="am-s">${tx}</span></span></a>`; })()
+                : `<a href="maestra.html" class="am-node master" style="left:${mx}%;top:${H / 2}px;--c:148,163,184"><span class="am-ic"><i class="ph ph-plus"></i></span><span><span class="am-t">Conecta tu maestra</span><span class="am-s">Pendiente</span></span></a>`;
+            const nodosD = shown.map((d, i) => { const [rgb, tx] = inf(d); return `<a href="cuentas.html" class="am-node${d.estado === 'PENDIENTE' || d.estado === 'CONNECTING' ? ' pending' : ''}" style="left:${dx}%;top:${ys[i]}px;--c:${rgb}" title="Destino ${masc(d.login_numero)} - ${tx}"><span class="am-ic"><i class="ph-fill ph-user"></i></span><span><span class="am-t">Destino ${masc(d.login_numero)}</span><span class="am-s">${tx}</span></span></a>`; }).join('');
+            const mas = extra > 0 ? `<a href="cuentas.html" class="am-more" style="left:${dx}%;top:${ys[slots - 1]}px">+${extra} más</a>` : '';
+            const vacio = !destinos.length ? `<a href="#copierForm" class="am-node" style="left:${dx}%;top:${H / 2}px;--c:148,163,184"><span class="am-ic"><i class="ph ph-plus"></i></span><span><span class="am-t">Añade un destino</span><span class="am-s">Pendiente</span></span></a>` : '';
+            box.innerHTML = `
+                <div class="glass-card am p-5 md:p-7" style="--card-glow-rgb:34,211,238">
+                    <div class="flex items-center justify-between gap-4 mb-2 flex-wrap">
+                        <div><p class="text-[10px] font-bold uppercase tracking-widest mb-1" style="color:rgb(34,211,238)">Tus cuentas</p><h3 class="text-lg font-bold text-white">Mapa de copiado</h3></div>
+                        <p class="text-[11px] text-gray-500">${hayCopias ? 'Los puntos de luz indican copias reales de hoy.' : 'Sin copias hoy: las líneas se activan cuando la maestra opere.'}</p>
+                    </div>
+                    <div class="am-stage" style="height:${H}px">
+                        <svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true">${lines}</svg>
+                        ${nodoM}${nodosD}${vacio}${mas}
+                    </div>
+                </div>`;
+        }
+
+        // Primeros pasos: una lista guiada mientras falte conectar la maestra, un destino o
+        // reconectar una cuenta. Sale de los datos reales (listarCuentas) y desaparece sola al completarse.
+        function renderPrimerosPasos(cuentas, sub) {
+            const box = document.getElementById('onboardingWidget');
+            if (!box) return;
+            const lista = Array.isArray(cuentas) ? cuentas : [];
+            const hayMaestra = lista.some((c) => c.tipo_cuenta === 'MAESTRA');
+            const hayDestino = lista.some((c) => c.tipo_cuenta === 'DESTINO');
+            const frias = lista.some((c) => c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA');
+            const pasos = [];
+            if (sub && sub.status && sub.status !== 'active') pasos.push({ c: '168,85,247', icon: 'ph-credit-card', t: 'Elige tu plan', d: 'Activa un plan para conectar tus cuentas.', href: 'suscripcion.html', ok: false });
+            pasos.push({ c: '67,120,255', icon: 'ph-crown', t: 'Conecta tu cuenta maestra', d: 'La cuenta que operas: MT5, sin instalar nada.', href: 'maestra.html', ok: hayMaestra });
+            pasos.push({ c: '34,211,238', icon: 'ph-users', t: 'Añade una cuenta destino', d: 'Cada destino se suma con su propio balance y multiplicador.', href: '#copierForm', ok: hayDestino });
+            pasos.push({ c: '34,197,94', icon: 'ph-check-circle', t: 'Verifica la conexión', d: 'Todas tus cuentas conectadas y listas para copiar.', href: 'cuentas.html', ok: hayMaestra && hayDestino && !frias });
+            const hechos = pasos.filter((s) => s.ok).length;
+            if (hechos === pasos.length) { box.innerHTML = ''; return; }
+            box.innerHTML = `
+                <div class="glass-card p-5 md:p-7" style="--card-glow-rgb:67,120,255">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div><p class="text-[10px] font-bold text-nlt-accent uppercase tracking-widest mb-1">Primeros pasos</p><h3 class="text-lg font-bold text-white">Deja tu copiador listo</h3></div>
+                        <span class="text-xs font-bold text-gray-400 shrink-0">${hechos} / ${pasos.length}</span>
+                    </div>
+                    <div class="ob-bar mb-5"><i style="--w:${Math.round((hechos / pasos.length) * 100)}%"></i></div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px">
+                        ${pasos.map((s, i) => `
+                            <a href="${s.href}" class="ob-step${s.ok ? ' done' : ''}" style="--c:${s.c}">
+                                <span class="ob-num">${s.ok ? '<i class="ph-bold ph-check"></i>' : i + 1}</span>
+                                <span class="min-w-0"><span class="block text-sm font-semibold text-white">${s.t}</span><span class="block text-[11px] text-gray-500 leading-snug">${s.d}</span></span>
+                            </a>`).join('')}
+                    </div>
+                </div>`;
+        }
+
         async function cargarAlertaConexion() {
             const box = document.getElementById('connectionAlertWidget');
             try {
                 const cuentas = await NLT_API.listarCuentas();
+                renderPrimerosPasos(cuentas, miSuscripcion);
+                _mapaState.cuentas = cuentas; renderMapaCuentas();
                 const frias = (cuentas || []).filter(c => c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA'));
                 if (!frias.length) {
                     box.innerHTML = '';
@@ -211,7 +333,7 @@
                         <div class="w-10 h-10 md:w-11 md:h-11 rounded-full bg-orange-500/10 flex items-center justify-center text-orange-400 shrink-0"><i class="ph-fill ph-plugs text-lg md:text-xl"></i></div>
                         <div>
                             <p class="text-[11px] font-bold text-orange-400 uppercase tracking-wider mb-0.5">Reconexión necesaria</p>
-                            <p class="text-sm text-white font-semibold">${frias.length} cuenta${frias.length === 1 ? '' : 's'} con la sesión enfriada del lado del broker -- el copiador no puede operarla${frias.length === 1 ? '' : 's'} hasta que la${frias.length === 1 ? '' : 's'} reconectés.</p>
+                            <p class="text-sm text-white font-semibold">${frias.length} cuenta${frias.length === 1 ? '' : 's'} con la sesión enfriada del lado del broker -- el copiador no puede operarla${frias.length === 1 ? '' : 's'} hasta que la${frias.length === 1 ? '' : 's'} reconectes.</p>
                         </div>
                     </div>
                     <div class="space-y-2">${items}</div>
@@ -304,6 +426,20 @@
                 cargarMarketAlerts(),
                 cargarAlertaConexion(),
             ]);
+            NLT.registerPaletteAction({ label: 'Ver el tour del dashboard', icon: 'ph-compass', rgb: '67,120,255', kw: 'ayuda guia recorrido tutorial', run: () => iniciarTour(true) });
+            setTimeout(() => iniciarTour(false), 1400);   // solo la primera vez (localStorage)
+        }
+
+        // Tour de primer uso: sidebar, buscador, barra de modulos, metricas y (si aplica) primeros pasos / mapa.
+        function iniciarTour(forzar) {
+            const conPasos = document.querySelector('#onboardingWidget .glass-card') ? '#onboardingWidget .glass-card' : (document.querySelector('#accountMapWidget .glass-card') ? '#accountMapWidget .glass-card' : '#copierForm');
+            NLT.startTour([
+                { sel: '#sidebar nav', title: 'Todo NLT en un menú', text: 'Cada sección tiene su propio color, igual que los productos del ecosistema.' },
+                { sel: '[data-nlt-palette]', title: 'Busca lo que sea', text: 'Pulsa Ctrl+K (o ⌘K) para ir a cualquier sección. Con la tecla ? ves todos los atajos.' },
+                { sel: '#moduleStrip', title: 'Salta entre productos', text: 'Copy System, Indicator, calculadoras, noticias y más, a un clic desde aquí.' },
+                { sel: '#metricsRow', title: 'Tu día, de un vistazo', text: 'Volumen copiado, cuentas conectadas y tasa de éxito. Los números se cargan de tus datos reales.' },
+                { sel: conPasos, title: conPasos === '#copierForm' ? 'Añade una cuenta destino' : 'Tu siguiente paso', text: conPasos === '#copierForm' ? 'Conecta una cuenta destino para empezar a copiar.' : 'Aquí ves qué te falta para dejar el copiador listo y el estado de cada cuenta.' },
+            ], { key: 'dashboard-v1', force: !!forzar });
         }
 
         NLT.injectServerDatalist();
@@ -365,6 +501,7 @@
         });
 
         init();
+        setTimeout(() => document.querySelectorAll('[data-skel]').forEach((e) => e.removeAttribute('data-skel')), 9000);
         // Se pausan solos si la pestaña queda en segundo plano, y refrescan
         // una vez de inmediato al volver a primer plano.
         NLT.pollWhileVisible(() => { if (sesionActual) cargarMetricas(); }, 20000);

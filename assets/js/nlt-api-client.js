@@ -66,7 +66,7 @@
             return await fetch(url, { ...opciones, signal: controller.signal });
         } catch (err) {
             if (err.name === 'AbortError') {
-                throw new Error('El servidor tardó demasiado en responder. Probá de nuevo en un momento.');
+                throw new Error('El servidor tardó demasiado en responder. Prueba de nuevo en un momento.');
             }
             throw err;
         } finally {
@@ -210,8 +210,14 @@
         planesTodos: () => requestPublico('/billing/plans/all'),
         planesPorProducto: (producto) => requestPublico(`/billing/plans/producto/${producto}`),
         validarCupon: (code, plan) => request('/billing/coupons/validate', { method: 'POST', body: JSON.stringify({ code, plan }) }),
-        crearOrden: (plan, billing_period, coupon_code) => request('/billing/orders', { method: 'POST', body: JSON.stringify({ plan, billing_period, coupon_code: coupon_code || null }) }),
+        crearOrden: (plan, billing_period, coupon_code, network) => request('/billing/orders', { method: 'POST', body: JSON.stringify({ plan, billing_period, coupon_code: coupon_code || null, network: network || null }) }),
         obtenerOrden: (orderId) => request(`/billing/orders/${orderId}`),
+        obtenerInfoPagoCrypto: (orderId) => request(`/billing/orders/${orderId}/crypto-payment-info`),
+        marcarPagoEnRevision: (orderId) => request(`/billing/orders/${orderId}/mark-paid`, { method: 'POST' }),
+        // Checkout externo: 'whop' (tarjeta) o 'nowpayments' (cripto) --
+        // sirve para órdenes de /billing/orders y de /indicator/orders.
+        metodosPago: () => requestPublico('/billing/payment-methods'),
+        iniciarCheckout: (orderId, proveedor) => request(`/billing/orders/${orderId}/checkout/${proveedor}`, { method: 'POST' }),
         // Checkout real vía el tokenizador oficial de Pay2Commerce
         // (P2C.tokenize) -- ver NLT_API/app/integrations/payments/pay2commerce_checkout.py.
         checkoutConfig: (orderId) => request(`/billing/orders/${orderId}/checkout-config`),
@@ -343,6 +349,8 @@
         },
         calendarProximoAltoImpacto: () => requestPublico('/calendar/next-high-impact'),
         calendarStatus: () => requestPublico('/calendar/status'),
+        // Salud del backend (API + Supabase) -- publico; lo usa status.html.
+        salud: () => requestPublico('/health'),
 
         // --- admin: Economic Calendar ---
         adminCalendarSettings: () => request('/admin/calendar/settings'),
@@ -758,8 +766,10 @@
 
         // --- NLT Bot Supreme (Fase 4/5, ver RATIFIED INTEGRATION CONTRACT v1) ---
         botMiLicencia: () => request('/bot/mi-licencia'),
-        // Devuelve {download_url, expires_in, version} -- una signed URL
-        // temporal (600s), nunca un bucket/storage_key hardcodeado acá.
+        // Devuelve {download_url, expires_in, version, sha256} -- una
+        // signed URL temporal (600s) + el hash de integridad del sidecar
+        // publicado junto al installer, nunca un bucket/storage_key
+        // hardcodeado acá.
         botDescargarInstaller: () => request('/bot/download'),
 
         // --- admin: NLT Bot Supreme (Fase 6) ---
@@ -806,7 +816,7 @@
             if (!resp.ok) {
                 let d; try { d = (await resp.json()).detail; } catch (_) { /* sin cuerpo */ }
                 throw new Error(d === 'AI_FEATURE_LOCKED'
-                    ? 'La guía es parte de NLT Indicator AI. Activá el plan para acceder.'
+                    ? 'La guía es parte de NLT Indicator AI. Activa el plan para acceder.'
                     : (d || `No se pudo abrir la guía (HTTP ${resp.status})`));
             }
             const url = URL.createObjectURL(await resp.blob());

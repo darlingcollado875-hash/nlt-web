@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Bot Supreme | Trading automatizado, licencia protegida</title>
+    <meta name="description" content="NLT Bot Supreme -- bot de trading automatizado del ecosistema NLT, con licencia protegida, activación segura y kill-switch remoto.">
+    <link rel="canonical" href="https://nltnextlevel.uk/nlt-bot">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. Mismo patrón que el resto
+           del Ecosystem (ver signals.html/plans.html). */
+        html { overflow-x: hidden; }
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+
+        /* --- Pricing cards NLT Bot Supreme -- extensión puntual de .glass-card,
+           usa los mismos tokens de duración/easing del Motion System NLT
+           (inyectados por NLT.mountReveal() en <head>; con fallback inline por si
+           este bloque pinta antes de que ese <style> se inyecte). --- */
+        .bot-plan-card {
+            position: relative; overflow: hidden;
+            transition: transform var(--nlt-emphasis, 350ms) var(--nlt-ease, cubic-bezier(0.16, 1, 0.3, 1)),
+                        border-color var(--nlt-standard, 220ms) ease;
+        }
+        .bot-plan-card:hover { transform: translateY(-6px); border-color: rgba(67, 120, 255, 0.3); }
+        .bot-plan-card.is-featured:hover { transform: translateY(-10px); }
+
+        /* Glow radial de fondo -- sutil en hover para las 3 cards, y con un
+           pulso continuo extremadamente leve (solo opacity/scale) en la
+           destacada. Nunca desplazamiento, nunca color nuevo fuera de nlt-accent. */
+        .bot-plan-glow {
+            position: absolute; inset: 0; border-radius: 24px; pointer-events: none; z-index: 0;
+            background: radial-gradient(120% 90% at 50% 0%, rgba(67, 120, 255, 0.20), transparent 70%);
+            opacity: 0; transition: opacity var(--nlt-standard, 220ms) ease;
+        }
+        .bot-plan-card:hover .bot-plan-glow { opacity: 1; }
+        .bot-plan-card.is-featured .bot-plan-glow { opacity: 0.3; animation: botPlanPulse 3.6s ease-in-out infinite alternate; }
+        .bot-plan-card > * { position: relative; z-index: 1; }
+
+        @keyframes botPlanPulse {
+            0% { opacity: 0.18; transform: scale(1); }
+            100% { opacity: 0.38; transform: scale(1.035); }
+        }
+
+        /* Microinteracción de botones -- además del glow-button ya existente. */
+        .bot-cta-btn { transition: transform var(--nlt-micro, 150ms) ease, background-color var(--nlt-standard, 220ms) ease; }
+        .bot-cta-btn:active { transform: scale(0.97); }
+
+        /* Móvil: sin pulso continuo (regla explícita, evita costo de rendimiento
+           en dispositivos donde nadie hace hover) -- el hover normal tampoco
+           aplica en touch, así que solo queda un glow estático leve. */
+        @media (max-width: 767px) {
+            .bot-plan-card.is-featured .bot-plan-glow { animation: none; opacity: 0.22; }
+        }
+
+        /* Respeta prefers-reduced-motion a nivel de página, además del bloque
+           global que ya inyecta NLT.mountReveal() para [data-reveal]. */
+        @media (prefers-reduced-motion: reduce) {
+            .bot-plan-card, .bot-plan-card:hover, .bot-plan-glow, .bot-plan-card.is-featured .bot-plan-glow, .bot-cta-btn {
+                transition: none !important; animation: none !important; transform: none !important;
+            }
+        }
+    </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT Bot Supreme | Trading automatizado, licencia protegida">
+    <meta property="og:description" content="NLT Bot Supreme -- bot de trading automatizado del ecosistema NLT, con licencia protegida, activación segura y kill-switch remoto.">
+    <meta property="og:url" content="https://nltnextlevel.uk/nlt-bot">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-bot.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT Bot Supreme | Trading automatizado, licencia protegida">
+    <meta name="twitter:description" content="NLT Bot Supreme -- bot de trading automatizado del ecosistema NLT, con licencia protegida, activación segura y kill-switch remoto.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-bot.jpg">
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="#precio" class="hover:text-white transition-colors">Precio</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 pt-44 pb-20 px-6 max-w-5xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT Bot Supreme</p>
+        <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>Trading automatizado, licencia protegida.</h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>El bot de trading del ecosistema NLT -- activación segura por dispositivo y cuenta, con kill-switch remoto y control total desde tu Dashboard NLT.</p>
+        <a href="#precio" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button" data-reveal>Ver precio</a>
+    </section>
+
+    <!-- EL SISTEMA DEL NLT BOT SUPREME EN CAPAS -- render 3D (assets/img/showcase/bot-XX.webp, fuente en /design-assets) atado al scroll. Sin cifras ni promesas. -->
+    <section class="nlt-seq" data-seq-section aria-label="El sistema del NLT Bot Supreme en capas" style="--seq-bar:linear-gradient(180deg,#4378ff,#a855f7,#f87171)">
+        <div class="nlt-seq-sticky">
+            <div class="nlt-seq-caps">
+                <div class="nlt-seq-bar" aria-hidden="true"><i></i></div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.0" data-to="0.33">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(248,113,113)">Licencia protegida</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Una licencia ligada a tu dispositivo y a tu cuenta.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed ">Activación vinculada al dispositivo y a la cuenta de trading -- nunca un archivo que se pueda copiar sin control.</p>
+                </div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.33" data-to="0.67">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(168,85,247)">Control remoto</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Un kill-switch para cuando haga falta.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed ">Tu licencia puede suspenderse o revocarse de forma remota desde un control de seguridad centralizado.</p>
+                </div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.67" data-to="1">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(67,120,255)">Todo en tu Dashboard</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Descarga, estado y control en un solo lugar.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed mb-6">El instalador y el estado de tu licencia viven dentro de tu cuenta NLT, con el mismo login del resto del ecosistema.</p>
+                    <a href="#precio" class="inline-flex items-center gap-2 text-sm font-bold hover:gap-3 transition-all" style="color:rgb(67,120,255)">Ver precio <i class="ph-bold ph-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="nlt-seq-stage">
+                <canvas data-seq data-seq-base="assets/img/showcase/bot-" data-seq-frames="40" data-seq-ext="webp" width="800" height="800" role="img" aria-label="El sistema del NLT Bot Supreme en capas"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div class="glass-card p-8" style="--card-glow-rgb:67,120,255" data-reveal>
+                <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-2xl" style="background:rgba(67,120,255,0.12); border:1px solid rgba(67,120,255,0.28); color:rgb(67,120,255)">
+                    <i class="ph-fill ph-shield-check"></i>
+                </div>
+                <h3 class="font-bold text-white mb-2">Licencia protegida</h3>
+                <p class="text-sm text-gray-400">Activación vinculada a tu dispositivo y tu cuenta de trading -- nunca un archivo que se pueda copiar sin control.</p>
+            </div>
+            <div class="glass-card p-8" style="--card-glow-rgb:248,113,113" data-reveal>
+                <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-2xl" style="background:rgba(248,113,113,0.12); border:1px solid rgba(248,113,113,0.28); color:rgb(248,113,113)">
+                    <i class="ph-fill ph-power"></i>
+                </div>
+                <h3 class="font-bold text-white mb-2">Kill-switch remoto</h3>
+                <p class="text-sm text-gray-400">Control de seguridad centralizado -- tu licencia puede suspenderse o revocarse de forma remota si hace falta.</p>
+            </div>
+            <div class="glass-card p-8" style="--card-glow-rgb:34,197,94" data-reveal>
+                <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-2xl" style="background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.28); color:rgb(34,197,94)">
+                    <i class="ph-fill ph-download-simple"></i>
+                </div>
+                <h3 class="font-bold text-white mb-2">Descarga desde tu Dashboard</h3>
+                <p class="text-sm text-gray-400">El instalador y el estado de tu licencia viven en un solo lugar, dentro de tu cuenta NLT.</p>
+            </div>
+            <div class="glass-card p-8" style="--card-glow-rgb:168,85,247" data-reveal>
+                <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-4 text-2xl" style="background:rgba(168,85,247,0.12); border:1px solid rgba(168,85,247,0.28); color:rgb(168,85,247)">
+                    <i class="ph-fill ph-squares-four"></i>
+                </div>
+                <h3 class="font-bold text-white mb-2">Dentro del ecosistema</h3>
+                <p class="text-sm text-gray-400">Mismo login, misma cuenta que el resto de NLT -- sin credenciales nuevas que administrar.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PRICING -->
+    <section id="precio" class="relative z-10 max-w-6xl mx-auto px-6 py-20">
+        <div class="text-center mb-14" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Precio</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Elige tu plan</h2>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+
+            <!-- Plan 1: 1 Cuenta -- DESTACADO -->
+            <div class="bot-plan-card is-featured glass-card p-8 flex flex-col border-nlt-accent/40" data-reveal>
+                <div class="bot-plan-glow"></div>
+                <span class="inline-block w-fit text-[9px] font-bold uppercase tracking-widest text-nlt-accent bg-nlt-accent/10 border border-nlt-accent/20 rounded-full px-3 py-1 mb-4">Recomendado</span>
+                <h3 class="font-bold text-white text-lg mb-1">NLT Bot Supreme</h3>
+                <p class="text-xs text-gray-500 mb-5">1 Cuenta</p>
+                <p class="mb-6"><span class="text-4xl font-extrabold text-white">$50</span><span class="text-sm text-gray-500 font-medium"> /mes</span></p>
+                <div class="flex-1"></div>
+                <span class="block text-center w-full py-3.5 rounded-xl bg-white/5 text-gray-400 font-semibold text-sm cursor-default">Próximamente</span>
+            </div>
+
+            <!-- Plan 2: Lifetime 1 Cuenta -->
+            <div class="bot-plan-card glass-card p-8 flex flex-col" data-reveal>
+                <div class="bot-plan-glow"></div>
+                <h3 class="font-bold text-white text-lg mb-1">NLT Bot Supreme</h3>
+                <p class="text-xs text-gray-500 mb-5">Lifetime -- 1 Cuenta</p>
+                <p class="mb-6"><span class="text-4xl font-extrabold text-white">$250</span><span class="text-sm text-gray-500 font-medium"> pago único</span></p>
+                <div class="flex-1"></div>
+                <span class="block text-center w-full py-3.5 rounded-xl bg-white/5 text-gray-400 font-semibold text-sm cursor-default">Próximamente</span>
+            </div>
+
+            <!-- Plan 3: Lifetime 2 Cuentas -->
+            <div class="bot-plan-card glass-card p-8 flex flex-col" data-reveal>
+                <div class="bot-plan-glow"></div>
+                <h3 class="font-bold text-white text-lg mb-1">NLT Bot Supreme</h3>
+                <p class="text-xs text-gray-500 mb-5">Lifetime -- 2 Cuentas</p>
+                <p class="mb-6"><span class="text-4xl font-extrabold text-white">$300</span><span class="text-sm text-gray-500 font-medium"> pago único</span></p>
+                <div class="flex-1"></div>
+                <span class="block text-center w-full py-3.5 rounded-xl bg-white/5 text-gray-400 font-semibold text-sm cursor-default">Próximamente</span>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- CTA FINAL -->
+    <section class="relative z-10 max-w-4xl mx-auto px-6 py-20 text-center">
+        <div class="glass-card p-10 md:p-14" data-reveal>
+            <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Muy pronto disponible</h2>
+            <p class="text-gray-400 mb-8 max-w-xl mx-auto">NLT Bot Supreme está en beta cerrada. Abriremos la venta cuando esté listo -- mientras tanto, explora el resto del ecosistema.</p>
+            <a href="ecosystem.html" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm glow-button">Ver el ecosistema</a>
+        </div>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script>
+        // Sin backend todavía (catálogo/checkout de NLT Bot Supreme pendiente,
+        // ver auditoría comercial) -- los 3 CTA de precio + el CTA final usan
+        // EXACTAMENTE el mismo comportamiento que el botón "Comenzar" del
+        // header (mountPublicHeader): si hay sesión, va al Dashboard; si no,
+        // dispara el login real de Supabase. Nunca crea una orden ni llama a
+        // ningún endpoint de pago -- eso queda para cuando el catálogo exista.
+        function conectarCTAsPrecio() {
+            document.querySelectorAll('.bot-plan-cta').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const session = await NLT.getSession();
+                    if (session) {
+                        window.location.href = 'dashboard.html';
+                    } else {
+                        const urlDestino = new URL('nlt-bot.html', window.location.href).toString();
+                        NLT.supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
+                    }
+                });
+            });
+        }
+
+        NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+        conectarCTAsPrecio();
+
+        // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
+        // stagger:100 en las 3 pricing cards para que entren en cascada.
+        NLT.mountReveal('[data-reveal]:not(.bot-plan-card)');
+        NLT.mountReveal('.bot-plan-card[data-reveal]', { stagger: 100 });
+    </script>
+</body>
+</html>

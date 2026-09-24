@@ -11,7 +11,12 @@
     <title>NLT News | Noticias de mercado y calendario económico</title>
     <meta name="description" content="NLT News -- noticias de mercado y calendario económico, dentro del mismo ecosistema NLT.">
     <link rel="canonical" href="https://nltnextlevel.uk/news">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -21,8 +26,8 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script defer src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script defer src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script defer src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <style>
         /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
            los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
@@ -58,6 +63,18 @@
         .cal-intel-caution { background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.2); color: #FBBF24; }
         .cal-intel-highrisk { background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.2); color: #F87171; }
     </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT News | Noticias de mercado y calendario económico">
+    <meta property="og:description" content="NLT News -- noticias de mercado y calendario económico, dentro del mismo ecosistema NLT.">
+    <meta property="og:url" content="https://nltnextlevel.uk/news">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT News | Noticias de mercado y calendario económico">
+    <meta name="twitter:description" content="NLT News -- noticias de mercado y calendario económico, dentro del mismo ecosistema NLT.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
 </head>
 <body class="min-h-screen relative">
 
@@ -65,7 +82,7 @@
 
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
-            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
@@ -82,7 +99,7 @@
             <span class="w-1.5 h-1.5 rounded-full bg-nlt-success animate-pulse"></span> Módulo en vivo
         </div>
         <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>NLT News</h1>
-        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>Noticias de mercado y calendario económico, dentro de la misma cuenta que ya usás en el resto de NLT.</p>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>Noticias de mercado y calendario económico, dentro de la misma cuenta que ya usas en el resto de NLT.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
             <button id="btn-comenzar" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar</button>
             <a href="#noticias" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all">Ver noticias</a>
@@ -125,8 +142,8 @@
                 <button class="cal-filter-pill" data-rango="tomorrow">Mañana</button>
                 <button class="cal-filter-pill" data-rango="week">Esta semana</button>
             </div>
-            <input type="date" id="calFechaCustom" class="cal-filter-pill bg-transparent" style="color-scheme: dark;">
-            <select id="calMoneda" class="cal-filter-pill bg-[#0d1016] cursor-pointer">
+            <input type="date" id="calFechaCustom" aria-label="Fecha personalizada" class="cal-filter-pill bg-transparent" style="color-scheme: dark;">
+            <select id="calMoneda" aria-label="Filtrar por moneda" class="cal-filter-pill bg-[#0d1016] cursor-pointer">
                 <option value="">Todas las monedas</option>
                 <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
                 <option value="JPY">JPY</option><option value="CAD">CAD</option><option value="AUD">AUD</option>
@@ -137,7 +154,7 @@
                 <button class="cal-impact-chip active text-orange-400 border-orange-500/30" data-impact="MEDIUM">🟠 MEDIUM</button>
                 <button class="cal-impact-chip active text-red-400 border-red-500/30" data-impact="HIGH">🔴 HIGH</button>
             </div>
-            <select id="calTimezone" class="cal-filter-pill bg-[#0d1016] cursor-pointer ml-auto">
+            <select id="calTimezone" aria-label="Zona horaria" class="cal-filter-pill bg-[#0d1016] cursor-pointer ml-auto">
                 <option value="auto">Hora local</option>
                 <option value="ny">New York (ET)</option>
                 <option value="london">London (GMT/BST)</option>
@@ -148,7 +165,7 @@
         <!-- FILTROS (mobile trigger) -->
         <div class="flex md:hidden items-center justify-between gap-3 mb-6" data-reveal>
             <button id="calAbrirFiltros" class="cal-filter-pill flex items-center gap-2"><i class="ph ph-sliders-horizontal"></i> Filtros</button>
-            <select id="calTimezoneMobile" class="cal-filter-pill bg-[#0d1016] cursor-pointer">
+            <select id="calTimezoneMobile" aria-label="Zona horaria" class="cal-filter-pill bg-[#0d1016] cursor-pointer">
                 <option value="auto">Hora local</option>
                 <option value="ny">New York</option>
                 <option value="london">London</option>
@@ -187,9 +204,9 @@
             <button class="cal-filter-pill" data-rango="tomorrow">Mañana</button>
             <button class="cal-filter-pill" data-rango="week">Esta semana</button>
         </div>
-        <input type="date" id="calFechaCustomMobile" class="cal-filter-pill bg-transparent w-full mb-5" style="color-scheme: dark;">
+        <input type="date" id="calFechaCustomMobile" aria-label="Fecha personalizada" class="cal-filter-pill bg-transparent w-full mb-5" style="color-scheme: dark;">
         <p class="text-[10px] uppercase tracking-wider text-gray-500 font-bold mb-2">Moneda</p>
-        <select id="calMonedaMobile" class="cal-filter-pill bg-[#0d1016] w-full mb-5">
+        <select id="calMonedaMobile" aria-label="Filtrar por moneda" class="cal-filter-pill bg-[#0d1016] w-full mb-5">
             <option value="">Todas las monedas</option>
             <option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option>
             <option value="JPY">JPY</option><option value="CAD">CAD</option><option value="AUD">AUD</option>
@@ -282,7 +299,7 @@
                         <div class="glass-card p-10 text-center border-dashed border-amber-500/20 col-span-full" data-reveal>
                             <i class="ph ph-warning-circle text-4xl text-amber-500 mb-4"></i>
                             <h3 class="text-lg font-bold text-white mb-2">No se pudieron cargar las noticias</h3>
-                            <p class="text-sm text-gray-500 mb-4">Hubo un problema de conexión. Probá de nuevo en unos segundos.</p>
+                            <p class="text-sm text-gray-500 mb-4">Hubo un problema de conexión. Prueba de nuevo en unos segundos.</p>
                             <button id="btn-reintentar-noticias" class="px-5 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-gray-300 hover:bg-white/10 transition-colors cursor-pointer">Reintentar</button>
                         </div>
                     `;

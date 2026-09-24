@@ -46,3 +46,9 @@
 # la forma "limpia" que la plataforma sirve directo sin redirigir, y el
 # problema desaparece).
 /funded/:slug  /funded-detail?slug=:slug  200
+
+# NLT Bot Supreme -- venta cerrada (beta cerrada, instalador sin firmar y sin
+# License Server en producción, ver NLT_API/docs/NLT-BOT-RELEASE-STATUS.md).
+# El checkout Lifetime no se ofrece: cualquier link viejo cae en la landing
+# (que muestra "Próximamente"). Destino sin extensión, por el auto-clean.
+/nlt-bot-lifetime-checkout  /nlt-bot  302

@@ -9,9 +9,14 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Copy System | Copiado de operaciones en tiempo real</title>
-    <meta name="description" content="Copiá operaciones automáticamente entre tu cuenta maestra y tus cuentas destino -- CFDs, Forex y Futuros, con gestión de riesgo real.">
+    <meta name="description" content="Copia operaciones automáticamente entre tu cuenta maestra y tus cuentas destino -- CFDs, Forex y Futuros, con gestión de riesgo real.">
     <link rel="canonical" href="https://nltnextlevel.uk/copy-system">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -37,6 +42,18 @@
         details summary::-webkit-details-marker { display: none; }
         details[open] .faq-icon { transform: rotate(45deg); }
     </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT Copy System | Copiado de operaciones en tiempo real">
+    <meta property="og:description" content="Copia operaciones automáticamente entre tu cuenta maestra y tus cuentas destino -- CFDs, Forex y Futuros, con gestión de riesgo real.">
+    <meta property="og:url" content="https://nltnextlevel.uk/copy-system">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-copy.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT Copy System | Copiado de operaciones en tiempo real">
+    <meta name="twitter:description" content="Copia operaciones automáticamente entre tu cuenta maestra y tus cuentas destino -- CFDs, Forex y Futuros, con gestión de riesgo real.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-copy.jpg">
 </head>
 <body class="min-h-screen relative">
 
@@ -44,7 +61,7 @@
 
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
-            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
@@ -61,12 +78,143 @@
         </div>
         <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>NLT Copy System</h1>
         <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-10" data-reveal>
-            Conectá tu cuenta maestra y tus cuentas destino, y dejá que cada operación se copie sola -- lotaje proporcional al balance real de cada cuenta, en CFDs/Forex y Futuros.
+            Conecta tu cuenta maestra y tus cuentas destino, y deja que cada operación se copie sola -- lotaje proporcional al balance real de cada cuenta, en CFDs/Forex y Futuros.
         </p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4" data-reveal>
             <button id="btn-comenzar" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar</button>
             <a href="#como-funciona" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all">Cómo funciona</a>
         </div>
+    </section>
+
+    <!-- EL MOTOR DE COPIADO DE NLT COPY SYSTEM -- render 3D (assets/img/showcase/copy-XX.webp, fuente en /design-assets) atado al scroll. Sin cifras ni promesas. -->
+    <section class="nlt-seq" data-seq-section aria-label="El motor de copiado de NLT Copy System" style="--seq-bar:linear-gradient(180deg,#4378ff,#22d3ee,#22c55e)">
+        <div class="nlt-seq-sticky">
+            <div class="nlt-seq-caps">
+                <div class="nlt-seq-bar" aria-hidden="true"><i></i></div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.0" data-to="0.33">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(67,120,255)">Tu cuenta maestra</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Operas en un solo lugar.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed ">Vincula la cuenta que vas a operar -- MT5, sin instalar nada.</p>
+                </div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.33" data-to="0.67">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(34,211,238)">Se replica sola</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Cada operación llega a todas tus cuentas.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed ">Lotaje proporcional al balance real de cada cuenta destino, con el multiplicador que configures.</p>
+                </div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.67" data-to="1">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(34,197,94)">Bajo control</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Sigue todo en tiempo real.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed ">Historial, logs y estado de conexión de cada cuenta, en el mismo Dashboard.</p>
+                </div>
+            </div>
+            <div class="nlt-seq-stage">
+                <canvas data-seq data-seq-base="assets/img/showcase/copy-" data-seq-frames="40" data-seq-ext="webp" width="800" height="800" role="img" aria-label="El motor de copiado de NLT Copy System"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- SIMULADOR DEL COPIADO -- interactivo y educativo: aplica la regla de proporcionalidad que describe el FAQ
+         (balance de cada destino / balance de la maestra, por el multiplicador de la cuenta). NO son operaciones reales. -->
+    <section id="simulador" class="relative z-10 max-w-6xl mx-auto px-6 py-16 md:py-24">
+        <style>
+            .sim { display: grid; grid-template-columns: minmax(0, 300px) 96px minmax(0, 1fr); gap: 0; align-items: stretch; }
+            .sim-rows { display: grid; grid-template-rows: repeat(3, 150px); gap: 12px; }
+            .sim-mcol { display: flex; align-items: center; height: 474px; }
+            .sim-master { width: 100%; display: flex; flex-direction: column; justify-content: center; padding: 22px; }
+            .sim-cons { display: grid; grid-template-rows: repeat(3, 150px); gap: 12px; }
+            .sim-cons svg { width: 100%; height: 150px; overflow: visible; }
+            .sim-cons .ln { fill: none; stroke-linecap: round; transition: stroke-width .4s ease, opacity .4s ease; stroke-dasharray: 2 7; animation: sim-dash 2.4s linear infinite; }
+            @keyframes sim-dash { to { stroke-dashoffset: -18; } }
+            .sim-cons .pk { filter: drop-shadow(0 0 5px currentColor); }
+            .sim-card { --c: 67,120,255; padding: 18px 22px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 18px; align-items: center; }
+            .sim-card h3 { font-size: 13px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+            .sim-card h3 i { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--c)); box-shadow: 0 0 10px rgb(var(--c)); }
+            .sim-fields { display: grid; gap: 8px; grid-column: 1; }
+            .sim-fields label { display: grid; grid-template-columns: 108px 1fr 64px; align-items: center; gap: 10px; font-size: 10.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8b94a5; }
+            .sim-fields output { font: 700 12px 'SFMono-Regular', Consolas, monospace; color: #e5e7eb; text-align: right; letter-spacing: 0; text-transform: none; }
+            .sim input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 4px; border-radius: 4px; background: linear-gradient(90deg, rgb(var(--c)) var(--p, 50%), rgba(255,255,255,.1) var(--p, 50%)); outline: none; cursor: pointer; }
+            .sim input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 2px solid rgb(var(--c)); box-shadow: 0 0 12px rgba(var(--c), .8); transition: transform .15s ease; }
+            .sim input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 2px solid rgb(var(--c)); box-shadow: 0 0 12px rgba(var(--c), .8); }
+            .sim input[type=range]:active::-webkit-slider-thumb { transform: scale(1.25); }
+            .sim-out { text-align: right; min-width: 118px; }
+            .sim-out b { display: block; font: 800 34px/1 Geist, Inter, sans-serif; letter-spacing: -.03em; color: rgb(var(--c)); text-shadow: 0 0 24px rgba(var(--c), .55); font-variant-numeric: tabular-nums; }
+            .sim-out span { display: block; margin-top: 6px; font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: #8b94a5; }
+            .sim-out small { display: block; margin-top: 3px; font-size: 10.5px; color: #6f7a8b; }
+            .sim-master .sim-fields label { grid-template-columns: 1fr; gap: 6px; }
+            .sim-master .sim-fields label span.row { display: flex; justify-content: space-between; align-items: center; }
+            @media (max-width: 900px) {
+                .sim { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+                .sim-cons { display: none; }
+                .sim-rows { grid-template-rows: none; } .sim-mcol { height: auto; }
+                .sim-card { grid-template-columns: minmax(0, 1fr); } .sim-out { text-align: left; }
+            }
+            @media (prefers-reduced-motion: reduce) { .sim-cons .ln { animation: none; } .sim-cons .pk { display: none; } }
+        </style>
+        <div class="text-center mb-10 md:mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">Pruébalo tú mismo</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Así se reparte cada operación.</h2>
+            <p class="text-gray-400 max-w-xl mx-auto text-base md:text-lg leading-relaxed">Mueve los balances y los multiplicadores y mira cómo cambia el lote que recibe cada cuenta destino.</p>
+        </div>
+
+        <div class="sim" data-reveal>
+            <div class="sim-mcol">
+                <div class="glass-card sim-master" style="--card-glow-rgb:67,120,255;--c:67,120,255">
+                    <h3 class="sim-h" style="font-size:13px;font-weight:700;color:#fff;margin-bottom:14px;display:flex;align-items:center;gap:8px"><i style="width:8px;height:8px;border-radius:50%;background:rgb(67,120,255);box-shadow:0 0 10px rgb(67,120,255)"></i>Cuenta maestra</h3>
+                    <div class="sim-fields">
+                        <label><span class="row">Balance <output id="simMB">$10,000</output></span><input id="simMBr" type="range" min="1000" max="100000" step="500" value="10000" aria-label="Balance de la cuenta maestra en dólares"></label>
+                        <label><span class="row">Lote operado <output id="simML">1.00</output></span><input id="simMLr" type="range" min="0.01" max="5" step="0.01" value="1" aria-label="Lote de la operación en la maestra"></label>
+                    </div>
+                </div>
+            </div>
+            <div class="sim-cons" aria-hidden="true">
+                <svg viewBox="0 0 96 150" preserveAspectRatio="none"><path id="simP0" class="ln" stroke="rgb(34,211,238)" d="M0,237 C48,237 48,75 96,75"/><circle class="pk" r="2.6" fill="rgb(34,211,238)" style="color:rgb(34,211,238)"><animateMotion dur="2.6s" repeatCount="indefinite" path="M0,237 C48,237 48,75 96,75"/></circle></svg>
+                <svg viewBox="0 0 96 150" preserveAspectRatio="none"><path id="simP1" class="ln" stroke="rgb(34,197,94)" d="M0,75 L96,75"/><circle class="pk" r="2.6" fill="rgb(34,197,94)" style="color:rgb(34,197,94)"><animateMotion dur="2.2s" begin="0.4s" repeatCount="indefinite" path="M0,75 L96,75"/></circle></svg>
+                <svg viewBox="0 0 96 150" preserveAspectRatio="none"><path id="simP2" class="ln" stroke="rgb(168,85,247)" d="M0,-87 C48,-87 48,75 96,75"/><circle class="pk" r="2.6" fill="rgb(168,85,247)" style="color:rgb(168,85,247)"><animateMotion dur="2.8s" begin="0.8s" repeatCount="indefinite" path="M0,-87 C48,-87 48,75 96,75"/></circle></svg>
+            </div>
+            <div class="sim-rows" id="simFollowers"></div>
+        </div>
+        <p class="text-center text-[11px] text-gray-600 mt-8 max-w-2xl mx-auto leading-relaxed">Simulación ilustrativa de la regla de proporcionalidad (balance de cada destino / balance de la maestra, por el multiplicador de la cuenta). El lote real puede variar por los límites del broker (mínimo, paso y máximo). No son operaciones reales ni una promesa de resultados.</p>
+        <script>
+            (function () {
+                const FOLLOWERS = [
+                    { name: 'Cuenta destino 1', c: '34,211,238', bal: 5000, mult: 1 },
+                    { name: 'Cuenta destino 2', c: '34,197,94', bal: 20000, mult: 1 },
+                    { name: 'Cuenta destino 3', c: '168,85,247', bal: 50000, mult: 0.5 },
+                ];
+                const $ = (id) => document.getElementById(id);
+                const money = (n) => '$' + Math.round(n).toLocaleString('en-US');
+                const box = $('simFollowers');
+                box.innerHTML = FOLLOWERS.map((f, i) => `
+                    <div class="glass-card sim-card" style="--card-glow-rgb:${f.c};--c:${f.c}">
+                        <div>
+                            <h3><i></i>${f.name}</h3>
+                            <div class="sim-fields" style="margin-top:12px">
+                                <label>Balance <input id="simB${i}" type="range" min="500" max="100000" step="500" value="${f.bal}" aria-label="Balance de ${f.name} en dólares"><output id="simBo${i}"></output></label>
+                                <label>Multiplicador <input id="simX${i}" type="range" min="0.25" max="3" step="0.05" value="${f.mult}" aria-label="Multiplicador de ${f.name}"><output id="simXo${i}"></output></label>
+                            </div>
+                        </div>
+                        <div class="sim-out" aria-live="polite"><b id="simL${i}">0.00</b><span>lotes</span><small id="simR${i}"></small></div>
+                    </div>`).join('');
+
+                function paint(el) { const p = ((el.value - el.min) / (el.max - el.min)) * 100; el.style.setProperty('--p', p + '%'); }
+                function update() {
+                    const mb = +$('simMBr').value, ml = +$('simMLr').value;
+                    $('simMB').textContent = money(mb); $('simML').textContent = ml.toFixed(2);
+                    paint($('simMBr')); paint($('simMLr'));
+                    FOLLOWERS.forEach((f, i) => {
+                        const fb = +$('simB' + i).value, x = +$('simX' + i).value;
+                        $('simBo' + i).textContent = money(fb); $('simXo' + i).textContent = x.toFixed(2) + '×';
+                        paint($('simB' + i)); paint($('simX' + i));
+                        const lot = ml * (fb / mb) * x;
+                        $('simL' + i).textContent = lot.toFixed(2);
+                        $('simR' + i).textContent = lot < 0.01 ? 'por debajo de 0.01' : ((fb / mb) * x).toFixed(2) + '× el lote de la maestra';
+                        const p = $('simP' + i); if (p) { p.style.strokeWidth = Math.min(5, 1 + lot * 2.2).toFixed(2); p.style.opacity = lot < 0.01 ? 0.25 : 1; }
+                    });
+                }
+                document.querySelectorAll('.sim input[type=range]').forEach((r) => r.addEventListener('input', update));
+                update();
+            })();
+        </script>
     </section>
 
     <!-- CÓMO FUNCIONA -->
@@ -78,22 +226,22 @@
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="glass-card p-7" data-reveal>
                 <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">1</div>
-                <h3 class="font-bold text-white mb-2">Conectás tu maestra</h3>
-                <p class="text-sm text-gray-400">Vinculás la cuenta que vas a operar -- MT5, sin instalar nada.</p>
+                <h3 class="font-bold text-white mb-2">Conectas tu maestra</h3>
+                <p class="text-sm text-gray-400">Vinculas la cuenta que vas a operar -- MT5, sin instalar nada.</p>
             </div>
             <div class="glass-card p-7" data-reveal>
                 <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">2</div>
-                <h3 class="font-bold text-white mb-2">Agregás destinos</h3>
+                <h3 class="font-bold text-white mb-2">Agregas destinos</h3>
                 <p class="text-sm text-gray-400">Cada cuenta destino se suma con su propio balance y multiplicador.</p>
             </div>
             <div class="glass-card p-7" data-reveal>
                 <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">3</div>
-                <h3 class="font-bold text-white mb-2">Operás normal</h3>
+                <h3 class="font-bold text-white mb-2">Operas normal</h3>
                 <p class="text-sm text-gray-400">Cada operación en la maestra se copia sola, con lotaje proporcional al balance real.</p>
             </div>
             <div class="glass-card p-7" data-reveal>
                 <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">4</div>
-                <h3 class="font-bold text-white mb-2">Seguís todo</h3>
+                <h3 class="font-bold text-white mb-2">Sigues todo</h3>
                 <p class="text-sm text-gray-400">Historial, logs y estado de conexión de cada cuenta, en tiempo real.</p>
             </div>
         </div>
@@ -115,7 +263,7 @@
             <div class="glass-card p-8" data-reveal>
                 <i class="ph-fill ph-arrows-clockwise text-2xl text-nlt-accent mb-4"></i>
                 <h3 class="font-bold text-white mb-2">Reconexión automática</h3>
-                <p class="text-sm text-gray-400">Si una cuenta se desconecta y volvés a conectarla, el copiado se retoma solo -- sin reiniciar nada.</p>
+                <p class="text-sm text-gray-400">Si una cuenta se desconecta y vuelves a conectarla, el copiado se retoma solo -- sin reiniciar nada.</p>
             </div>
             <div class="glass-card p-8" data-reveal>
                 <i class="ph-fill ph-currency-circle-dollar text-2xl text-nlt-accent mb-4"></i>
@@ -156,7 +304,7 @@
         <div class="space-y-3">
             <details class="glass-card p-6 group" data-reveal>
                 <summary class="flex items-center justify-between font-semibold text-white"><span>¿Necesito instalar algo en mi computadora?</span><i class="ph ph-plus faq-icon transition-transform"></i></summary>
-                <p class="text-sm text-gray-400 mt-4 leading-relaxed">No. Tanto la conexión de cuentas como el motor de copiado corren en la infraestructura de NLT -- no instalás nada en tu PC.</p>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">No. Tanto la conexión de cuentas como el motor de copiado corren en la infraestructura de NLT -- no instalas nada en tu PC.</p>
             </details>
             <details class="glass-card p-6 group" data-reveal>
                 <summary class="flex items-center justify-between font-semibold text-white"><span>¿Cómo se calcula el tamaño de cada copia?</span><i class="ph ph-plus faq-icon transition-transform"></i></summary>
@@ -175,7 +323,7 @@
 
     <!-- CTA -->
     <section class="relative z-10 max-w-4xl mx-auto px-6 text-center py-24" data-reveal>
-        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Empezá a copiar operaciones hoy.</h3>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Empieza a copiar operaciones hoy.</h3>
         <button id="btn-comenzar-2" class="px-9 py-4 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Comenzar ahora</button>
     </section>
 
@@ -187,8 +335,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         // Auth global NLT: misma sesión de Supabase que requireSession(), nunca un login aparte.
         NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });

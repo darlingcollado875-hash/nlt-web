@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Affiliate</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -91,7 +96,7 @@
                     <i class="ph-fill ph-share-network"></i>
                 </div>
                 <h2 class="text-2xl font-bold mb-3">Convertite en afiliado NLT</h2>
-                <p class="text-sm text-gray-400 mb-8 leading-relaxed">Compartí tu link único, sumá referidos y ganá comisiones reales por cada venta que generes en el ecosistema NLT.</p>
+                <p class="text-sm text-gray-400 mb-8 leading-relaxed">Comparte tu link único, suma referidos y gana comisiones reales por cada venta que generes en el ecosistema NLT.</p>
                 <button id="btn-convertirme" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm cursor-pointer">Quiero ser afiliado</button>
                 <p id="registroError" class="text-xs text-nlt-danger mt-4 hidden"></p>
             </div>
@@ -192,8 +197,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '')
@@ -246,7 +251,7 @@
             try {
                 const comisiones = await NLT_API.afiliadoMisComisiones();
                 if (!comisiones.length) {
-                    tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-8 text-center text-gray-500">Todavía no tenés ventas atribuidas. Compartí tu enlace para empezar a generar comisiones.</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="6" class="px-5 py-8 text-center text-gray-500">Todavía no tienes ventas atribuidas. Comparte tu enlace para empezar a generar comisiones.</td></tr>';
                     return;
                 }
                 const badge = (estado) => ({

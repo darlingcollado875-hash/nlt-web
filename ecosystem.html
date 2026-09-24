@@ -11,7 +11,12 @@
     <title>NLT | El Ecosistema</title>
     <meta name="description" content="Qué es el ecosistema NLT: análisis, automatización, Copy System, Academy, Tools e Intelligence -- distintas soluciones de trading, una misma plataforma.">
     <link rel="canonical" href="https://nltnextlevel.uk/ecosystem">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -23,8 +28,8 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script defer src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script defer src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script defer src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <style>
         /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
            los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
@@ -40,31 +45,253 @@
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .timeline-dot { box-shadow: 0 0 0 4px rgba(67,120,255,0.15); }
 
-        /* --- NLT Supreme portal --- */
-        .supreme-glow-ring { box-shadow: 0 0 0 1px rgba(67,120,255,0.15), 0 0 60px rgba(67,120,255,0.12); }
-        .supreme-eyebrow { letter-spacing: 0.25em; }
-        #supremePanel { background: linear-gradient(180deg, rgba(11,14,22,0.98) 0%, rgba(8,10,16,0.99) 100%); }
+        /* ------------------------------------------------------------
+           Bento de productos: 4 columnas, tarjetas de distinto tamaño.
+           Cada tarjeta conserva su color propio (--card-glow-rgb -> --bt-c)
+           y la luz que sigue al mouse de .glass-card. Las grandes llevan un
+           mini-arte abstracto animado (flujo de copiado, zonas, difusion de
+           señal); las demas, una marca de agua del icono. Sin datos falsos.
+           ------------------------------------------------------------ */
+        .bento { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: minmax(184px, auto); gap: 16px; }
+        .bt-card { padding: 26px; display: flex; flex-direction: column; min-height: 184px; }
+        .bt-card.bt-feat { grid-column: span 2; grid-row: span 2; padding: 32px; }
+        .bt-card.bt-wide { grid-column: span 2; }
+        .bt-card > * { position: relative; z-index: 1; }
+        .bt-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 18px; }
+        .bt-card.bt-feat .bt-top { margin-bottom: 22px; }
+        .bt-tag { font-size: 9px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; padding: 4px 9px; border-radius: 999px; color: rgb(var(--bt-c)); background: rgba(var(--bt-c), .1); border: 1px solid rgba(var(--bt-c), .28); }
+        .bt-name { font-size: 1.05rem; font-weight: 700; color: #fff; letter-spacing: -.02em; margin-bottom: 8px; }
+        .bt-feat .bt-name { font-size: 1.7rem; letter-spacing: -.03em; margin-bottom: 12px; }
+        .bt-desc { font-size: 13.5px; line-height: 1.6; color: #9ca3af; flex: 1; max-width: 34ch; }
+        .bt-feat .bt-desc { font-size: 15px; max-width: 38ch; flex: 0; }
+        .bt-more { margin-top: 20px; display: inline-flex; align-items: center; gap: 8px; font-size: 11px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: rgb(var(--bt-c)); }
+        .bt-more i { transition: transform .3s ease; }
+        .bt-card:hover .bt-more i { transform: translateX(5px); }
+        .bt-card.bt-feat::after { opacity: .06; }
 
-        .status-chip { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 12px 14px; }
-        .status-chip .label { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #6b7280; margin-bottom: 4px; }
-        .status-chip .value { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; font-family: 'SFMono-Regular', Consolas, monospace; }
+        /* marca de agua del icono (tarjetas sin arte propio) */
+        .bt-mark { position: absolute !important; right: -14px; bottom: -22px; z-index: 0 !important; font-size: 9.5rem; line-height: 1; color: rgb(var(--bt-c)); opacity: .07; transform: rotate(-9deg); transition: opacity .4s ease, transform .5s cubic-bezier(.16,1,.3,1); pointer-events: none; }
+        .bt-card:hover .bt-mark { opacity: .16; transform: rotate(-4deg) scale(1.06); }
 
-        .dev-chip { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-        .dev-chip .tag { font-size: 8px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: #4378FF; background: rgba(67,120,255,0.1); border-radius: 999px; padding: 3px 8px; white-space: nowrap; }
+        /* arte: flujo de copiado (maestra -> 3 destinos) */
+        .bt-art { position: absolute !important; z-index: 0 !important; pointer-events: none; }
+        .bt-copy { right: 44px; bottom: 44px; width: 250px; height: 200px; transform: scale(1.4); transform-origin: right bottom; }
+        .bt-copy .n { position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 6px; background: rgba(var(--bt-c), .2); border: 1px solid rgba(var(--bt-c), .75); box-shadow: 0 0 22px -2px rgba(var(--bt-c), .8); }
+        .bt-copy .n.m { left: 26px; top: 100px; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 8px; background: rgba(var(--bt-c), .38); animation: btPulse 3s ease-in-out infinite; }
+        .bt-copy .n.f { left: 224px; opacity: .85; }
+        .bt-copy .n.f1 { top: 28px; } .bt-copy .n.f2 { top: 100px; } .bt-copy .n.f3 { top: 172px; }
+        .bt-copy .ln { position: absolute; left: 26px; top: 100px; height: 1px; width: var(--len); transform-origin: 0 50%; transform: rotate(var(--ang)); background: linear-gradient(90deg, rgba(var(--bt-c), .55), rgba(var(--bt-c), .1)); }
+        .bt-copy .ln::after { content: ''; position: absolute; top: -2px; left: 0; width: 5px; height: 5px; border-radius: 50%; background: rgb(var(--bt-c)); box-shadow: 0 0 10px 2px rgba(var(--bt-c), .9); animation: btPacket 2.8s ease-in-out var(--d, 0s) infinite; }
+        @keyframes btPacket { 0% { left: 0; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+        @keyframes btPulse { 0%, 100% { box-shadow: 0 0 22px -2px rgba(var(--bt-c), .7); } 50% { box-shadow: 0 0 36px 2px rgba(var(--bt-c), 1); } }
 
-        .candle-bar { width: 5px; border-radius: 2px; transform-origin: bottom; animation: candleBreathe 3.6s ease-in-out infinite; }
-        @keyframes candleBreathe { 0%, 100% { transform: scaleY(1); } 50% { transform: scaleY(var(--candle-scale, 1.08)); } }
+        /* arte: zonas + linea (indicator) */
+        .bt-zones { right: 22px; top: 22px; bottom: 22px; width: 42%; }
+        .bt-zones svg { width: 100%; height: 100%; overflow: visible; }
+        .bt-zones .z { fill: rgba(var(--bt-c), .1); stroke: rgba(var(--bt-c), .3); stroke-width: 1; stroke-dasharray: 3 4; }
+        .bt-zones .p { fill: none; stroke: rgb(var(--bt-c)); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 340; stroke-dashoffset: 340; filter: drop-shadow(0 0 6px rgba(var(--bt-c), .8)); animation: btDraw 5.5s ease-in-out infinite; }
+        @keyframes btDraw { 0% { stroke-dashoffset: 340; } 55%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -340; } }
 
-        #supremeTicker { transition: opacity 0.4s ease; }
-        .ticker-fade { opacity: 0; }
+        /* arte: difusion de señal (elite signals) */
+        .bt-rings { right: 34px; top: 50%; width: 120px; height: 120px; margin-top: -60px; }
+        .bt-rings i { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(var(--bt-c), .6); opacity: 0; animation: btRing 3.6s ease-out infinite; }
+        .bt-rings i:nth-child(2) { animation-delay: 1.2s; } .bt-rings i:nth-child(3) { animation-delay: 2.4s; }
+        .bt-rings b { position: absolute; left: 50%; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: rgb(var(--bt-c)); box-shadow: 0 0 24px 4px rgba(var(--bt-c), .8); }
+        @keyframes btRing { 0% { transform: scale(.1); opacity: .9; } 100% { transform: scale(1); opacity: 0; } }
 
-        .signal-tag { position: absolute; font-size: 9px; font-weight: 800; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity 0.5s ease, transform 0.5s ease; transform: translateY(4px); }
-        .signal-tag.show { opacity: 1; transform: translateY(0); }
-        .signal-buy { color: #22C55E; background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.25); }
-        .signal-sell { color: #F87171; background: rgba(248,113,113,0.12); border: 1px solid rgba(248,113,113,0.25); }
+        .bento, .bento * { animation-play-state: paused; }
+        .bento.is-live, .bento.is-live * { animation-play-state: running; }
 
-        @keyframes engineSpin { to { transform: rotate(360deg); } }
+        @media (max-width: 1023px) {
+            .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .bt-card.bt-feat { grid-row: span 1; min-height: 320px; }
+            .bt-copy { right: 30px; bottom: 30px; transform: scale(1.05); }
+        }
+        @media (max-width: 639px) {
+            .bento { grid-template-columns: minmax(0, 1fr); }
+            .bt-card.bt-feat, .bt-card.bt-wide { grid-column: span 1; }
+            .bt-card.bt-feat { min-height: 360px; padding: 26px; }
+            .bt-zones, .bt-rings { opacity: .45; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .bento *, .bento *::before, .bento *::after { animation: none !important; transition: none !important; }
+            .bt-zones .p { stroke-dashoffset: 0; }
+        }
+
+        /* ------------------------------------------------------------
+           NLT Bot Supreme -- tarjeta destacada (desbloqueada).
+           Distinta del resto: borde de luz que gira (conic + @property),
+           HUD con grilla, motor 3D orbital que se inclina hacia el cursor,
+           candado que se abre al entrar en pantalla. Solo abstracto (anillos,
+           nodos, capas) -- nada de siluetas literales. Todo el movimiento se
+           pausa fuera de pantalla y se apaga con prefers-reduced-motion.
+           ------------------------------------------------------------ */
+        @property --botx-ang { syntax: '<angle>'; inherits: true; initial-value: 0deg; }
+        .botx {
+            position: relative; isolation: isolate; border-radius: 30px; padding: 1px;
+            background: conic-gradient(from var(--botx-ang), rgba(67,120,255,.95), rgba(168,85,247,.5) 22%, rgba(248,113,113,.95) 45%, rgba(67,120,255,.12) 62%, rgba(34,211,238,.85) 82%, rgba(67,120,255,.95));
+            animation: botxSpin 9s linear infinite;
+        }
+        @keyframes botxSpin { to { --botx-ang: 360deg; } }
+        .botx::before {
+            content: ''; position: absolute; inset: -16px; z-index: -1; border-radius: 46px; pointer-events: none;
+            background: conic-gradient(from var(--botx-ang), rgba(67,120,255,.9), rgba(168,85,247,.5) 22%, rgba(248,113,113,.9) 45%, rgba(67,120,255,.1) 62%, rgba(34,211,238,.8) 82%, rgba(67,120,255,.9));
+            filter: blur(34px); opacity: .3;
+        }
+        .botx .botx-body {
+            position: relative; overflow: hidden; border: 0; border-radius: 29px; cursor: pointer;
+            display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); align-items: center; gap: 28px;
+            padding: 46px 48px;
+            background: linear-gradient(180deg, rgba(13,17,27,.96) 0%, rgba(7,9,15,.99) 100%);
+            --card-glow-rgb: 67,120,255;
+        }
+        .botx .botx-body:hover { border-color: transparent; box-shadow: none; }
+        .botx-fx { position: absolute; pointer-events: none; z-index: 0; }
+        .botx-grid {
+            inset: 0;
+            background-image: linear-gradient(rgba(120,150,255,.075) 1px, transparent 1px), linear-gradient(90deg, rgba(120,150,255,.075) 1px, transparent 1px);
+            background-size: 44px 44px;
+            -webkit-mask-image: radial-gradient(ellipse 70% 90% at 72% 50%, #000 0%, transparent 72%);
+            mask-image: radial-gradient(ellipse 70% 90% at 72% 50%, #000 0%, transparent 72%);
+        }
+        .botx-aurora { border-radius: 50%; filter: blur(70px); opacity: .5; }
+        .botx-aurora.a1 { width: 380px; height: 380px; right: -60px; top: -90px; background: rgba(67,120,255,.42); animation: botxDrift 16s ease-in-out infinite alternate; }
+        .botx-aurora.a2 { width: 300px; height: 300px; left: -80px; bottom: -120px; background: rgba(248,113,113,.28); animation: botxDrift 19s ease-in-out infinite alternate-reverse; }
+        @keyframes botxDrift { from { transform: translate3d(0,0,0) scale(1); } to { transform: translate3d(-40px,30px,0) scale(1.15); } }
+        .botx-light { inset: 0; background: radial-gradient(380px circle at var(--mx) var(--my), rgba(248,113,113,.13), transparent 70%); opacity: 0; transition: opacity .4s ease; }
+        .botx-body:hover .botx-light { opacity: 1; }
+        .botx-corner { position: absolute; width: 16px; height: 16px; z-index: 1; pointer-events: none; border: 0 solid rgba(255,255,255,.22); }
+        .botx-corner.c1 { top: 14px; left: 14px; border-top-width: 1px; border-left-width: 1px; border-top-left-radius: 6px; }
+        .botx-corner.c2 { top: 14px; right: 14px; border-top-width: 1px; border-right-width: 1px; border-top-right-radius: 6px; }
+        .botx-corner.c3 { bottom: 14px; left: 14px; border-bottom-width: 1px; border-left-width: 1px; border-bottom-left-radius: 6px; }
+        .botx-corner.c4 { bottom: 14px; right: 14px; border-bottom-width: 1px; border-right-width: 1px; border-bottom-right-radius: 6px; }
+
+        .botx-copy, .botx-engine { position: relative; z-index: 2; }
+        .botx-badges { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+        .botx-pill {
+            display: inline-flex; align-items: center; gap: 8px; height: 30px; padding: 0 13px 0 5px; border-radius: 999px;
+            font-size: 10px; font-weight: 800; letter-spacing: .16em; text-transform: uppercase;
+        }
+        .botx-pill-live { color: rgb(74,222,128); background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.32); box-shadow: 0 0 26px -8px rgba(34,197,94,.55); }
+        .botx-pill-dim { padding-left: 13px; color: #9ca3af; background: rgba(255,255,255,.04); border: 1px solid rgba(255,255,255,.08); font-weight: 700; }
+        .botx-lock { position: relative; width: 20px; height: 20px; display: inline-grid; place-items: center; border-radius: 50%; background: rgba(34,197,94,.16); font-size: 12px; }
+        .botx-lock i { grid-area: 1 / 1; line-height: 1; }
+        .botx-lock .botx-l-open { opacity: 0; transform: scale(.3) rotate(-25deg); }
+        .botx-lock::after { content: ''; position: absolute; inset: -1px; border-radius: 50%; border: 1px solid rgba(74,222,128,.9); opacity: 0; }
+        .botx.nlt-in .botx-l-closed { animation: botxLockOut .55s ease .7s forwards; }
+        .botx.nlt-in .botx-l-open { animation: botxLockIn .7s cubic-bezier(.2,1.5,.4,1) 1.05s forwards; }
+        .botx.nlt-in .botx-lock::after { animation: botxUnlockRing 1.1s ease-out 1.05s 1 forwards; }
+        @keyframes botxLockOut { 0% { transform: translateX(0); opacity: 1; } 20% { transform: translateX(-2px) rotate(-8deg); } 40% { transform: translateX(2px) rotate(8deg); } 60% { transform: translateX(-1px) rotate(-4deg); opacity: 1; } 100% { transform: scale(.3); opacity: 0; } }
+        @keyframes botxLockIn { to { opacity: 1; transform: scale(1) rotate(0deg); } }
+        @keyframes botxUnlockRing { 0% { transform: scale(1); opacity: .9; } 100% { transform: scale(2.6); opacity: 0; } }
+
+        .botx-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: .28em; text-transform: uppercase; color: rgb(120,160,255); margin-bottom: 12px; }
+        .botx-title { font-size: clamp(2.3rem, 5.2vw, 3.9rem); font-weight: 800; letter-spacing: -.03em; line-height: 1.02; margin-bottom: 16px; color: #fff; }
+        .botx-title span {
+            background: linear-gradient(100deg, #8fb0ff 0%, #c4a8ff 32%, #ff9a9a 55%, #8fb0ff 78%, #ffffff 100%);
+            background-size: 220% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+            animation: botxShine 7s ease-in-out infinite;
+        }
+        @keyframes botxShine { 0%, 55% { background-position: 100% 0; } 100% { background-position: 0% 0; } }
+        .botx-lead { color: #9ca3af; font-size: 15px; line-height: 1.65; max-width: 30rem; margin-bottom: 22px; }
+        .botx-feats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 26px; }
+        .botx-feat {
+            display: inline-flex; align-items: center; gap: 8px; padding: 8px 13px 8px 9px; border-radius: 12px;
+            font-size: 12px; font-weight: 600; color: #d1d5db; background: rgba(255,255,255,.035); border: 1px solid rgba(255,255,255,.07);
+            transition: border-color .3s ease, background .3s ease, transform .3s ease;
+        }
+        .botx-feat i { font-size: 15px; }
+        .botx-body:hover .botx-feat { border-color: rgba(255,255,255,.13); }
+        .botx-feat:hover { transform: translateY(-2px); background: rgba(255,255,255,.06); }
+        .botx-cta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 20px; }
+        .botx-btn {
+            position: relative; overflow: hidden; display: inline-flex; align-items: center; gap: 9px; padding: 13px 24px; border-radius: 999px;
+            font-size: 13px; font-weight: 700; letter-spacing: .01em; transition: transform .2s ease, translate .25s cubic-bezier(.16,1,.3,1), box-shadow .3s ease, background .3s ease, border-color .3s ease;
+        }
+        .botx-btn-primary { color: #fff; background: linear-gradient(135deg, #4378ff 0%, #7c5cff 100%); box-shadow: 0 10px 30px -8px rgba(67,120,255,.75), inset 0 1px 0 rgba(255,255,255,.25); }
+        .botx-btn-primary::after { content: ''; position: absolute; top: 0; bottom: 0; width: 46%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255,255,255,.35), transparent); transform: skewX(-18deg); transition: left .6s ease; }
+        .botx-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 14px 38px -8px rgba(124,92,255,.85), inset 0 1px 0 rgba(255,255,255,.3); }
+        .botx-btn-primary:hover::after { left: 120%; }
+        .botx-btn-primary i { transition: transform .25s ease; }
+        .botx-btn-primary:hover i { transform: translateX(4px); }
+        .botx-btn-ghost { color: #d1d5db; background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.14); }
+        .botx-btn-ghost:hover { background: rgba(255,255,255,.07); border-color: rgba(255,255,255,.28); transform: translateY(-2px); }
+        .botx-fine { font-size: 10.5px; line-height: 1.6; color: #5b6472; max-width: 30rem; }
+
+        /* Motor orbital (derecha) */
+        .botx-engine { width: 100%; max-width: 430px; margin-inline: auto; aspect-ratio: 1 / 1; perspective: 950px; }
+        .botx-stage { position: absolute; inset: 0; transform-style: preserve-3d; transform: rotateX(var(--bx-rx, 12deg)) rotateY(var(--bx-ry, -12deg)); will-change: transform; }
+        .botx-ring { position: absolute; border-radius: 50%; transform-style: preserve-3d; transform: translateZ(var(--z, 0px)) rotate(0deg); animation: botxOrbit var(--t, 30s) linear infinite; }
+        .botx-ring.r1 { inset: 3%; --z: -34px; --t: 46s; border: 1px dashed rgba(90,135,255,.38); color: rgb(90,135,255); }
+        .botx-ring.r2 { inset: 17%; --z: 0px; --t: 28s; animation-direction: reverse; border: 1px solid rgba(168,85,247,.36); color: rgb(196,150,255); box-shadow: inset 0 0 40px -14px rgba(168,85,247,.5); }
+        .botx-ring.r3 { inset: 31%; --z: 34px; --t: 17s; border: 1px solid rgba(248,113,113,.42); color: rgb(255,140,140); box-shadow: 0 0 34px -12px rgba(248,113,113,.6); }
+        @keyframes botxOrbit { to { transform: translateZ(var(--z, 0px)) rotate(360deg); } }
+        .botx-dot { position: absolute; top: -4px; left: 50%; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: currentColor; box-shadow: 0 0 14px 3px currentColor; }
+        .botx-dot.d2 { top: auto; bottom: -4px; width: 6px; height: 6px; margin-left: -3px; opacity: .7; }
+        .botx-dot.d3 { top: 50%; left: -4px; margin: -4px 0 0; width: 5px; height: 5px; opacity: .55; }
+
+        .botx-spoke { position: absolute; left: 50%; top: 50%; width: 50%; height: 1px; margin-top: -.5px; transform-origin: 0 50%; transform: rotate(var(--a)) translateZ(0); background: linear-gradient(90deg, transparent 14%, rgba(120,150,255,.28)); }
+        .botx-spoke::after { content: ''; position: absolute; top: -2px; left: 100%; width: 5px; height: 5px; border-radius: 50%; background: rgb(150,185,255); box-shadow: 0 0 10px 2px rgba(120,160,255,.85); opacity: 0; animation: botxPacket 3.4s ease-in var(--d, 0s) infinite; }
+        .botx-spoke.out::after { background: rgb(255,150,150); box-shadow: 0 0 10px 2px rgba(255,120,120,.85); animation-name: botxPacketOut; animation-timing-function: ease-out; }
+        @keyframes botxPacket { 0% { left: 100%; opacity: 0; } 12% { opacity: 1; } 80% { opacity: 1; } 100% { left: 18%; opacity: 0; } }
+        @keyframes botxPacketOut { 0% { left: 18%; opacity: 0; } 20% { opacity: 1; } 88% { opacity: 1; } 100% { left: 100%; opacity: 0; } }
+
+        .botx-core { position: absolute; left: 50%; top: 50%; width: 27%; aspect-ratio: 1 / 1; margin: -13.5% 0 0 -13.5%; transform-style: preserve-3d; }
+        .botx-plate { position: absolute; inset: 0; border-radius: 26%; transform: translateZ(var(--pz)); }
+        .botx-plate.p1 { --pz: 0px; background: linear-gradient(135deg, rgba(168,85,247,.22), rgba(12,15,24,.95)); border: 1px solid rgba(168,85,247,.5); animation: botxBreath 4.6s ease-in-out infinite; }
+        .botx-plate.p2 { --pz: 22px; background: linear-gradient(135deg, rgba(248,113,113,.2), rgba(12,15,24,.95)); border: 1px solid rgba(248,113,113,.5); animation: botxBreath 4.6s ease-in-out .3s infinite; }
+        .botx-plate.p3 { --pz: 44px; display: grid; place-items: center; background: linear-gradient(135deg, rgba(67,120,255,.4), rgba(16,20,32,.96)); border: 1px solid rgba(120,160,255,.7); box-shadow: 0 0 60px -6px rgba(67,120,255,.85), inset 0 1px 0 rgba(255,255,255,.18); animation: botxBreath 4.6s ease-in-out .6s infinite; }
+        .botx-plate.p3 img { width: 48%; height: auto; opacity: .95; filter: drop-shadow(0 0 10px rgba(120,160,255,.7)); }
+        @keyframes botxBreath { 0%, 100% { transform: translateZ(var(--pz)) scale(1); } 50% { transform: translateZ(calc(var(--pz) + 7px)) scale(1.035); } }
+
+        .botx-tag {
+            position: absolute; z-index: 3; display: inline-flex; align-items: center; gap: 7px; padding: 6px 11px; border-radius: 10px;
+            font: 700 9.5px/1 'SFMono-Regular', Consolas, monospace; letter-spacing: .08em; color: #d1d5db; white-space: nowrap;
+            background: rgba(10,13,22,.72); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            animation: botxFloat 6s ease-in-out var(--d, 0s) infinite;
+        }
+        .botx-tag b { width: 6px; height: 6px; border-radius: 50%; background: var(--c); box-shadow: 0 0 9px var(--c); animation: botxBlink 2.4s ease-in-out infinite; }
+        .botx-tag.t1 { --c: rgb(74,222,128); left: -3%; top: 9%; }
+        .botx-tag.t2 { --c: rgb(120,160,255); right: -4%; top: 40%; --d: -2s; }
+        .botx-tag.t3 { --c: rgb(255,140,140); left: 1%; bottom: 19%; --d: -4s; }
+        @keyframes botxFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+        @keyframes botxBlink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+        .botx-term { position: absolute; z-index: 3; left: 50%; bottom: 0; transform: translateX(-50%); font: 600 10.5px/1 'SFMono-Regular', Consolas, monospace; letter-spacing: .04em; color: #8b97b5; white-space: nowrap; }
+        .botx-term em { font-style: normal; color: rgb(120,160,255); margin-right: 6px; }
+        .botx-term span { display: inline-block; transition: opacity .35s ease, transform .35s ease; }
+        .botx-term span.out { opacity: 0; transform: translateY(4px); }
+        .botx-term::after { content: ''; display: inline-block; width: 6px; height: 11px; margin-left: 4px; vertical-align: -2px; background: rgb(120,160,255); animation: botxBlink 1s steps(2) infinite; }
+
+        /* Pausa el movimiento cuando la tarjeta no esta en pantalla */
+        .botx, .botx *, .botx *::before, .botx *::after { animation-play-state: paused; }
+        .botx.is-live, .botx.is-live *, .botx.is-live *::before, .botx.is-live *::after { animation-play-state: running; }
+
+        @media (max-width: 860px) {
+            .botx .botx-body { grid-template-columns: minmax(0, 1fr); padding: 34px 22px 30px; gap: 22px; }
+            .botx-engine { max-width: 330px; margin-top: 6px; margin-bottom: 26px; }
+            .botx-tag.t2 { right: -2%; }
+            .botx-tag.t1 { left: -2%; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .botx, .botx *, .botx *::before, .botx *::after { animation: none !important; transition: none !important; }
+            .botx-lock .botx-l-closed { display: none; }
+            .botx-lock .botx-l-open { opacity: 1; transform: none; }
+            .botx-stage { transform: rotateX(12deg) rotateY(-12deg); }
+        }
     </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT | El Ecosistema">
+    <meta property="og:description" content="Qué es el ecosistema NLT: análisis, automatización, Copy System, Academy, Tools e Intelligence -- distintas soluciones de trading, una misma plataforma.">
+    <meta property="og:url" content="https://nltnextlevel.uk/ecosystem">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-ecosystem.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT | El Ecosistema">
+    <meta name="twitter:description" content="Qué es el ecosistema NLT: análisis, automatización, Copy System, Academy, Tools e Intelligence -- distintas soluciones de trading, una misma plataforma.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-ecosystem.jpg">
 </head>
 <body class="min-h-screen relative">
 
@@ -73,7 +300,7 @@
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
             <a id="logoNLT" href="index.html" class="flex items-center gap-3">
-                <img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8">
+                <img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8">
                 <span class="font-semibold text-base tracking-tight">NLT</span>
             </a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
@@ -89,11 +316,67 @@
     <section class="relative z-10 pt-44 pb-24 px-6 max-w-5xl mx-auto text-center">
         <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>El ecosistema NLT</p>
         <h1 class="text-4xl md:text-7xl font-extrabold tracking-tight leading-[1.05] mb-8" data-reveal>
-            Todo lo que necesitás para operar.<br>En un solo ecosistema.
+            Todo lo que necesitas para operar.<br>En un solo ecosistema.
         </h1>
         <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed" data-reveal>
             NLT (Next Level Trading) es un ecosistema de herramientas, tecnología y servicios diseñado para acompañar al trader en las distintas etapas de su operativa. Desde análisis y gestión de operaciones hasta automatización, formación y herramientas especializadas, NLT integra distintas soluciones dentro de una misma plataforma y una misma cuenta.
         </p>
+    </section>
+
+    <!-- NLT BOT SUPREME -- tarjeta destacada, desbloqueada. Va justo debajo del
+         hero para que sea lo primero que ve quien busca el bot. Visual 100%
+         ilustrativo: ningun dato de acá es una operación ni un resultado real. -->
+    <section id="bot" class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 pb-6">
+        <div id="botx" class="botx" data-reveal>
+            <div class="botx-body glass-card">
+                <span class="botx-fx botx-grid"></span>
+                <span class="botx-fx botx-aurora a1"></span>
+                <span class="botx-fx botx-aurora a2"></span>
+                <span class="botx-fx botx-light"></span>
+                <span class="botx-corner c1"></span><span class="botx-corner c2"></span><span class="botx-corner c3"></span><span class="botx-corner c4"></span>
+
+                <div class="botx-copy">
+                    <div class="botx-badges">
+                        <span class="botx-pill botx-pill-live"><span class="botx-lock"><i class="ph-fill ph-lock-key botx-l-closed"></i><i class="ph-fill ph-lock-key-open botx-l-open"></i></span>Desbloqueado</span>
+                        <span class="botx-pill botx-pill-dim">Disponible ahora</span>
+                    </div>
+                    <p class="botx-eyebrow">El sistema automatizado de NLT</p>
+                    <h2 class="botx-title">NLT Bot <span>Supreme</span></h2>
+                    <p class="botx-lead">Trading automatizado con licencia protegida por dispositivo y cuenta, kill-switch remoto y control total desde tu Dashboard NLT. Mismo login, mismo ecosistema.</p>
+                    <div class="botx-feats">
+                        <span class="botx-feat"><i class="ph-fill ph-shield-check" style="color:rgb(120,160,255)"></i>Licencia protegida</span>
+                        <span class="botx-feat"><i class="ph-fill ph-power" style="color:rgb(255,140,140)"></i>Kill-switch remoto</span>
+                        <span class="botx-feat"><i class="ph-fill ph-squares-four" style="color:rgb(196,150,255)"></i>Dentro del ecosistema</span>
+                    </div>
+                    <div class="botx-cta">
+                        <a href="nlt-bot.html" class="botx-btn botx-btn-primary">Conocer el Bot <i class="ph-bold ph-arrow-right"></i></a>
+                        <a href="nlt-bot.html#precio" class="botx-btn botx-btn-ghost">Ver planes</a>
+                    </div>
+                    <p class="botx-fine">Visual ilustrativo. NLT Bot Supreme no promete ni garantiza rentabilidad: toda operativa automatizada conlleva riesgo real de pérdida de capital.</p>
+                </div>
+
+                <div class="botx-engine" aria-hidden="true">
+                    <div class="botx-stage" id="botxStage">
+                        <div class="botx-ring r1"><i class="botx-dot"></i><i class="botx-dot d2"></i></div>
+                        <div class="botx-ring r2"><i class="botx-dot"></i><i class="botx-dot d3"></i></div>
+                        <div class="botx-ring r3"><i class="botx-dot"></i><i class="botx-dot d2"></i></div>
+                        <span class="botx-spoke" style="--a:-45deg; --d:0s"></span>
+                        <span class="botx-spoke out" style="--a:38deg; --d:-1.1s"></span>
+                        <span class="botx-spoke" style="--a:135deg; --d:-2.2s"></span>
+                        <span class="botx-spoke out" style="--a:222deg; --d:-0.6s"></span>
+                        <div class="botx-core">
+                            <div class="botx-plate p1"></div>
+                            <div class="botx-plate p2"></div>
+                            <div class="botx-plate p3"><img src="assets/img/nlt-icon.png" alt=""></div>
+                        </div>
+                    </div>
+                    <span class="botx-tag t1"><b></b>LICENSE · ACTIVE</span>
+                    <span class="botx-tag t2"><b></b>RISK ENGINE · ON</span>
+                    <span class="botx-tag t3"><b></b>KILL-SWITCH · ARMED</span>
+                    <div class="botx-term"><em>›</em><span id="botxTerm">license.verify → device bound</span></div>
+                </div>
+            </div>
+        </div>
     </section>
 
     <!-- QUÉ ES UN ECOSISTEMA DE TRADING -->
@@ -113,53 +396,31 @@
          soluciones del ecosistema, distinta de #modulesGrid más abajo (que
          lista cada producto real). Copy System aparece acá como UNA
          categoría más, nunca como la identidad completa de NLT. -->
-    <section class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-8">
-        <div class="text-center mb-14" data-reveal>
-            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Cómo se organiza</p>
-            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">El ecosistema NLT</h2>
-        </div>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="glass-card p-8" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                    <i class="ph-fill ph-chart-line-up"></i>
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div data-reveal>
+                <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">Cómo se organiza</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">El ecosistema NLT. Seis capas, una sola cuenta.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4" data-acc="34,211,238"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,211,238)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Análisis</h3><p class="text-sm text-gray-400">Herramientas para estudiar el mercado y estructurar escenarios de trading.</p></div></div>
+                    <div class="flex gap-4" data-acc="245,158,11"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(245,158,11)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Automatización</h3><p class="text-sm text-gray-400">Tecnología para automatizar procesos relacionados con la operativa.</p></div></div>
+                    <div class="flex gap-4" data-acc="67,120,255"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(67,120,255)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Copy System</h3><p class="text-sm text-gray-400">Infraestructura para replicar operaciones entre cuentas conectadas.</p></div></div>
+                    <div class="flex gap-4" data-acc="236,72,153"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(236,72,153)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Academy</h3><p class="text-sm text-gray-400">Educación y formación orientada al desarrollo del trader.</p></div></div>
+                    <div class="flex gap-4" data-acc="168,85,247"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(168,85,247)">05</span><div><h3 class="font-bold text-white text-sm mb-0.5">Tools</h3><p class="text-sm text-gray-400">Calculadoras, utilidades y herramientas diseñadas para facilitar la operativa.</p></div></div>
+                    <div class="flex gap-4" data-acc="34,197,94"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,197,94)">06</span><div><h3 class="font-bold text-white text-sm mb-0.5">Intelligence</h3><p class="text-sm text-gray-400">Soluciones orientadas a información, análisis y toma de decisiones.</p></div></div>
                 </div>
-                <h3 class="text-lg font-bold mb-3">Análisis</h3>
-                <p class="text-sm text-gray-400 leading-relaxed">Herramientas para estudiar el mercado y estructurar escenarios de trading.</p>
             </div>
-            <div class="glass-card p-8" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                    <i class="ph-fill ph-lightning"></i>
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(34,197,94,0.16), rgba(17,21,28,0.95)); border:1px solid rgba(34,197,94,0.3);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:20px; background:linear-gradient(135deg, rgba(168,85,247,0.16), rgba(17,21,28,0.95)); border:1px solid rgba(168,85,247,0.3);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:40px; background:linear-gradient(135deg, rgba(236,72,153,0.16), rgba(17,21,28,0.95)); border:1px solid rgba(236,72,153,0.3);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(67,120,255,0.16), rgba(17,21,28,0.95)); border:1px solid rgba(67,120,255,0.3);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:80px; background:linear-gradient(135deg, rgba(245,158,11,0.16), rgba(17,21,28,0.95)); border:1px solid rgba(245,158,11,0.3);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:100px; background:linear-gradient(135deg, rgba(34,211,238,0.24), rgba(20,24,32,0.95)); border:1px solid rgba(34,211,238,0.45); box-shadow:0 0 60px -10px rgba(34,211,238,0.5);">
+                        <img src="assets/img/nlt-icon.png" alt="NLT" class="w-12 h-12 opacity-90">
+                    </div>
                 </div>
-                <h3 class="text-lg font-bold mb-3">Automatización</h3>
-                <p class="text-sm text-gray-400 leading-relaxed">Tecnología para automatizar procesos relacionados con la operativa.</p>
-            </div>
-            <div class="glass-card p-8" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                    <i class="ph-fill ph-arrows-left-right"></i>
-                </div>
-                <h3 class="text-lg font-bold mb-3">Copy System</h3>
-                <p class="text-sm text-gray-400 leading-relaxed">Infraestructura para replicar operaciones entre cuentas conectadas.</p>
-            </div>
-            <div class="glass-card p-8" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                    <i class="ph-fill ph-graduation-cap"></i>
-                </div>
-                <h3 class="text-lg font-bold mb-3">Academy</h3>
-                <p class="text-sm text-gray-400 leading-relaxed">Educación y formación orientada al desarrollo del trader.</p>
-            </div>
-            <div class="glass-card p-8" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                    <i class="ph-fill ph-wrench"></i>
-                </div>
-                <h3 class="text-lg font-bold mb-3">Tools</h3>
-                <p class="text-sm text-gray-400 leading-relaxed">Calculadoras, utilidades y herramientas diseñadas para facilitar la operativa.</p>
-            </div>
-            <div class="glass-card p-8" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                    <i class="ph-fill ph-brain"></i>
-                </div>
-                <h3 class="text-lg font-bold mb-3">Intelligence</h3>
-                <p class="text-sm text-gray-400 leading-relaxed">Soluciones orientadas a información, análisis y toma de decisiones.</p>
             </div>
         </div>
     </section>
@@ -167,15 +428,15 @@
     <!-- VISIÓN -->
     <section class="relative z-10 max-w-5xl mx-auto px-6 py-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="glass-card p-10" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+            <div class="glass-card p-10" style="--card-glow-rgb:245,158,11" data-reveal>
+                <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-6 text-2xl" style="background:rgba(245,158,11,0.12); border:1px solid rgba(245,158,11,0.28); color:rgb(245,158,11)">
                     <i class="ph-fill ph-compass"></i>
                 </div>
                 <h3 class="text-lg font-bold mb-3">Nuestra visión</h3>
                 <p class="text-sm text-gray-400 leading-relaxed">Que un trader entre a NLT una vez al día y encuentre ahí todo lo que necesita para operar, analizar, gestionar riesgo y automatizar sus cuentas -- sin saltar entre diez herramientas distintas.</p>
             </div>
-            <div class="glass-card p-10" data-reveal>
-                <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+            <div class="glass-card p-10" style="--card-glow-rgb:45,212,191" data-reveal>
+                <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-6 text-2xl" style="background:rgba(45,212,191,0.12); border:1px solid rgba(45,212,191,0.28); color:rgb(45,212,191)">
                     <i class="ph-fill ph-stack"></i>
                 </div>
                 <h3 class="text-lg font-bold mb-3">Cómo se conecta todo</h3>
@@ -190,7 +451,17 @@
             <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Los productos</p>
             <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Todo lo que estamos construyendo</h2>
         </div>
-        <div id="modulesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div id="modulesGrid" class="bento"></div>
+    </section>
+
+    <!-- ALIADOS DEL ECOSISTEMA -- constelacion con partners REALES (partnersPublicos + brokers activos + Prop Hub); sin partners queda oculta. -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-14 md:py-20" hidden>
+        <div class="text-center mb-10 md:mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">Aliados del ecosistema</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Conectados a los mejores.</h2>
+            <p class="text-gray-400 max-w-lg mx-auto text-base md:text-lg leading-relaxed">Brokers, fondeo y tecnología que trabajan con NLT. <a href="partners.html" class="text-nlt-accent font-semibold hover:underline">Ver todos</a></p>
+        </div>
+        <div id="partnersMarquee"></div>
     </section>
 
     <!-- COMING NEXT -->
@@ -202,35 +473,24 @@
         <div class="relative space-y-6">
             <div class="absolute left-[27px] top-3 bottom-3 w-px bg-gradient-to-b from-nlt-success/40 via-nlt-accent/30 to-transparent" aria-hidden="true"></div>
 
-            <div class="relative glass-card p-8 flex items-start gap-6 border-nlt-success/20" data-reveal>
+            <div class="relative glass-card p-8 flex items-start gap-6 border-nlt-success/20" style="--card-glow-rgb:34,197,94" data-reveal>
                 <div class="w-3 h-3 rounded-full bg-nlt-success mt-2 shrink-0 timeline-dot relative z-10"></div>
                 <div>
                     <div class="flex items-center gap-3 mb-2"><h3 class="font-bold text-white">NLT Ecosystem</h3><span class="px-2 py-0.5 rounded-full bg-nlt-success/10 text-nlt-success text-[10px] font-bold uppercase">Current</span></div>
-                    <p class="text-sm text-gray-400">Copy System (CFD/Forex + Futuros), Indicator, Academy, Community, Trading Tools, News + Economic Calendar, Calculators, Media Library -- todo en tu misma cuenta NLT.</p>
+                    <p class="text-sm text-gray-400">Copy System (CFD/Forex + Futuros), NLT Bot Supreme, Indicator, Academy, Community, Trading Tools, News + Economic Calendar, Calculators, Media Library -- todo en tu misma cuenta NLT.</p>
                 </div>
             </div>
 
-            <div class="relative glass-card p-8 flex items-start gap-6" data-reveal>
-                <div class="w-3 h-3 rounded-full bg-nlt-accent mt-2 shrink-0 timeline-dot relative z-10 animate-pulse"></div>
-                <div class="flex-1 min-w-0">
-                    <div class="flex items-center gap-3 mb-2 flex-wrap"><h3 class="font-bold text-white flex items-center gap-2"><span>🤖</span> NLT Supreme</h3><span class="px-2 py-0.5 rounded-full bg-nlt-accent/10 text-nlt-accent text-[10px] font-bold uppercase">In Development</span></div>
-                    <p class="text-sm text-gray-400 mb-4">El sistema automatizado de NLT -- operativa sistemática con gestión de riesgo, pensado para capital propio y cuentas de fondeo.</p>
-                    <button id="btn-abrir-supreme" type="button" class="inline-flex items-center gap-2 text-xs font-bold text-nlt-accent uppercase tracking-wider hover:gap-3.5 transition-all cursor-pointer">
-                        Conocer NLT Supreme <i class="ph-bold ph-arrow-right"></i>
-                    </button>
-                </div>
-            </div>
-
-            <div class="relative glass-card p-8 flex items-start gap-6 opacity-80" data-reveal>
-                <div class="w-3 h-3 rounded-full bg-nlt-accent/50 mt-2 shrink-0 relative z-10"></div>
+            <div class="relative glass-card p-8 flex items-start gap-6 opacity-80" style="--card-glow-rgb:245,158,11" data-reveal>
+                <div class="w-3 h-3 rounded-full mt-2 shrink-0 relative z-10" style="background:rgb(245,158,11); box-shadow:0 0 12px rgba(245,158,11,0.6)"></div>
                 <div>
                     <div class="flex items-center gap-3 mb-2"><h3 class="font-bold text-white flex items-center gap-2"><span>📈</span> NLT Futures Copier</h3><span class="px-2 py-0.5 rounded-full bg-gray-700/50 text-gray-400 text-[10px] font-bold uppercase">Coming Soon</span></div>
                     <p class="text-sm text-gray-400">Copy trading para cuentas de Futures próximamente.</p>
                 </div>
             </div>
 
-            <div class="relative glass-card p-8 flex items-start gap-6 opacity-50" data-reveal>
-                <div class="w-3 h-3 rounded-full bg-gray-700 mt-2 shrink-0 relative z-10"></div>
+            <div class="relative glass-card p-8 flex items-start gap-6 opacity-50" style="--card-glow-rgb:168,85,247" data-reveal>
+                <div class="w-3 h-3 rounded-full mt-2 shrink-0 relative z-10" style="background:rgb(168,85,247); box-shadow:0 0 12px rgba(168,85,247,0.6)"></div>
                 <div>
                     <div class="flex items-center gap-3 mb-2"><h3 class="font-bold text-white flex items-center gap-2"><span>📱</span> NLT Mobile App</h3><span class="px-2 py-0.5 rounded-full bg-gray-700/50 text-gray-400 text-[10px] font-bold uppercase">Future</span></div>
                     <p class="text-sm text-gray-400">Tu ecosistema NLT, en tu bolsillo.</p>
@@ -246,7 +506,7 @@
 
     <!-- CTA -->
     <section class="relative z-10 max-w-4xl mx-auto px-6 text-center py-24" data-reveal>
-        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Empezá por Copy System.</h3>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Empieza por Copy System.</h3>
         <p class="text-gray-400 mb-10 max-w-xl mx-auto">El resto del ecosistema se va a ir activando en tu misma cuenta, a medida que lo construimos.</p>
         <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
             <a href="copy-system.html" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button">Conocer Copy System</a>
@@ -265,7 +525,7 @@
                 <p class="font-bold text-white text-sm">NLT Partners</p>
                 <p class="text-xs text-gray-500">Business &amp; Strategic Partnerships</p>
             </div>
-            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs font-semibold shrink-0">
+            <div class="flex flex-wrap items-center justify-center text-xs font-semibold shrink-0" style="gap:6px 16px">
                 <a href="partners.html" class="text-nlt-accent hover:underline">See Partners</a>
                 <a href="become-partner.html" class="text-gray-400 hover:text-white transition-colors">Become a Partner</a>
                 <a href="business.html" class="text-gray-400 hover:text-white transition-colors">NLT for Business</a>
@@ -280,142 +540,69 @@
                 <a href="partners.html" class="hover:text-gray-300 transition-colors">Partners</a>
                 <a href="become-partner.html" class="hover:text-gray-300 transition-colors">Become a Partner</a>
                 <a href="business.html" class="hover:text-gray-300 transition-colors">NLT for Business</a>
+                <a href="status.html" class="hover:text-gray-300 transition-colors">Estado</a>
                 <a href="index.html" class="hover:text-gray-300 transition-colors">Volver al inicio</a>
             </div>
         </div>
     </footer>
 
-    <!-- PORTAL NLT SUPREME (ilustrativo -- el bot todavía está en desarrollo, ningún dato acá es una operación real) -->
-    <div id="supremeModal" class="fixed inset-0 z-[100] hidden bg-black/85 backdrop-blur-sm">
-        <div id="supremeScroll" class="h-full overflow-y-auto">
-            <div class="min-h-full flex items-start justify-center px-4 py-10 md:py-16">
-                <div id="supremePanel" class="supreme-modal-panel nlt-modal-panel relative w-full max-w-5xl supreme-glow-ring rounded-3xl overflow-hidden border border-white/10">
-                    <button id="btn-supreme-close" type="button" class="absolute top-5 right-5 z-30 w-10 h-10 shrink-0 rounded-full border border-gray-700 bg-black/40 flex items-center justify-center text-gray-400 hover:text-white hover:border-gray-500 transition-all cursor-pointer">
-                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>
-                    </button>
-
-                    <!-- HERO / ENGINE -->
-                    <div class="relative px-6 md:px-14 pt-14 md:pt-16 pb-10 text-center border-b border-white/5 overflow-hidden">
-                        <div class="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[520px] h-[360px] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none"></div>
-
-                        <p class="supreme-eyebrow relative text-[10px] font-bold text-nlt-accent uppercase mb-5" data-supreme-reveal>El sistema automatizado de NLT</p>
-                        <h2 class="relative text-4xl md:text-6xl font-extrabold tracking-tight mb-4" data-supreme-reveal>NLT SUPREME</h2>
-                        <p class="relative text-gray-400 text-base md:text-lg max-w-lg mx-auto" data-supreme-reveal>Automatiza tu operativa. Mantén el control de tu riesgo.</p>
-
-                        <div class="relative mx-auto mt-8 w-full max-w-[280px] aspect-square" data-supreme-reveal>
-                            <canvas id="supremeCanvas" class="w-full h-full"></canvas>
-                            <div class="absolute inset-x-0 bottom-[6%] flex items-center justify-center pointer-events-none">
-                                <span class="text-[9px] font-bold tracking-[0.3em] text-nlt-accent/70">SUPREME ENGINE</span>
-                            </div>
-                            <span id="supremeSignalTag" class="signal-tag signal-buy top-3 right-2">BUY</span>
-                        </div>
-
-                        <div class="relative mt-2 flex items-center justify-center gap-2.5 text-[11px] font-mono text-gray-300" data-supreme-reveal>
-                            <span class="w-1.5 h-1.5 rounded-full bg-nlt-accent animate-pulse"></span>
-                            <span id="supremeTicker">MARKET SCANNING</span>
-                        </div>
-
-                        <div id="supremeCandles" class="relative mt-6 flex items-end justify-center gap-[3px] h-14 mx-auto max-w-xs" data-supreme-reveal></div>
-
-                        <div class="relative mt-9 grid grid-cols-2 md:grid-cols-5 gap-2.5 max-w-3xl mx-auto text-left" data-supreme-reveal>
-                            <div class="status-chip"><p class="label">Market Scanner</p><p class="value text-nlt-success">● ONLINE</p></div>
-                            <div class="status-chip"><p class="label">Market Data</p><p class="value text-gray-200">STREAMING</p></div>
-                            <div class="status-chip"><p class="label">AI / Engine</p><p class="value text-gray-200">ANALYZING</p></div>
-                            <div class="status-chip"><p class="label">Risk Engine</p><p class="value text-gray-200">ACTIVE</p></div>
-                            <div class="status-chip col-span-2 md:col-span-1"><p class="label">Status</p><p class="value text-gray-500">COMING SOON</p></div>
-                        </div>
-                    </div>
-
-                    <!-- CONTENIDO -->
-                    <div class="px-6 md:px-14 py-12 space-y-14">
-
-                        <div data-supreme-reveal>
-                            <p class="text-gray-300 leading-relaxed max-w-2xl">Un bot de trading diseñado para operar de forma automatizada bajo una lógica estructurada de mercado y gestión de riesgo.</p>
-                            <p class="text-gray-500 italic text-sm mt-3">"Construido para traders que buscan llevar la automatización al siguiente nivel."</p>
-
-                            <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mt-7">
-                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">💰</span><span class="text-xs font-semibold text-gray-300">Capital propio</span></div>
-                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">🏦</span><span class="text-xs font-semibold text-gray-300">Fondeo / Prop Firms</span></div>
-                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">📊</span><span class="text-xs font-semibold text-gray-300">Distintas condiciones</span></div>
-                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">⚙️</span><span class="text-xs font-semibold text-gray-300">Operativa automatizada</span></div>
-                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">🛡️</span><span class="text-xs font-semibold text-gray-300">Gestión de riesgo</span></div>
-                                <div class="status-chip flex items-center gap-2.5 !py-3"><span class="text-lg">📈</span><span class="text-xs font-semibold text-gray-300">Ejecución sistemática</span></div>
-                            </div>
-                        </div>
-
-                        <div class="grid md:grid-cols-2 gap-5" data-supreme-reveal>
-                            <div class="glass-card p-8">
-                                <div class="w-11 h-11 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-5 text-xl">💰</div>
-                                <h3 class="font-bold text-white mb-2.5">Capital propio</h3>
-                                <p class="text-sm text-gray-400 leading-relaxed">Pensado para operar tu propio capital, automatizando la ejecución de operaciones siguiendo los parámetros que vos configures.</p>
-                            </div>
-                            <div class="glass-card p-8">
-                                <div class="w-11 h-11 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-5 text-xl">🏦</div>
-                                <h3 class="font-bold text-white mb-2.5">Cuentas de fondeo</h3>
-                                <p class="text-sm text-gray-400 leading-relaxed mb-3">Diseñado también pensando en traders con cuentas de fondeo, donde la gestión de riesgo, los límites y los parámetros configurables son clave.</p>
-                                <p class="text-[11px] text-gray-600 leading-relaxed">La compatibilidad depende de las condiciones y reglas de cada proveedor -- no garantizamos que una prop firm en particular permita su uso.</p>
-                            </div>
-                        </div>
-
-                        <div data-supreme-reveal>
-                            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-5">En desarrollo</p>
-                            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Automatización de entradas y salidas</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Gestión de riesgo configurable</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Control de lotaje</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Stop Loss / Take Profit</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Parámetros adaptables</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Protección ante condiciones no deseadas</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Dashboard de monitoreo</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Historial y estadísticas</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip"><span class="text-sm text-gray-300">Integración con el ecosistema NLT</span><span class="tag">Dev</span></div>
-                                <div class="dev-chip sm:col-span-2 lg:col-span-1"><span class="text-sm text-gray-300">Operar otros mercados a futuro</span><span class="tag">Dev</span></div>
-                            </div>
-                        </div>
-
-                        <p class="text-[11px] text-gray-600 leading-relaxed border-t border-white/5 pt-7" data-supreme-reveal>
-                            NLT Supreme está en desarrollo. No se presentan rentabilidades garantizadas ni se promete ningún resultado -- toda la operativa automatizada conlleva riesgo real de pérdida de capital.
-                        </p>
-
-                        <div class="text-center pt-2" data-supreme-reveal>
-                            <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">NLT SUPREME</h3>
-                            <p class="text-nlt-accent text-xs font-bold uppercase tracking-widest mb-4">Próximamente</p>
-                            <p class="text-gray-400 max-w-md mx-auto mb-8">Estamos construyendo la próxima generación de automatización para traders.</p>
-                            <div class="flex flex-col sm:flex-row items-center justify-center gap-4">
-                                <button id="btn-supreme-notify" type="button" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer inline-flex items-center gap-2">
-                                    <i class="ph-bold ph-bell-ringing"></i> Avísame cuando esté disponible
-                                </button>
-                                <button id="btn-supreme-back" type="button" class="px-8 py-3.5 rounded-full bg-transparent border border-gray-700/80 text-gray-300 hover:bg-white/5 font-semibold text-sm transition-all cursor-pointer">Volver al ecosistema NLT</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script>
         (function () {
+            // Bento: orden y tamaño por producto (4 columnas). Un producto nuevo
+            // que no figure acá entra al final como tarjeta chica.
+            const ORDEN = ['copy', 'indicator', 'news', 'tools', 'elite-signals', 'futures-calc', 'forex-calc', 'academy', 'community', 'propfirm', 'broker', 'journal'];
+            const TAMANO = { copy: 'bt-feat', indicator: 'bt-wide', 'elite-signals': 'bt-wide', propfirm: 'bt-wide', broker: 'bt-wide', journal: 'bt-wide' };
+            const ARTE = {
+                copy: `<div class="bt-art bt-copy" aria-hidden="true">
+                        <i class="ln" style="--len:193px; --ang:-21.2deg; --d:0s"></i><i class="ln" style="--len:198px; --ang:0deg; --d:-.9s"></i><i class="ln" style="--len:193px; --ang:21.2deg; --d:-1.8s"></i>
+                        <i class="n m"></i><i class="n f f1"></i><i class="n f f2"></i><i class="n f f3"></i>
+                    </div>`,
+                indicator: `<div class="bt-art bt-zones" aria-hidden="true">
+                        <svg viewBox="0 0 200 120" preserveAspectRatio="none">
+                            <rect class="z" x="0" y="14" width="200" height="26" rx="4"/><rect class="z" x="0" y="74" width="200" height="20" rx="4"/>
+                            <polyline class="p" points="0,88 24,80 44,92 68,58 90,66 114,30 138,46 160,22 200,34"/>
+                        </svg>
+                    </div>`,
+                'elite-signals': `<div class="bt-art bt-rings" aria-hidden="true"><i></i><i></i><i></i><b></b></div>`,
+            };
+
             function tarjeta(m) {
                 const disponible = m.status === 'live';
                 const wrapTag = disponible ? 'a' : 'div';
                 const hrefAttr = disponible ? `href="${m.href}"` : '';
+                const glow = m.color || '67,120,255';
+                const tam = TAMANO[m.id] || '';
+                const arte = ARTE[m.id] || `<i class="ph-fill ${m.icono} bt-mark" aria-hidden="true"></i>`;
+                const etiqueta = m.id === 'copy' ? '<span class="bt-tag">Core</span>' : (!disponible ? '<span class="bt-tag">Próximamente</span>' : '');
                 return `
-                    <${wrapTag} ${hrefAttr} class="glass-card p-8 flex flex-col relative overflow-hidden group ${disponible ? 'cursor-pointer hover:border-nlt-accent/30' : 'opacity-60'} transition-all" data-reveal>
-                        ${!disponible ? '<span class="absolute top-5 right-5 text-[9px] font-bold uppercase tracking-widest text-gray-500 border border-gray-700 rounded-full px-2.5 py-1">Próximamente</span>' : ''}
-                        <div class="w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
-                            <i class="ph-fill ${m.icono}"></i>
+                    <${wrapTag} ${hrefAttr} class="glass-card bt-card ${tam} group ${disponible ? 'cursor-pointer' : 'opacity-60'}" style="--card-glow-rgb:${glow}; --bt-c:${glow}" data-reveal>
+                        ${arte}
+                        <div class="bt-top">
+                            <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center text-2xl" style="background:rgba(${glow},0.12); border:1px solid rgba(${glow},0.28); color:rgb(${glow})">
+                                <i class="ph-fill ${m.icono}"></i>
+                            </div>
+                            ${etiqueta}
                         </div>
-                        <h3 class="text-lg font-bold text-white mb-2 tracking-tight">${m.nombre}</h3>
-                        <p class="text-sm text-gray-400 leading-relaxed flex-1">${m.descripcion}</p>
-                        ${disponible ? `<span class="mt-6 inline-flex items-center gap-2 text-xs font-bold text-nlt-accent uppercase tracking-wider">Entrar <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i></span>` : ''}
+                        <h3 class="bt-name">${m.nombre}</h3>
+                        <p class="bt-desc">${m.descripcion}</p>
+                        ${disponible ? `<span class="bt-more">Entrar <i class="ph-bold ph-arrow-right"></i></span>` : ''}
                     </${wrapTag}>
                 `;
             }
             function render() {
                 const grid = document.getElementById('modulesGrid');
                 if (!grid || !window.NLT) return;
-                grid.innerHTML = window.NLT.NLT_MODULES.map(tarjeta).join('');
+                const mods = window.NLT.NLT_MODULES.slice().sort((a, b) => {
+                    const ia = ORDEN.indexOf(a.id), ib = ORDEN.indexOf(b.id);
+                    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+                });
+                grid.innerHTML = mods.map(tarjeta).join('');
+                // El movimiento del bento solo corre mientras esta en pantalla.
+                if ('IntersectionObserver' in window) {
+                    new IntersectionObserver((es) => grid.classList.toggle('is-live', es[0].isIntersecting), { threshold: 0.02 }).observe(grid);
+                } else {
+                    grid.classList.add('is-live');
+                }
                 // Motion System nativo (Performance Sprint) -- reemplaza GSAP+ScrollTrigger.
                 NLT.mountReveal();
             }
@@ -484,221 +671,80 @@
         })();
     </script>
 
-    <!-- Portal NLT Supreme: apertura/cierre, motor visual (canvas), velas, ticker de estado y botón de aviso (preparado, sin backend todavía). -->
+    <!-- NLT Bot Supreme (tarjeta destacada): el motor 3D se inclina hacia el cursor
+         (con un vaivén suave cuando no hay cursor), la terminal rota estados
+         ilustrativos, y todo se pausa fuera de pantalla / con reduced-motion. -->
     <script>
         (function () {
-            const btnOpen = document.getElementById('btn-abrir-supreme');
-            const modal = document.getElementById('supremeModal');
-            const scrollWrap = document.getElementById('supremeScroll');
-            const panel = document.getElementById('supremePanel');
-            const btnClose = document.getElementById('btn-supreme-close');
-            const btnBack = document.getElementById('btn-supreme-back');
-            const canvas = document.getElementById('supremeCanvas');
-            if (!btnOpen || !modal || !canvas) return;
-            const ctx = canvas.getContext('2d');
+            const card = document.getElementById('botx');
+            if (!card) return;
+            const body = card.querySelector('.botx-body');
+            const stage = document.getElementById('botxStage');
+            const term = document.getElementById('botxTerm');
+            const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-            // --- Motor visual: núcleo pulsante + anillo rotando + nodos fijos
-            // conectados por líneas finas + partículas viajando en ambos
-            // sentidos (entrada = datos de mercado, salida = señal de
-            // ejecución) -- mismo lenguaje visual que el modal "Red de Copiado
-            // en Vivo" de index.html, adaptado a un solo motor central en vez
-            // de una red de cuentas. 100% ilustrativo, ningún dato real.
-            let animId = null, spawnTimer = null, tickerTimer = null, signalTimer = null;
-            let nodes = [], particles = [], center = { x: 0, y: 0 }, ringAngle = 0;
+            // Toda la tarjeta lleva a la página del bot (los <a> internos conservan su destino).
+            body.addEventListener('click', (e) => { if (!e.target.closest('a')) window.location.href = 'nlt-bot.html'; });
 
-            function buildNodes() {
-                nodes = [];
-                const count = 8;
-                const radius = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.42;
-                for (let i = 0; i < count; i++) {
-                    const angle = (i / count) * Math.PI * 2;
-                    nodes.push({ x: center.x + Math.cos(angle) * radius, y: center.y + Math.sin(angle) * radius, pulse: Math.random() * Math.PI * 2 });
+            let live = false, raf = 0, hover = false;
+            let rx = 12, ry = -12, trx = 12, try_ = -12;
+            let tickTimer = null, tickI = 0;
+            const LINES = [
+                'license.verify → device bound',
+                'risk.guard → limits loaded',
+                'kill_switch → armed',
+                'session.filter → watching',
+            ];
+
+            body.addEventListener('pointermove', (e) => {
+                const r = body.getBoundingClientRect();
+                const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+                const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
+                hover = true;
+                try_ = 12 - ny * 16;
+                trx = -12 + nx * 20;
+            }, { passive: true });
+            body.addEventListener('pointerleave', () => { hover = false; });
+
+            function loop(t) {
+                if (!live) { raf = 0; return; }
+                if (!hover) {
+                    trx = -12 + Math.sin(t / 2600) * 7;
+                    try_ = 12 + Math.cos(t / 3100) * 5;
+                }
+                ry += (trx - ry) * 0.07;
+                rx += (try_ - rx) * 0.07;
+                stage.style.setProperty('--bx-ry', ry.toFixed(2) + 'deg');
+                stage.style.setProperty('--bx-rx', rx.toFixed(2) + 'deg');
+                raf = requestAnimationFrame(loop);
+            }
+
+            function tick() {
+                term.classList.add('out');
+                setTimeout(() => {
+                    tickI = (tickI + 1) % LINES.length;
+                    term.textContent = LINES[tickI];
+                    term.classList.remove('out');
+                }, 360);
+            }
+
+            function setLive(on) {
+                live = on;
+                card.classList.toggle('is-live', on);
+                if (reduce) return;
+                if (on) {
+                    if (!raf) raf = requestAnimationFrame(loop);
+                    if (!tickTimer) tickTimer = setInterval(tick, 2400);
+                } else if (tickTimer) {
+                    clearInterval(tickTimer);
+                    tickTimer = null;
                 }
             }
 
-            function resizeCanvas() {
-                const dpr = window.devicePixelRatio || 1;
-                canvas.width = canvas.clientWidth * dpr;
-                canvas.height = canvas.clientHeight * dpr;
-                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-                center = { x: canvas.clientWidth / 2, y: canvas.clientHeight / 2 };
-                buildNodes();
-            }
-
-            function spawnParticle() {
-                if (!nodes.length) return;
-                const node = nodes[Math.floor(Math.random() * nodes.length)];
-                const inbound = Math.random() < 0.68; // más datos entrando que señales saliendo
-                particles.push({ node, t: 0, inbound, speed: 0.014 + Math.random() * 0.012 });
-            }
-
-            function draw() {
-                ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
-
-                ctx.strokeStyle = 'rgba(67,120,255,0.07)';
-                ctx.lineWidth = 1;
-                nodes.forEach((n) => { ctx.beginPath(); ctx.moveTo(center.x, center.y); ctx.lineTo(n.x, n.y); ctx.stroke(); });
-
-                ringAngle += 0.0045;
-                const ringRadius = Math.min(canvas.clientWidth, canvas.clientHeight) * 0.46;
-                ctx.save();
-                ctx.translate(center.x, center.y);
-                ctx.rotate(ringAngle);
-                ctx.setLineDash([2, 11]);
-                ctx.beginPath();
-                ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(67,120,255,0.3)';
-                ctx.lineWidth = 1.3;
-                ctx.stroke();
-                ctx.restore();
-                ctx.setLineDash([]);
-
-                nodes.forEach((n) => {
-                    n.pulse += 0.02;
-                    const r = 2.2 + Math.sin(n.pulse) * 1;
-                    ctx.beginPath();
-                    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-                    ctx.fillStyle = 'rgba(200,215,255,0.5)';
-                    ctx.fill();
-                });
-
-                particles.forEach((p) => {
-                    p.t += p.speed;
-                    const from = p.inbound ? p.node : center;
-                    const to = p.inbound ? center : p.node;
-                    const x = from.x + (to.x - from.x) * p.t;
-                    const y = from.y + (to.y - from.y) * p.t;
-                    const color = p.inbound ? '67,120,255' : '34,197,94';
-                    ctx.beginPath();
-                    ctx.arc(x, y, 2.4, 0, Math.PI * 2);
-                    ctx.fillStyle = `rgba(${color},1)`;
-                    ctx.shadowColor = `rgba(${color},0.9)`;
-                    ctx.shadowBlur = 7;
-                    ctx.fill();
-                    ctx.shadowBlur = 0;
-                });
-                particles = particles.filter((p) => p.t < 1);
-
-                const corePulse = 9 + Math.sin(Date.now() / 320) * 3;
-                const grad = ctx.createRadialGradient(center.x, center.y, 0, center.x, center.y, corePulse * 2.6);
-                grad.addColorStop(0, 'rgba(67,120,255,0.9)');
-                grad.addColorStop(1, 'rgba(67,120,255,0)');
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, corePulse * 2.6, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-
-                ctx.beginPath();
-                ctx.arc(center.x, center.y, 6, 0, Math.PI * 2);
-                ctx.fillStyle = '#ffffff';
-                ctx.fill();
-
-                animId = requestAnimationFrame(draw);
-            }
-
-            // --- Velas ilustrativas (CSS, respiran con keyframes -- ver
-            // .candle-bar en el <style>) -- se generan una sola vez por
-            // apertura, nunca pretenden ser datos de mercado reales.
-            function renderCandles() {
-                const box = document.getElementById('supremeCandles');
-                if (!box) return;
-                const total = 20;
-                let html = '';
-                for (let i = 0; i < total; i++) {
-                    const up = Math.random() < 0.6;
-                    const h = 14 + Math.random() * 42;
-                    const scale = (1.04 + Math.random() * 0.1).toFixed(2);
-                    const delay = (Math.random() * 2.4).toFixed(2);
-                    const color = up ? 'background:#22C55E;opacity:.75' : 'background:#F87171;opacity:.6';
-                    html += `<div class="candle-bar" style="height:${h}px;${color};--candle-scale:${scale};animation-delay:${delay}s"></div>`;
-                }
-                box.innerHTML = html;
-            }
-
-            // --- Ticker de estado (texto rotativo, solo visual) ---
-            const TICKER_STATES = ['MARKET SCANNING', 'ANALYZING', 'SIGNAL DETECTED', 'RISK CHECK', 'EXECUTION READY'];
-            function runTicker() {
-                const el = document.getElementById('supremeTicker');
-                if (!el) return;
-                let i = 0;
-                tickerTimer = setInterval(() => {
-                    el.classList.add('ticker-fade');
-                    setTimeout(() => {
-                        i = (i + 1) % TICKER_STATES.length;
-                        el.textContent = TICKER_STATES[i];
-                        el.classList.remove('ticker-fade');
-                    }, 400);
-                }, 2400);
-            }
-
-            // --- Tag flotante BUY/SELL, aparece brevemente cada tanto ---
-            function runSignalTag() {
-                const tag = document.getElementById('supremeSignalTag');
-                if (!tag) return;
-                signalTimer = setInterval(() => {
-                    const buy = Math.random() < 0.5;
-                    tag.textContent = buy ? 'BUY' : 'SELL';
-                    tag.classList.toggle('signal-buy', buy);
-                    tag.classList.toggle('signal-sell', !buy);
-                    tag.classList.add('show');
-                    setTimeout(() => tag.classList.remove('show'), 1900);
-                }, 5200);
-            }
-
-            function open() {
-                modal.classList.remove('hidden');
-                document.body.style.overflow = 'hidden';
-                resizeCanvas();
-                renderCandles();
-                draw();
-                spawnTimer = setInterval(spawnParticle, 420);
-                runTicker();
-                runSignalTag();
-
-                // Motion System nativo (Performance Sprint) -- reemplaza el
-                // timeline de GSAP, ver NLT.animarEntradaModal() en nlt-shared.js.
-                NLT.animarEntradaModal(panel, { childrenSelector: '[data-supreme-reveal]', stagger: 60 });
-            }
-
-            function close() {
-                modal.classList.add('hidden');
-                document.body.style.overflow = '';
-                cancelAnimationFrame(animId);
-                clearInterval(spawnTimer);
-                clearInterval(tickerTimer);
-                clearInterval(signalTimer);
-                particles = [];
-                scrollWrap.scrollTop = 0;
-            }
-
-            btnOpen.addEventListener('click', open);
-            btnClose.addEventListener('click', close);
-            if (btnBack) btnBack.addEventListener('click', close);
-            scrollWrap.addEventListener('click', (e) => { if (e.target === scrollWrap || e.target.parentElement === scrollWrap) close(); });
-            document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !modal.classList.contains('hidden')) close(); });
-            window.addEventListener('resize', () => { if (!modal.classList.contains('hidden')) resizeCanvas(); });
-
-            // --- "Avísame cuando esté disponible" -- sin sistema de
-            // notificaciones todavía, así que solo deja constancia local de
-            // interés (localStorage) y muestra el botón como confirmado.
-            // TODO: cuando exista el endpoint real (ej. NLT_API.notificarmeSupreme()),
-            // reemplazar el guardado local por una llamada real al backend.
-            const NOTIFY_KEY = 'nlt_supreme_notify_interes';
-            const btnNotify = document.getElementById('btn-supreme-notify');
-            function actualizarBotonNotify() {
-                if (!btnNotify) return;
-                if (localStorage.getItem(NOTIFY_KEY) === '1') {
-                    btnNotify.innerHTML = '<i class="ph-fill ph-check-circle"></i> Te vamos a avisar';
-                    btnNotify.classList.add('opacity-70');
-                    btnNotify.disabled = true;
-                }
-            }
-            if (btnNotify) {
-                btnNotify.addEventListener('click', () => {
-                    localStorage.setItem(NOTIFY_KEY, '1');
-                    actualizarBotonNotify();
-                });
-                actualizarBotonNotify();
+            if ('IntersectionObserver' in window) {
+                new IntersectionObserver((entries) => setLive(entries[0].isIntersecting), { threshold: 0.05 }).observe(card);
+            } else {
+                setLive(true);
             }
         })();
     </script>

@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Cuentas Destino</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -92,8 +97,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         async function cargarCuentas() {
             const container = document.getElementById('listaCuentas');
@@ -135,7 +140,7 @@
                         </div>
                         ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
                             <div id="reconexion-${c.id}" class="hidden mt-3 pt-3 border-t border-white/5">
-                                <p class="text-[11px] text-gray-500 mb-2">La sesión se enfrió del lado de TickerAll -- ingresá la contraseña para reconectarla:</p>
+                                <p class="text-[11px] text-gray-500 mb-2">La sesión se enfrió del lado de TickerAll -- ingresa la contraseña para reconectarla:</p>
                                 <div class="flex gap-2">
                                     <input type="password" id="passReconexion-${c.id}" placeholder="Contraseña" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-orange-500 outline-none">
                                     <button onclick="reconectarTickerAll('${c.id}')" class="px-3 py-2 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-semibold hover:bg-orange-500/30 transition-all">Confirmar</button>
@@ -175,7 +180,7 @@
             if (!password) {
                 msg.classList.remove('hidden');
                 msg.className = 'text-[11px] mt-2 text-nlt-danger';
-                msg.textContent = 'Escribí la contraseña antes de confirmar.';
+                msg.textContent = 'Escribe la contraseña antes de confirmar.';
                 return;
             }
             msg.classList.remove('hidden');

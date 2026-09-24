@@ -10,7 +10,12 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Suscripción</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -112,8 +117,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '')
@@ -185,7 +190,7 @@
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-xs text-gray-500 uppercase tracking-wider mb-1">Sin suscripción activa</p>
-                            <p class="text-sm text-gray-400">Elegí un plan abajo para empezar a copiar operaciones.</p>
+                            <p class="text-sm text-gray-400">Elige un plan abajo para empezar a copiar operaciones.</p>
                         </div>
                     </div>`;
                 return;
@@ -219,7 +224,7 @@
             box.classList.remove('hidden');
             box.innerHTML = `
                 <h3 class="text-lg font-bold mb-1">Checkout</h3>
-                <p class="text-xs text-gray-500 mb-6">Revisá el resumen antes de pagar.</p>
+                <p class="text-xs text-gray-500 mb-6">Revisa el resumen antes de pagar.</p>
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-sm text-gray-400">Plan</span>
                     <span class="font-bold text-white">${plan.nombre}</span>
@@ -250,7 +255,7 @@
                     </div>
                     <p class="text-[11px] text-gray-500 mt-1">Precio recurrente: $${plan.precio_mensual.toFixed(2)} USD/mes (el descuento del cupón solo aplica al primer pago).</p>
                 </div>
-                <button id="chkPagar" class="w-full py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Pagar con tarjeta</button>
+                <button id="chkPagar" class="w-full py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Continuar al pago</button>
                 <p id="chkMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
             `;
             box.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -303,153 +308,13 @@
                     }
 
                     msg.classList.add('hidden');
-                    await mostrarFormularioTarjeta(orden);
+                    await NLT.mountMetodosPago(document.getElementById('checkoutBox'), orden);
                 } catch (err) {
                     btn.disabled = false;
-                    btn.textContent = 'Pagar con tarjeta';
+                    btn.textContent = 'Continuar al pago';
                     msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-danger/10 text-nlt-danger';
                     msg.textContent = 'Error: ' + err.message;
                 }
-            });
-        }
-
-        // --- Checkout real vía el tokenizador oficial de Pay2Commerce (P2C.tokenize) ---
-        // Documentación oficial de Pay2Commerce (confirmada por su soporte):
-        // el script tokeniza la tarjeta en el navegador y devuelve un
-        // payment_method_id permanente -- NLT_API nunca recibe el número de
-        // tarjeta. Reemplaza el flujo anterior (Accept.js manejado a mano),
-        // que quedaba dando PAYMENT_METHOD_DECLINED de forma persistente.
-        function cargarTokenizerJs() {
-            if (window.P2C) return Promise.resolve();
-            if (window._p2cTokenizerPromise) return window._p2cTokenizerPromise;
-            window._p2cTokenizerPromise = new Promise((resolve, reject) => {
-                const s = document.createElement('script');
-                s.src = 'https://app.pay2commerce.net/api/v1/tokenizer.js';
-                s.onload = resolve;
-                s.onerror = () => reject(new Error('No se pudo cargar el módulo de pago seguro.'));
-                document.head.appendChild(s);
-            });
-            return window._p2cTokenizerPromise;
-        }
-
-        async function mostrarFormularioTarjeta(orden) {
-            const box = document.getElementById('checkoutBox');
-            box.innerHTML = `
-                <h3 class="text-lg font-bold mb-1">Pagar con tarjeta</h3>
-                <p class="text-xs text-gray-500 mb-6">Orden ${orden.order_id} -- $${orden.final_amount.toFixed(2)} USD. Tu tarjeta se procesa de forma segura, nunca pasa por los servidores de NLT.</p>
-                <div class="space-y-3">
-                    <input type="text" id="tcNombre" placeholder="Nombre en la tarjeta" autocomplete="cc-name" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                    <input type="text" id="tcNumero" placeholder="Número de tarjeta" autocomplete="cc-number" inputmode="numeric" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                    <div class="grid grid-cols-3 gap-3">
-                        <input type="text" id="tcMes" placeholder="MM" autocomplete="cc-exp-month" inputmode="numeric" maxlength="2" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                        <input type="text" id="tcAnio" placeholder="AAAA" autocomplete="cc-exp-year" inputmode="numeric" maxlength="4" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                        <input type="text" id="tcCvv" placeholder="CVV" autocomplete="cc-csc" inputmode="numeric" maxlength="4" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                    </div>
-                    <p class="text-[11px] text-gray-500 pt-2">Dirección de facturación (el banco la puede pedir para validar la tarjeta)</p>
-                    <input type="text" id="tcDireccion" placeholder="Calle y número" autocomplete="address-line1" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="tcCiudad" placeholder="Ciudad" autocomplete="address-level2" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                        <input type="text" id="tcCodigoPostal" placeholder="Código postal" autocomplete="postal-code" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                    </div>
-                    <div class="grid grid-cols-2 gap-3">
-                        <input type="text" id="tcEstado" placeholder="Estado/Provincia" autocomplete="address-level1" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                        <select id="tcPais" autocomplete="country" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
-                            <option value="DO">República Dominicana</option>
-                            <option value="US">Estados Unidos</option>
-                            <option value="CA">Canadá</option>
-                            <option value="CO">Colombia</option>
-                            <option value="ES">España</option>
-                            <option value="FR">Francia</option>
-                            <option value="IT">Italia</option>
-                            <option value="MX">México</option>
-                            <option value="PR">Puerto Rico</option>
-                        </select>
-                    </div>
-                </div>
-                <button id="tcPagar" class="w-full mt-5 py-3.5 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Confirmar pago de $${orden.final_amount.toFixed(2)}</button>
-                <p id="tcMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
-            `;
-            box.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-            let checkoutConfig;
-            try {
-                [checkoutConfig] = await Promise.all([NLT_API.checkoutConfig(orden.order_id), cargarTokenizerJs()]);
-            } catch (err) {
-                const msg = document.getElementById('tcMsg');
-                msg.classList.remove('hidden');
-                msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-danger/10 text-nlt-danger';
-                msg.textContent = 'No se pudo iniciar el pago: ' + err.message;
-                document.getElementById('tcPagar').disabled = true;
-                return;
-            }
-
-            document.getElementById('tcPagar').addEventListener('click', () => {
-                const btn = document.getElementById('tcPagar');
-                const msg = document.getElementById('tcMsg');
-                const mostrarError = (texto) => {
-                    btn.disabled = false;
-                    btn.textContent = `Confirmar pago de $${orden.final_amount.toFixed(2)}`;
-                    msg.classList.remove('hidden');
-                    msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-danger/10 text-nlt-danger';
-                    msg.textContent = texto;
-                };
-
-                const numero = document.getElementById('tcNumero').value.replace(/\s+/g, '');
-                const mes = document.getElementById('tcMes').value.trim().padStart(2, '0');
-                const anio = document.getElementById('tcAnio').value.trim();
-                const cvv = document.getElementById('tcCvv').value.trim();
-                const nombre = document.getElementById('tcNombre').value.trim();
-                const direccion = {
-                    address: document.getElementById('tcDireccion').value.trim(),
-                    city: document.getElementById('tcCiudad').value.trim(),
-                    zip: document.getElementById('tcCodigoPostal').value.trim(),
-                    state: document.getElementById('tcEstado').value.trim(),
-                    country: document.getElementById('tcPais').value,
-                };
-                if (!numero || !mes || !anio || !cvv) {
-                    mostrarError('Completá todos los datos de la tarjeta.');
-                    return;
-                }
-                if (!direccion.address || !direccion.city || !direccion.zip) {
-                    mostrarError('Completá la dirección de facturación (calle, ciudad y código postal).');
-                    return;
-                }
-
-                btn.disabled = true;
-                btn.textContent = 'Procesando...';
-                msg.classList.add('hidden');
-
-                const [firstName, ...resto] = (nombre || 'Cliente NLT').split(' ');
-                const lastName = resto.join(' ') || firstName;
-
-                (async () => {
-                    let resultado;
-                    try {
-                        resultado = await P2C.tokenize({
-                            publishableKey: checkoutConfig.publishable_key,
-                            merchantId: checkoutConfig.merchant_id,
-                            customerId: checkoutConfig.customer_id,
-                            card: { number: numero, month: mes, year: anio, cvv },
-                            billing: {
-                                first_name: firstName, last_name: lastName,
-                                address: direccion.address, city: direccion.city,
-                                state: direccion.state, zip: direccion.zip, country: direccion.country,
-                            },
-                        });
-                    } catch (err) {
-                        mostrarError(err instanceof P2C.Error ? err.message : 'No se pudo procesar la tarjeta. Intentá de nuevo.');
-                        return;
-                    }
-                    try {
-                        await NLT_API.pagarOrden(orden.order_id, resultado.payment_method_id);
-                        msg.classList.remove('hidden');
-                        msg.className = 'mt-3 text-xs p-3 rounded-lg bg-nlt-success/10 text-nlt-success';
-                        msg.textContent = '¡Pago confirmado! Redirigiendo...';
-                        setTimeout(() => { window.location.href = `pago-confirmado.html?order=${encodeURIComponent(orden.order_id)}`; }, 1200);
-                    } catch (err) {
-                        mostrarError(err.message);
-                    }
-                })();
             });
         }
 

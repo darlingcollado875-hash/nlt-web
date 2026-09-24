@@ -11,7 +11,12 @@
     <title>NLT Trading Tools</title>
     <meta name="description" content="La caja de herramientas del trader NLT -- riesgo, lotaje, pips, margen, futuros, prop firms y más.">
     <link rel="canonical" href="https://nltnextlevel.uk/tools">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -53,6 +58,18 @@
         .tool-input { width: 100%; background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 10px 14px; font-size: 14px; color: #fff; }
         .tool-input:focus { outline: none; border-color: rgba(67,120,255,0.5); }
     </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT Trading Tools">
+    <meta property="og:description" content="La caja de herramientas del trader NLT -- riesgo, lotaje, pips, margen, futuros, prop firms y más.">
+    <meta property="og:url" content="https://nltnextlevel.uk/tools">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT Trading Tools">
+    <meta name="twitter:description" content="La caja de herramientas del trader NLT -- riesgo, lotaje, pips, margen, futuros, prop firms y más.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
 </head>
 <body class="min-h-screen">
     <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
@@ -75,7 +92,7 @@
         <div class="text-center mb-10">
             <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-4">Trading Tools</p>
             <h1 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-4">Caja de herramientas del trader</h1>
-            <p class="text-gray-500 max-w-xl mx-auto">Calculá riesgo, margen, lotaje, pips, contratos y mucho más -- sin depender de datos de mercado en tiempo real.</p>
+            <p class="text-gray-500 max-w-xl mx-auto">Calcula riesgo, margen, lotaje, pips, contratos y mucho más -- sin depender de datos de mercado en tiempo real.</p>
         </div>
 
         <div class="relative max-w-md mx-auto mb-8">
@@ -103,8 +120,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="assets/js/nlt-api-client.js?v=20260824"></script>
+    <script src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         let sesionActual = null;
         let toolsCache = [];
@@ -168,7 +185,7 @@
             container.querySelectorAll('.btn-favorito').forEach(btn => {
                 btn.addEventListener('click', async (e) => {
                     e.stopPropagation();
-                    if (!sesionActual) { alert('Iniciá sesión para guardar favoritos.'); return; }
+                    if (!sesionActual) { alert('Inicia sesión para guardar favoritos.'); return; }
                     const toolId = btn.getAttribute('data-tool-id');
                     const tool = toolsCache.find(t => t.id === toolId);
                     if (!tool) return;
@@ -362,7 +379,7 @@
                         <div class="relative combo">
                             <label class="text-[10px] text-gray-500 uppercase tracking-wider block mb-1.5">Instrument</label>
                             <input type="hidden" id="inSymbol">
-                            <button type="button" id="comboTrigger" class="tool-input text-left flex items-center justify-between"><span id="comboLabel" class="placeholder text-gray-500">Elegí un instrumento</span><i class="ph ph-caret-down text-gray-500"></i></button>
+                            <button type="button" id="comboTrigger" class="tool-input text-left flex items-center justify-between"><span id="comboLabel" class="placeholder text-gray-500">Elige un instrumento</span><i class="ph ph-caret-down text-gray-500"></i></button>
                             <div id="comboPanel" class="combo-panel hidden">
                                 <div class="p-2"><input id="comboSearch" placeholder="Buscar..." class="tool-input"></div>
                                 <div id="comboList"></div>
@@ -382,7 +399,7 @@
                 iniciarComboInstrumentos();
                 document.getElementById('btn-calcular').addEventListener('click', async () => {
                     const symbol = document.getElementById('inSymbol').value;
-                    if (!symbol) { resultBox.innerHTML = errorBox('Elegí un instrumento.'); return; }
+                    if (!symbol) { resultBox.innerHTML = errorBox('Elige un instrumento.'); return; }
                     try {
                         let r;
                         if (esMargin) {

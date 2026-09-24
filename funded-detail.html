@@ -9,14 +9,19 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title id="tituloPagina">NLT Prop Hub | Next Level Trading</title>
-    <meta id="metaDescripcion" name="description" content="Compará esta prop firm partner de NLT -- tamaños de cuenta, plataforma, profit split, payouts y descuento exclusivo.">
+    <meta id="metaDescripcion" name="description" content="Compara esta prop firm partner de NLT -- tamaños de cuenta, plataforma, profit split, payouts y descuento exclusivo.">
     <link id="linkCanonical" rel="canonical" href="https://nltnextlevel.uk/funded">
     <meta id="ogTitulo" property="og:title" content="NLT Prop Hub">
-    <meta id="ogDescripcion" property="og:description" content="Compará esta prop firm partner de NLT.">
+    <meta id="ogDescripcion" property="og:description" content="Compara esta prop firm partner de NLT.">
     <meta property="og:type" content="website">
     <meta id="ogUrl" property="og:url" content="https://nltnextlevel.uk/funded">
     <meta name="twitter:card" content="summary">
-    <link rel="stylesheet" href="/assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="/assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="/assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -68,8 +73,8 @@
     </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="/assets/js/nlt-shared.js?v=20260828"></script>
-    <script src="/assets/js/nlt-api-client.js?v=20260901"></script>
+    <script src="/assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script src="/assets/js/nlt-api-client.js?v=250fdb79"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -203,10 +208,10 @@
 
         function actualizarSEO(p) {
             document.title = `${p.name} | NLT Prop Hub`;
-            document.getElementById('metaDescripcion').setAttribute('content', p.description || `Compará ${p.name}, prop firm partner de NLT.`);
+            document.getElementById('metaDescripcion').setAttribute('content', p.description || `Compara ${p.name}, prop firm partner de NLT.`);
             document.getElementById('linkCanonical').setAttribute('href', `https://nltnextlevel.uk/funded/${p.slug}`);
             document.getElementById('ogTitulo').setAttribute('content', `${p.name} | NLT Prop Hub`);
-            document.getElementById('ogDescripcion').setAttribute('content', p.description || `Compará ${p.name}, prop firm partner de NLT.`);
+            document.getElementById('ogDescripcion').setAttribute('content', p.description || `Compara ${p.name}, prop firm partner de NLT.`);
             document.getElementById('ogUrl').setAttribute('content', `https://nltnextlevel.uk/funded/${p.slug}`);
         }
 

@@ -22,13 +22,13 @@
     <meta property="og:title" content="NLT - Next Level Trading">
     <meta property="og:description" content="Copiado de operaciones (copy trading), indicador, herramientas, noticias y comunidad para traders -- todo en una sola plataforma.">
     <meta property="og:url" content="https://nltnextlevel.uk/">
-    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/nlt-logo.png">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
     <meta property="og:locale" content="es_ES">
 
     <meta name="twitter:card" content="summary">
     <meta name="twitter:title" content="NLT - Next Level Trading">
     <meta name="twitter:description" content="Copiado de operaciones (copy trading), indicador, herramientas, noticias y comunidad para traders -- todo en una sola plataforma.">
-    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/nlt-logo.png">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
 
     <script type="application/ld+json">
     {
@@ -48,7 +48,12 @@
         "url": "https://nltnextlevel.uk/"
     }
     </script>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=20260814e">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=ab2d9c79">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
@@ -69,7 +74,8 @@
          el parser -- los <script> inline del body ya se protegen solos
          (chequean document.readyState, o esperan a load/DOMContentLoaded). -->
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="assets/js/nlt-shared.js?v=20260828"></script>
+    <script defer src="assets/js/nlt-shared.js?v=d04afd85"></script>
+    <script defer src="assets/js/nlt-api-client.js?v=250fdb79"></script>
 
     <style>
         /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
@@ -89,6 +95,7 @@
         .module-card:hover .icon-wrap { transform: scale(1.08) rotate(-4deg); }
         ::-webkit-scrollbar { width: 0px; background: transparent; }
         .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        .nlt-kbd-inline { display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; border-radius:7px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#cbd5e1; }
     </style>
 </head>
 <body class="min-h-screen relative">
@@ -101,7 +108,7 @@
     <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
             <a id="logoNLT" href="index.html" class="flex items-center gap-3">
-                <img src="assets/img/nlt-icon.png" alt="NLT" class="w-8 h-8">
+                <img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8">
                 <span class="font-semibold text-base tracking-tight">NLT</span>
             </a>
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
@@ -146,14 +153,281 @@
         </div>
     </section>
 
+
+    <!-- ECOSISTEMA EN CAPAS -- render 3D pre-calculado (assets/img/showcase, fuente en /design-assets)
+         atado al scroll: el stack se abre en las 6 capas del ecosistema. Sin cifras ni promesas. -->
+    <section class="nlt-seq" data-seq-section aria-label="El ecosistema NLT en capas">
+        <div class="nlt-seq-sticky">
+            <div class="nlt-seq-caps">
+                <div class="nlt-seq-bar" aria-hidden="true"><i></i></div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0" data-to="0.34">
+                    <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">Una sola cuenta</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Todo el ecosistema,<br>en un solo lugar.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed">Copy System, Indicator, Signals, Journal, Academy y más. Un mismo login, una misma suscripción.</p>
+                </div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.34" data-to="0.68">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(168,85,247)">Seis capas</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Se abre en capas.<br>Cada una, un producto.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed">Análisis, automatización, copiado, formación, herramientas e inteligencia -- módulos que trabajan juntos.</p>
+                </div>
+                <div class="nlt-seq-cap" data-seq-cap data-from="0.68" data-to="1">
+                    <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(34,211,238)">Tu centro de mando</p>
+                    <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Entras una vez.<br>Activas lo que necesitas.</h2>
+                    <p class="text-gray-400 text-base md:text-lg max-w-md leading-relaxed mb-6">Sin saltar entre diez herramientas: el Dashboard es el punto de partida de todo.</p>
+                    <a href="ecosystem.html" class="inline-flex items-center gap-2 text-sm font-bold text-nlt-accent hover:gap-3 transition-all">Explorar el ecosistema <i class="ph-bold ph-arrow-right"></i></a>
+                </div>
+            </div>
+            <div class="nlt-seq-stage">
+                <canvas data-seq data-seq-base="assets/img/showcase/chip-" data-seq-frames="60" data-seq-ext="webp" width="800" height="800" role="img" aria-label="Render 3D de seis capas apiladas que se separan al hacer scroll"></canvas>
+            </div>
+        </div>
+    </section>
+
+    <!-- POR DENTRO -- capturas reales de la UI con datos de EJEMPLO (assets/img/showcase). No son resultados. -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-16 md:py-24">
+        <div class="text-center mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">Por dentro</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Un dashboard pensado<br>para operar.</h2>
+            <p class="text-gray-400 max-w-xl mx-auto text-base md:text-lg leading-relaxed">Todo a un clic, y a una búsqueda: <span class="nlt-kbd-inline">Ctrl</span> <span class="nlt-kbd-inline">K</span> te lleva a cualquier sección del ecosistema.</p>
+        </div>
+        <div class="nlt-frame-wrap" style="margin-bottom:11%" data-tiltframe>
+            <div class="nlt-frame">
+                <div class="nlt-frame-bar"><i></i><i></i><i></i><span>NLT · Visión General</span></div>
+                <video class="shot" data-autoplay-view muted loop playsinline preload="metadata" poster="assets/img/showcase/dashboard-demo.webp" width="1120" height="700" aria-label="Recorrido por el dashboard de NLT: tarjetas de métricas y paleta de comandos"><source src="assets/img/showcase/dashboard-demo.webm" type="video/webm"></video>
+            </div>
+            <img class="nlt-float" src="assets/img/showcase/palette-crop.webp" width="880" height="645" loading="lazy" alt="Paleta de comandos de NLT buscando 'cuen'">
+        </div>
+        <p class="text-center text-[11px] text-gray-600">Vista ilustrativa con datos de ejemplo. No representa resultados reales.</p>
+    </section>
+
+    <!-- COPY SYSTEM -- forma STACK, capas = los pasos reales del copiado. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div data-reveal>
+                <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">NLT Copy System</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Un motor. Cada cuenta, sincronizada.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="text-nlt-accent font-bold text-sm w-6 shrink-0">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Cuenta Maestra</h3><p class="text-sm text-gray-400">Conectas la cuenta que ya operas -- MT5 o TickerAll.</p></div></div>
+                    <div class="flex gap-4"><span class="text-nlt-accent font-bold text-sm w-6 shrink-0">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Motor de Copiado</h3><p class="text-sm text-gray-400">Cada operación se replica en tiempo real, con el lote correcto para cada cuenta.</p></div></div>
+                    <div class="flex gap-4"><span class="text-nlt-accent font-bold text-sm w-6 shrink-0">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Capa Encriptada</h3><p class="text-sm text-gray-400">Credenciales cifradas, conexión HTTPS en cada paso.</p></div></div>
+                    <div class="flex gap-4"><span class="text-nlt-accent font-bold text-sm w-6 shrink-0">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Cuentas Destino</h3><p class="text-sm text-gray-400">Tus cuentas -- o las de tus clientes -- reciben la misma operación, al instante.</p></div></div>
+                </div>
+            </div>
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(67,120,255,0.16), rgba(67,120,255,0.06)); border:1px solid rgba(67,120,255,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(67,120,255,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(67,120,255,0.4); box-shadow:0 0 60px -10px rgba(67,120,255,0.5);">
+                        <img src="assets/img/nlt-icon.png" alt="NLT" class="w-12 h-12 opacity-90">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT INDICATOR -- forma RADAR: disco con barrido, alude al escaneo de zonas. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(34,211,238,0.16), rgba(34,211,238,0.06)); border:1px solid rgba(34,211,238,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(34,211,238,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(34,211,238,0.4); box-shadow:0 0 60px -10px rgba(34,211,238,0.5); color:rgb(34,211,238); font-size:2.2rem;">
+                        <i class="ph-fill ph-crosshair"></i>
+                    </div>
+                </div>
+            </div>
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(34,211,238)">NLT Indicator</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">La IA lee el gráfico. Tú decides.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,211,238)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Detección de zonas</h3><p class="text-sm text-gray-400">Oferta/demanda, FVG y BOS identificados automáticamente en TradingView.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,211,238)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">AI Score</h3><p class="text-sm text-gray-400">Cada zona se puntúa por calidad y probabilidad, no solo por forma.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,211,238)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Bias en tiempo real</h3><p class="text-sm text-gray-400">Dirección del sesgo actualizada vela a vela, directo en tu gráfico.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,211,238)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Sin salir de TradingView</h3><p class="text-sm text-gray-400">Todo corre como indicador nativo -- sin cambiar de plataforma.</p></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT FUNDED -- forma MEDALLA: alude a pasar el challenge. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(245,158,11)">NLT Funded</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Demuestra tu estrategia. Opera con capital funded.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(245,158,11)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Eliges tu challenge</h3><p class="text-sm text-gray-400">Tamaño de cuenta y reglas que se ajustan a tu estrategia real.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(245,158,11)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Operas bajo las reglas</h3><p class="text-sm text-gray-400">Mismo Dashboard NLT, sin credenciales nuevas que administrar.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(245,158,11)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Pasas el challenge</h3><p class="text-sm text-gray-400">Acceso a una cuenta funded a través de nuestro partner de PropFirm.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(245,158,11)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Solicitas tus payouts</h3><p class="text-sm text-gray-400">Cuando corresponda, directo desde tu cuenta funded.</p></div></div>
+                </div>
+            </div>
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(245,158,11,0.16), rgba(245,158,11,0.06)); border:1px solid rgba(245,158,11,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(245,158,11,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(245,158,11,0.4); box-shadow:0 0 60px -10px rgba(245,158,11,0.5); color:rgb(245,158,11); font-size:2.2rem;">
+                        <i class="ph-fill ph-trophy"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT ACADEMY -- forma LIBRO: dos paginas abiertas en 3D real. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(236,72,153,0.16), rgba(236,72,153,0.06)); border:1px solid rgba(236,72,153,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(236,72,153,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(236,72,153,0.4); box-shadow:0 0 60px -10px rgba(236,72,153,0.5); color:rgb(236,72,153); font-size:2.2rem;">
+                        <i class="ph-fill ph-graduation-cap"></i>
+                    </div>
+                </div>
+            </div>
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(236,72,153)">NLT Academy</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Aprende la estrategia. No solo el resultado.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(236,72,153)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Cursos estructurados</h3><p class="text-sm text-gray-400">Lecciones ordenadas para llevar tu operativa al siguiente nivel.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(236,72,153)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Progreso bajo tu misma cuenta</h3><p class="text-sm text-gray-400">Se registra en el mismo NLT Dashboard, sin login aparte.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(236,72,153)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">De la teoría a la práctica</h3><p class="text-sm text-gray-400">Cada lección conecta con herramientas reales del ecosistema.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(236,72,153)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">A tu ritmo</h3><p class="text-sm text-gray-400">Avanzas cuando quieres -- sin fechas límite artificiales.</p></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT ELITE SIGNALS -- forma BROADCAST: anillos pulsando, alude a la señal. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(34,197,94)">NLT Elite Signals</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Señales claras. Sin adivinar el entry.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,197,94)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Entry, TP y SL</h3><p class="text-sm text-gray-400">Cada señal BUY/SELL llega con los tres niveles definidos.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,197,94)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Quality Score</h3><p class="text-sm text-gray-400">Clasificadas por calidad: NORMAL, ÓPTIMA, STRONG, PERFECTA, ELITE.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,197,94)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Directo en tu Dashboard</h3><p class="text-sm text-gray-400">Sin canales externos que revisar -- todo en un solo lugar.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(34,197,94)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Historial transparente</h3><p class="text-sm text-gray-400">Cada señal pasada queda registrada, con su resultado real.</p></div></div>
+                </div>
+            </div>
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(34,197,94,0.16), rgba(34,197,94,0.06)); border:1px solid rgba(34,197,94,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(34,197,94,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(34,197,94,0.4); box-shadow:0 0 60px -10px rgba(34,197,94,0.5); color:rgb(34,197,94); font-size:2.2rem;">
+                        <i class="ph-fill ph-broadcast"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT TRADER JOURNAL -- forma STACK angosta, como paginas de papel. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner" style="--w:0.68;">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; border-radius:10px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:20px; border-radius:10px; background:linear-gradient(135deg, rgba(168,85,247,0.14), rgba(168,85,247,0.05)); border:1px solid rgba(168,85,247,0.22);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:40px; border-radius:10px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; border-radius:10px; background:linear-gradient(135deg, rgba(168,85,247,0.14), rgba(168,85,247,0.05)); border:1px solid rgba(168,85,247,0.22);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:80px; border-radius:10px; background:linear-gradient(135deg, rgba(168,85,247,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(168,85,247,0.4); box-shadow:0 0 60px -10px rgba(168,85,247,0.5);">
+                        <i class="ph-fill ph-notebook" style="color:rgb(168,85,247); font-size:1.8rem;"></i>
+                    </div>
+                </div>
+            </div>
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(168,85,247)">NLT Trader Journal</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Mide tu desempeño. No solo tu resultado.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(168,85,247)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Registro real</h3><p class="text-sm text-gray-400">Cada operación queda documentada, con contexto y motivo.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(168,85,247)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Analítica profesional</h3><p class="text-sm text-gray-400">Win rate, expectancy y drawdown, calculados sobre tu propio historial.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(168,85,247)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Disciplina, no solo números</h3><p class="text-sm text-gray-400">Vas construyendo el hábito de revisar antes de repetir.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(168,85,247)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Mismo Dashboard NLT</h3><p class="text-sm text-gray-400">Tu journal vive junto al resto de tu operativa, no aparte.</p></div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT BROKER -- forma ESCUDO: alude a confianza/transparencia. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(45,212,191)">NLT Broker</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Un broker de confianza. Dentro del ecosistema.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(45,212,191)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Brokers partner verificados</h3><p class="text-sm text-gray-400">Descubre opciones de confianza, sin salir a buscar por tu cuenta.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(45,212,191)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Conecta tu operativa</h3><p class="text-sm text-gray-400">Tu cuenta de broker se integra directo con el resto de NLT.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(45,212,191)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Sin fricción</h3><p class="text-sm text-gray-400">Mismo login, mismo Dashboard, una sola experiencia.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(45,212,191)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Transparencia primero</h3><p class="text-sm text-gray-400">Sabes siempre con quién estás operando y bajo qué condiciones.</p></div></div>
+                </div>
+            </div>
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(45,212,191,0.16), rgba(45,212,191,0.06)); border:1px solid rgba(45,212,191,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(45,212,191,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(45,212,191,0.4); box-shadow:0 0 60px -10px rgba(45,212,191,0.5); color:rgb(45,212,191); font-size:2.2rem;">
+                        <i class="ph-fill ph-briefcase"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- NLT BOT SUPREME -- forma MEDALLA con candado, alude a licencia protegida. -->
+    <section class="nlt-story relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-10 md:py-14">
+        <div class="nlt-story-grid">
+            <div class="nlt-chip-stack" data-reveal>
+                <div class="nlt-chip-inner">
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:0px; background:linear-gradient(135deg, rgba(17,21,28,0.9), rgba(13,16,22,0.95)); border:1px solid rgba(255,255,255,0.06);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:30px; background:linear-gradient(135deg, rgba(248,113,113,0.16), rgba(248,113,113,0.06)); border:1px solid rgba(248,113,113,0.25);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer" style="--z:60px; background:linear-gradient(135deg, rgba(17,21,28,0.92), rgba(13,16,22,0.97)); border:1px solid rgba(255,255,255,0.08);"></div>
+                    <div class="nlt-chip-part nlt-shape-layer nlt-chip-top" style="--z:90px; background:linear-gradient(135deg, rgba(248,113,113,0.22), rgba(20,24,32,0.95)); border:1px solid rgba(248,113,113,0.4); box-shadow:0 0 60px -10px rgba(248,113,113,0.5); color:rgb(248,113,113); font-size:2.2rem;">
+                        <i class="ph-fill ph-lock-key-open"></i>
+                    </div>
+                </div>
+            </div>
+            <div data-reveal>
+                <p class="text-xs font-bold uppercase tracking-[0.2em] mb-3" style="color:rgb(248,113,113)">NLT Bot Supreme</p>
+                <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight leading-[1.1] mb-4">Trading automatizado. Licencia protegida.</h2>
+                <div class="space-y-3">
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(248,113,113)">01</span><div><h3 class="font-bold text-white text-sm mb-0.5">Licencia por dispositivo</h3><p class="text-sm text-gray-400">Activación vinculada a tu cuenta y tu equipo -- nunca un archivo copiable.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(248,113,113)">02</span><div><h3 class="font-bold text-white text-sm mb-0.5">Kill-switch remoto</h3><p class="text-sm text-gray-400">Control de seguridad centralizado, suspendible en cualquier momento.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(248,113,113)">03</span><div><h3 class="font-bold text-white text-sm mb-0.5">Descarga desde tu Dashboard</h3><p class="text-sm text-gray-400">El instalador y el estado de tu licencia viven en tu cuenta NLT.</p></div></div>
+                    <div class="flex gap-4"><span class="font-bold text-sm w-6 shrink-0" style="color:rgb(248,113,113)">04</span><div><h3 class="font-bold text-white text-sm mb-0.5">Dentro del ecosistema</h3><p class="text-sm text-gray-400">Mismo login, misma cuenta que el resto de NLT.</p></div></div>
+                </div>
+                <a href="nlt-bot.html" class="inline-block mt-5 text-xs font-bold uppercase tracking-wider" style="color:rgb(248,113,113)">Ver NLT Bot Supreme →</a>
+            </div>
+        </div>
+    </section>
+
     <!-- MÓDULOS -->
-    <section id="modulos" class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-32">
-        <div class="text-center mb-16" data-reveal>
+    <section id="modulos" class="relative z-10 max-w-7xl mx-auto px-6 md:px-10 py-16">
+        <div class="text-center mb-12" data-reveal>
             <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">El ecosistema NLT</p>
-            <h2 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05]">Todo lo que necesitás.<br>En un solo lugar.</h2>
+            <h2 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05]">Todo lo que necesitas.<br>En un solo lugar.</h2>
         </div>
 
         <div id="modulesGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+    </section>
+
+    <!-- ALIADOS DEL ECOSISTEMA -- constelacion con partners REALES (partnersPublicos + brokers activos + Prop Hub); sin partners queda oculta. -->
+    <section class="relative z-10 max-w-6xl mx-auto px-6 md:px-10 py-14 md:py-20" hidden>
+        <div class="text-center mb-10 md:mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-3">Aliados del ecosistema</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight leading-[1.06] mb-4">Conectados a los mejores.</h2>
+            <p class="text-gray-400 max-w-lg mx-auto text-base md:text-lg leading-relaxed">Brokers, fondeo y tecnología que trabajan con NLT. <a href="partners.html" class="text-nlt-accent font-semibold hover:underline">Ver todos</a></p>
+        </div>
+        <div id="partnersMarquee"></div>
     </section>
 
     <!-- STATS -->
@@ -176,8 +450,8 @@
 
     <!-- CTA FINAL -->
     <section class="relative z-10 max-w-4xl mx-auto px-6 text-center pb-32" data-reveal>
-        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Llevá tu operativa al siguiente nivel.</h3>
-        <p class="text-gray-400 mb-10 max-w-xl mx-auto">Conectá tu cuenta maestra y empezá a operar en minutos, no en días.</p>
+        <h3 class="text-3xl md:text-5xl font-extrabold tracking-tight mb-6">Lleva tu operativa al siguiente nivel.</h3>
+        <p class="text-gray-400 mb-10 max-w-xl mx-auto">Conecta tu cuenta maestra y empieza a operar en minutos, no en días.</p>
         <button id="btn-login-2" class="px-9 py-4 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">
             Comenzar ahora
         </button>
@@ -194,7 +468,7 @@
                 <p class="font-bold text-white text-sm">NLT Partners</p>
                 <p class="text-xs text-gray-500">Business &amp; Strategic Partnerships</p>
             </div>
-            <div class="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 text-xs font-semibold shrink-0">
+            <div class="flex flex-wrap items-center justify-center text-xs font-semibold shrink-0" style="gap:6px 16px">
                 <a href="partners.html" class="text-nlt-accent hover:underline">See Partners</a>
                 <a href="become-partner.html" class="text-gray-400 hover:text-white transition-colors">Become a Partner</a>
                 <a href="business.html" class="text-gray-400 hover:text-white transition-colors">NLT for Business</a>
@@ -260,15 +534,16 @@
                 const disponible = m.status === 'live';
                 const wrapTag = disponible ? 'a' : 'div';
                 const hrefAttr = disponible ? `href="${m.href}"` : '';
+                const glow = m.color || '67,120,255';
                 return `
-                    <${wrapTag} ${hrefAttr} class="module-card glass-card p-8 flex flex-col relative overflow-hidden group ${disponible ? 'cursor-pointer' : 'opacity-60'}" data-reveal>
+                    <${wrapTag} ${hrefAttr} class="module-card glass-card p-8 flex flex-col relative overflow-hidden group ${disponible ? 'cursor-pointer' : 'opacity-60'}" style="--card-glow-rgb:${glow}" data-reveal>
                         ${!disponible ? '<span class="absolute top-5 right-5 text-[9px] font-bold uppercase tracking-widest text-gray-500 border border-gray-700 rounded-full px-2.5 py-1">Próximamente</span>' : ''}
-                        <div class="icon-wrap w-12 h-12 rounded-2xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center mb-6 text-nlt-accent text-2xl">
+                        <div class="icon-wrap w-12 h-12 rounded-2xl flex items-center justify-center mb-6 text-2xl" style="background:rgba(${glow},0.12); border:1px solid rgba(${glow},0.28); color:rgb(${glow})">
                             <i class="ph-fill ${m.icono}"></i>
                         </div>
                         <h3 class="text-lg font-bold text-white mb-2 tracking-tight">${m.nombre}</h3>
                         <p class="text-sm text-gray-400 leading-relaxed flex-1">${m.descripcion}</p>
-                        ${disponible ? `<span class="mt-6 inline-flex items-center gap-2 text-xs font-bold text-nlt-accent uppercase tracking-wider">Entrar <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i></span>` : ''}
+                        ${disponible ? `<span class="mt-6 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider" style="color:rgb(${glow})">Entrar <i class="ph-bold ph-arrow-right group-hover:translate-x-1 transition-transform"></i></span>` : ''}
                     </${wrapTag}>
                 `;
             }
@@ -346,6 +621,7 @@
             await NLT.mountAuthAwareCTA(['btn-login', 'btn-login-2'], { loggedInLabel: 'Ir al Dashboard' });
         });
     </script>
+
 
     <script>
         (function () {
