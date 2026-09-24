@@ -101,6 +101,17 @@
         // cada uno con varios tamaños de cuenta -- se agrupan por
         // challenge_type para que se vea como en el sitio real de la empresa
         // (una tarjeta por modelo, tamaños dentro), no como una lista plana.
+        // Moneda del precio del challenge. Por defecto USD; si la fila trae
+        // fee_currency se respeta. InsaneFunding cobra en EUR y hoy la tabla
+        // no tiene esa columna, así que se declara aquí por partner.
+        const MONEDA_PARTNER = { insanefunding: 'EUR' };
+        const SIMBOLO = { USD: '$', EUR: '€' };
+        function _precio(c, p) {
+            if (c.fee == null) return '-';
+            const moneda = c.fee_currency || MONEDA_PARTNER[p.slug] || 'USD';
+            return (SIMBOLO[moneda] || '$') + Number(c.fee).toLocaleString(undefined, { maximumFractionDigits: 2 });
+        }
+
         function _grupoChallenge(tipo, filas, p) {
             const primero = filas[0];
             const compraUrl = p.affiliate_url || p.official_url || '';
@@ -112,7 +123,7 @@
             const filasHTML = filas.map((c) => `
                 <div class="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                     <span class="text-sm text-gray-300">$${Number(c.account_size).toLocaleString()}</span>
-                    <span class="text-sm font-semibold text-white">${c.fee != null ? '$' + Number(c.fee).toLocaleString() : '-'}</span>
+                    <span class="text-sm font-semibold text-white">${_precio(c, p)}</span>
                 </div>
             `).join('');
             return `
