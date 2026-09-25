@@ -115,6 +115,9 @@
                         <button id="btn-copiar-link" class="px-5 py-2.5 rounded-lg bg-nlt-accent text-white text-xs font-bold uppercase tracking-wider cursor-pointer shrink-0 inline-flex items-center gap-2">
                             <i class="ph-bold ph-copy"></i> Copiar enlace
                         </button>
+                        <button id="btn-compartir-whatsapp" class="px-5 py-2.5 rounded-lg bg-[#25D366]/10 border border-[#25D366]/25 text-[#25D366] text-xs font-bold uppercase tracking-wider cursor-pointer shrink-0 inline-flex items-center gap-2">
+                            <i class="ph-fill ph-whatsapp-logo"></i> Compartir
+                        </button>
                     </div>
                 </div>
 
@@ -320,6 +323,16 @@
             const original = btn.innerHTML;
             btn.innerHTML = '<i class="ph-bold ph-check"></i> Copiado';
             setTimeout(() => { btn.innerHTML = original; }, 1500);
+        });
+
+        // Un click a WhatsApp con el mensaje pre-armado -- antes la unica opcion
+        // era "copiar enlace" y pegarlo a mano en algun lado, fricción real que
+        // probablemente explica por que hay afiliados registrados sin un solo
+        // referido todavia.
+        document.getElementById('btn-compartir-whatsapp').addEventListener('click', () => {
+            if (!miAfiliado || !miAfiliado.link) return;
+            const mensaje = `🚀 Te sumo a NLT (Next Level Trading) -- copiado automático de operaciones, señales y Academy de trading, todo en un solo ecosistema.\n\nEntrá con mi link:\n${miAfiliado.link}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
         });
 
         document.getElementById('metodoPago').addEventListener('change', (e) => {
