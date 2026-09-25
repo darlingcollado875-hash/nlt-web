@@ -1868,15 +1868,20 @@
                     const estado = ESTADO_PAGO_LABELS[o.status] || { texto: o.status, clase: 'text-gray-400' };
                     const accionable = o.status === 'pending' || o.status === 'payment_verification';
                     const esCrypto = o.payment_provider === 'crypto_manual';
+                    // Antigüedad visible en pendientes -- ver health_monitor.py::verificar_pagos_pendientes,
+                    // más de 2h sin confirmar ya dispara una alerta al admin por push.
+                    const horas = Math.round((Date.now() - new Date(o.created_at).getTime()) / 3600000);
+                    const badgeAntiguedad = accionable && horas >= 2
+                        ? `<span class="ml-2 text-[10px] font-bold text-orange-400" title="Sin confirmar hace ${horas}h">⏱ ${horas}h</span>` : '';
                     return `
                     <tr data-order="${o.order_id}">
                         <td data-label="Orden" class="px-5 py-3 font-mono text-xs">${esc(o.order_id)}</td>
-                        <td data-label="Cliente" class="px-5 py-3 font-mono text-xs text-gray-500" title="${esc(o.user_id)}">${esc(o.user_id.slice(0, 8))}...</td>
+                        <td data-label="Cliente" class="px-5 py-3 text-xs" title="${esc(o.user_id)}">${o.email ? esc(o.email) : esc(o.user_id.slice(0, 8)) + '...'}</td>
                         <td data-label="Plan" class="px-5 py-3">${esc(o.plan)}</td>
                         <td data-label="Importe" class="px-5 py-3">$${o.final_amount.toFixed(2)}</td>
                         <td data-label="Red" class="px-5 py-3">${o.network ? `<span class="text-[10px] font-bold uppercase tracking-wider text-nlt-accent bg-nlt-accent/10 border border-nlt-accent/20 rounded-full px-2 py-0.5">${esc(o.network)}</span>` : '-'}</td>
                         <td data-label="Cupón" class="px-5 py-3">${esc(o.coupon_code || '-')}</td>
-                        <td data-label="Fecha" class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}</td>
+                        <td data-label="Fecha" class="px-5 py-3 text-gray-500">${new Date(o.created_at).toLocaleDateString()}${badgeAntiguedad}</td>
                         <td data-label="Estado" class="px-5 py-3 font-semibold ${estado.clase}">${esc(estado.texto)}</td>
                         <td data-label="Referencia / TX Hash" class="px-5 py-3">
                             ${accionable ? `<input type="text" placeholder="${esCrypto ? 'TX hash (verificado en el explorer)' : 'Referencia (opcional)'}" class="ref-input bg-black/20 border border-white/10 rounded-lg px-2 py-1 text-xs w-full md:w-40">` : esc(o.payment_reference || '-')}
