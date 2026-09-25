@@ -22,3 +22,9 @@
 
 /manifest.webmanifest
   Content-Type: application/manifest+json; charset=utf-8
+
+# El Service Worker de Web Push (sw.js) tiene que poder actualizarse rápido
+# -- un sw.js viejo servido desde caché tras un fix real es justo el tipo
+# de bug silencioso que ya motivó el mismo header para los .html.
+/sw.js
+  Cache-Control: no-cache

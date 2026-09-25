@@ -883,6 +883,11 @@
         adminSupportResponder: (conversationId, datos) => request(`/admin/support/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify(datos) }),
         adminSupportMarcarLeido: (conversationId) => request(`/admin/support/conversations/${conversationId}/read`, { method: 'POST' }),
         adminSupportNoLeidos: () => request('/admin/support/unread-count'),
+
+        // --- Web Push (notificaciones nativas navegador/PWA, ver NLT.mountPushNotifications) ---
+        pushVapidPublicKey: () => requestPublico('/push/vapid-public-key'),
+        pushSuscribirse: (subscriptionJSON) => request('/push/subscribe', { method: 'POST', body: JSON.stringify(subscriptionJSON) }),
+        pushDesuscribirse: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
     };
 
     window.NLT_API = NLT_API;

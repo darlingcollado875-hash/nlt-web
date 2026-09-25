@@ -80,6 +80,12 @@
                 </div>
             </div>
 
+            <div class="glass-card p-8">
+                <h3 class="text-lg font-bold mb-2 text-white flex items-center gap-2"><i class="ph-fill ph-bell-ringing"></i> Notificaciones</h3>
+                <p class="text-xs text-gray-500 mb-6">Recibí avisos en este dispositivo (PC o celular) para: señales nuevas de Elite Signals, pago confirmado, operaciones copiadas y mensajes de comunidad -- incluso con NLT cerrado.</p>
+                <button id="btnPushToggle" type="button" class="px-6 py-3 rounded-xl bg-nlt-accent/10 border border-nlt-accent/25 text-nlt-accent text-sm font-semibold hover:bg-nlt-accent/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Activar notificaciones</button>
+            </div>
+
             <div id="adminBox" class="glass-card p-8 hidden border border-yellow-500/20">
                 <h3 class="text-lg font-bold mb-2 text-yellow-400 flex items-center gap-2"><i class="ph-fill ph-shield-star"></i> Acceso Admin</h3>
                 <p class="text-xs text-gray-500 mb-6">Tu cuenta tiene permisos de administrador: acceso ilimitado y capacidad de asignar planes a otros usuarios.</p>
@@ -92,8 +98,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=13befa1c"></script>
-    <script src="assets/js/nlt-api-client.js?v=250fdb79"></script>
+    <script src="assets/js/nlt-shared.js?v=04fc06e7"></script>
+    <script src="assets/js/nlt-api-client.js?v=6eb598bc"></script>
     <script>
         async function cargarDatosPerfil() {
             const session = await NLT.requireSession();
@@ -106,6 +112,8 @@
             if (NLT.isGlobalAdmin(session)) {
                 document.getElementById('adminBox').classList.remove('hidden');
             }
+
+            NLT.mountPushToggle('btnPushToggle');
         }
 
         document.getElementById('marketToggle').innerHTML = NLT.marketTypeToggleHTML('cfd');

@@ -3524,9 +3524,108 @@
         return lista;
     }
 
+    // Web Push (notificaciones nativas navegador/PWA) -- soporta señales
+    // nuevas, pago confirmado, operación copiada y mensajes de comunidad
+    // (ver NLT_API/app/services/notifications.py, un solo punto real que
+    // ya dispara estos 4 tipos + push va montado ahí). Nunca se pide
+    // permiso solo -- SIEMPRE en respuesta a un click real del usuario
+    // (mejor práctica: pedirlo al cargar la página se ignora o se rechaza
+    // la mayoría de las veces, y una vez rechazado el navegador no deja
+    // volver a preguntar).
+    function _b64UrlAUint8(b64url) {
+        const pad = '='.repeat((4 - (b64url.length % 4)) % 4);
+        const base64 = (b64url + pad).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64);
+        return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+    }
+
+    function pushSoportado() {
+        return 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
+    }
+
+    async function _registrarSW() {
+        return navigator.serviceWorker.register('/sw.js');
+    }
+
+    // Estado real (consulta el navegador, nunca localStorage): 'sin-soporte' |
+    // 'denegado' | 'suscrito' | 'no-suscrito'.
+    async function pushEstado() {
+        if (!pushSoportado()) return 'sin-soporte';
+        if (Notification.permission === 'denied') return 'denegado';
+        try {
+            const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+            const sub = reg && await reg.pushManager.getSubscription();
+            return sub ? 'suscrito' : 'no-suscrito';
+        } catch (e) { return 'no-suscrito'; }
+    }
+
+    // Llamar SOLO desde el handler de un click real. Devuelve true si quedó
+    // suscrito. Si el usuario rechaza el permiso del navegador, el propio
+    // navegador ya se lo dijo (su propio prompt) -- acá no se insiste ni se
+    // muestra un segundo mensaje de error.
+    async function pushActivar() {
+        if (!pushSoportado()) return false;
+        const permiso = await Notification.requestPermission();
+        if (permiso !== 'granted') return false;
+        try {
+            const clave = await NLT_API.pushVapidPublicKey();
+            if (!clave.enabled || !clave.public_key) return false; // VAPID sin configurar del lado del servidor todavía
+            const reg = await _registrarSW();
+            await navigator.serviceWorker.ready;
+            let sub = await reg.pushManager.getSubscription();
+            if (!sub) {
+                sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: _b64UrlAUint8(clave.public_key) });
+            }
+            await NLT_API.pushSuscribirse(sub.toJSON());
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    async function pushDesactivar() {
+        if (!pushSoportado()) return true;
+        try {
+            const reg = await navigator.serviceWorker.getRegistration('/sw.js');
+            const sub = reg && await reg.pushManager.getSubscription();
+            if (!sub) return true;
+            const endpoint = sub.endpoint;
+            await sub.unsubscribe();
+            await NLT_API.pushDesuscribirse(endpoint).catch(() => {});
+            return true;
+        } catch (e) { return false; }
+    }
+
+    // Monta un botón/switch existente (ej. en Configuración): refleja el
+    // estado real al cargar y alterna al click -- la página solo necesita
+    // un elemento con este id, el resto (texto, disabled, etc.) lo maneja
+    // esta función para que ninguna página reimplemente el mismo estado.
+    async function mountPushToggle(elementId) {
+        const el = document.getElementById(elementId);
+        if (!el) return;
+        const pintar = (estado) => {
+            el.dataset.pushEstado = estado;
+            el.disabled = estado === 'sin-soporte' || estado === 'denegado';
+            el.textContent = {
+                'suscrito': 'Desactivar notificaciones',
+                'no-suscrito': 'Activar notificaciones',
+                'denegado': 'Notificaciones bloqueadas (revisá el navegador)',
+                'sin-soporte': 'Tu navegador no soporta notificaciones',
+            }[estado] || 'Activar notificaciones';
+        };
+        pintar(await pushEstado());
+        el.addEventListener('click', async () => {
+            const actual = el.dataset.pushEstado;
+            el.disabled = true;
+            const ok = actual === 'suscrito' ? await pushDesactivar() : await pushActivar();
+            pintar(ok ? await pushEstado() : actual);
+        });
+    }
+
     window.NLT = {
         mountPropHubShowcase,
         mountMetodosPago,
+        pushSoportado, pushEstado, pushActivar, pushDesactivar, mountPushToggle,
         supabase,
         ADMIN_EMAIL,
         getSession,
