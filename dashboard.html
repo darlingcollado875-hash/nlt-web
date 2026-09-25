@@ -113,6 +113,8 @@
         </header>
 
         <div class="flex-1 overflow-y-auto p-5 space-y-6 md:p-10 md:space-y-8">
+            <div id="welcomeChecklistWidget"></div>
+
             <div>
                 <p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest mb-3">NLT Platform</p>
                 <div class="module-strip-wrap">
@@ -174,7 +176,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=04fc06e7"></script>
-    <script src="assets/js/nlt-api-client.js?v=6eb598bc"></script>
+    <script src="assets/js/nlt-api-client.js?v=c577cdb4"></script>
     <script>
         const db = NLT.supabase;
         let sesionActual = null;
@@ -308,6 +310,88 @@
                 </div>`;
         }
 
+        // Checklist de bienvenida: 4 pasos elegidos por el usuario (conectar
+        // MT5, activar notificaciones, explorar Prop Hub, probar una
+        // herramienta gratis). Distinto de "Primeros pasos" de arriba (eso es
+        // específico del setup del copiador) -- este es el recorrido general
+        // del ecosistema para una cuenta nueva. Se puede minimizar (queda un
+        // botón chico) pero reaparece en la próxima visita hasta completarse.
+        const WELCOME_CHECKLIST_MIN_KEY = 'nlt_welcome_checklist_min';
+        let _welcomeEstadoCache = null;
+
+        function renderChecklistBienvenida(estadoBackend) {
+            const box = document.getElementById('welcomeChecklistWidget');
+            if (!box) return;
+            let propHubVisitado = false;
+            try { propHubVisitado = localStorage.getItem('nlt_prop_hub_visitado') === '1'; } catch (_) { /* sin storage */ }
+
+            const pasos = [
+                { c: '67,120,255', t: 'Conecta tu cuenta de MT5', d: 'Sincroniza tu cuenta real o demo para empezar a copiar.', href: 'maestra.html', ok: !!estadoBackend.mt5_conectado },
+                { c: '234,179,8', t: 'Activa las notificaciones', d: 'Señales, pagos y operaciones copiadas, al instante.', href: 'configuracion.html', ok: !!estadoBackend.notificaciones_activas },
+                { c: '168,85,247', t: 'Explora Prop Hub', d: 'Compara prop firms externas y sus descuentos NLT.', href: 'funded.html', ok: propHubVisitado },
+                { c: '34,197,94', t: 'Prueba una herramienta gratis', d: 'Calculadora de riesgo, noticias en vivo y más.', href: 'tools.html', ok: !!estadoBackend.herramienta_probada },
+            ];
+            const hechos = pasos.filter((s) => s.ok).length;
+            if (hechos === pasos.length) {
+                box.innerHTML = '';
+                try { localStorage.removeItem(WELCOME_CHECKLIST_MIN_KEY); } catch (_) { /* noop */ }
+                return;
+            }
+
+            let minimizado = false;
+            try { minimizado = localStorage.getItem(WELCOME_CHECKLIST_MIN_KEY) === '1'; } catch (_) { /* noop */ }
+
+            if (minimizado) {
+                box.innerHTML = `
+                    <button type="button" id="btnExpandirBienvenida" class="w-full glass-card p-4 flex items-center justify-between gap-4 text-left hover:border-white/10 transition-colors" style="--card-glow-rgb:67,120,255">
+                        <div class="flex items-center gap-3">
+                            <span class="w-9 h-9 rounded-full grid place-items-center shrink-0" style="background:rgba(67,120,255,.12); border:1px solid rgba(67,120,255,.3); color:rgb(67,120,255)"><i class="ph-fill ph-hand-waving"></i></span>
+                            <span><span class="block text-sm font-semibold text-white">Termina de configurar tu cuenta</span><span class="block text-[11px] text-gray-500">${hechos} de ${pasos.length} pasos completados</span></span>
+                        </div>
+                        <i class="ph-bold ph-caret-down text-gray-500"></i>
+                    </button>`;
+                document.getElementById('btnExpandirBienvenida').addEventListener('click', () => {
+                    try { localStorage.removeItem(WELCOME_CHECKLIST_MIN_KEY); } catch (_) { /* noop */ }
+                    renderChecklistBienvenida(estadoBackend);
+                });
+                return;
+            }
+
+            box.innerHTML = `
+                <div class="glass-card p-5 md:p-7" style="--card-glow-rgb:67,120,255">
+                    <div class="flex items-center justify-between gap-4 mb-4">
+                        <div><p class="text-[10px] font-bold text-nlt-accent uppercase tracking-widest mb-1">Bienvenida</p><h3 class="text-lg font-bold text-white">Saca el máximo provecho a NLT</h3></div>
+                        <div class="flex items-center gap-3 shrink-0">
+                            <span class="text-xs font-bold text-gray-400">${hechos} / ${pasos.length}</span>
+                            <button type="button" id="btnMinimizarBienvenida" title="Minimizar" class="w-7 h-7 rounded-lg grid place-items-center text-gray-500 hover:text-white hover:bg-white/5 transition-colors"><i class="ph-bold ph-minus"></i></button>
+                        </div>
+                    </div>
+                    <div class="ob-bar mb-5"><i style="--w:${Math.round((hechos / pasos.length) * 100)}%"></i></div>
+                    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:10px">
+                        ${pasos.map((s, i) => `
+                            <a href="${s.href}" class="ob-step${s.ok ? ' done' : ''}" style="--c:${s.c}">
+                                <span class="ob-num">${s.ok ? '<i class="ph-bold ph-check"></i>' : i + 1}</span>
+                                <span class="min-w-0"><span class="block text-sm font-semibold text-white">${s.t}</span><span class="block text-[11px] text-gray-500 leading-snug">${s.d}</span></span>
+                            </a>`).join('')}
+                    </div>
+                </div>`;
+            document.getElementById('btnMinimizarBienvenida').addEventListener('click', () => {
+                try { localStorage.setItem(WELCOME_CHECKLIST_MIN_KEY, '1'); } catch (_) { /* noop */ }
+                renderChecklistBienvenida(estadoBackend);
+            });
+        }
+
+        async function cargarChecklistBienvenida() {
+            const box = document.getElementById('welcomeChecklistWidget');
+            try {
+                _welcomeEstadoCache = await NLT_API.onboardingEstado();
+                renderChecklistBienvenida(_welcomeEstadoCache);
+            } catch (err) {
+                console.error('No se pudo cargar el checklist de bienvenida:', err);
+                if (box) box.innerHTML = '';
+            }
+        }
+
         async function cargarAlertaConexion() {
             const box = document.getElementById('connectionAlertWidget');
             try {
@@ -425,6 +509,7 @@
                 cargarMetricas(subscripcion),
                 cargarMarketAlerts(),
                 cargarAlertaConexion(),
+                cargarChecklistBienvenida(),
             ]);
             NLT.registerPaletteAction({ label: 'Ver el tour del dashboard', icon: 'ph-compass', rgb: '67,120,255', kw: 'ayuda guia recorrido tutorial', run: () => iniciarTour(true) });
             setTimeout(() => iniciarTour(false), 1400);   // solo la primera vez (localStorage)
@@ -494,6 +579,7 @@
                 msgBox.textContent = "✅ Cuenta conectada.";
                 document.getElementById('copierForm').reset();
                 await cargarMetricas();
+                await cargarChecklistBienvenida();
             } catch (err) {
                 msgBox.className = "mt-3 text-center text-xs p-2 rounded-lg bg-nlt-danger/10 text-nlt-danger border border-nlt-danger/20";
                 msgBox.textContent = "❌ Error crítico: " + err.message;
@@ -507,6 +593,7 @@
         NLT.pollWhileVisible(() => { if (sesionActual) cargarMetricas(); }, 20000);
         NLT.pollWhileVisible(() => { if (sesionActual) cargarMarketAlerts(); }, 60000);
         NLT.pollWhileVisible(() => { if (sesionActual) cargarAlertaConexion(); }, 60000);
+        NLT.pollWhileVisible(() => { if (sesionActual) cargarChecklistBienvenida(); }, 60000);
     </script>
 </body>
 </html>

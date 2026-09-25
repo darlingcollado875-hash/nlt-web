@@ -888,6 +888,9 @@
         pushVapidPublicKey: () => requestPublico('/push/vapid-public-key'),
         pushSuscribirse: (subscriptionJSON) => request('/push/subscribe', { method: 'POST', body: JSON.stringify(subscriptionJSON) }),
         pushDesuscribirse: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
+
+        // --- Checklist de bienvenida (ver Dashboard, #welcomeChecklistWidget) ---
+        onboardingEstado: () => request('/onboarding/estado'),
     };
 
     window.NLT_API = NLT_API;
