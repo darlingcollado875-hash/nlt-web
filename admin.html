@@ -147,6 +147,10 @@
                         </div>
                     </div>
                 </div>
+                <div id="statsErroresBox" class="glass-card p-5">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Errores no capturados (últimas 24h)</p>
+                    <p class="text-xs text-gray-500 animate-pulse">Cargando...</p>
+                </div>
             </div>
 
             <!-- USUARIOS -->
@@ -1757,7 +1761,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=04fc06e7"></script>
-    <script src="assets/js/nlt-api-client.js?v=c577cdb4"></script>
+    <script src="assets/js/nlt-api-client.js?v=36a041e6"></script>
     <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -1859,6 +1863,29 @@
                 `;
             } catch (err) {
                 document.getElementById('statsPlanesBox').innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+            }
+        }
+
+        // Errores no capturados (ver app/services/error_tracking.py) --
+        // exclusivo del Global Admin, un admin secundario ni siquiera dispara
+        // la llamada (el endpoint la rechazaría con 403 igual, pero no tiene
+        // sentido mostrarle un error por algo que no puede ver).
+        async function cargarErroresRecientes() {
+            const box = document.getElementById('statsErroresBox');
+            if (!box) return;
+            if (!_esGlobalAdmin) { box.innerHTML = ''; return; }
+            try {
+                const { count_24h, errors } = await NLT_API.adminErroresRecientes();
+                const ultimos = errors.slice(0, 3).map(e =>
+                    `<p class="text-[11px] text-gray-500 truncate" title="${esc(e.message || '')}"><span class="text-gray-400 font-semibold">${esc(e.method)} ${esc(e.path)}</span> -- ${esc(e.error_type)}</p>`
+                ).join('');
+                box.innerHTML = `
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Errores no capturados (últimas 24h)</p>
+                    <p class="text-xl font-bold ${count_24h > 0 ? 'text-nlt-danger' : 'text-nlt-success'}">${count_24h}</p>
+                    <div class="mt-2 space-y-0.5">${ultimos || '<p class="text-[11px] text-gray-600">Sin errores recientes.</p>'}</div>
+                `;
+            } catch (err) {
+                box.innerHTML = `<p class="text-[10px] text-gray-500 uppercase tracking-wider mb-2">Errores no capturados (últimas 24h)</p><p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`;
             }
         }
 
@@ -5418,7 +5445,7 @@
         // el Promise.all -- un admin secundario sin permiso ni siquiera
         // dispara la llamada de red de un módulo que no puede usar.
         const SECCION_LOADERS = {
-            general: [cargarStats, cargarStatsResumen],
+            general: [cargarStats, cargarStatsResumen, cargarErroresRecientes],
             usuarios: [cargarUsuarios],
             planes: [cargarPlanes],
             pagos: [cargarPagos],

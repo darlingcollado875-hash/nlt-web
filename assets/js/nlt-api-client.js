@@ -276,6 +276,7 @@
         adminConfirmarPago: (orderId, payment_reference) => request(`/admin/billing/orders/${orderId}/confirm`, { method: 'POST', body: JSON.stringify({ payment_reference: payment_reference || null }) }),
         adminRechazarPago: (orderId, motivo) => request(`/admin/billing/orders/${orderId}/reject`, { method: 'POST', body: JSON.stringify({ motivo: motivo || null }) }),
         adminStats: () => request('/admin/billing/stats'),
+        adminErroresRecientes: () => request('/admin/errors/recent'),
         adminListarUsuarios: () => request('/admin/billing/users'),
         // producto es opcional: el backend lo infiere de plan.producto cuando
         // plan no es null. Cuando plan=null (quitar acceso), el backend
