@@ -370,8 +370,9 @@
         resize();
         window.addEventListener('resize', resize);
 
-        let raf = null, last = 0, acc = 0, cnt = 0;
+        let raf = null, last = 0, acc = 0, cnt = 0, badRounds = 0;
         const start = performance.now();
+        const scaleFloor = coarse ? 0.3 : 0.5;
         function frame(now) {
             raf = requestAnimationFrame(frame);
             if (now < scrollingUntil) { last = 0; return; }
@@ -382,9 +383,33 @@
             gl.uniform1f(uTime, (now - start) / 1000);
             gl.drawArrays(gl.TRIANGLES, 0, 3);
             acc += dt; cnt++;
-            if (cnt === 45) {
+            // Ventana corta (~1.5-2s) para reaccionar rápido en vez de dejar
+            // varios segundos de traqueteo visible antes de ajustar.
+            if (cnt === 30) {
                 const avg = acc / cnt; acc = 0; cnt = 0;
-                if (avg > (minGap ? 70 : 26) && scale > 0.5) { scale = Math.max(0.5, scale * 0.75); resize(); }
+                const bad = avg > (minGap ? 70 : 26);
+                if (bad && scale > scaleFloor) {
+                    scale = Math.max(scaleFloor, scale * 0.7); resize(); badRounds = 0;
+                } else if (bad && scale <= scaleFloor) {
+                    // Ya se bajó todo lo razonable y el dispositivo SIGUE sin
+                    // poder sostenerlo -- los heurísticos de deviceMemory/
+                    // hardwareConcurrency no detectan buena parte de los
+                    // equipos reales de gama media/baja (celulares Android
+                    // comunes reportan 4-8 núcleos y >=4GB igual). Confirmado
+                    // esto con medición real, no una suposición: se apaga el
+                    // WebGL del todo y se cae al fondo estático -- gasto cero
+                    // de GPU en vez de seguir intentando a costa de la
+                    // fluidez, que es justo lo que el usuario está pidiendo.
+                    badRounds++;
+                    if (badRounds >= 2) {
+                        cancelAnimationFrame(raf);
+                        canvas.remove();
+                        _mountStaticFallbackBackground();
+                        return;
+                    }
+                } else {
+                    badRounds = 0;
+                }
             }
         }
         // Pausa el rAF cuando la pestaña no esta visible -- evita quemar GPU
@@ -1180,14 +1205,28 @@
                 if (started) return;
                 started = true;
                 // primero el frame 0 y el ultimo, despues el resto en orden
-                // en movil / ahorro de datos: 1 de cada 3 frames (un tercio de descarga; nearest() cubre los huecos)
+                // en movil / ahorro de datos: 1 de cada 4 frames (un cuarto de descarga; nearest() cubre los huecos)
                 const lite = (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) || (navigator.connection && navigator.connection.saveData);
-                const order = [0, n - 1]; for (let i = 1; i < n - 1; i++) { if (!lite || i % 3 === 0) order.push(i); }
-                order.forEach((i) => {
+                const primero = [0, n - 1];
+                const resto = []; for (let i = 1; i < n - 1; i++) { if (!lite || i % 4 === 0) resto.push(i); }
+                const pedir = (i) => {
                     const im = new Image();
                     im.onload = () => { imgs[i] = im; dirty = true; if (!raf && live) raf = requestAnimationFrame(frame); else if (reduce) draw(); };
                     im.src = `${base}${pad(i)}.${ext}`;
-                });
+                };
+                primero.forEach(pedir);
+                // El resto de los frames NO es crítico para el primer pintado
+                // -- en móvil se escalonan (idle callback / de a poco) para
+                // no lanzar 15-20 requests de golpe justo cuando el navegador
+                // todavía está bajando lo crítico de la página (fuente,
+                // CSS, nlt-shared.js). En escritorio, sin conexión lenta de
+                // por medio, se pide todo junto como antes.
+                if (!lite) { resto.forEach(pedir); return; }
+                let i = 0;
+                const siguiente = () => { if (i < resto.length) pedir(resto[i++]); };
+                const idle = window.requestIdleCallback || ((cb) => setTimeout(() => cb({ timeRemaining: () => 0 }), 60));
+                function tanda() { siguiente(); if (i < resto.length) idle(tanda, { timeout: 200 }); }
+                idle(tanda, { timeout: 200 });
             }
             function nearest(idx) {
                 for (let d = 0; d < n; d++) { if (imgs[idx - d]) return imgs[idx - d]; if (imgs[idx + d]) return imgs[idx + d]; }
@@ -1219,7 +1258,16 @@
             function kick() { if (!raf) raf = requestAnimationFrame(frame); }
 
             if (!('IntersectionObserver' in window)) { load(); live = true; kick(); return; }
-            new IntersectionObserver((es) => { if (es[0].isIntersecting) load(); }, { rootMargin: '900px 0px' }).observe(sec);
+            // 900px de margen en un viewport de escritorio (~900px+ de alto)
+            // es "todavia lejos"; en un telefono (viewport ~700-850px de
+            // alto) ese mismo margen cubre casi toda la pantalla, asi que la
+            // seccion quedaba "cerca" desde el primer render y las ~550KB de
+            // frames se descargaban de una, compitiendo con todo lo demas en
+            // la carga inicial -- medido real, no supuesto. Un margen chico
+            // en movil sigue precargando antes de que el dedo llegue, sin
+            // adelantar el trabajo al momento mas caro de la pagina (la carga).
+            const cargaAntes = (window.matchMedia && window.matchMedia('(max-width: 860px)').matches) ? '150px 0px' : '900px 0px';
+            new IntersectionObserver((es) => { if (es[0].isIntersecting) load(); }, { rootMargin: cargaAntes }).observe(sec);
             new IntersectionObserver((es) => { live = es[0].isIntersecting; if (live) kick(); }, { rootMargin: '0px' }).observe(sec);
             window.addEventListener('scroll', () => { if (live) kick(); }, { passive: true });
             window.addEventListener('resize', () => { dirty = true; if (live) kick(); });
@@ -1290,6 +1338,21 @@
     // Videos decorativos: solo se reproducen mientras estan en pantalla
     // (y nunca con prefers-reduced-motion: ahi queda el poster).
     function mountAutoVideos() {
+        // El poster de un <video> NO tiene equivalente a loading="lazy" --
+        // el navegador lo pide apenas parsea el HTML, sin importar qué tan
+        // abajo esté (medido real: 110KB bajando a los 452ms en el celular,
+        // compitiendo con todo lo crítico de la carga inicial). Se guarda en
+        // data-poster y se asigna recién acá, con margen de sobra para que
+        // ya esté listo cuando el usuario llegue a esa sección.
+        document.querySelectorAll('video[data-poster]').forEach((v) => {
+            if (!('IntersectionObserver' in window)) { v.poster = v.dataset.poster; return; }
+            new IntersectionObserver((es, o) => {
+                if (!es[0].isIntersecting) return;
+                v.poster = v.dataset.poster;
+                o.disconnect();
+            }, { rootMargin: '200px 0px' }).observe(v);
+        });
+
         const vids = document.querySelectorAll('video[data-autoplay-view]');
         if (!vids.length) return;
         const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
