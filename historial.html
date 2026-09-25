@@ -66,6 +66,9 @@
                 <p class="text-xs text-gray-500 mt-1">Historial y estadísticas reales de tu Copy System.</p>
             </div>
             <div class="flex items-center gap-3 md:gap-4">
+                <button id="btn-compartir-rendimiento" class="hidden px-4 py-2 rounded-lg bg-[#25D366]/10 border border-[#25D366]/25 text-[#25D366] text-xs font-bold uppercase tracking-wider cursor-pointer items-center gap-2">
+                    <i class="ph-fill ph-whatsapp-logo"></i> Compartir mi rendimiento
+                </button>
                 <div id="marketToggle" class="flex gap-2"></div>
             </div>
         </header>
@@ -180,6 +183,8 @@
             });
         }
 
+        let _ultimoResumen = null;
+
         function renderStats(lista) {
             const box = document.getElementById('statsBox');
             const cerradas = lista.filter(op => op.estado === 'CERRADA' && op.profit !== null && op.profit !== undefined);
@@ -223,6 +228,13 @@
                     <p class="text-lg font-bold ${color} truncate">${valor}</p>
                 </div>
             `).join('');
+
+            // Para "Compartir mi rendimiento" -- solo agregados (win rate,
+            // neto, cantidad), NUNCA datos crudos por operación (ticket,
+            // login, comisión) -- eso no es lo que alguien querría compartir
+            // ni es prudente exponer tal cual en un mensaje de WhatsApp.
+            _ultimoResumen = cerradas.length ? { winRate, netTotal, ganadorasCount: ganadoras.length, cerradasCount: cerradas.length } : null;
+            document.getElementById('btn-compartir-rendimiento').classList.toggle('hidden', !_ultimoResumen || netTotal <= 0);
         }
 
         function renderTabla(lista) {
@@ -309,6 +321,19 @@
         document.getElementById('filtroCuenta').addEventListener('change', (e) => { filtro.cuenta = e.target.value; renderTodo(); });
         document.getElementById('filtroSymbol').addEventListener('change', (e) => { filtro.symbol = e.target.value; renderTodo(); });
         document.getElementById('filtroEstado').addEventListener('change', (e) => { filtro.estado = e.target.value; renderTodo(); });
+
+        // Comparte solo agregados (nunca operaciones individuales, ver
+        // renderStats) -- si ya es afiliado, usa su propio link de referido
+        // para que compartir un resultado real también sea una vía de
+        // conseguir referidos; si no, cae al link general del ecosistema.
+        document.getElementById('btn-compartir-rendimiento').addEventListener('click', async () => {
+            if (!_ultimoResumen) return;
+            let link = 'https://nltnextlevel.uk/';
+            try { link = (await NLT_API.afiliadoMiPerfil()).link || link; } catch (_) { /* no es afiliado todavía -- link general */ }
+            const { winRate, netTotal, ganadorasCount, cerradasCount } = _ultimoResumen;
+            const mensaje = `📈 Mi Copy System de NLT (Next Level Trading): ${winRate.toFixed(0)}% de operaciones ganadoras (${ganadorasCount}/${cerradasCount}), neto +$${netTotal.toFixed(2)}.\n\nCopiado automático de un trader real, sin instalar nada.\n\n${link}`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener,noreferrer');
+        });
 
         async function init() {
             const session = await NLT.requireSession();
