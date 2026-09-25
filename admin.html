@@ -1789,6 +1789,13 @@
                 if (!seccion) return;
                 document.querySelectorAll('.seccion-admin').forEach((s) => s.classList.add('hidden'));
                 document.getElementById('seccion-' + seccion).classList.remove('hidden');
+                // Carga perezosa -- ver cargarSeccion()/init() más abajo: antes
+                // TODAS las secciones permitidas se pedían de una en el arranque
+                // (un Global Admin dispara ~20 módulos en paralelo, varios con
+                // su propio N+1 interno), suficiente para saturar la API real y
+                // que algunas pidieran "Failed to fetch" al azar. Ahora cada
+                // sección solo pide sus datos la primera vez que se abre.
+                cargarSeccion(seccion);
             });
         });
 
@@ -5435,6 +5442,25 @@
             nlt_bot: [cargarNltBotTodo],
         };
 
+        // Cache de qué secciones ya pidieron sus datos -- una sola vez por
+        // sesión de página, nunca se re-pide solo por volver a clickear el tab
+        // (si el admin quiere datos frescos, los propios botones de refresh /
+        // acciones de cada sección ya vuelven a llamar a su cargarX puntual).
+        const _seccionesCargadas = new Set();
+
+        async function cargarSeccion(seccion) {
+            if (_seccionesCargadas.has(seccion)) return;
+            _seccionesCargadas.add(seccion);
+            const loaders = SECCION_LOADERS[seccion] || [];
+            const cargas = loaders.map((fn) => fn());
+            if (seccion === 'admin-global' && _esGlobalAdmin) cargas.push(cargarAdminGlobalTodo());
+            try {
+                await Promise.all(cargas);
+            } catch (err) {
+                console.error(`Error cargando la sección "${seccion}":`, err);
+            }
+        }
+
         let _esGlobalAdmin = false;
         let _misPermisos = { permissions: {}, modules: [] };
 
@@ -5489,29 +5515,27 @@
                 }
             });
 
-            // Las llamadas de abajo llenan secciones distintas de la
-            // pantalla (sidebar, perfil, y las pestañas de datos permitidas)
-            // y no dependen entre sí -- cada cargarX tiene su propio
-            // try/catch, así que si una falla no frena a las demás. En
-            // paralelo, el tiempo total es el de la más lenta, no la suma.
-            const cargas = [
+            // Sidebar/perfil son chrome global, siempre. Los datos de cada
+            // pestaña se piden recién cuando esa pestaña se abre (ver
+            // cargarSeccion() y el click handler de arriba) -- antes las
+            // ~20 secciones permitidas de un Global Admin se pedían TODAS en
+            // paralelo en el arranque, un solo Promise.all gigante (varias
+            // con su propio N+1 interno) que saturaba la API real y hacía
+            // que algunas fallaran al azar con "Failed to fetch".
+            await Promise.all([
                 NLT.mountSidebar(session, { activo: 'admin', seccion: 'cfd', planLabel: 'Admin' }),
                 NLT.ensurePerfil(session),
-            ];
-            Object.entries(SECCION_LOADERS).forEach(([seccion, loaders]) => {
-                if (puede(seccion)) cargas.push(...loaders.map((fn) => fn()));
-            });
-            if (_esGlobalAdmin) cargas.push(cargarAdminGlobalTodo());
-
-            await Promise.all(cargas);
+            ]);
 
             const seccionHash = (window.location.hash || '').replace('#', '');
-            const seccionInicial = (seccionHash && document.getElementById('seccion-' + seccionHash) && puede(seccionHash)) ? seccionHash : primerPermitido;
+            const hashValido = seccionHash === 'admin-global' ? _esGlobalAdmin : puede(seccionHash);
+            const seccionInicial = (seccionHash && document.getElementById('seccion-' + seccionHash) && hashValido) ? seccionHash : primerPermitido;
             if (seccionInicial) {
                 document.querySelectorAll('.tab-admin').forEach((t) => t.classList.remove('activo'));
                 document.querySelectorAll('.seccion-admin').forEach((s) => s.classList.add('hidden'));
                 document.getElementById('seccion-' + seccionInicial)?.classList.remove('hidden');
                 document.querySelector(`.tab-admin[data-seccion="${seccionInicial}"]`)?.classList.add('activo');
+                await cargarSeccion(seccionInicial);
             }
         }
 
