@@ -84,10 +84,10 @@
     // arreglaba solo al refrescar la página un momento después. Ahora
     // también reintenta si el primer intento se cortó por timeout (ej. el
     // cold-start de Railway sigue en curso en el primer intento).
-    async function _fetchConReintento(url, opciones, intentos = 2) {
+    async function _fetchConReintento(url, opciones, intentos = 2, timeoutMs = FETCH_TIMEOUT_MS) {
         for (let i = 0; i < intentos; i++) {
             try {
-                return await _fetchConTimeout(url, opciones);
+                return await _fetchConTimeout(url, opciones, timeoutMs);
             } catch (err) {
                 if (i === intentos - 1) throw err;
                 await new Promise((r) => setTimeout(r, 800));
@@ -95,16 +95,22 @@
         }
     }
 
+    // `lento: true` -- para un POST que CREA algo en un proveedor externo y
+    // puede tardar (conectar una cuenta en TickerAll: hasta ~1 min). Espera
+    // más y NUNCA reintenta: con el timeout de 9s + reintento, el primer
+    // pedido seguía corriendo en el servidor y el reintento creaba la cuenta
+    // una segunda vez (doble conexión, doble cobro en TickerAll).
     async function request(path, options = {}, base = BASE_URL) {
+        const { lento, ...fetchOptions } = options;
         const token = await _token();
         const resp = await _fetchConReintento(base + path, {
-            ...options,
+            ...fetchOptions,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`,
-                ...(options.headers || {}),
+                ...(fetchOptions.headers || {}),
             },
-        });
+        }, lento ? 1 : 2, lento ? 120000 : FETCH_TIMEOUT_MS);
 
         let body = null;
         try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
@@ -192,7 +198,7 @@
         listarCuentas: () => request('/accounts'),
         crearCuentaLocal: (datos) => request('/accounts', { method: 'POST', body: JSON.stringify(datos) }),
         crearCuentaMT5API: (datos) => request('/mt5api/accounts', { method: 'POST', body: JSON.stringify(datos) }),
-        crearCuentaTickerAll: (datos) => request('/tickerall/accounts', { method: 'POST', body: JSON.stringify(datos) }),
+        crearCuentaTickerAll: (datos) => request('/tickerall/accounts', { method: 'POST', body: JSON.stringify(datos), lento: true }),
         borrarCuenta: (id) => request(`/accounts/${id}`, { method: 'DELETE' }),
         reconectarCuenta: (id) => request(`/accounts/${id}/reconnect`, { method: 'POST' }),
         // TickerAll enfría la sesión con el tiempo (status=CONNECTED pero hot=false)
@@ -893,6 +899,12 @@
 
         // --- Checklist de bienvenida (ver Dashboard, #welcomeChecklistWidget) ---
         onboardingEstado: () => request('/onboarding/estado'),
+
+        // --- NLT Guardian (borrar/reconectar reusan borrarCuenta/reconectarTickerAll) ---
+        guardianPresets: () => request('/guardian/presets'),
+        guardianMio: () => request('/guardian'),
+        guardianCrear: (datos) => request('/guardian', { method: 'POST', body: JSON.stringify(datos), lento: true }),
+        guardianActualizarReglas: (datos) => request('/guardian', { method: 'PUT', body: JSON.stringify(datos) }),
     };
 
     window.NLT_API = NLT_API;

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Guardian | Protección de cuentas de fondeo</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(34,197,94,0.07), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(67,120,255,0.06), transparent 60%); background-attachment: fixed; color: #FFFFFF; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .campo { width: 100%; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 14px; font-size: 14px; color: #fff; }
+        .campo:focus { outline: none; border-color: rgb(34,197,94); }
+        .medidor { height: 10px; border-radius: 10px; background: rgba(255,255,255,0.07); overflow: hidden; }
+        .medidor i { display: block; height: 100%; width: var(--w, 0%); border-radius: 10px; background: rgb(var(--c)); transition: width .6s cubic-bezier(.16,1,.3,1); }
+        html { overflow-x: hidden; }
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            #sidebar { transition: none; }
+            .medidor i { transition: none; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl shrink-0"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col pl-20 pr-5 pt-10 pb-10 md:p-10 overflow-y-auto">
+        <header class="mb-8 pb-6 border-b border-white/5">
+            <p class="text-[10px] font-bold uppercase tracking-widest mb-1" style="color:rgb(34,197,94)">NLT Guardian</p>
+            <h1 class="text-lg md:text-2xl font-bold">Tu cuenta de fondeo, vigilada en vivo</h1>
+        </header>
+
+        <p id="cargando" class="text-sm text-gray-500 animate-pulse">Cargando...</p>
+
+        <!-- Sin Guardian todavía -->
+        <div id="vistaSetup" class="hidden grid grid-cols-1 lg:grid-cols-5 gap-6 max-w-5xl">
+            <div class="lg:col-span-2 glass-card p-6 md:p-8 h-fit">
+                <div class="w-12 h-12 rounded-2xl grid place-items-center mb-5" style="background:rgba(34,197,94,.12); border:1px solid rgba(34,197,94,.3); color:rgb(34,197,94)"><i class="ph-fill ph-shield-check text-2xl"></i></div>
+                <h2 class="text-xl font-bold mb-3">No pierdas otro challenge por una regla</h2>
+                <p class="text-sm text-gray-400 leading-relaxed mb-5">La mayoría de los challenges no se pierden por mala estrategia: se pierden por pasarse del límite de pérdida diaria o del drawdown. El Guardian vigila tu cuenta y te avisa antes.</p>
+                <ul class="space-y-3 text-sm text-gray-300">
+                    <li class="flex gap-3"><i class="ph-bold ph-bell-ringing mt-0.5" style="color:rgb(234,179,8)"></i><span>Aviso al <strong>80%</strong> de tu pérdida diaria y de tu drawdown máximo.</span></li>
+                    <li class="flex gap-3"><i class="ph-bold ph-warning mt-0.5" style="color:rgb(248,113,113)"></i><span>Alerta urgente al <strong>95%</strong>, en la pantalla de bloqueo.</span></li>
+                    <li class="flex gap-3"><i class="ph-bold ph-plugs mt-0.5" style="color:rgb(67,120,255)"></i><span>Te avisa si pierde la conexión con tu cuenta, para que nunca creas que estás protegido sin estarlo.</span></li>
+                </ul>
+                <p class="text-[11px] text-gray-500 mt-6 leading-relaxed">Por ahora el Guardian solo avisa: nunca abre, modifica ni cierra operaciones en tu cuenta.</p>
+            </div>
+
+            <form id="formSetup" class="lg:col-span-3 glass-card p-6 md:p-8 space-y-6">
+                <div>
+                    <h3 class="text-sm font-bold mb-1">1. Las reglas de tu challenge</h3>
+                    <p class="text-xs text-gray-500 mb-3">Elegí tu firma y se cargan solas. Si no está en la lista, cargalas a mano.</p>
+                    <select id="selPreset" class="campo"></select>
+                    <div id="reglasManuales" class="hidden grid grid-cols-2 gap-3 mt-3">
+                        <label class="text-[11px] text-gray-400 col-span-2">Tamaño de la cuenta (USD)<input id="inTamanio" type="number" min="1" step="0.01" class="campo mt-1" placeholder="10000"></label>
+                        <label class="text-[11px] text-gray-400">Pérdida diaria máx. (%)<input id="inDiaria" type="number" min="0.1" max="99" step="0.1" class="campo mt-1" placeholder="5"></label>
+                        <label class="text-[11px] text-gray-400">Drawdown máx. (%)<input id="inDD" type="number" min="0.1" max="99" step="0.1" class="campo mt-1" placeholder="10"></label>
+                        <label class="text-[11px] text-gray-400 col-span-2">Objetivo de ganancia (%, opcional)<input id="inObjetivo" type="number" min="0.1" step="0.1" class="campo mt-1" placeholder="8"></label>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="text-sm font-bold mb-1">2. Tu cuenta MT5 de fondeo</h3>
+                    <p class="text-xs text-gray-500 mb-3">La contraseña va directo al proveedor de conexión y no se guarda en NLT.</p>
+                    <div class="space-y-3">
+                        <input id="inLogin" type="number" required class="campo" placeholder="Número de cuenta (Login)">
+                        <input id="inPassword" type="password" required class="campo" placeholder="Contraseña">
+                        <input id="inServer" type="text" list="mt5Servers" required autocomplete="off" class="campo" placeholder="Servidor (empezá a escribir para ver sugerencias)">
+                    </div>
+                </div>
+                <button id="btnActivar" type="submit" class="w-full px-6 py-3.5 rounded-xl text-sm font-semibold text-[#07090e] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed" style="background:rgb(34,197,94)">Activar Guardian</button>
+                <p id="msgSetup" class="hidden text-xs text-center"></p>
+            </form>
+        </div>
+
+        <!-- Guardian activo -->
+        <div id="vistaActiva" class="hidden max-w-5xl space-y-6">
+            <div id="cardConexion" class="glass-card p-5 md:p-6"></div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div id="cardDiaria" class="glass-card p-6"></div>
+                <div id="cardDD" class="glass-card p-6"></div>
+            </div>
+            <div id="cardObjetivo" class="glass-card p-6 hidden"></div>
+
+            <div class="glass-card p-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h3 class="text-sm font-bold mb-1 flex items-center gap-2"><i class="ph-fill ph-bell-ringing" style="color:rgb(234,179,8)"></i> Notificaciones en este dispositivo</h3>
+                    <p class="text-xs text-gray-500">Sin esto las alertas no te llegan a la pantalla de bloqueo. Activalas en cada celular o PC donde quieras recibirlas.</p>
+                </div>
+                <button id="btnPushToggle" type="button" class="shrink-0 px-5 py-2.5 rounded-xl bg-nlt-accent/10 border border-nlt-accent/25 text-nlt-accent text-sm font-semibold disabled:opacity-50">Activar notificaciones</button>
+            </div>
+
+            <details class="glass-card p-6">
+                <summary class="text-sm font-bold cursor-pointer">Cambiar las reglas o dejar de proteger esta cuenta</summary>
+                <form id="formReglas" class="mt-5 space-y-3">
+                    <select id="selPresetEditar" class="campo"></select>
+                    <div id="reglasManualesEditar" class="hidden grid grid-cols-2 gap-3">
+                        <label class="text-[11px] text-gray-400 col-span-2">Tamaño de la cuenta (USD)<input id="edTamanio" type="number" min="1" step="0.01" class="campo mt-1"></label>
+                        <label class="text-[11px] text-gray-400">Pérdida diaria máx. (%)<input id="edDiaria" type="number" min="0.1" max="99" step="0.1" class="campo mt-1"></label>
+                        <label class="text-[11px] text-gray-400">Drawdown máx. (%)<input id="edDD" type="number" min="0.1" max="99" step="0.1" class="campo mt-1"></label>
+                        <label class="text-[11px] text-gray-400 col-span-2">Objetivo de ganancia (%, opcional)<input id="edObjetivo" type="number" min="0.1" step="0.1" class="campo mt-1"></label>
+                    </div>
+                    <button type="submit" class="px-5 py-2.5 rounded-xl bg-white/10 text-sm font-semibold cursor-pointer">Guardar reglas</button>
+                    <p id="msgReglas" class="hidden text-xs"></p>
+                </form>
+                <div class="mt-6 pt-5 border-t border-white/5">
+                    <button id="btnQuitar" type="button" class="text-xs font-semibold text-nlt-danger hover:underline cursor-pointer">Dejar de proteger esta cuenta y desconectarla</button>
+                </div>
+            </details>
+
+            <p class="text-[11px] text-gray-500 leading-relaxed">Cómo medimos: el día se reinicia a las 00:00 UTC (tu firma puede usar otro horario) y la pérdida del día se cuenta desde el saldo más alto que vimos al empezar el día. El drawdown se mide sobre el tamaño inicial de la cuenta; si tu firma usa drawdown dinámico, tomalo como aproximado. Por eso avisamos al 80% y al 95%, nunca al límite exacto. El Guardian solo avisa: nunca toca tus operaciones.</p>
+        </div>
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=3a7f9f3b"></script>
+    <script src="assets/js/nlt-api-client.js?v=3f381312"></script>
+    <script>
+        function esc(t) {
+            return String(t ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+        }
+        const usd = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US', { style: 'currency', currency: 'USD' }));
+        // Verde < 50%, amarillo < 80%, naranja < 95%, rojo desde 95% -- mismos umbrales que las alertas.
+        const colorPct = (p) => (p >= 95 ? '248,113,113' : p >= 80 ? '251,146,60' : p >= 50 ? '234,179,8' : '34,197,94');
+        const ESTADOS_OK = ['CONECTADA', 'TRADING_DISABLED'];
+        const MANUAL = '__manual__';
+
+        let presets = [];
+        let guardian = null;
+
+        function llenarPresets(select, seleccionado) {
+            const porFirma = {};
+            presets.forEach((p) => { (porFirma[p.partner || 'Otras'] ||= []).push(p); });
+            select.innerHTML = '<option value="">Elegí tu firma y challenge...</option>' +
+                Object.entries(porFirma).map(([firma, lista]) => `<optgroup label="${esc(firma)}">` + lista.map((p) => {
+                    const diaria = p.max_daily_loss_pct != null ? `${p.max_daily_loss_pct}% diaria · ` : '';
+                    return `<option value="${esc(p.id)}"${p.id === seleccionado ? ' selected' : ''}>${esc(p.challenge_type || '')} · ${usd(p.account_size)} (${diaria}${p.max_total_dd_pct}% DD)</option>`;
+                }).join('') + '</optgroup>').join('') +
+                `<option value="${MANUAL}"${seleccionado === MANUAL ? ' selected' : ''}>Otra firma: cargar las reglas a mano</option>`;
+        }
+
+        function leerReglas(select, ids) {
+            if (select.value && select.value !== MANUAL) return { prop_hub_challenge_id: select.value };
+            const num = (id) => { const v = document.getElementById(id).value; return v === '' ? null : Number(v); };
+            return { account_size: num(ids[0]), max_daily_loss_pct: num(ids[1]), max_total_dd_pct: num(ids[2]), target_pct: num(ids[3]) };
+        }
+
+        function mostrarMsg(el, texto, tipo) {
+            el.classList.remove('hidden');
+            el.className = 'text-xs ' + (tipo === 'error' ? 'text-nlt-danger' : tipo === 'ok' ? 'text-nlt-success' : 'text-gray-400') + (el.id === 'msgSetup' ? ' text-center' : '');
+            el.textContent = texto;
+        }
+
+        function medidor(titulo, medida, notaSinDatos) {
+            if (!medida) return `<p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">${titulo}</p><p class="text-sm text-gray-500">${notaSinDatos}</p>`;
+            const c = colorPct(medida.pct);
+            return `
+                <div class="flex items-baseline justify-between mb-3">
+                    <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">${titulo}</p>
+                    <p class="text-sm font-bold" style="color:rgb(${c})">${medida.pct}%</p>
+                </div>
+                <div class="medidor mb-3" style="--c:${c}"><i style="--w:${Math.min(100, medida.pct)}%"></i></div>
+                <p class="text-2xl font-bold">${usd(medida.restante)} <span class="text-xs font-normal text-gray-500">de margen restante</span></p>
+                <p class="text-[11px] text-gray-500 mt-1">Usado ${usd(medida.usado)} de ${usd(medida.limite)} permitidos</p>`;
+        }
+
+        function renderActiva() {
+            const g = guardian, m = g.metricas || {}, ok = ESTADOS_OK.includes(g.estado);
+            const login = '••' + String(g.login_numero || '').slice(-4);
+            // El refresco cada 20s no debe borrar una contraseña a medio escribir en "Reconectar".
+            const escribiendo = !ok && document.getElementById('inReconectar')?.value;
+            if (!escribiendo) document.getElementById('cardConexion').innerHTML = ok ? `
+                <div class="flex items-center justify-between gap-4 flex-wrap">
+                    <div class="flex items-center gap-3">
+                        <span class="w-10 h-10 rounded-full grid place-items-center" style="background:rgba(34,197,94,.12); color:rgb(34,197,94)"><i class="ph-fill ph-shield-check text-xl"></i></span>
+                        <div><p class="text-sm font-bold">Protegida · Cuenta ${esc(login)}</p><p class="text-[11px] text-gray-500">${esc(g.broker_server)}</p></div>
+                    </div>
+                    <p class="text-right"><span class="block text-[10px] text-gray-500 uppercase tracking-wider">Equity actual</span><span class="text-xl font-bold">${usd(m.equity)}</span></p>
+                </div>` : `
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="w-10 h-10 rounded-full grid place-items-center shrink-0" style="background:rgba(248,113,113,.12); color:rgb(248,113,113)"><i class="ph-fill ph-plugs text-xl"></i></span>
+                    <div><p class="text-sm font-bold text-nlt-danger">${g.estado === 'PENDIENTE' || g.estado === 'CONNECTING' ? 'Conectando tu cuenta...' : 'Sin conexión: tu cuenta NO está protegida'}</p><p class="text-[11px] text-gray-500">Cuenta ${esc(login)} · ${esc(g.broker_server)}</p></div>
+                </div>
+                ${g.estado === 'PENDIENTE' || g.estado === 'CONNECTING' ? '<p class="text-xs text-gray-500">Suele tardar menos de un minuto. Esta pantalla se actualiza sola.</p>' : `
+                <form id="formReconectar" class="flex flex-col sm:flex-row gap-3">
+                    <input id="inReconectar" type="password" required class="campo" placeholder="Contraseña de la cuenta para reconectar">
+                    <button type="submit" class="shrink-0 px-5 py-3 rounded-xl text-sm font-semibold text-[#07090e] cursor-pointer" style="background:rgb(34,197,94)">Reconectar</button>
+                </form>
+                <p id="msgReconectar" class="hidden text-xs mt-2"></p>`}`;
+
+            document.getElementById('cardDiaria').innerHTML = medidor('Pérdida del día', m.daily,
+                g.reglas.max_daily_loss_pct == null ? 'Tu challenge no tiene límite de pérdida diaria.' : 'Se empieza a medir con la primera lectura de tu cuenta de hoy.');
+            document.getElementById('cardDD').innerHTML = medidor('Drawdown total', m.total_dd, 'Esperando la primera lectura de tu cuenta.');
+
+            const cardObj = document.getElementById('cardObjetivo');
+            if (m.target) {
+                cardObj.classList.remove('hidden');
+                cardObj.innerHTML = `
+                    <div class="flex items-baseline justify-between mb-3">
+                        <p class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Objetivo del challenge</p>
+                        <p class="text-sm font-bold text-nlt-success">${m.target.pct}%</p>
+                    </div>
+                    <div class="medidor mb-3" style="--c:67,120,255"><i style="--w:${Math.min(100, m.target.pct)}%"></i></div>
+                    <p class="text-[11px] text-gray-500">Ganancia ${usd(m.target.ganado)} de ${usd(m.target.objetivo)}</p>`;
+            } else {
+                cardObj.classList.add('hidden');
+            }
+
+            const formRec = document.getElementById('formReconectar');
+            if (formRec && !escribiendo) formRec.addEventListener('submit', reconectar);
+        }
+
+        async function reconectar(e) {
+            e.preventDefault();
+            const msg = document.getElementById('msgReconectar');
+            mostrarMsg(msg, 'Reconectando...', 'info');
+            try {
+                await NLT_API.reconectarTickerAll(guardian.cuenta_id, document.getElementById('inReconectar').value);
+                mostrarMsg(msg, 'Reconectada.', 'ok');
+                await cargar();
+            } catch (err) {
+                mostrarMsg(msg, err.message, 'error');
+            }
+        }
+
+        function prepararEditor() {
+            const sel = document.getElementById('selPresetEditar');
+            const r = guardian.reglas;
+            llenarPresets(sel, r.prop_hub_challenge_id || MANUAL);
+            document.getElementById('edTamanio').value = r.account_size ?? '';
+            document.getElementById('edDiaria').value = r.max_daily_loss_pct ?? '';
+            document.getElementById('edDD').value = r.max_total_dd_pct ?? '';
+            document.getElementById('edObjetivo').value = r.target_pct ?? '';
+            document.getElementById('reglasManualesEditar').classList.toggle('hidden', sel.value !== MANUAL);
+        }
+
+        async function cargar() {
+            try {
+                const res = await NLT_API.guardianMio();
+                const eraNull = guardian === null;
+                guardian = res.guardian;
+                document.getElementById('cargando').classList.add('hidden');
+                document.getElementById('vistaSetup').classList.toggle('hidden', !!guardian);
+                document.getElementById('vistaActiva').classList.toggle('hidden', !guardian);
+                if (guardian) {
+                    renderActiva();
+                    if (eraNull && presets.length) prepararEditor();
+                }
+            } catch (err) {
+                document.getElementById('cargando').textContent = 'No se pudo cargar el Guardian: ' + err.message;
+            }
+        }
+
+        document.getElementById('selPreset').addEventListener('change', (e) => {
+            document.getElementById('reglasManuales').classList.toggle('hidden', e.target.value !== MANUAL);
+        });
+        document.getElementById('selPresetEditar').addEventListener('change', (e) => {
+            document.getElementById('reglasManualesEditar').classList.toggle('hidden', e.target.value !== MANUAL);
+        });
+
+        document.getElementById('formSetup').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('msgSetup');
+            const sel = document.getElementById('selPreset');
+            if (!sel.value) { mostrarMsg(msg, 'Elegí tu challenge o cargá las reglas a mano.', 'error'); return; }
+            const btn = document.getElementById('btnActivar');
+            btn.disabled = true;
+            mostrarMsg(msg, 'Conectando tu cuenta... puede tardar hasta un minuto, no cierres esta página.', 'info');
+            try {
+                await NLT_API.guardianCrear({
+                    ...leerReglas(sel, ['inTamanio', 'inDiaria', 'inDD', 'inObjetivo']),
+                    login_numero: parseInt(document.getElementById('inLogin').value, 10),
+                    password: document.getElementById('inPassword').value,
+                    broker_server: document.getElementById('inServer').value.trim(),
+                });
+                document.getElementById('inPassword').value = '';
+                await cargar();
+            } catch (err) {
+                mostrarMsg(msg, err.message, 'error');
+            } finally {
+                btn.disabled = false;
+            }
+        });
+
+        document.getElementById('formReglas').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('msgReglas');
+            const sel = document.getElementById('selPresetEditar');
+            if (!sel.value) { mostrarMsg(msg, 'Elegí tu challenge o cargá las reglas a mano.', 'error'); return; }
+            try {
+                const res = await NLT_API.guardianActualizarReglas(leerReglas(sel, ['edTamanio', 'edDiaria', 'edDD', 'edObjetivo']));
+                guardian = res.guardian;
+                renderActiva();
+                mostrarMsg(msg, 'Reglas guardadas.', 'ok');
+            } catch (err) {
+                mostrarMsg(msg, err.message, 'error');
+            }
+        });
+
+        document.getElementById('btnQuitar').addEventListener('click', async () => {
+            if (!confirm('¿Dejar de proteger esta cuenta? Se desconecta del Guardian y dejás de recibir alertas.')) return;
+            try {
+                await NLT_API.borrarCuenta(guardian.cuenta_id);
+                guardian = null;
+                await cargar();
+            } catch (err) {
+                alert('No se pudo quitar: ' + err.message);
+            }
+        });
+
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            NLT.injectServerDatalist();
+            // En paralelo: el estado de la cuenta es lo primero que el usuario
+            // quiere ver, no tiene por qué esperar al menú ni a la lista de challenges.
+            await Promise.all([
+                NLT.mountSidebar(session, { activo: 'guardian', seccion: 'cfd' }),
+                NLT_API.guardianPresets().then((p) => { presets = p; }).catch(() => { presets = []; }),
+                cargar(),
+            ]);
+            llenarPresets(document.getElementById('selPreset'), '');
+            if (guardian) prepararEditor();
+            NLT.mountPushToggle('btnPushToggle');
+            NLT.pollWhileVisible(() => { if (guardian) cargar(); }, 20000);
+        }
+
+        init();
+    </script>
+</body>
+</html>

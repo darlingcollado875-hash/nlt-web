@@ -2174,6 +2174,7 @@
         { id: 'cuentas', href: 'cuentas.html', icono: 'ph-users', label: 'Cuentas Destino' },
         { id: 'historial', href: 'historial.html', icono: 'ph-clock-counter-clockwise', label: 'Historial' },
         { id: 'journal', href: 'journal.html', icono: 'ph-notebook', label: 'Trader Journal' },
+        { id: 'guardian', href: 'guardian.html', icono: 'ph-shield-check', label: 'NLT Guardian' },
         { id: 'afiliado', href: 'afiliado.html', icono: 'ph-share-network', label: 'NLT Affiliate' },
     ];
     const NAV_CFD_AJUSTES = [
@@ -2213,6 +2214,7 @@
         // distinto del challenge propio de NLT (propfirm-landing/-dashboard de
         // arriba). Ver nlt-web/supabase/prop_hub.sql.
         { id: 'prop-hub', href: 'funded.html', icono: 'ph-buildings', label: 'Prop Hub' },
+        { id: 'guardian', href: 'guardian.html', icono: 'ph-shield-check', label: 'NLT Guardian' },
     ];
 
     // NLT Elite Signals -- mismo patrón que NAV_BROKER/NAV_PROPFIRM (un solo
