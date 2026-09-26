@@ -55,8 +55,13 @@
         });
     }
 
-    function leerPref() { try { return localStorage.getItem(PREF) === '1'; } catch (_) { return false; } }
-    function guardarPref(v) { try { localStorage.setItem(PREF, v ? '1' : '0'); } catch (_) { /* sin almacenamiento */ } }
+    // Mostrar/ocultar las zonas PRO: preferencia del usuario (viaja con el layout de la cuenta).
+    function leerPref() {
+        const v = NLTCharts.state.prefs().proZonasVisibles;
+        if (v !== undefined) return v === true;
+        try { return localStorage.getItem(PREF) === '1'; } catch (_) { return false; }   // valor anterior
+    }
+    function guardarPref(v) { NLTCharts.state.savePrefs({ proZonasVisibles: !!v }); }
 
     function tiempoRestante(iso) {
         const ms = new Date(iso).getTime() - Date.now();

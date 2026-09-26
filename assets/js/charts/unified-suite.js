@@ -705,10 +705,15 @@
 
     // ─────────────────────────────── dashboards (tablas de TradingView) ───────────────────────────────
     // Tocar un dashboard lo minimiza a su título (en celular S/R e ICT arrancan minimizados).
-    const CLAVE_MIN = 'nlt_charts_dash_min_v1';
-    let minimizados;
-    try { minimizados = new Set(JSON.parse(localStorage.getItem(CLAVE_MIN) || 'null') || (window.innerWidth < 768 ? ['sr', 'ict'] : [])); }
-    catch (_) { minimizados = new Set(window.innerWidth < 768 ? ['sr', 'ict'] : []); }
+    // Se guarda en las preferencias del usuario (viaja con el layout de la cuenta).
+    let minimizados = null;
+    function dashMinimizados() {
+        if (!minimizados) {
+            const guardado = NLTCharts.state.prefs().dashMin;
+            minimizados = new Set(Array.isArray(guardado) ? guardado : (window.innerWidth < 768 ? ['sr', 'ict'] : []));
+        }
+        return minimizados;
+    }
 
     let host = null;
     function hostDashboards() {
@@ -722,9 +727,10 @@
             const dsh = ev.target.closest('[data-dash]');
             if (!dsh) return;
             const k = dsh.dataset.dash;
-            minimizados.has(k) ? minimizados.delete(k) : minimizados.add(k);
-            try { localStorage.setItem(CLAVE_MIN, JSON.stringify([...minimizados])); } catch (_) { /* sin almacenamiento */ }
-            dsh.classList.toggle('ud-min', minimizados.has(k));
+            const mins = dashMinimizados();
+            mins.has(k) ? mins.delete(k) : mins.add(k);
+            NLTCharts.state.savePrefs({ dashMin: [...mins] });
+            dsh.classList.toggle('ud-min', mins.has(k));
         });
         stage.appendChild(host);
         return host;
@@ -746,7 +752,7 @@
         if (firma === ultimoHTML) return;   // el DOM solo se toca si cambió el contenido
         ultimoHTML = firma;
         const porPos = { 'Top Left': [], 'Top Right': [], 'Bottom Left': [], 'Bottom Right': [] };
-        ['sr', 'ict', 'smc'].forEach((k) => { if (dash && dash[k]) porPos[dash[k].pos || 'Top Right'].push(`<div class="ud-dash ${dash[k].clase || ''}${minimizados.has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Tocá para minimizar o expandir">${dash[k].html}</div>`); });
+        ['sr', 'ict', 'smc'].forEach((k) => { if (dash && dash[k]) porPos[dash[k].pos || 'Top Right'].push(`<div class="ud-dash ${dash[k].clase || ''}${dashMinimizados().has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Tocá para minimizar o expandir">${dash[k].html}</div>`); });
         h.querySelectorAll('.ud-esq').forEach((e) => { e.innerHTML = porPos[e.dataset.pos].join(''); });
     }
 

@@ -16,8 +16,12 @@
         if (!session) return;
         state.setUser(session.user.id);
         NLTCharts.settings.setUser(session.user.id);
+        NLTCharts.layout.setUser(session.user.id);
         NLT.mountSidebar(session, { activo: 'charts', seccion: 'indicator' });
 
+        // Preferencias de la cuenta (otro dispositivo) en paralelo con el catálogo; nunca bloquea
+        // más de 2,5 s ni falla: sin cuenta disponible se sigue con las de este dispositivo.
+        const pLayout = NLTCharts.layout.cargar({ timeoutMs: 2500 });
         let catalogo;
         try {
             catalogo = await market.simbolos();
@@ -25,6 +29,7 @@
             mostrarEstado('No se pudo cargar NLT Charts: ' + err.message, true);
             return;
         }
+        await pLayout;
         const porSimbolo = Object.fromEntries(catalogo.symbols.map((s) => [s.symbol, s]));
         const prefs = state.prefs();
         let symbol = porSimbolo[prefs.symbol] ? prefs.symbol : catalogo.symbols[0].symbol;

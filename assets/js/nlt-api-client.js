@@ -117,7 +117,9 @@
 
         if (!resp.ok) {
             const detalle = (body && body.detail) ? body.detail : `Error HTTP ${resp.status}`;
-            throw new Error(detalle);
+            const err = new Error(detalle);
+            err.status = resp.status;   // para distinguir casos (ej. 503 = función no disponible todavía)
+            throw err;
         }
         return body;
     }
@@ -916,6 +918,8 @@
         },
         // PRO: el backend decide el acceso; estos métodos solo preguntan.
         chartsProCatalogo: () => request('/charts/pro/catalog'),
+        chartsLayout: () => request('/charts/layout'),
+        chartsGuardarLayout: (layout) => request('/charts/layout', { method: 'PUT', body: JSON.stringify({ layout }) }),
         chartsProIniciarTrial: (indicatorId) => request(`/charts/pro/${encodeURIComponent(indicatorId)}/trial`, { method: 'POST' }),
         chartsZoneEngine: (symbol, timeframe, zona = null) => {
             const qs = new URLSearchParams({ symbol, timeframe });
