@@ -65,6 +65,8 @@
 
         function cargar() {
             mostrarEstado('Cargando precios...');
+            // Key Levels pide las diarias del símbolo: tiene que saberlo antes del recálculo.
+            NLTCharts.freeIndicators.setSymbol(symbol);
             motor.cargar(porSimbolo[symbol], timeframe);
         }
         cargar();
