@@ -2229,6 +2229,7 @@
     const NAV_INDICATOR = [
         { id: 'indicator-dashboard', href: 'indicator-dashboard.html', icono: 'ph-squares-four', label: 'Panel' },
         { id: 'indicator-landing', href: 'indicator.html', icono: 'ph-crosshair', label: 'Sobre el Indicador' },
+        { id: 'charts', href: 'charts.html', icono: 'ph-chart-line-up', label: 'NLT Charts' },
     ];
 
     // NLT Bot Supreme (Fase 4, ver RATIFIED INTEGRATION CONTRACT v1) -- un

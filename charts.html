@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Charts</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        :root { --ch-accent: 34,211,238; --ch-line: rgba(255,255,255,0.06); }
+        html, body { height: 100%; overflow: hidden; }
+        body { background: #080A0F; color: #fff; }
+        .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+        #chMain { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; }
+        .ch-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ch-line); min-height: 56px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+        .ch-toolbar::-webkit-scrollbar { display: none; }
+        .ch-select { background: rgba(255,255,255,0.04); border: 1px solid var(--ch-line); border-radius: 10px; color: #fff; font-size: 13px; font-weight: 600; padding: 7px 10px; flex-shrink: 0; }
+        .ch-select:focus { outline: none; border-color: rgb(var(--ch-accent)); }
+        .ch-select option, .ch-select optgroup { background: #0D1016; }
+        .ch-tfs { display: flex; gap: 2px; background: rgba(255,255,255,0.03); border: 1px solid var(--ch-line); border-radius: 10px; padding: 2px; flex-shrink: 0; }
+        .ch-tf { font-size: 12px; font-weight: 600; color: #9CA3AF; padding: 5px 9px; border-radius: 8px; cursor: pointer; }
+        .ch-tf:hover { color: #fff; }
+        .ch-tf.on { background: rgba(var(--ch-accent),0.14); color: rgb(var(--ch-accent)); }
+        .ch-btn { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: #D1D5DB; padding: 7px 10px; border-radius: 10px; border: 1px solid var(--ch-line); background: rgba(255,255,255,0.03); cursor: pointer; flex-shrink: 0; }
+        .ch-btn:hover { color: #fff; border-color: rgba(255,255,255,0.14); }
+        .ch-btn i { font-size: 16px; }
+        .ch-btn-label { display: none; }
+        .ch-demo { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgb(234,179,8); background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); padding: 4px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; cursor: help; }
+
+        .ch-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+        .ch-stage { position: relative; flex: 1; min-height: 0; min-width: 0; }
+        #chart { position: absolute; inset: 0; }
+        .ch-overlay { position: absolute; inset: 0; display: grid; place-items: center; font-size: 13px; color: #6B7280; pointer-events: none; }
+        .ch-overlay.error { color: rgb(248,113,113); pointer-events: auto; }
+
+        /* Herramientas de dibujo: columna a la izquierda en escritorio, barra abajo en celular */
+        .ch-tools { display: flex; gap: 2px; padding: 6px 8px calc(6px + env(safe-area-inset-bottom)); border-top: 1px solid var(--ch-line); overflow-x: auto; scrollbar-width: none; order: 2; flex-shrink: 0; }
+        .ch-tools::-webkit-scrollbar { display: none; }
+        .ch-tool { width: 40px; height: 40px; flex-shrink: 0; display: grid; place-items: center; border-radius: 10px; color: #9CA3AF; font-size: 19px; cursor: pointer; }
+        .ch-tool:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .ch-tool.on { color: rgb(var(--ch-accent)); background: rgba(var(--ch-accent),0.12); }
+        .ch-tool.peligro:hover { color: rgb(248,113,113); }
+        .ch-tool-sep { width: 1px; height: 24px; align-self: center; background: var(--ch-line); margin: 0 4px; flex-shrink: 0; }
+        .ch-hint { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); font-size: 12px; color: #E5E7EB; background: rgba(13,16,22,0.92); border: 1px solid var(--ch-line); border-radius: 999px; padding: 6px 12px; pointer-events: none; white-space: nowrap; z-index: 5; }
+
+        /* Panel de indicadores: hoja inferior en celular, panel flotante en escritorio */
+        .ch-panel-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 70; }
+        .ch-panel { position: fixed; left: 0; right: 0; bottom: 0; max-height: 78vh; overflow-y: auto; background: #0D1016; border: 1px solid var(--ch-line); border-radius: 18px 18px 0 0; z-index: 71; padding: 18px 18px calc(18px + env(safe-area-inset-bottom)); }
+        .ch-ind { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 12px; cursor: pointer; }
+        .ch-ind:hover { background: rgba(255,255,255,0.03); }
+        .ch-ind input { accent-color: rgb(var(--ch-accent)); width: 16px; height: 16px; }
+        .ch-ind-name { font-size: 13px; font-weight: 600; }
+        .ch-ind-desc { font-size: 11px; color: #6B7280; }
+        .ch-lock { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: rgb(168,85,247); background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3); padding: 2px 7px; border-radius: 999px; }
+
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+            .ch-toolbar { padding-left: 68px; min-height: 64px; }
+            /* El chat de soporte flota sobre el gráfico: más chico y arriba de la barra de dibujo */
+            #supportChatBubble { bottom: calc(64px + env(safe-area-inset-bottom)) !important; right: 12px !important; width: 44px !important; height: 44px !important; opacity: .85; }
+            #supportChatBubble i { font-size: 20px !important; }
+        }
+        @media (min-width: 640px) { .ch-btn-label { display: inline; } }
+        @media (min-width: 768px) {
+            .ch-body { flex-direction: row; }
+            .ch-tools { order: 0; flex-direction: column; padding: 8px 6px; border-top: 0; border-right: 1px solid var(--ch-line); overflow-x: visible; overflow-y: auto; }
+            .ch-tool-sep { width: 24px; height: 1px; margin: 4px auto; }
+            .ch-panel { left: auto; right: 20px; bottom: auto; top: 70px; width: 360px; border-radius: 18px; max-height: calc(100vh - 100px); }
+        }
+        @media (prefers-reduced-motion: reduce) { #sidebar { transition: none; } }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl shrink-0"></aside>
+
+    <main id="chMain">
+        <div id="chToolbar" class="ch-toolbar"><span class="text-sm text-gray-500">Cargando...</span></div>
+        <div class="ch-body">
+            <div id="chTools" class="ch-tools" role="toolbar" aria-label="Herramientas de dibujo"></div>
+            <div class="ch-stage">
+                <div id="chart"></div>
+                <div id="chEstado" class="ch-overlay">Cargando gráfico...</div>
+                <div id="chHint" class="ch-hint" hidden></div>
+            </div>
+        </div>
+    </main>
+
+    <div id="chPanelBg" class="ch-panel-bg" hidden></div>
+    <div id="chPanel" class="ch-panel" role="dialog" aria-label="Indicadores" hidden></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
+    <script src="assets/js/nlt-shared.js?v=021116b1"></script>
+    <script src="assets/js/nlt-api-client.js?v=72731fae"></script>
+    <script src="assets/js/charts/state.js?v=72d146fa"></script>
+    <script src="assets/js/charts/market-data.js?v=ed2e0aef"></script>
+    <script src="assets/js/charts/engine.js?v=bcd44882"></script>
+    <script src="assets/js/charts/ui.js?v=c8ed31c3"></script>
+    <script src="assets/js/charts/drawings.js?v=091c5b14"></script>
+    <script src="assets/js/charts/indicators.js?v=7c85f69a"></script>
+    <script src="assets/js/charts/app.js?v=89ded99b"></script>
+</body>
+</html>

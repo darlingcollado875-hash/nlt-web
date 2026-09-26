@@ -905,6 +905,14 @@
         guardianMio: () => request('/guardian'),
         guardianCrear: (datos) => request('/guardian', { method: 'POST', body: JSON.stringify(datos), lento: true }),
         guardianActualizarReglas: (datos) => request('/guardian', { method: 'PUT', body: JSON.stringify(datos) }),
+
+        // --- NLT Charts (ver assets/js/charts/market-data.js) ---
+        chartsSimbolos: () => request('/charts/symbols'),
+        chartsVelas: (symbol, timeframe, { limit = 500, end = null } = {}) => {
+            const qs = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
+            if (end != null) qs.set('end', String(end));
+            return request(`/charts/candles?${qs}`);
+        },
     };
 
     window.NLT_API = NLT_API;
