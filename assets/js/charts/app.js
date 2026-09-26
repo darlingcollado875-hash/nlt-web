@@ -41,9 +41,11 @@
                 toolbar.setDemo(demo);
                 if (primera) NLTCharts.diag.marcarCarga();
                 mostrarEstado('');
-                if (primera && dib) dib.restaurar();
+                if (primera && dib) { dib.restaurar(); if (pro) pro.dibujosRestaurados(); }
             },
             onError: (msg) => mostrarEstado('No se pudieron cargar los precios: ' + msg, true),
+            // Zonas PRO: se re-analizan con cada vela nueva
+            onVelaNueva: () => pro && pro.velaNueva(),
         });
 
         let pro = null;   // se crea más abajo; los dibujos lo consultan en tiempo de uso
@@ -68,7 +70,7 @@
             chart: motor.chart,
             getSymbol: () => symbol,
             getTimeframe: () => timeframe,
-            getRectangulo: () => dib.rectanguloComoZona(),
+            dibujos: dib,
             onCambio: () => ind && ind.refrescarPanel(),
         });
 
@@ -126,7 +128,7 @@
         cargar();
         pro.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
-        window.NLTCharts.app = { activarIndicador: (id) => ind.activar(id) };
+        window.NLTCharts.app = { activarIndicador: (id) => ind.activar(id), pro, dibujos: dib };   // para depurar desde la consola
     }
 
     init();

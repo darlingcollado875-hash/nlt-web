@@ -98,6 +98,7 @@
             case 'int': case 'float':
                 return `<label class="cs-campo${cls}">${label}<input type="number" class="cs-num" ${d} value="${esc(v)}"${inp.min != null ? ` min="${inp.min}"` : ''}${inp.max != null ? ` max="${inp.max}"` : ''} step="${inp.step || (inp.tipo === 'int' ? 1 : 0.01)}"></label>`;
             case 'string': case 'timeframe':
+                if (!inp.opciones) return `<label class="cs-campo${cls}">${label}<input type="text" class="cs-texto" maxlength="${inp.max || 100}" ${d} value="${esc(v)}"></label>`;
                 return `<label class="cs-campo${cls}">${label}<select class="cs-sel" ${d}>${inp.opciones.map((o) => {
                     const val = o.v ?? o, txt = o.t ?? o;
                     return `<option value="${esc(val)}"${val === v ? ' selected' : ''}>${esc(txt)}</option>`;
@@ -285,6 +286,7 @@
         guardar,
         abrir,
         abrirDialogo,
+        cerrar,
         exigeRecalculo,
         todo: leerTodo,
         reemplazarTodo(o) { guardarTodo(o || {}); },

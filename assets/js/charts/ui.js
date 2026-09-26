@@ -56,6 +56,46 @@
         return api;
     }
 
+    // Tableros (las tablas que los indicadores de TradingView dibujan con table.new) sobre el
+    // panel de velas, en cuatro esquinas. Cada indicador escribe SOLO en su espacio (slot):
+    // dos tablas en la misma esquina se apilan en vez de taparse.
+    const POSICIONES = ['Top Left', 'Top Right', 'Bottom Left', 'Bottom Right'];
+    let host = null, cajaActual = '';
+    function hostTableros() {
+        if (host && document.body.contains(host)) return host;
+        const stage = document.querySelector('.ch-stage');
+        if (!stage) return null;
+        host = document.createElement('div');
+        host.className = 'ud-host';
+        host.innerHTML = POSICIONES.map((p) => `<div class="ud-esq" data-pos="${p}"></div>`).join('');
+        stage.appendChild(host);
+        cajaActual = '';
+        return host;
+    }
+    const tablero = {
+        /** slot(pos, id) -> elemento de ese indicador en esa esquina (lo mueve si cambió de esquina). */
+        slot(pos, id) {
+            const h = hostTableros();
+            if (!h) return null;
+            const esq = h.querySelector(`.ud-esq[data-pos="${POSICIONES.includes(pos) ? pos : 'Top Right'}"]`);
+            let el = h.querySelector(`[data-slot="${id}"]`);
+            if (!el) { el = document.createElement('div'); el.className = 'ud-slot'; el.dataset.slot = id; }
+            if (el.parentElement !== esq) esq.appendChild(el);
+            return el;
+        },
+        quitar(id) { if (host) { const el = host.querySelector(`[data-slot="${id}"]`); if (el) el.remove(); } },
+        // Dentro del área de velas (sin tapar ejes ni sub-paneles); solo toca el DOM si cambió.
+        ajustar(chart) {
+            const h = hostTableros();
+            const main = h && chart.getSize('candle_pane', 'main');
+            if (!main) return;
+            const k = `${main.left}|${main.top}|${main.width}|${main.height}`;
+            if (k === cajaActual) return;
+            cajaActual = k;
+            Object.assign(h.style, { left: `${main.left}px`, top: `${main.top}px`, width: `${main.width}px`, height: `${main.height}px` });
+        },
+    };
+
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.ui = { montarToolbar, esc };
+    window.NLTCharts.ui = { montarToolbar, esc, tablero };
 })();

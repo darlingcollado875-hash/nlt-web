@@ -196,7 +196,25 @@
             }
             on.add(id);
             visibleAhora.set(id, crear.visible);
+            if (def.pane !== 'candle') ajustarPaneles();
         }
+
+        // Los paneles de osciladores nunca dejan al gráfico de velas con menos de ~45% del alto
+        // (en pantallas bajas 3 paneles de 110 px lo aplastaban). Si entran, se respeta el
+        // tamaño que el usuario les dio arrastrando el separador.
+        function ajustarPaneles() {
+            const H = (chart.getSize() || {}).height || 0;
+            const subs = [...on].filter((id) => porId[id] && porId[id].pane === 'sub')
+                .map((id) => chart.getIndicators({ name: id })[0]).filter(Boolean);
+            if (!H || !subs.length) return;
+            const alto = (i) => ((chart.getSize(i.paneId) || {}).height || 0);
+            const tope = Math.floor(H * 0.55);
+            if (subs.reduce((a, i) => a + alto(i), 0) <= tope) return;
+            const h = Math.max(36, Math.floor(tope / subs.length));
+            subs.forEach((i) => chart.setPaneOptions({ id: i.paneId, height: h, minHeight: 30 }));
+        }
+        let timerPaneles = null;
+        window.addEventListener('resize', () => { clearTimeout(timerPaneles); timerPaneles = setTimeout(ajustarPaneles, 150); });
 
         function desactivar(id) {
             if (!on.has(id)) return;
@@ -246,7 +264,7 @@
             const acc = data && data.feature && data.feature.id;
             if (!id || !acc) return;
             if (id === 'NLT_PRO_ZONES') {
-                if (acc === 'ojo') chart.overrideIndicator({ name: id, visible: !data.indicator.visible });
+                if (acc === 'ojo' && pro && pro.alternarVisible) pro.alternarVisible();
                 if (acc === 'ajustes' && pro && pro.abrirAjustes) pro.abrirAjustes();
                 return;
             }
@@ -332,6 +350,8 @@
         document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && !panelEl.hidden) cerrar(); });
 
         (activos || []).forEach(activar);
+        // el alto real del contenedor se conoce después del primer layout
+        requestAnimationFrame(ajustarPaneles);
 
         return {
             activar(id) { activar(id); guardarActivos(); },

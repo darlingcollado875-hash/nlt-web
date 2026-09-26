@@ -100,8 +100,9 @@
      *   onData({ demo, primera })  cada vez que llega historia (para el badge DEMO,
      *                              y para restaurar dibujos después de la primera carga)
      *   onError(mensaje)
+     *   onVelaNueva(vela)          cuando empieza una vela nueva en vivo (zonas PRO, etc.)
      */
-    function crear(el, { onData, onError } = {}) {
+    function crear(el, { onData, onError, onVelaNueva } = {}) {
         const market = NLTCharts.market;
         const chart = klinecharts.init(el, { styles: ESTILOS, locale: 'en-US' });
         let cancelarSuscripcion = null;
@@ -134,7 +135,13 @@
             },
             subscribeBar: ({ symbol, callback }) => {
                 if (cancelarSuscripcion) cancelarSuscripcion();
-                cancelarSuscripcion = market.suscribir(symbol.ticker, timeframe, callback);
+                const dl = chart.getDataList();
+                let ultimoTs = dl.length ? dl[dl.length - 1].timestamp : null;
+                cancelarSuscripcion = market.suscribir(symbol.ticker, timeframe, (vela) => {
+                    callback(vela);
+                    if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
+                    if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
+                });
             },
             unsubscribeBar: () => {
                 if (cancelarSuscripcion) cancelarSuscripcion();

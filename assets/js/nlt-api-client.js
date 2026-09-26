@@ -921,8 +921,12 @@
         chartsLayout: () => request('/charts/layout'),
         chartsGuardarLayout: (layout) => request('/charts/layout', { method: 'PUT', body: JSON.stringify({ layout }) }),
         chartsProIniciarTrial: (indicatorId) => request(`/charts/pro/${encodeURIComponent(indicatorId)}/trial`, { method: 'POST' }),
-        chartsZoneEngine: (symbol, timeframe, zona = null) => {
+        // `params`: entradas del Zone Engine que el usuario cambió ({ nombre: valor }, los nombres
+        // los da el servidor en /zone-engine/settings); el servidor las valida.
+        chartsZoneEngineAjustes: () => request('/charts/pro/zone-engine/settings'),
+        chartsZoneEngine: (symbol, timeframe, zona = null, params = null) => {
             const qs = new URLSearchParams({ symbol, timeframe });
+            if (params) Object.entries(params).forEach(([k, v]) => qs.set(k, String(v)));
             if (zona) {
                 qs.set('zone_top', String(zona.top));
                 qs.set('zone_bottom', String(zona.bottom));

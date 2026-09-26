@@ -117,13 +117,25 @@
         .cs-ok:hover { background: #1E53E5; color: #fff; }
 
         /* Dashboards de la Unified Suite (tablas de TradingView) */
-        .ud-host { position: absolute; pointer-events: none; z-index: 4; }
+        .ud-host { position: absolute; pointer-events: none; z-index: 4; overflow: hidden; }
         .ud-esq { position: absolute; display: flex; flex-direction: column; gap: 6px; max-width: 46%; }
         .ud-esq[data-pos="Top Left"] { top: 44px; left: 8px; }
         .ud-esq[data-pos="Top Right"] { top: 8px; right: 8px; align-items: flex-end; }
         .ud-esq[data-pos="Bottom Left"] { bottom: 8px; left: 8px; }
         .ud-esq[data-pos="Bottom Right"] { bottom: 8px; right: 8px; align-items: flex-end; }
         .ud-dash { pointer-events: auto; cursor: pointer; }
+        /* Panel del NLT Zone Engine (tabla de V13.4) */
+        .ze-tabla { border-collapse: collapse; font: 11px/1.3 Inter, system-ui, sans-serif; min-width: 250px; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
+        .ze-tabla td { padding: 3px 8px; white-space: nowrap; color: rgba(229,231,235,.65); vertical-align: middle; }
+        .ze-tabla .ze-v { text-align: right; font-weight: 600; }
+        .ze-tabla .ze-t { font-size: 9.5px; } .ze-tabla .ze-s { font-size: 11px; } .ze-tabla .ze-n { font-size: 12.5px; } .ze-tabla .ze-l { font-size: 11px; }
+        .ze-tabla .ze-g { font-size: 15px; }
+        .ze-tabla .ze-hdr td { font-weight: 700; letter-spacing: .02em; padding: 5px 8px; }
+        .ze-tabla .ze-div td { padding: 0; height: 2px; }
+        .ze-tabla .ze-exp td { cursor: pointer; font-weight: 600; }
+        .ze-e2 { font-size: 9.5px; font-weight: 600; color: #9CA3AF; border: 1px solid rgba(156,163,175,.35); border-radius: 4px; padding: 0 4px; }
+        .ze-tabla.ze-min tr:not(.ze-hdr) { display: none; }
+        @media (max-width: 767px) { .ze-tabla { min-width: 0; font-size: 9.5px; } .ze-tabla td { padding: 2px 5px; } }
         /* Minimizado: solo la primera fila (el título) */
         .ud-dash.ud-min tr:not(:first-child) { display: none; }
         .ud-dash.ud-min .ud-pre { max-height: 1.6em; overflow: hidden; }
@@ -243,21 +255,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=021116b1"></script>
-    <script src="assets/js/nlt-api-client.js?v=2f4ff95f"></script>
+    <script src="assets/js/nlt-api-client.js?v=1809f665"></script>
     <script src="assets/js/charts/diag.js?v=d278a037"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
     <script src="assets/js/charts/market-data.js?v=ed2e0aef"></script>
-    <script src="assets/js/charts/engine.js?v=68e75d4c"></script>
-    <script src="assets/js/charts/ui.js?v=c141247d"></script>
+    <script src="assets/js/charts/engine.js?v=bb140b86"></script>
+    <script src="assets/js/charts/ui.js?v=9ee3395f"></script>
     <script src="assets/js/charts/pine.js?v=61ff9cef"></script>
-    <script src="assets/js/charts/settings.js?v=b7592e2c"></script>
+    <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
-    <script src="assets/js/charts/drawings.js?v=039bef74"></script>
+    <script src="assets/js/charts/drawings.js?v=b7341601"></script>
     <script src="assets/js/charts/watchlist.js?v=d8945505"></script>
     <script src="assets/js/charts/indicators-free.js?v=7078ae1a"></script>
-    <script src="assets/js/charts/unified-suite.js?v=6a62aa75"></script>
-    <script src="assets/js/charts/indicators.js?v=87d50fa4"></script>
-    <script src="assets/js/charts/pro.js?v=c6e4c02f"></script>
-    <script src="assets/js/charts/app.js?v=0a65652f"></script>
+    <script src="assets/js/charts/unified-suite.js?v=890b6dc4"></script>
+    <script src="assets/js/charts/indicators.js?v=58fb91b2"></script>
+    <script src="assets/js/charts/pro.js?v=1d2b6171"></script>
+    <script src="assets/js/charts/app.js?v=7d831a5e"></script>
 </body>
 </html>

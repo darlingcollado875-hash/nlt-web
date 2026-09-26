@@ -715,50 +715,42 @@
         return minimizados;
     }
 
-    let host = null;
-    function hostDashboards() {
-        if (host && document.body.contains(host)) return host;
-        const stage = document.querySelector('.ch-stage');
-        if (!stage) return null;
-        host = document.createElement('div');
-        host.className = 'ud-host';
-        host.innerHTML = ['Top Left', 'Top Right', 'Bottom Left', 'Bottom Right'].map((p) => `<div class="ud-esq" data-pos="${p}"></div>`).join('');
-        host.addEventListener('click', (ev) => {
-            const dsh = ev.target.closest('[data-dash]');
-            if (!dsh) return;
-            const k = dsh.dataset.dash;
-            const mins = dashMinimizados();
-            mins.has(k) ? mins.delete(k) : mins.add(k);
-            NLTCharts.state.savePrefs({ dashMin: [...mins] });
-            dsh.classList.toggle('ud-min', mins.has(k));
-        });
-        stage.appendChild(host);
-        return host;
+    // Cada tabla va en su espacio del tablero compartido (ui.tablero): se apila con las de otros
+    // indicadores (ej. el panel del Zone Engine) en vez de taparlas.
+    const DASHES = ['sr', 'ict', 'smc'];
+    function slotDash(k, pos) {
+        const el = NLTCharts.ui.tablero.slot(pos, `suite-${k}`);
+        if (el && !el.dataset.oyente) {
+            el.dataset.oyente = '1';
+            el.addEventListener('click', (ev) => {
+                const dsh = ev.target.closest('[data-dash]');
+                if (!dsh) return;
+                const mins = dashMinimizados();
+                mins.has(k) ? mins.delete(k) : mins.add(k);
+                NLTCharts.state.savePrefs({ dashMin: [...mins] });
+                dsh.classList.toggle('ud-min', mins.has(k));
+            });
+        }
+        return el;
     }
 
     let ultimoHTML = '';
     function pintarDashboards(dash, chart) {
-        const h = hostDashboards();
-        if (!h) return;
-        // Dentro del panel de velas (sin tapar ejes ni sub-paneles)
-        const main = chart.getSize('candle_pane', 'main');
-        if (main) {
-            h.style.left = `${main.left}px`;
-            h.style.top = `${main.top}px`;
-            h.style.width = `${main.width}px`;
-            h.style.height = `${main.height}px`;
-        }
+        NLTCharts.ui.tablero.ajustar(chart);
         const firma = (dash && dash.firma) || '';
         if (firma === ultimoHTML) return;   // el DOM solo se toca si cambió el contenido
         ultimoHTML = firma;
-        const porPos = { 'Top Left': [], 'Top Right': [], 'Bottom Left': [], 'Bottom Right': [] };
-        ['sr', 'ict', 'smc'].forEach((k) => { if (dash && dash[k]) porPos[dash[k].pos || 'Top Right'].push(`<div class="ud-dash ${dash[k].clase || ''}${dashMinimizados().has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Tocá para minimizar o expandir">${dash[k].html}</div>`); });
-        h.querySelectorAll('.ud-esq').forEach((e) => { e.innerHTML = porPos[e.dataset.pos].join(''); });
+        DASHES.forEach((k) => {
+            const d = dash && dash[k];
+            if (!d) { NLTCharts.ui.tablero.quitar(`suite-${k}`); return; }
+            const el = slotDash(k, d.pos || 'Top Right');
+            if (el) el.innerHTML = `<div class="ud-dash ${d.clase || ''}${dashMinimizados().has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Tocá para minimizar o expandir">${d.html}</div>`;
+        });
     }
 
     function limpiar() {
         ultimoHTML = '';
-        if (host) host.querySelectorAll('.ud-esq').forEach((e) => { e.innerHTML = ''; });
+        DASHES.forEach((k) => NLTCharts.ui.tablero.quitar(`suite-${k}`));
     }
 
     // ─────────────────────────────── registro en el motor ───────────────────────────────

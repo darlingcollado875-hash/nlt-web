@@ -523,6 +523,15 @@
                 if (zonaNLT !== undefined) guardar();
                 if (seleccionado === id) pintarBarra();
             },
+            // Mueve los precios de un rectángulo (ej. la zona se editó en la configuración).
+            fijarPrecios(id, top, bottom) {
+                const o = overlay(id);
+                if (!o || o.points.length < 2) return;
+                const [a, b] = o.points;
+                const aArriba = a.value >= b.value;
+                chart.overrideOverlay({ id, points: [{ ...a, value: aArriba ? top : bottom }, { ...b, value: aArriba ? bottom : top }] });
+                guardar();
+            },
             zonasConectadas() {
                 return chart.getOverlays({ groupId: GRUPO }).filter((o) => o.name === 'nltRect' && o.extendData && o.extendData.zonaNLT);
             },
