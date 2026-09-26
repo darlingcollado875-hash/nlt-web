@@ -1,19 +1,23 @@
-/* NLT Charts -- NLT Zone Engine V13.4: sección PRO del panel, configuración,
+/* NLT Charts -- NLT Zone Engine V13.3.3: sección PRO del panel, configuración,
  * dibujo y tablas.
  *
  * Este archivo NO decide acceso ni calcula nada del motor. El servidor corre el
- * Zone Engine completo (/charts/pro/zone-engine) y devuelve SOLO lo que V13.4
+ * Zone Engine completo (/charts/pro/zone-engine) y devuelve SOLO lo que V13.3.3
  * dibuja: cajas, líneas, etiquetas, formas y sus dos tablas, con los textos y
  * colores del indicador. Acá solo se pinta. Si alguien modifica este JS para
  * "encender" el PRO sin permiso, el backend responde 403 y no hay nada que dibujar.
  *
- * La configuración (las 66 entradas de V13.4) la da el servidor solo a quien
- * tiene acceso. Las entradas "visual" (mostrar OB/FVG/CRT/EQ/Asian/OTE/swings,
- * S/R, Fibonacci, panel, expandir, diagnóstico, panel NLT AI) no recalculan:
- * cada objeto viene marcado con su toggle y se filtra acá, aplicando el pool
- * de 500 etiquetas/líneas de TradingView.
+ * Es el Zone Engine V13.3.3 (el que se vende, sin IA). NLT AI es OTRO
+ * indicador: recibe eventos del motor y muestra su análisis por separado.
  *
- * Zona manual (📦 ZONA MANUAL de V13.4): una por símbolo. Se define en la
+ * Configuración: Entradas (las 61 de V13.3.3, las da el servidor solo a quien
+ * tiene acceso), Estilo (color, opacidad, grosor, tipo de línea, tamaño y
+ * visibilidad de cada cosa que dibuja; por defecto, los colores del Pine) y
+ * Visibilidad (por temporalidad). Lo visual no recalcula: cada objeto viene
+ * marcado con su toggle y su clave de estilo y se filtra/pinta acá, aplicando
+ * el pool de 500 etiquetas/líneas de TradingView.
+ *
+ * Zona manual (📦 ZONA MANUAL de V13.3.3): una por símbolo. Se define en la
  * configuración o conectando un rectángulo ("NLT Engine" en la barra del
  * dibujo); las dos quedan sincronizadas. Se re-analiza al moverla, al cambiar
  * la configuración y con cada vela nueva. */
@@ -22,44 +26,154 @@
     const REFRESCO_MS = 30000;
     const PREF = 'nlt_charts_pro_ver_v1';
     const ZONA_IDS = ['zoneTop', 'zoneBot', 'zoneIsOB', 'zoneIsBull'];
-    const POOL = 500;   // max_labels_count / max_lines_count de V13.4
+    const POOL = 500;   // max_labels_count / max_lines_count de V13.3.3
     const TAM_FORMA = { tiny: 7, small: 9, normal: 11, large: 15 };
 
-    // Las cuatro entradas de la zona manual (V13.4). Son datos del usuario, no parámetros del motor.
+    // Las cuatro entradas de la zona manual (V13.3.3). Son datos del usuario, no parámetros del motor.
     const ZONA_INPUTS = [
-        { id: 'zoneTop', tipo: 'float', def: 0, titulo: 'Zona TOP', grupo: '📦 ZONA MANUAL (precios)', step: 0.00001 },
-        { id: 'zoneBot', tipo: 'float', def: 0, titulo: 'Zona BOTTOM', grupo: '📦 ZONA MANUAL (precios)', step: 0.00001 },
-        { id: 'zoneIsOB', tipo: 'bool', def: true, titulo: 'Tipo de zona: Order Block  (desmarcar = FVG)', grupo: '🌐 NLT AI (webhook)' },
-        { id: 'zoneIsBull', tipo: 'bool', def: true, titulo: 'Dirección: ALCISTA / LONG  (desmarcar = Bajista / SHORT)', grupo: '🌐 NLT AI (webhook)' },
+        { id: 'zoneTop', tipo: 'float', def: 0, titulo: 'Zona TOP', grupo: '📦 ZONA MANUAL (OB / FVG)', step: 0.00001 },
+        { id: 'zoneBot', tipo: 'float', def: 0, titulo: 'Zona BOTTOM', grupo: '📦 ZONA MANUAL (OB / FVG)', step: 0.00001 },
+        { id: 'zoneIsOB', tipo: 'bool', def: true, titulo: 'Es Order Block? (desmarcar = FVG)', grupo: '📦 ZONA MANUAL (OB / FVG)' },
+        { id: 'zoneIsBull', tipo: 'bool', def: true, titulo: '¿Zona ALCISTA? (desmarcar = Bajista)', grupo: '📦 ZONA MANUAL (OB / FVG)' },
     ];
 
     const col = (c) => (c ? NLTCharts.pine.css({ hex: c[0], t: c[1] }) : 'transparent');
 
+    // ---------------------------------------------------------------- pestaña Estilo
+    // Un elemento por cada cosa que V13.3.3 dibuja, con sus colores de Pine como valor por
+    // defecto. Lo que el usuario no cambió se pinta con el color que manda el motor (así los
+    // colores que dependen del estado o del modo quedan como en TradingView).
+    const PC = { lime: '#00E676', red: '#FF5252', yellow: '#FFEB3B', orange: '#FF9800', teal: '#00897B', maroon: '#880E4F',
+        aqua: '#00BCD4', fuchsia: '#E040FB', blue: '#2196F3', purple: '#9C27B0', gray: '#787B86', white: '#FFFFFF' };
+    const FASES = [['detectado', 'Detectado'], ['armado', 'Armado'], ['confirmado', 'Confirmado'], ['listo', 'Entry ready / usado']];
+    const ELEMENTOS = [
+        ...FASES.map(([f, t]) => ['caja', `obBull_${f}`, '🧱 Order Block alcista', t, { detectado: PC.teal, armado: PC.orange, confirmado: PC.yellow, listo: PC.lime }[f], 87, 50, 1]),
+        ...FASES.map(([f, t]) => ['caja', `obBear_${f}`, '🧱 Order Block bajista', t, { detectado: PC.maroon, armado: PC.orange, confirmado: PC.yellow, listo: PC.red }[f], 87, 50, 1]),
+        ...FASES.map(([f, t]) => ['caja', `fvgBull_${f}`, '⚡ FVG alcista', t, { detectado: PC.aqua, armado: PC.orange, confirmado: PC.yellow, listo: PC.lime }[f], 84, 42, 2]),
+        ...FASES.map(([f, t]) => ['caja', `fvgBear_${f}`, '⚡ FVG bajista', t, { detectado: PC.fuchsia, armado: PC.orange, confirmado: PC.yellow, listo: PC.red }[f], 84, 42, 2]),
+        ['etiqueta', 'fvgUp', '⚡ FVG — etiquetas', 'FVG↑', PC.lime, 60, PC.white, 0],
+        ['etiqueta', 'fvgDown', '⚡ FVG — etiquetas', 'FVG↓', PC.red, 60, PC.white, 0],
+        ['caja', 'zona_alta', '📦 Zona manual', 'Calidad ≥ 70', PC.lime, 88, 0, 2],
+        ['caja', 'zona_media', '📦 Zona manual', 'Calidad 50-69', PC.yellow, 88, 0, 2],
+        ['caja', 'zona_baja', '📦 Zona manual', 'Calidad < 50', PC.red, 88, 0, 2],
+        ['etiqueta', 'explicacion', '📦 Zona manual', 'Explicación', '#0D0D0D', 15, PC.white, 5],
+        ['linea', 'pdh', '📌 Niveles clave', 'PDH', PC.red, 42, 2, 'solid'],
+        ['linea', 'pdl', '📌 Niveles clave', 'PDL', PC.lime, 42, 2, 'solid'],
+        ['linea', 'pwh', '📌 Niveles clave', 'PWH', PC.red, 72, 1, 'dotted'],
+        ['linea', 'pwl', '📌 Niveles clave', 'PWL', PC.lime, 72, 1, 'dotted'],
+        ['linea', 'pdMid', '📌 Niveles clave', 'Medio diario', PC.gray, 72, 1, 'dashed'],
+        ['etiqueta', 'pdhLabel', '📌 Niveles clave', 'Etiqueta PDH', PC.red, 78, PC.red, 0],
+        ['etiqueta', 'pdlLabel', '📌 Niveles clave', 'Etiqueta PDL', PC.lime, 78, PC.lime, 0],
+        ['caja', 'ote', '🎯 Zona OTE', 'OTE', PC.purple, 94, 68, 1],
+        ['caja', 'asian', '🌏 Rango asiático', 'Caja', PC.blue, 92, 50, 1],
+        ['linea', 'asianLine', '🌏 Rango asiático', 'Líneas', PC.blue, 52, 1, 'dotted'],
+        ['caja', 'crtBox', '🕯 CRT', 'Caja', PC.yellow, 91, 45, 2],
+        ['etiqueta', 'crtLabel', '🕯 CRT', 'Etiqueta', PC.yellow, 55, PC.white, 0],
+        ['forma', 'crtUp', '🕯 CRT', 'Flecha alcista', PC.yellow, 10, 'tiny'],
+        ['forma', 'crtDown', '🕯 CRT', 'Flecha bajista', PC.yellow, 10, 'tiny'],
+        ['linea', 'eqhLine', '💧 Liquidez EQH/EQL', 'Línea EQH', PC.red, 45, 1, 'dashed'],
+        ['linea', 'eqlLine', '💧 Liquidez EQH/EQL', 'Línea EQL', PC.lime, 45, 1, 'dashed'],
+        ['etiqueta', 'eqhLabel', '💧 Liquidez EQH/EQL', 'Etiqueta EQH', PC.red, 35, PC.white, 0],
+        ['etiqueta', 'eqlLabel', '💧 Liquidez EQH/EQL', 'Etiqueta EQL', PC.lime, 35, PC.white, 0],
+        ['etiqueta', 'judasUp', '🪤 Judas swing', 'Alcista', PC.purple, 45, PC.white, 0],
+        ['etiqueta', 'judasDown', '🪤 Judas swing', 'Bajista', PC.purple, 45, PC.white, 0],
+        ['etiqueta', 'swingAlto', '〽️ Swings', 'Máximo (H)', PC.red, 70, PC.white, 0],
+        ['etiqueta', 'swingBajo', '〽️ Swings', 'Mínimo (L)', PC.lime, 70, PC.white, 0],
+        ['linea', 'srSup', '🧱 Soporte / resistencia', 'Soporte', PC.aqua, 35, 1, 'dotted'],
+        ['linea', 'srRes', '🧱 Soporte / resistencia', 'Resistencia', PC.fuchsia, 35, 1, 'dotted'],
+        ['etiqueta', 'srSupLabel', '🧱 Soporte / resistencia', 'Etiqueta soporte', PC.aqua, 80, PC.aqua, 0],
+        ['etiqueta', 'srResLabel', '🧱 Soporte / resistencia', 'Etiqueta resistencia', PC.fuchsia, 80, PC.fuchsia, 0],
+        ['linea', 'fib50', '📐 Fibonacci', '50%', PC.orange, 45, 1, 'dotted'],
+        ['linea', 'fib618', '📐 Fibonacci', '61.8%', PC.orange, 25, 1, 'dotted'],
+        ['linea', 'fib786', '📐 Fibonacci', '78.6%', PC.orange, 45, 1, 'dotted'],
+        ['forma', 'entryLong', '⚔️ Entradas', 'LONG', PC.lime, 0, 'large'],
+        ['forma', 'entryShort', '⚔️ Entradas', 'SHORT', PC.red, 0, 'large'],
+    ];
+    const LINEA_OPC = [{ v: 'solid', t: 'Sólida' }, { v: 'dashed', t: 'Guiones' }, { v: 'dotted', t: 'Puntos' }];
+    const TAM_OPC = [{ v: 'tiny', t: 'Muy chico' }, { v: 'small', t: 'Chico' }, { v: 'normal', t: 'Normal' }, { v: 'large', t: 'Grande' }];
+    function inputsEstilo() {
+        const out = [];
+        const add = (e, id, tipo, def, titulo, extra = {}) => out.push({ id: `st_${e[1]}_${id}`, tipo, def, titulo, grupo: e[2], tab: 'Estilo', inline: e[1], recalc: false, ...extra });
+        ELEMENTOS.forEach((e) => {
+            add(e, 'vis', 'bool', true, e[3]);
+            if (e[0] === 'caja') {
+                add(e, 'fondo', 'color', { hex: e[4], t: e[5] }, 'Relleno');
+                add(e, 'borde', 'color', { hex: e[4], t: e[6] }, 'Borde');
+                add(e, 'grosor', 'int', e[7], 'Grosor', { min: 1, max: 4 });
+            } else if (e[0] === 'linea') {
+                add(e, 'color', 'color', { hex: e[4], t: e[5] }, 'Color');
+                add(e, 'grosor', 'int', e[6], 'Grosor', { min: 1, max: 4 });
+                add(e, 'tipo', 'string', e[7], 'Tipo', { opciones: LINEA_OPC });
+            } else if (e[0] === 'etiqueta') {
+                add(e, 'fondo', 'color', { hex: e[4], t: e[5] }, 'Fondo');
+                add(e, 'texto', 'color', { hex: e[6], t: e[7] }, 'Texto');
+            } else {
+                add(e, 'color', 'color', { hex: e[4], t: e[5] }, 'Color');
+                add(e, 'tam', 'string', e[6], 'Tamaño', { opciones: TAM_OPC });
+            }
+        });
+        out.push({ id: 'st_panel_escala', tipo: 'string', def: 'normal', titulo: 'Tamaño del texto', grupo: '📊 Panel', tab: 'Estilo', recalc: false,
+            opciones: [{ v: 'small', t: 'Chico' }, { v: 'normal', t: 'Normal' }, { v: 'large', t: 'Grande' }] });
+        return out;
+    }
+    const VIS_TF = [
+        { id: 'vis_m', tipo: 'bool', def: true, titulo: 'Minutos', grupo: 'Mostrar en', tab: 'Visibilidad', recalc: false },
+        { id: 'vis_h', tipo: 'bool', def: true, titulo: 'Horas', grupo: 'Mostrar en', tab: 'Visibilidad', recalc: false },
+        { id: 'vis_d', tipo: 'bool', def: true, titulo: 'Días', grupo: 'Mostrar en', tab: 'Visibilidad', recalc: false },
+    ];
+    // Estilo efectivo de una clave: solo lo que el usuario cambió respecto del default de Pine.
+    let estilos = {};
+    function armarEstilos(v, defs) {
+        estilos = {};
+        const igual = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+        ELEMENTOS.forEach((e) => {
+            const k = e[1], o = {};
+            const val = (p) => v[`st_${k}_${p}`];
+            const cambio = (p) => val(p) !== undefined && !igual(val(p), defs[`st_${k}_${p}`]);
+            if (val('vis') === false) o.oculto = true;
+            ['fondo', 'borde', 'color', 'texto'].forEach((p) => { if (cambio(p)) o[p] = [val(p).hex, val(p).t]; });
+            if (cambio('grosor')) o.grosor = val('grosor');
+            if (cambio('tipo')) o.tipo = val('tipo');
+            if (cambio('tam')) o.tam = val('tam');
+            if (Object.keys(o).length) estilos[k] = o;
+        });
+    }
+
     // ---------------------------------------------------------------- dibujo del indicador
-    let dibujo = null;            // última respuesta (lo que V13.4 dibuja)
+    let dibujo = null;            // última respuesta (lo que V13.3.3 dibuja)
     let vista = null;             // dibujo ya filtrado por toggles y pool (se rearma solo si cambia algo)
     let visuales = {};            // valores de las entradas visuales
     let registrado = false;
+    let tfVisible = null;   // lo fija crear(): pestaña Visibilidad
 
     // Etiquetas y formas llegan compactas ([x, y, texto, estilo] / [x, estilo] + tabla de estilos).
     function expandir(d) {
         if (d._expandido) return;
         const st = d.styles || [];
-        d.labels = d.labels.map(([x, y, t, k]) => { const e = st[k]; return { x, y, t, g: e[1], s: e[2], c: e[3], tc: e[4], z: e[5], a: e[6] }; });
-        d.shapes = d.shapes.map(([x, k]) => { const e = st[k]; return { x, g: e[1], f: e[2], loc: e[3], c: e[4], z: e[5], t: e[6] }; });
+        d.labels = d.labels.map(([x, y, t, i]) => { const e = st[i]; return { x, y, t, g: e[1], s: e[2], c: e[3], tc: e[4], z: e[5], a: e[6], k: e[7] }; });
+        d.shapes = d.shapes.map(([x, i]) => { const e = st[i]; return { x, g: e[1], f: e[2], loc: e[3], c: e[4], z: e[5], t: e[6], k: e[7] }; });
         d._expandido = true;
     }
 
     function armarVista() {
         if (!dibujo) { vista = null; return; }
         expandir(dibujo);
-        const ve = (g) => !g || visuales[g] !== false;
-        const pool = (lista) => { const f = lista.filter((o) => ve(o.g)); return f.length > POOL ? f.slice(f.length - POOL) : f; };
+        // visible = su toggle de V13.3.3 prendido y no oculto en la pestaña Estilo
+        const ve = (o) => (!o.g || visuales[o.g] !== false) && !(estilos[o.k] && estilos[o.k].oculto);
+        const pool = (lista) => { const f = lista.filter(ve); return f.length > POOL ? f.slice(f.length - POOL) : f; };
+        // lo que el usuario cambió en Estilo reemplaza el color/grosor/tipo que mandó el motor
+        const est = (o, mapa) => {
+            const e = estilos[o.k];
+            if (!e) return o;
+            const r = { ...o };
+            Object.entries(mapa).forEach(([de, a]) => { if (e[de] !== undefined) r[a] = e[de]; });
+            return r;
+        };
         vista = {
-            boxes: dibujo.boxes.filter((o) => ve(o.g)),
-            lines: pool(dibujo.lines),
-            labels: pool(dibujo.labels),
-            shapes: dibujo.shapes.filter((o) => ve(o.g)),
+            boxes: dibujo.boxes.filter(ve).map((o) => est(o, { fondo: 'bg', borde: 'bc', grosor: 'bw' })),
+            lines: pool(dibujo.lines).map((o) => est(o, { color: 'c', grosor: 'w', tipo: 's' })),
+            labels: pool(dibujo.labels).map((o) => est(o, { fondo: 'c', texto: 'tc' })),
+            shapes: dibujo.shapes.filter(ve).map((o) => est(o, { color: 'c', tam: 'z' })),
         };
     }
 
@@ -117,9 +231,9 @@
             shortName: 'NLT Zone Engine',
             figures: [],
             calc: (dataList) => dataList.map(() => ({})),
-            createTooltipDataSource: ({ indicator }) => ({ name: '⚡ NLT ZONE ENGINE V13.4', calcParamsText: '', features: NLTCharts.leyenda.features(indicator), legends: [] }),
+            createTooltipDataSource: ({ indicator }) => ({ name: '⚡ NLT ZONE ENGINE V13.3.3', calcParamsText: '', features: NLTCharts.leyenda.features(indicator), legends: [] }),
             draw: ({ ctx, chart, bounding, xAxis, yAxis }) => {
-                if (!vista) return false;
+                if (!vista || (tfVisible && !tfVisible())) return false;
                 const dl = chart.getDataList();
                 if (!dl.length) return false;
                 const p = chart.getPeriod();
@@ -156,7 +270,7 @@
         });
     }
 
-    // ---------------------------------------------------------------- tablas de V13.4
+    // ---------------------------------------------------------------- tabla de V13.3.3
     const esc = (t) => NLTCharts.ui.esc(t);
     const br = (t) => esc(t).replace(/\n/g, '<br>');
 
@@ -171,11 +285,6 @@
             ${filas.map((f) => (f.div ? div(f.bg) :
                 `<tr${f.exp ? ' class="ze-exp" data-ze="expandir"' : ''} style="background:${col(f.bg)}"><td class="ze-l" style="color:${col(f.lc)}">${br(f.l)}</td><td class="ze-v ze-${esc(f.z)}" style="color:${col(f.c)}">${br(f.v)}</td></tr>`)).join('')}
         </table>`;
-    }
-
-    function htmlPanelNlt(p) {
-        return `<table class="ze-tabla ze-nlt">${p.filas.map(([l, v, lc, vc, z, bg]) =>
-            `<tr${bg ? ` style="background:${col(bg)}"` : ''}><td class="ze-l ze-${esc(z)}" style="color:${col(lc)}">${esc(l)}</td><td class="ze-${esc(z)}" style="color:${col(vc)}">${esc(v)}</td></tr>`).join('')}</table>`;
     }
 
     // Mostrar/ocultar las zonas PRO: preferencia del usuario (viaja con el layout de la cuenta).
@@ -199,15 +308,16 @@
      */
     function crear({ chart, getSymbol, getTimeframe, dibujos, onCambio }) {
         registrar();
+        tfVisible = () => visibleEnTf();
         const S = NLTCharts.settings;
         const state = NLTCharts.state;
-        S.registrar(ZE, { titulo: 'NLT Zone Engine V13.4', inputs: ZONA_INPUTS });
+        S.registrar(ZE, { titulo: '⚡ NLT ZONE ENGINE V13.3.3', inputs: ZONA_INPUTS });
         let catalogo = null;
         let error = '';
         let ver = leerPref();
         let oculto = !!state.prefs().proOculto;
         let dibujado = false;
-        let esquema = null;           // entradas de V13.4 (solo con acceso)
+        let esquema = null;           // entradas de V13.3.3 (solo con acceso)
         let rectId = null, rectVisto = false;
         let previa = null;            // valores mientras el diálogo está abierto
         let timer = null, timerCorto = null, seq = 0;
@@ -246,11 +356,19 @@
             else ZONA_IDS.forEach((k) => { out[k] = v[k]; });
             return out;
         }
+        const defsEstilo = Object.fromEntries(inputsEstilo().map((e) => [e.id, e.def]));
         function actualizarVisuales() {
             const v = valores();
             visuales = {};
             (esquema || []).forEach((e) => { if (e.rol === 'visual') visuales[e.id] = v[e.id]; });
+            armarEstilos(v, defsEstilo);
             armarVista();
+        }
+        // pestaña Visibilidad: ocultar el indicador en las temporalidades desmarcadas
+        function visibleEnTf() {
+            const tf = String(getTimeframe() || ''), u = tf.slice(-1);
+            const clave = u === 'm' ? 'vis_m' : (u === 'H' || u === 'h') ? 'vis_h' : 'vis_d';
+            return valores()[clave] !== false;
         }
 
         // Rectángulo conectado (del símbolo actual). Si el usuario lo borró, la zona manual se quita.
@@ -270,11 +388,11 @@
                 esquema = r.inputs;
                 S.registrar(ZE, {
                     titulo: `⚡ NLT ZONE ENGINE ${r.version || ''}`.trim(),
-                    inputs: r.inputs.map((e) => ({
+                    inputs: [...r.inputs.map((e) => ({
                         id: e.id, tipo: e.tipo, def: e.def, titulo: e.titulo, grupo: e.grupo, min: e.min, max: e.max, step: e.step,
                         opciones: e.opciones, tooltip: e.tooltip,
-                        recalc: e.rol === 'visual' || e.rol === 'local' ? false : undefined,
-                    })),
+                        recalc: e.rol === 'visual' ? false : undefined,
+                    })), ...inputsEstilo(), ...VIS_TF],
                 });
                 actualizarVisuales();
             } catch (_) { /* sin esquema: solo la zona manual */ }
@@ -287,15 +405,15 @@
         }
 
         // ---- tablas en el tablero compartido (panel arriba a la derecha, NLT AI abajo a la derecha) ----
-        let firmaPanel = '', firmaNlt = '';
+        let firmaPanel = '';
         function pintarTablas() {
             const v = valores();
-            const activo = dibujado && !oculto && dibujo;
+            const activo = dibujado && !oculto && dibujo && visibleEnTf();
             NLTCharts.ui.tablero.ajustar(chart);
             if (activo && v.showAIPanel !== false) {
                 const g = state.prefs().dashMin;
                 const minimizado = Array.isArray(g) ? g.includes('ze') : window.innerWidth < 768;
-                const html = htmlPanel(dibujo.panel, v, minimizado);
+                const html = htmlPanel(dibujo.panel, v, minimizado).replace('class="ze-tabla', `class="ze-tabla ze-esc-${v.st_panel_escala || 'normal'}`);
                 if (html !== firmaPanel) {
                     firmaPanel = html;
                     const el = NLTCharts.ui.tablero.slot('Top Right', 'ze');
@@ -316,14 +434,7 @@
                     if (el) el.innerHTML = `<div class="ud-dash ze-panel">${html}</div>`;
                 }
             } else { NLTCharts.ui.tablero.quitar('ze'); firmaPanel = ''; }
-            if (activo && v.nltShowPanel !== false && dibujo.nlt_panel) {
-                const html = htmlPanelNlt(dibujo.nlt_panel);
-                if (html !== firmaNlt) {
-                    firmaNlt = html;
-                    const el = NLTCharts.ui.tablero.slot('Bottom Right', 'ze-nlt');
-                    if (el) el.innerHTML = `<div class="ud-dash">${html}</div>`;
-                }
-            } else { NLTCharts.ui.tablero.quitar('ze-nlt'); firmaNlt = ''; }
+            NLTCharts.ui.tablero.quitar('ze-nlt');   // NLT AI es otro indicador: no va en el Zone Engine
         }
 
         async function cargarCatalogo() {
@@ -378,7 +489,7 @@
         }
         const programar = (ms) => { clearTimeout(timerCorto); timerCorto = setTimeout(refrescar, ms); };
 
-        // ---- configuración (las 66 entradas de V13.4) ----
+        // ---- configuración (Entradas de V13.3.3 + Estilo + Visibilidad) ----
         function abrirAjustes(tab) {
             const e = S.esquema(ZE);
             const cambioZona = (cambiados) => cambiados.some((c) => ZONA_IDS.includes(c));
@@ -431,7 +542,7 @@
                 alAceptar: (vals) => {
                     const z = zonaDeValores(vals);
                     if (!z) { error = 'La zona necesita un precio superior (TOP) mayor que el inferior (BOTTOM).'; onCambio && onCambio(); return; }
-                    // una sola zona manual por símbolo, como V13.4: la anterior se desconecta
+                    // una sola zona manual por símbolo, como V13.3.3: la anterior se desconecta
                     dibujos.zonasConectadas().forEach((o) => { if (o.id !== id) dibujos.marcarZona(o.id, null); });
                     if (z.top !== r.top || z.bottom !== r.bottom) dibujos.fijarPrecios(id, z.top, z.bottom);
                     dibujos.marcarZona(id, { esOB: z.esOB, alcista: z.alcista });
