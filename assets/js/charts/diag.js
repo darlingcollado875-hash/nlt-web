@@ -192,8 +192,9 @@
         for (let k = 0; k < dibujos; k++) {
             const a = datos[n - 20 - k * 7], b = datos[n - 5 - k * 3];
             const pts = [{ timestamp: a.timestamp, value: a.low }, { timestamp: b.timestamp, value: b.high }];
-            const tipos = ['nltRect', 'segment', 'fibonacciLine', 'horizontalStraightLine', 'rayLine'];
-            chart.createOverlay({ name: tipos[k % tipos.length], groupId: 'diag', points: tipos[k % tipos.length] === 'horizontalStraightLine' ? [pts[0]] : pts });
+            const tipos = [['nltRect', 'rect'], ['nltTrend', 'trend'], ['nltFib', 'fib'], ['nltHLine', 'hline'], ['nltTrend', 'ray']];
+            const [name, herramienta] = tipos[k % tipos.length];
+            chart.createOverlay({ name, groupId: 'diag', points: name === 'nltHLine' ? [pts[0]] : pts, extendData: { estilo: { herramienta } } });
         }
         await esperar(1500);
         const res = [];

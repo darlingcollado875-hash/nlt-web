@@ -143,6 +143,28 @@
             .ud-smc-t .ud-titulo { font-size: 12px; }
             .cs-num { width: 90px; } .cs-sel { min-width: 110px; }
         }
+        /* Barra flotante del dibujo seleccionado (estilo TradingView) */
+        .dw-bar { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 6; display: flex; align-items: center; gap: 4px; padding: 4px; background: #131722; border: 1px solid #2A2E39; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.45); max-width: calc(100% - 16px); overflow-x: auto; scrollbar-width: none; }
+        .dw-bar::-webkit-scrollbar { display: none; }
+        .dw-nombre { font-size: 11px; font-weight: 600; color: #9CA3AF; padding: 0 6px; white-space: nowrap; }
+        .dw-btn { height: 30px; min-width: 30px; padding: 0 7px; display: inline-flex; align-items: center; justify-content: center; gap: 5px; border-radius: 7px; color: #D1D4DC; font-size: 16px; cursor: pointer; flex-shrink: 0; }
+        .dw-btn span { font-size: 11px; font-weight: 600; }
+        .dw-btn:hover { background: rgba(255,255,255,.07); color: #fff; }
+        .dw-btn.on { color: rgb(var(--ch-accent)); background: rgba(var(--ch-accent),.12); }
+        .dw-btn.peligro:hover { color: rgb(248,113,113); }
+        .dw-sel { background: #1E222D; border: 1px solid #363A45; border-radius: 6px; color: #fff; font-size: 12px; padding: 4px 6px; height: 30px; flex-shrink: 0; }
+        .dw-color { position: relative; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 7px; cursor: pointer; flex-shrink: 0; }
+        .dw-color:hover { background: rgba(255,255,255,.07); }
+        .dw-color span { width: 16px; height: 16px; border-radius: 4px; border: 1px solid rgba(255,255,255,.3); }
+        .dw-color input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+        /* Diálogo: pestañas como botones, texto libre, entradas de etapa 2 */
+        .cs-tab { background: none; border: 0; cursor: pointer; font: inherit; }
+        .cs-texto { background: #1E222D; border: 1px solid #363A45; border-radius: 6px; color: #fff; padding: 6px 8px; font-size: 13px; width: 100%; min-width: 180px; font-family: inherit; }
+        .cs-texto:focus { outline: none; border-color: #2962FF; }
+        .cs-col { flex-direction: column; align-items: stretch; }
+        .cs-off { opacity: .5; }
+        .cs-etapa2 { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #A78BFA; border: 1px solid rgba(167,139,250,.4); border-radius: 999px; padding: 1px 6px; margin-left: 6px; }
+        .cs-plantilla { min-width: 0; }
         @media (max-width: 767px) {
             #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
             #sidebar.sidebar-open { transform: translateX(0); }
@@ -173,6 +195,7 @@
                 <div id="chart"></div>
                 <div id="chEstado" class="ch-overlay">Cargando gráfico...</div>
                 <div id="chHint" class="ch-hint" hidden></div>
+                <div id="chBarraDibujo" class="dw-bar" role="toolbar" aria-label="Dibujo seleccionado" hidden></div>
             </div>
         </div>
     </main>
@@ -184,18 +207,18 @@
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=021116b1"></script>
     <script src="assets/js/nlt-api-client.js?v=7e605a70"></script>
-    <script src="assets/js/charts/diag.js?v=11c2d5af"></script>
+    <script src="assets/js/charts/diag.js?v=d278a037"></script>
     <script src="assets/js/charts/state.js?v=d22f56da"></script>
     <script src="assets/js/charts/market-data.js?v=ed2e0aef"></script>
     <script src="assets/js/charts/engine.js?v=a346519e"></script>
     <script src="assets/js/charts/ui.js?v=c8ed31c3"></script>
     <script src="assets/js/charts/pine.js?v=ac5d799c"></script>
-    <script src="assets/js/charts/settings.js?v=477bdb76"></script>
-    <script src="assets/js/charts/drawings.js?v=540ac4a4"></script>
+    <script src="assets/js/charts/settings.js?v=73176407"></script>
+    <script src="assets/js/charts/drawings.js?v=039bef74"></script>
     <script src="assets/js/charts/indicators-free.js?v=fc45d737"></script>
     <script src="assets/js/charts/unified-suite.js?v=2e2ae529"></script>
     <script src="assets/js/charts/indicators.js?v=26458fdb"></script>
-    <script src="assets/js/charts/pro.js?v=25ced15d"></script>
-    <script src="assets/js/charts/app.js?v=905913cc"></script>
+    <script src="assets/js/charts/pro.js?v=55f04647"></script>
+    <script src="assets/js/charts/app.js?v=27d1aa85"></script>
 </body>
 </html>

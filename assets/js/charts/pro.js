@@ -220,6 +220,9 @@
                     refrescar();
                 });
             },
+            tieneAcceso() { const a = zeAcceso(); return !!(a && a.has_access); },
+            conectarZona() { /* bloque G */ },
+            zonaMovida() { /* bloque G */ },
             // Al cambiar de símbolo la zona manual deja de aplicar.
             cambioDeSimbolo() { zonaManual = null; manual = null; refrescar(); },
         };

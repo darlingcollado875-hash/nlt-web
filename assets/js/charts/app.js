@@ -41,16 +41,22 @@
             onError: (msg) => mostrarEstado('No se pudieron cargar los precios: ' + msg, true),
         });
 
+        let pro = null;   // se crea más abajo; los dibujos lo consultan en tiempo de uso
         dib = drawings.montar({
             chart: motor.chart,
             toolsEl: document.getElementById('chTools'),
             hintEl: document.getElementById('chHint'),
+            barraEl: document.getElementById('chBarraDibujo'),
             getSymbol: () => symbol,
+            // Rectángulo conectado al NLT Zone Engine (pro.js decide si hay acceso)
+            puedeZonaNLT: () => !!(pro && pro.tieneAcceso()),
+            onEnviarZona: (id) => pro && pro.conectarZona(id),
+            onZonaMovida: (id) => pro && pro.zonaMovida(id),
         });
 
         // PRO: el backend decide el acceso; esto solo muestra y dibuja.
         let ind = null;
-        const pro = NLTCharts.pro.crear({
+        pro = NLTCharts.pro.crear({
             chart: motor.chart,
             getSymbol: () => symbol,
             getTimeframe: () => timeframe,
@@ -81,6 +87,7 @@
             // Key Levels pide las diarias del símbolo: tiene que saberlo antes del recálculo.
             NLTCharts.freeIndicators.setSymbol(symbol);
             NLTCharts.unified.setContexto({ symbol, pricePrecision: porSimbolo[symbol].price_precision });
+            NLTCharts.drawings.setPrecision(porSimbolo[symbol].price_precision);
             motor.cargar(porSimbolo[symbol], timeframe);
         }
         cargar();
