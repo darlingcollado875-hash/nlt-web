@@ -24,12 +24,14 @@
             <div class="ch-tfs" role="group" aria-label="Timeframe">
                 ${o.timeframes.map((tf) => `<button type="button" class="ch-tf" data-tf="${esc(tf)}">${esc(tf)}</button>`).join('')}
             </div>
-            <button type="button" id="chBtnInd" class="ch-btn"><i class="ph ph-function"></i><span class="ch-btn-label">Indicadores</span></button>`;
+            <button type="button" id="chBtnInd" class="ch-btn"><i class="ph ph-function"></i><span class="ch-btn-label">Indicadores</span></button>
+            <button type="button" id="chBtnConfig" class="ch-btn" title="Configuración del gráfico" aria-label="Configuración del gráfico"><i class="ph ph-gear-six"></i></button>`;
 
         const sel = el.querySelector('#chSymbol');
         sel.addEventListener('change', () => o.onSymbol(sel.value));
         el.querySelectorAll('.ch-tf').forEach((b) => b.addEventListener('click', () => o.onTimeframe(b.dataset.tf)));
         el.querySelector('#chBtnInd').addEventListener('click', () => o.onIndicadores());
+        el.querySelector('#chBtnConfig').addEventListener('click', () => o.onConfig && o.onConfig());
 
         const api = {
             setSymbol(s) { sel.value = s; },

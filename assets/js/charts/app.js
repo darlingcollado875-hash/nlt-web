@@ -42,6 +42,9 @@
         });
 
         let pro = null;   // se crea más abajo; los dibujos lo consultan en tiempo de uso
+        NLTCharts.settings.registrar('GRAFICO', NLTCharts.engine.APARIENCIA);
+        motor.aplicarApariencia(NLTCharts.settings.valores('GRAFICO'));
+
         dib = drawings.montar({
             chart: motor.chart,
             toolsEl: document.getElementById('chTools'),
@@ -80,6 +83,7 @@
             onSymbol: (s) => { symbol = s; state.savePrefs({ symbol }); cargar(); pro.cambioDeSimbolo(); },
             onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); cargar(); pro.refrescar(); },
             onIndicadores: () => ind.abrir(),
+            onConfig: () => NLTCharts.settings.abrir('GRAFICO', (v) => motor.aplicarApariencia(v)),
         });
 
         function cargar() {

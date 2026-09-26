@@ -15,7 +15,7 @@
  * TradingView pero todavía no en NLT Charts (se muestra deshabilitada). */
 (function () {
     const CLAVE = 'nlt_charts_ind_settings_v1';
-    const ORDEN_TABS = ['Entradas', 'Estilo', 'Texto', 'Coordenadas', 'Visibilidad'];
+    const ORDEN_TABS = ['Entradas', 'Velas', 'Estilo', 'Texto', 'Coordenadas', 'Lienzo', 'Visibilidad'];
     const esquemas = new Map();   // id -> { titulo, inputs }
     const vistaPrevia = new Map(); // id -> valores mientras el diálogo está abierto (sin guardar)
     const oyentes = new Set();     // cambios guardados (persistencia en servidor, ver layout.js)
