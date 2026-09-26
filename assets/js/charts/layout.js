@@ -14,6 +14,7 @@
 (function () {
     const VERSION = 1;
     const ESPERA_MS = 2000;
+    const REINTENTO_MS = 20000;
     const META = 'nlt_charts_layout_meta_v1';
     let userId = 'anon';
     let estado = 'local';       // 'local' (sin cuenta), 'sincronizado', 'no-disponible'
@@ -82,9 +83,10 @@
         try {
             r = await Promise.race([pedido, new Promise((_, rej) => setTimeout(() => rej(Object.assign(new Error('timeout'), { status: 0 })), timeoutMs))]);
         } catch (err) {
-            // 503 = la tabla todavía no existe: solo local. Timeout o red: solo local en esta sesión
-            // (no se sube nada para no pisar la cuenta con datos viejos).
+            // 503 = la tabla todavía no existe: solo local. Timeout o red: solo local por ahora
+            // (no se sube nada para no pisar la cuenta con datos viejos) y un reintento más tarde.
             estado = err.status === 503 ? 'no-disponible' : 'local';
+            if (estado === 'local') setTimeout(reintentar, REINTENTO_MS);
             return { estado, origen: 'local' };
         }
         estado = 'sincronizado';
@@ -104,6 +106,24 @@
         }
         if (leerMeta().sucio) timer = setTimeout(subir, ESPERA_MS);
         return { estado, origen };
+    }
+
+    // Con el gráfico ya abierto no se reemplaza nada en pantalla: si la cuenta tiene algo más
+    // nuevo se adopta al próximo arranque (y mientras tanto no se sube, para no pisarlo).
+    async function reintentar() {
+        if (estado !== 'local') return;
+        let r;
+        try { r = await NLT_API.chartsLayout(); } catch (err) {
+            if (err.status === 503) estado = 'no-disponible';
+            return;
+        }
+        const meta = leerMeta();
+        const servidor = r && r.layout ? (Date.parse(r.updated_at) || 0) : 0;
+        if (!servidor || (meta.sucio && (meta.cambioLocal || 0) > servidor)) {
+            estado = 'sincronizado';
+            if (!servidor) guardarMeta({ sucio: true });   // la cuenta no tiene nada: se sube lo local
+            if (leerMeta().sucio) timer = setTimeout(subir, ESPERA_MS);
+        }
     }
 
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') subir(); });
