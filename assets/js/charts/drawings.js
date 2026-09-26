@@ -208,6 +208,15 @@
         });
 
         return {
+            // El rectángulo seleccionado (o el último dibujado) como zona:
+            // precios y desde cuándo. Lo usa el análisis de zona manual PRO.
+            rectanguloComoZona() {
+                const rects = chart.getOverlays({ groupId: GRUPO }).filter((o) => o.name === 'nltRect' && o.currentStep === -1);
+                const r = rects.find((o) => o.id === seleccionado) || rects[rects.length - 1];
+                if (!r || r.points.length < 2) return null;
+                const [a, b] = r.points;
+                return { top: Math.max(a.value, b.value), bottom: Math.min(a.value, b.value), desde: Math.min(a.timestamp, b.timestamp) };
+            },
             // Después de cargar un símbolo: saca los dibujos que haya en
             // pantalla y pone los guardados de ese símbolo.
             restaurar() {

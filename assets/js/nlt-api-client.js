@@ -913,6 +913,20 @@
             if (end != null) qs.set('end', String(end));
             return request(`/charts/candles?${qs}`);
         },
+        // PRO: el backend decide el acceso; estos métodos solo preguntan.
+        chartsProCatalogo: () => request('/charts/pro/catalog'),
+        chartsProIniciarTrial: (indicatorId) => request(`/charts/pro/${encodeURIComponent(indicatorId)}/trial`, { method: 'POST' }),
+        chartsZoneEngine: (symbol, timeframe, zona = null) => {
+            const qs = new URLSearchParams({ symbol, timeframe });
+            if (zona) {
+                qs.set('zone_top', String(zona.top));
+                qs.set('zone_bottom', String(zona.bottom));
+                qs.set('zone_is_ob', String(!!zona.esOB));
+                qs.set('zone_is_bull', String(!!zona.alcista));
+                if (zona.desde != null) qs.set('zone_from', String(zona.desde));
+            }
+            return request(`/charts/pro/zone-engine?${qs}`);
+        },
     };
 
     window.NLT_API = NLT_API;

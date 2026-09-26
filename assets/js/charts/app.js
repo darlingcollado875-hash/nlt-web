@@ -46,20 +46,31 @@
             getSymbol: () => symbol,
         });
 
-        const ind = indicators.montar({
+        // PRO: el backend decide el acceso; esto solo muestra y dibuja.
+        let ind = null;
+        const pro = NLTCharts.pro.crear({
+            chart: motor.chart,
+            getSymbol: () => symbol,
+            getTimeframe: () => timeframe,
+            getRectangulo: () => dib.rectanguloComoZona(),
+            onCambio: () => ind && ind.refrescarPanel(),
+        });
+
+        ind = indicators.montar({
             chart: motor.chart,
             panelEl: document.getElementById('chPanel'),
             panelBgEl: document.getElementById('chPanelBg'),
             activos: prefs.indicators,
             onCambio: (ids) => state.savePrefs({ indicators: ids }),
+            pro,
         });
 
         const toolbar = ui.montarToolbar(document.getElementById('chToolbar'), {
             simbolos: catalogo.symbols,
             timeframes: catalogo.timeframes,
             symbol, timeframe,
-            onSymbol: (s) => { symbol = s; state.savePrefs({ symbol }); cargar(); },
-            onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); cargar(); },
+            onSymbol: (s) => { symbol = s; state.savePrefs({ symbol }); cargar(); pro.cambioDeSimbolo(); },
+            onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); cargar(); pro.refrescar(); },
             onIndicadores: () => ind.abrir(),
         });
 
@@ -70,6 +81,7 @@
             motor.cargar(porSimbolo[symbol], timeframe);
         }
         cargar();
+        pro.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
     }
 
