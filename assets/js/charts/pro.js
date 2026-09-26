@@ -24,7 +24,7 @@
             shortName: 'Zone Engine PRO',
             figures: [],
             calc: (dataList) => dataList.map(() => ({})),
-            createTooltipDataSource: () => ({ name: 'Zone Engine PRO', calcParamsText: '', features: [], legends: [] }),
+            createTooltipDataSource: ({ indicator }) => ({ name: 'Zone Engine PRO', calcParamsText: '', features: NLTCharts.leyenda.features(indicator), legends: [] }),
             draw: ({ ctx, chart, bounding }) => {
                 const ancho = bounding.width;
                 ctx.save();

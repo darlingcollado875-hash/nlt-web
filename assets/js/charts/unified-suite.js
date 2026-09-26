@@ -114,6 +114,21 @@
         s('smc_titleEmoji', '🏦', 'Emoji del Encabezado', G4U, ['🏦', '🌍', '💎']),
     ];
 
+    // Entradas solo visuales (recalc: false): los colores y lo que se usa únicamente al
+    // armar la salida (etiquetas, extender, dashboards). Cambiarlas no reprocesa velas.
+    const VISUALES = new Set(['srp_showLabels', 'srp_showPrice', 'srp_extendRight', 'srp_showDashboard', 'srp_dashPositionIn',
+        'i_showDash', 'i_dashPos', 'smc_posInput', 'smc_sizeInput', 'smc_titleEmoji']);
+    INPUTS.forEach((inp) => { if (inp.tipo === 'color' || VISUALES.has(inp.id)) inp.recalc = false; });
+
+    // Colores como fichas: el cálculo guarda { k: entrada } y el dibujo lo resuelve con los
+    // valores actuales (paleta.v). Mismo resultado que el .pine, sin recalcular por un color.
+    const paleta = { v: {} };
+    const FICHAS = Object.fromEntries(INPUTS.filter((inp) => inp.tipo === 'color').map((inp) => [inp.id, Object.freeze({ k: inp.id, pal: paleta })]));
+    function conFichas(v) { return { ...v, ...FICHAS }; }
+    // Clave de cálculo: solo las entradas que cambian el resultado.
+    function claveCalculo(v) { return JSON.stringify(INPUTS.filter((inp) => inp.recalc !== false).map((inp) => v[inp.id])); }
+    function firmaVisual(v) { return JSON.stringify(INPUTS.filter((inp) => inp.recalc === false && inp.tipo !== 'color').map((inp) => v[inp.id])); }
+
     // ─────────────────────────────── contexto (símbolo, velas HTF) ───────────────────────────────
     let simbolo = null, precision = 5;
     const cacheHTF = new Map();
@@ -605,10 +620,12 @@
     // Motor incremental por instancia de indicador.
     const motores = new Map();
     const stats = { completo: 0, tick: 0, velaNueva: 0 };
-    async function calcularIncremental(id, d, v) {
+    async function calcularIncremental(id, d, vUsuario) {
         const N = d.length;
-        if (!N) return calcular(d, v);
-        const clave = JSON.stringify(v) + '|' + simbolo;
+        if (!N) return calcular(d, vUsuario);
+        paleta.v = vUsuario;
+        const v = conFichas(vUsuario);
+        const clave = claveCalculo(vUsuario) + '|' + simbolo;
         let m = motores.get(id);
         let S = null;
         if (m && m.clave === clave && N >= 4 && m.primerTs === d[0].timestamp) {
@@ -643,8 +660,19 @@
             stats.completo += 1;
         }
         m.N = N; m.primerTs = d[0].timestamp; m.tsPenultima = d[N - 2] ? d[N - 2].timestamp : null; m.tsUltima = d[N - 1].timestamp;
+        m.S = S; m.sesgos = await sesgosSMC(v); m.firmaVisual = firmaVisual(vUsuario);
         motores.set(id, m);
-        return construirSalida(S, m.se, d, v, await sesgosSMC(v));
+        return construirSalida(S, m.se, d, v, m.sesgos);
+    }
+
+    // Cambio solo visual: se rearma la salida desde el estado guardado (sin reprocesar velas).
+    function salidaVisual(id, d, vUsuario) {
+        const m = motores.get(id);
+        if (!m || !m.S) return null;
+        const f = firmaVisual(vUsuario);
+        if (f === m.firmaVisual) return null;
+        m.firmaVisual = f;
+        return construirSalida(m.S, m.se, d, conFichas(vUsuario), m.sesgos);
     }
 
     function tablaSR(res, sup, brk, activas) {
@@ -747,10 +775,14 @@
                 // causaba un bucle de recálculos: medido con diag.js.)
                 return dataList.map(() => ({}));
             },
-            createTooltipDataSource: () => ({ name: 'NLT Unified', calcParamsText: '', features: [], legends: [] }),
+            createTooltipDataSource: ({ indicator }) => ({ name: 'NLT Unified', calcParamsText: '', features: NLTCharts.leyenda.features(indicator), legends: [] }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
                 const s0 = salidas.get(indicator.id || ID);
                 if (!s0) return false;
+                const vUsuario = NLTCharts.settings.valores(ID);
+                paleta.v = vUsuario;
+                const nueva = salidaVisual(indicator.id || ID, s0.velas, vUsuario);
+                if (nueva) s0.salida = nueva;
                 const { salida, velas } = s0;
                 const L = P.lienzo(ctx, chart, bounding, xAxis, yAxis);
                 const { from, to } = chart.getVisibleRange();
@@ -762,7 +794,7 @@
                     const fin = Math.min(to, salida.bg.length);
                     for (let i = Math.max(0, from); i <= fin; i++) {
                         const col = i < fin && salida.bg[i] ? salida.bg[i][capa] : null;
-                        const igual = col && colIni && col.hex === colIni.hex && col.t === colIni.t;
+                        const igual = col && colIni && P.mismoColor(col, colIni);
                         if (ini >= 0 && !igual) { P.fondo(L, ini, i - 1, colIni); ini = -1; colIni = null; }
                         if (col && ini < 0) { ini = i; colIni = col; }
                     }

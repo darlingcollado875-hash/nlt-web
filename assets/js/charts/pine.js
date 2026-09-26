@@ -16,16 +16,28 @@
 
     // ------------------------------------------------------------ colores
     // Un color de Pine se guarda como { hex: '#RRGGBB', t: transparencia 0-100 }.
+    // También puede ser una FICHA { k, pal, t? }: referencia a la entrada de color `k`
+    // que se resuelve al dibujar con los valores actuales (`pal.v`). Así cambiar un
+    // color en la configuración solo redibuja: el cálculo guardado no cambia.
     function col(hex, t = 0) { return { hex, t }; }
     function css(c) {
         if (!c) return 'transparent';
         if (typeof c === 'string') return c;
+        if (c.k) {
+            const base = c.pal.v[c.k];
+            if (!base) return 'transparent';
+            c = c.t != null ? { hex: base.hex, t: c.t } : base;
+        }
         const h = c.hex.replace('#', '');
         const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
         return `rgba(${r},${g},${b},${(1 - (c.t || 0) / 100).toFixed(3)})`;
     }
     // color.new(color_existente, t) -- reemplaza la transparencia
-    function conT(c, t) { return { hex: c.hex, t }; }
+    function conT(c, t) { return c.k ? { k: c.k, pal: c.pal, t } : { hex: c.hex, t }; }
+    function mismoColor(a, b) {
+        if (!a || !b) return a === b;
+        return a.k ? (a.k === b.k && a.pal === b.pal && a.t === b.t) : (a.hex === b.hex && a.t === b.t);
+    }
 
     // ------------------------------------------------------------ ta.*
     function rma(xs, n) {
@@ -236,5 +248,5 @@
     }
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.pine = { col, css, conT, rma, atr, pivots, pivotEn, incremental, minutosDelDia, enSesion, lienzo, caja, linea, etiqueta, pintarVela, fondo, formatoPrecio, FUENTE, TAM };
+    window.NLTCharts.pine = { col, css, conT, rma, atr, pivots, pivotEn, incremental, minutosDelDia, enSesion, lienzo, caja, linea, etiqueta, pintarVela, fondo, formatoPrecio, mismoColor, FUENTE, TAM };
 })();

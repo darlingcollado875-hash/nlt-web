@@ -275,7 +275,7 @@
         if (registrados) return;
         registrados = true;
         Object.entries(ESQUEMAS).forEach(([id, e]) => NLTCharts.settings.registrar(id, e));
-        const vacio = () => ({ name: '', calcParamsText: '', features: [], legends: [] });
+        const vacio = (indicator) => ({ name: '', calcParamsText: '', features: NLTCharts.leyenda.features(indicator), legends: [] });
 
         klinecharts.registerIndicator({
             name: 'NLT_SESSIONS',
@@ -283,7 +283,7 @@
             figures: [],
             calc: (dataList) => NLTCharts.pine.incremental(incSesiones, dataList, 'v1',
                 () => dataList.map((d) => ({ s: sesionDe(d.timestamp) })), (i) => ({ s: sesionDe(dataList[i].timestamp) })),
-            createTooltipDataSource: () => ({ ...vacio(), name: 'Sesiones' }),
+            createTooltipDataSource: ({ indicator }) => ({ ...vacio(indicator), name: 'Sesiones' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis }) => {
                 // En 4H y diario una vela abarca varias sesiones: no se marcan.
                 if (!periodoIntradia(chart, 1)) return false;
@@ -336,7 +336,7 @@
                 const r = indicator.result[crosshair.dataIndex] || {};
                 const p = (v) => (v == null ? 'n/a' : String(v));
                 return {
-                    name: 'Key Levels', calcParamsText: '', features: [],
+                    name: 'Key Levels', calcParamsText: '', features: NLTCharts.leyenda.features(indicator),
                     legends: NIVELES.map((n) => ({ title: { text: n.nombre + ': ', color: '#9CA3AF' }, value: { text: p(r[n.k]), color: `rgb(${n.rgb})` } })),
                 };
             },
@@ -381,7 +381,7 @@
                 zonasPorIndicador.set(indicator.id || indicator.name, calcularFVG(dataList, aj('NLT_FVG')));
                 return dataList.map(() => ({}));
             },
-            createTooltipDataSource: () => ({ ...vacio(), name: 'FVG básico' }),
+            createTooltipDataSource: ({ indicator }) => ({ ...vacio(indicator), name: 'FVG básico' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
                 dibujarZonas(ctx, zonasPorIndicador.get(indicator.id || indicator.name) || [], chart.getVisibleRange(), xAxis, yAxis,
                     chart.getBarSpace().halfGapBar, bounding,
@@ -398,7 +398,7 @@
                 zonasPorIndicador.set(indicator.id || indicator.name, calcularFreeZones(dataList, aj('NLT_FREE_ZONES')));
                 return dataList.map(() => ({}));
             },
-            createTooltipDataSource: () => ({ ...vacio(), name: 'Free Zones' }),
+            createTooltipDataSource: ({ indicator }) => ({ ...vacio(indicator), name: 'Free Zones' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
                 dibujarZonas(ctx, zonasPorIndicador.get(indicator.id || indicator.name) || [], chart.getVisibleRange(), xAxis, yAxis,
                     chart.getBarSpace().halfGapBar, bounding,
