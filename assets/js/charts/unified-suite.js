@@ -604,12 +604,9 @@
             calc: async (dataList, indicator) => {
                 const salida = await calcular(dataList, NLTCharts.settings.valores(ID));
                 salidas.set(indicator.id || ID, { salida, velas: dataList });
-                // El cálculo es async (velas HTF): al terminar se pide un redibujado
-                // (extendData solo redibuja, no vuelve a calcular: no hay bucle).
-                requestAnimationFrame(() => {
-                    const m = NLTCharts.motor;
-                    if (m) m.chart.overrideIndicator({ name: ID, extendData: Date.now() });
-                });
+                // No hace falta pedir redibujado: al terminar un calc async el motor ya
+                // llama a layout({ update: true }). (Forzarlo con overrideIndicator
+                // causaba un bucle de recálculos: medido con diag.js.)
                 return dataList.map(() => ({}));
             },
             createTooltipDataSource: () => ({ name: 'NLT Unified', calcParamsText: '', features: [], legends: [] }),

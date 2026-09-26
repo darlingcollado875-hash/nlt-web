@@ -34,6 +34,7 @@
         const motor = engine.crear(document.getElementById('chart'), {
             onData: ({ demo, primera }) => {
                 toolbar.setDemo(demo);
+                if (primera) NLTCharts.diag.marcarCarga();
                 mostrarEstado('');
                 if (primera && dib) dib.restaurar();
             },
@@ -85,6 +86,7 @@
         cargar();
         pro.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
+        window.NLTCharts.app = { activarIndicador: (id) => ind.activar(id) };
     }
 
     init();

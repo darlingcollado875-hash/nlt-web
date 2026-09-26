@@ -135,6 +135,7 @@
         (activos || []).forEach(activar);
 
         return {
+            activar(id) { activar(id); onCambio([...on]); },
             abrir() { render(); panelEl.hidden = false; panelBgEl.hidden = false; },
             refrescarPanel() { if (!panelEl.hidden) render(); },
             // Recalcula los indicadores propios (ej. al cambiar de símbolo el
