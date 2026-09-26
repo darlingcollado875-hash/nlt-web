@@ -935,6 +935,10 @@
         chartsZoneEngine: (symbol, timeframe, inputs = {}) => request('/charts/pro/zone-engine', {
             method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs }),
         }),
+        // Trading desde el gráfico: interfaz preparada; el servidor responde
+        // 403 "trading_disabled" mientras la ejecución real esté apagada.
+        chartsTradingEstado: () => request('/charts/trading/status'),
+        chartsTradingOrden: (orden) => request('/charts/trading/orders', { method: 'POST', body: JSON.stringify(orden) }),
     };
 
     window.NLT_API = NLT_API;

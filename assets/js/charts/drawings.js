@@ -12,6 +12,12 @@
  * configuración (Estilo / Texto / Coordenadas), duplicar, bloquear y borrar.
  * Mover y redimensionar = arrastrar el dibujo o sus puntos.
  *
+ * Long / Short Position: entrada, objetivo (TP) y stop (SL) editables
+ * arrastrando sus puntos o desde Coordenadas; muestra R/R, distancia, % y
+ * P/L estimado según cuenta y riesgo. Por ahora es solo visual; la orden que
+ * representa sale de posicionComoOrden() -> NLTCharts.trading (BUY/SELL por
+ * TickerAll cuando se active la ejecución, hoy desactivada).
+ *
  * Rendimiento: cambiar estilo, mover o redimensionar solo REDIBUJA (nunca
  * recalcula indicadores). La única excepción es un rectángulo conectado al
  * NLT Zone Engine: al terminar de moverlo se avisa (onZonaMovida) para que
@@ -33,6 +39,21 @@
         { id: 'estiloLinea', tipo: 'string', def: 'solid', titulo: 'Tipo', grupo: 'Línea', tab: 'Estilo', opciones: ESTILOS_LINEA, recalc: false },
     ];
     const textoIn = (def = '') => [{ id: 'texto', tipo: 'texto', def, titulo: 'Texto', grupo: '', tab: 'Texto', max: 200, recalc: false }];
+
+    // Long/Short Position: cuenta y riesgo (P/L estimado) + colores de cada parte.
+    const posicion = () => [
+        { id: 'cuenta', tipo: 'float', def: 10000, titulo: 'Tamaño de cuenta', grupo: 'Cuenta y riesgo', tab: 'Entradas', min: 0, step: 100, recalc: false },
+        { id: 'riesgo', tipo: 'float', def: 1, titulo: 'Riesgo (%)', grupo: 'Cuenta y riesgo', tab: 'Entradas', min: 0, max: 100, step: 0.1, recalc: false },
+        { id: 'ganancia', tipo: 'color', def: col('#22C55E', 80), titulo: 'Objetivo', grupo: 'Zonas', tab: 'Estilo', inline: 'z', recalc: false },
+        { id: 'perdida', tipo: 'color', def: col('#EF4444', 80), titulo: 'Stop', grupo: 'Zonas', tab: 'Estilo', inline: 'z', recalc: false },
+        { id: 'color', tipo: 'color', def: col('#9CA3AF', 0), titulo: 'Entrada', grupo: 'Línea de entrada', tab: 'Estilo', inline: 'l', recalc: false },
+        { id: 'grosor', tipo: 'int', def: 1, titulo: 'Grosor', grupo: 'Línea de entrada', tab: 'Estilo', inline: 'l', min: 1, max: 6, recalc: false },
+        { id: 'estiloLinea', tipo: 'string', def: 'solid', titulo: 'Tipo', grupo: 'Línea de entrada', tab: 'Estilo', opciones: ESTILOS_LINEA, recalc: false },
+        { id: 'colorTexto', tipo: 'color', def: col('#FFFFFF', 0), titulo: 'Color', grupo: 'Etiquetas', tab: 'Estilo', inline: 't', recalc: false },
+        { id: 'mostrarEtiquetas', tipo: 'bool', def: true, titulo: 'Mostrar', grupo: 'Etiquetas', tab: 'Estilo', inline: 't', recalc: false },
+        { id: 'mostrarPL', tipo: 'bool', def: true, titulo: 'P/L estimado', grupo: 'Etiquetas', tab: 'Estilo', inline: 't2', recalc: false },
+        { id: 'mostrarPct', tipo: 'bool', def: true, titulo: 'Porcentaje', grupo: 'Etiquetas', tab: 'Estilo', inline: 't2', recalc: false },
+    ];
 
     const HERRAMIENTAS = [
         {
@@ -87,6 +108,14 @@
                 { id: 'colorFondo', tipo: 'color', def: col('#0D1016', 15), titulo: '', grupo: 'Fondo', tab: 'Estilo', inline: 'f', recalc: false },
                 { id: 'texto', tipo: 'texto', def: 'Texto', titulo: 'Texto', grupo: '', tab: 'Texto', max: 200, multilinea: true, recalc: false }],
             coords: ['Precio'],
+        },
+        {
+            id: 'long', overlay: 'nltPosition', pasos: 2, icono: 'ph-trend-up', label: 'Long Position', ayuda: 'Tocá el precio de entrada', lado: 'long',
+            inputs: posicion(), coords: ['Entrada', 'Objetivo (TP)', 'Stop (SL)'],
+        },
+        {
+            id: 'short', overlay: 'nltPosition', pasos: 2, icono: 'ph-trend-down', label: 'Short Position', ayuda: 'Tocá el precio de entrada', lado: 'short',
+            inputs: posicion(), coords: ['Entrada', 'Objetivo (TP)', 'Stop (SL)'],
         },
     ];
     const POR_ID = Object.fromEntries(HERRAMIENTAS.map((h) => [h.id, h]));
@@ -212,6 +241,40 @@
             },
         });
 
+        // Long/Short Position. Puntos: [0] entrada (borde izquierdo), [1] objetivo y
+        // [2] stop (los dos en el borde derecho: se arrastran juntos en X).
+        klinecharts.registerOverlay({
+            name: 'nltPosition', totalStep: 2, needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true,
+            createPointFigures: ({ overlay, coordinates }) => {
+                if (coordinates.length < 3 || overlay.points.length < 3) return [];
+                const { h, v } = estiloDe(overlay);
+                const [ce, ct, cs] = coordinates;
+                const x1 = Math.min(ce.x, ct.x), x2 = Math.max(ce.x, ct.x, x1 + 8);
+                const m = calcularPosicion(h.lado, overlay.points.map((pt) => pt.value), v);
+                const caja = (y1, y2, c) => ({ type: 'polygon', attrs: { coordinates: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }] }, styles: { style: 'fill', color: css(c) } });
+                const fig = [caja(ce.y, ct.y, v.ganancia), caja(ce.y, cs.y, v.perdida),
+                    { type: 'line', attrs: { coordinates: [{ x: x1, y: ce.y }, { x: x2, y: ce.y }] }, styles: lineaEstilo(v) }];
+                if (!v.mostrarEtiquetas) return fig;
+                const f = NLTCharts.drawings.formatear, cx = (x1 + x2) / 2;
+                const dinero = (n) => `${n < 0 ? '−' : '+'}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                const txt = (y, texto, fondo, base) => ({ type: 'text', ignoreEvent: true, attrs: { x: cx, y, text: texto, align: 'center', baseline: base }, styles: { color: css(v.colorTexto), backgroundColor: fondo, size: 11, family: FUENTE, weight: 500, paddingLeft: 6, paddingRight: 6, paddingTop: 3, paddingBottom: 3, borderRadius: 3 } });
+                const detalle = (dist, pct, pl) => `${f(dist)}${v.mostrarPct ? ` (${pct.toFixed(2)}%)` : ''}${v.mostrarPL && m.cantidad ? ` · ${dinero(pl)}` : ''}`;
+                const arribaEsTP = ct.y < cs.y;
+                fig.push(txt(arribaEsTP ? ct.y - 4 : ct.y + 4, `Objetivo: ${f(m.tp)} · ${detalle(m.distTP, m.pctTP, m.plTP)}`, css({ ...v.ganancia, t: 15 }), arribaEsTP ? 'bottom' : 'top'));
+                fig.push(txt(arribaEsTP ? cs.y + 4 : cs.y - 4, `Stop: ${f(m.sl)} · ${detalle(m.distSL, m.pctSL, m.plSL)}`, css({ ...v.perdida, t: 15 }), arribaEsTP ? 'top' : 'bottom'));
+                fig.push(txt(ce.y, `${h.lado === 'long' ? 'Long' : 'Short'} · R/R ${m.rr === null ? '—' : m.rr.toFixed(2)}${m.cantidad ? ` · Cant. ${m.cantidad.toLocaleString('en-US', { maximumFractionDigits: 4 })}` : ''}`, 'rgba(17,24,39,.88)', 'middle'));
+                return fig;
+            },
+            performEventPressedMove: ({ points, performPointIndex, performPoint }) => {
+                if (points.length < 3) return;
+                if (performPointIndex === 1 || performPointIndex === 2) {
+                    const otro = points[performPointIndex === 1 ? 2 : 1];   // borde derecho común
+                    otro.timestamp = performPoint.timestamp;
+                    otro.dataIndex = performPoint.dataIndex;
+                }
+            },
+        });
+
         klinecharts.registerOverlay({
             name: 'nltText', totalStep: 2, needDefaultPointFigure: true,
             createPointFigures: ({ overlay, coordinates }) => {
@@ -224,6 +287,20 @@
                 }];
             },
         });
+    }
+
+    // Números de una posición: distancias, %, R/R y P/L estimado arriesgando `riesgo`% de `cuenta` en el stop.
+    function calcularPosicion(lado, [entrada, tp, sl], v) {
+        const distTP = Math.abs(tp - entrada), distSL = Math.abs(entrada - sl);
+        const riesgoDinero = (v.cuenta || 0) * (v.riesgo || 0) / 100;
+        const cantidad = distSL > 0 && riesgoDinero > 0 ? riesgoDinero / distSL : 0;
+        const signo = lado === 'long' ? 1 : -1;
+        return {
+            lado, entrada, tp, sl, distTP, distSL, cantidad,
+            pctTP: entrada ? (distTP / entrada) * 100 : 0, pctSL: entrada ? (distSL / entrada) * 100 : 0,
+            rr: distSL > 0 ? distTP / distSL : null,
+            plTP: cantidad * (tp - entrada) * signo, plSL: cantidad * (sl - entrada) * signo,
+        };
     }
 
     // Dibujos guardados con la versión anterior (overlays nativos de KLineChart).
@@ -299,6 +376,7 @@
             return {
                 onDrawEnd: (e) => {
                     const o = e.overlay;
+                    if (o.name === 'nltPosition') completarPosicion(o);
                     salirDeHerramienta();
                     guardar();
                     seleccionar(o.id);
@@ -320,6 +398,21 @@
                 },
                 onDeselected: (e) => { if (seleccionado === e.overlay.id && !dialogoAbierto) deseleccionar(); },
             };
+        }
+
+        // Tras el clic de entrada: objetivo 2R y stop a ~1,5 rangos medios de vela, 20 velas de ancho.
+        function completarPosicion(o) {
+            if (o.points.length >= 3) return;
+            const { h } = estiloDe(o);
+            const datos = chart.getDataList();
+            const ult = datos.slice(-14);
+            const paso = datos.length > 1 ? datos[datos.length - 1].timestamp - datos[datos.length - 2].timestamp : 60000;
+            const e = o.points[0];
+            const rango = ult.length ? ult.reduce((a, k) => a + (k.high - k.low), 0) / ult.length : 0;
+            const r = rango > 0 ? rango * 1.5 : Math.abs(e.value) * 0.005;
+            const s = h.lado === 'long' ? 1 : -1;
+            const t2 = e.timestamp + paso * 20;
+            chart.overrideOverlay({ id: o.id, points: [{ timestamp: e.timestamp, value: e.value }, { timestamp: t2, value: e.value + s * 2 * r }, { timestamp: t2, value: e.value - s * r }] });
         }
 
         function crear(name, extra = {}) {
@@ -359,6 +452,8 @@
             const { h, v } = estiloDe(o);
             const tieneLinea = h.inputs.some((x) => x.id === 'grosor');
             const esRect = o.name === 'nltRect';
+            const esPos = o.name === 'nltPosition';
+            const tr = NLTCharts.trading;
             const zona = o.extendData && o.extendData.zonaNLT;
             barraEl.innerHTML = `
                 <span class="dw-nombre">${esc(h.label)}</span>
@@ -366,6 +461,7 @@
                 ${tieneLinea ? `<select class="dw-sel" data-dw="grosor" title="Grosor">${[1, 2, 3, 4].map((g) => `<option value="${g}"${g === v.grosor ? ' selected' : ''}>${g}px</option>`).join('')}</select>
                 <select class="dw-sel" data-dw="estiloLinea" title="Tipo de línea">${ESTILOS_LINEA.map((x) => `<option value="${x.v}"${x.v === v.estiloLinea ? ' selected' : ''}>${x.t}</option>`).join('')}</select>` : ''}
                 ${esRect && puedeZonaNLT && puedeZonaNLT() ? `<button type="button" class="dw-btn${zona ? ' on' : ''}" data-dw="zona" title="${zona ? 'Zona conectada al NLT Zone Engine' : 'Enviar esta zona al NLT Zone Engine'}"><i class="ph ph-lightning"></i><span>NLT Engine</span></button>` : ''}
+                ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? 'Enviar la orden' : 'Ejecución real todavía no activada'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
                 <button type="button" class="dw-btn" data-dw="config" title="Configuración" aria-label="Configuración"><i class="ph ph-gear-six"></i></button>
                 <button type="button" class="dw-btn" data-dw="duplicar" title="Duplicar" aria-label="Duplicar"><i class="ph ph-copy"></i></button>
                 <button type="button" class="dw-btn${o.lock ? ' on' : ''}" data-dw="bloquear" title="${o.lock ? 'Desbloquear' : 'Bloquear'}" aria-label="Bloquear"><i class="ph ${o.lock ? 'ph-lock-simple' : 'ph-lock-simple-open'}"></i></button>
@@ -400,6 +496,7 @@
             if (acc === 'duplicar') duplicar(id);
             if (acc === 'bloquear') { const o = overlay(id); chart.overrideOverlay({ id, lock: !o.lock }); guardar(); pintarBarra(); }
             if (acc === 'zona' && onEnviarZona) onEnviarZona(id);
+            if (acc === 'orden' && NLTCharts.trading) NLTCharts.trading.enviar(api.posicionComoOrden(id)).catch((err) => { if (NLTCharts.ui.toast) NLTCharts.ui.toast(err.message); });
         });
 
         function duplicar(id) {
@@ -498,8 +595,16 @@
             if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'd' && seleccionado) { ev.preventDefault(); duplicar(seleccionado); }
         });
 
-        return {
+        const api = {
             seleccionado: () => seleccionado,
+            // Posición dibujada -> orden (BUY/SELL, entrada, SL, TP, cantidad). La usa NLTCharts.trading.
+            posicionComoOrden(id) {
+                const o = overlay(id);
+                if (!o || o.name !== 'nltPosition' || o.points.length < 3) return null;
+                const { h, v } = estiloDe(o);
+                const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v);
+                return { simbolo: getSymbol(), lado: h.lado === 'long' ? 'BUY' : 'SELL', entrada: m.entrada, sl: m.sl, tp: m.tp, cantidad: m.cantidad, rr: m.rr };
+            },
             abrirPropiedades,
             overlay,
             // Rectángulo seleccionado (o el último) como zona: precios y desde cuándo.
@@ -555,12 +660,13 @@
                 marcarBotones();
             },
         };
+        return api;
     }
 
     let precision = 5;
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.drawings = {
-        montar, HERRAMIENTAS, migrar,
+        montar, HERRAMIENTAS, migrar, calcularPosicion,
         setPrecision(p) { precision = p; },
         formatear(x) { return Number(x).toFixed(precision); },
     };

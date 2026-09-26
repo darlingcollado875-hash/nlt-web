@@ -22,6 +22,7 @@
         // Preferencias de la cuenta (otro dispositivo) en paralelo con el catálogo; nunca bloquea
         // más de 2,5 s ni falla: sin cuenta disponible se sigue con las de este dispositivo.
         const pLayout = NLTCharts.layout.cargar({ timeoutMs: 2500 });
+        NLTCharts.trading.cargar();   // estado de la ejecución (hoy apagada): habilita o no BUY/SELL en las posiciones
         let catalogo;
         try {
             catalogo = await market.simbolos();
