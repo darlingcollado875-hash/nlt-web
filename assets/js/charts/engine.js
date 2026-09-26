@@ -107,6 +107,7 @@
         const chart = klinecharts.init(el, { styles: ESTILOS, locale: 'en-US' });
         let cancelarSuscripcion = null;
         let timeframe = null;
+        let pedidoInicial = null;   // AbortController de la carga en curso (símbolo/timeframe)
 
         chart.setDataLoader({
             // En KLineChart 10, "forward" pide historia MÁS VIEJA (a la
@@ -118,9 +119,16 @@
             getBars: async ({ type, timestamp, symbol, callback }) => {
                 if (type === 'backward') { callback([], { backward: false }); return; }
                 const tfPedido = timeframe;
+                // Cambio rápido de símbolo/timeframe: se cancela la carga anterior (no llega tarde ni gasta red).
+                let signal;
+                if (type === 'init') {
+                    if (pedidoInicial) pedidoInicial.abort();
+                    pedidoInicial = new AbortController();
+                    signal = pedidoInicial.signal;
+                }
                 try {
                     const end = type === 'forward' ? timestamp : null;
-                    const r = await market.velas(symbol.ticker, tfPedido, { end });
+                    const r = await market.velas(symbol.ticker, tfPedido, { end, signal });
                     // Si el usuario cambió de símbolo o timeframe mientras
                     // esperábamos, esta respuesta es de un gráfico que ya no está.
                     const sym = chart.getSymbol();
@@ -129,6 +137,7 @@
                     callback(r.velas, { forward: hayMas, backward: false });
                     onData && onData({ demo: r.demo, primera: type === 'init' });
                 } catch (err) {
+                    if (err.name === 'AbortError') return;   // la reemplazó una carga más nueva
                     callback([], { forward: false, backward: false });
                     onError && onError(err.message);
                 }

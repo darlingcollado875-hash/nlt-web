@@ -59,13 +59,21 @@
     // error normal, que ya fluye por el mismo catch que usa cada página
     // para sus errores de red/HTTP existentes -- no es un modo de falla nuevo.
     const FETCH_TIMEOUT_MS = 9000;
+    // `opciones.signal` (opcional): quien llama puede cancelar el pedido (ej. el gráfico
+    // cambió de símbolo). Esa cancelación llega como AbortError, distinta del timeout.
     async function _fetchConTimeout(url, opciones = {}, timeoutMs = FETCH_TIMEOUT_MS) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), timeoutMs);
+        const externa = opciones.signal;
+        if (externa) {
+            if (externa.aborted) controller.abort();
+            else externa.addEventListener('abort', () => controller.abort(), { once: true });
+        }
         try {
             return await fetch(url, { ...opciones, signal: controller.signal });
         } catch (err) {
             if (err.name === 'AbortError') {
+                if (externa && externa.aborted) throw err;   // cancelado por quien llamó
                 throw new Error('El servidor tardó demasiado en responder. Prueba de nuevo en un momento.');
             }
             throw err;
@@ -89,7 +97,7 @@
             try {
                 return await _fetchConTimeout(url, opciones, timeoutMs);
             } catch (err) {
-                if (i === intentos - 1) throw err;
+                if (i === intentos - 1 || err.name === 'AbortError') throw err;
                 await new Promise((r) => setTimeout(r, 800));
             }
         }
@@ -911,10 +919,10 @@
         // --- NLT Charts (ver assets/js/charts/market-data.js) ---
         chartsSimbolos: () => request('/charts/symbols'),
         chartsQuotes: (symbols) => request(`/charts/quotes?symbols=${encodeURIComponent(symbols.join(','))}`),
-        chartsVelas: (symbol, timeframe, { limit = 500, end = null } = {}) => {
+        chartsVelas: (symbol, timeframe, { limit = 500, end = null, signal } = {}) => {
             const qs = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
             if (end != null) qs.set('end', String(end));
-            return request(`/charts/candles?${qs}`);
+            return request(`/charts/candles?${qs}`, signal ? { signal } : {});
         },
         // PRO: el backend decide el acceso; estos métodos solo preguntan.
         chartsProCatalogo: () => request('/charts/pro/catalog'),

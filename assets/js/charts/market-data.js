@@ -20,8 +20,8 @@
 
     const aKline = (c) => ({ timestamp: c.t, open: c.o, high: c.h, low: c.l, close: c.c, volume: c.v });
 
-    async function velas(symbol, timeframe, { limit = LOTE, end = null } = {}) {
-        const r = await NLT_API.chartsVelas(symbol, timeframe, { limit, end });
+    async function velas(symbol, timeframe, { limit = LOTE, end = null, signal } = {}) {
+        const r = await NLT_API.chartsVelas(symbol, timeframe, { limit, end, signal });
         return { demo: !!r.demo, provider: r.provider, precision: r.price_precision, velas: r.candles.map(aKline) };
     }
 
