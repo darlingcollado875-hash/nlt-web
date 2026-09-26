@@ -138,7 +138,7 @@
         ctx.setLineDash(estilo === 'dashed' ? [6, 4] : estilo === 'dotted' ? [2, 3] : []);
     }
 
-    // box: { left, right, top, bottom, bg, border, borderStyle, extendRight, text, textColor, textSize, halign }
+    // box: { left, right, top, bottom, bg, border, borderStyle, borderWidth, extendRight, text, textColor, textSize, halign }
     function caja(L, b) {
         const { ctx } = L;
         const x0 = L.x(b.left);
@@ -150,8 +150,10 @@
         ctx.fillRect(x0, top, x1 - x0, h);
         if (b.border) {
             ctx.strokeStyle = css(b.border);
-            estiloLinea(ctx, b.borderStyle, 1);
-            ctx.strokeRect(Math.round(x0) + 0.5, Math.round(top) + 0.5, Math.round(x1 - x0) - 1, Math.round(h) - 1);
+            const bw = b.borderWidth || 1;
+            estiloLinea(ctx, b.borderStyle, bw);
+            const off = bw % 2 ? 0.5 : 0;
+            ctx.strokeRect(Math.round(x0) + off, Math.round(top) + off, Math.round(x1 - x0) - bw, Math.round(h) - bw);
             ctx.setLineDash([]);
         }
         if (b.text && h >= 8) {
@@ -211,8 +213,13 @@
         }
         ctx.fillStyle = css(lb.textColor);
         ctx.textBaseline = 'top';
-        ctx.textAlign = 'center';
-        lineas.forEach((t, k) => ctx.fillText(t, bx + w / 2, by + 3 + k * (tam + 3)));
+        if (lb.align === 'left') {   // textalign=text.align_left (etiquetas de varias líneas)
+            ctx.textAlign = 'left';
+            lineas.forEach((t, k) => ctx.fillText(t, bx + 5, by + 3 + k * (tam + 3)));
+        } else {
+            ctx.textAlign = 'center';
+            lineas.forEach((t, k) => ctx.fillText(t, bx + w / 2, by + 3 + k * (tam + 3)));
+        }
         ctx.textAlign = 'left';
     }
 

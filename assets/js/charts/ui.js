@@ -12,7 +12,7 @@
     function montarToolbar(el, o) {
         const porCategoria = {};
         o.simbolos.forEach((s) => { (porCategoria[s.category] ||= []).push(s); });
-        const NOMBRE_CATEGORIA = { forex: 'Forex', metals: 'Metales', crypto: 'Cripto' };
+        const NOMBRE_CATEGORIA = { forex: 'Forex', metals: 'Metales', crypto: 'Cripto', indices: 'Índices' };
 
         el.innerHTML = `
             <label class="sr-only" for="chSymbol">Símbolo</label>

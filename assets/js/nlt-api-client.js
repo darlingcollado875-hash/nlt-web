@@ -929,21 +929,12 @@
         chartsLayout: () => request('/charts/layout'),
         chartsGuardarLayout: (layout) => request('/charts/layout', { method: 'PUT', body: JSON.stringify({ layout }) }),
         chartsProIniciarTrial: (indicatorId) => request(`/charts/pro/${encodeURIComponent(indicatorId)}/trial`, { method: 'POST' }),
-        // `params`: entradas del Zone Engine que el usuario cambió ({ nombre: valor }, los nombres
-        // los da el servidor en /zone-engine/settings); el servidor las valida.
+        // Zone Engine: `inputs` = entradas de V13.4 que cambian el cálculo, por su nombre en el
+        // .pine (el esquema lo da el servidor en /zone-engine/settings; el servidor las valida).
         chartsZoneEngineAjustes: () => request('/charts/pro/zone-engine/settings'),
-        chartsZoneEngine: (symbol, timeframe, zona = null, params = null) => {
-            const qs = new URLSearchParams({ symbol, timeframe });
-            if (params) Object.entries(params).forEach(([k, v]) => qs.set(k, String(v)));
-            if (zona) {
-                qs.set('zone_top', String(zona.top));
-                qs.set('zone_bottom', String(zona.bottom));
-                qs.set('zone_is_ob', String(!!zona.esOB));
-                qs.set('zone_is_bull', String(!!zona.alcista));
-                if (zona.desde != null) qs.set('zone_from', String(zona.desde));
-            }
-            return request(`/charts/pro/zone-engine?${qs}`);
-        },
+        chartsZoneEngine: (symbol, timeframe, inputs = {}) => request('/charts/pro/zone-engine', {
+            method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs }),
+        }),
     };
 
     window.NLT_API = NLT_API;

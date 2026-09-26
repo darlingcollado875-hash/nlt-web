@@ -124,17 +124,18 @@
         .ud-esq[data-pos="Bottom Left"] { bottom: 8px; left: 8px; }
         .ud-esq[data-pos="Bottom Right"] { bottom: 8px; right: 8px; align-items: flex-end; }
         .ud-dash { pointer-events: auto; cursor: pointer; }
-        /* Panel del NLT Zone Engine (tabla de V13.4) */
+        /* Tablas del NLT Zone Engine V13.4 (table.new): tamaños = size.tiny/small/normal/large de Pine */
         .ze-tabla { border-collapse: collapse; font: 11px/1.3 Inter, system-ui, sans-serif; min-width: 250px; box-shadow: 0 6px 20px rgba(0,0,0,.35); }
-        .ze-tabla td { padding: 3px 8px; white-space: nowrap; color: rgba(229,231,235,.65); vertical-align: middle; }
+        .ze-tabla td { padding: 3px 8px; white-space: pre; vertical-align: middle; }
         .ze-tabla .ze-v { text-align: right; font-weight: 600; }
-        .ze-tabla .ze-t { font-size: 9.5px; } .ze-tabla .ze-s { font-size: 11px; } .ze-tabla .ze-n { font-size: 12.5px; } .ze-tabla .ze-l { font-size: 11px; }
-        .ze-tabla .ze-g { font-size: 15px; }
-        .ze-tabla .ze-hdr td { font-weight: 700; letter-spacing: .02em; padding: 5px 8px; }
-        .ze-tabla .ze-div td { padding: 0; height: 2px; }
+        .ze-tabla .ze-l { font-size: 11px; }
+        .ze-tabla .ze-tiny { font-size: 9.5px; } .ze-tabla .ze-small { font-size: 11px; } .ze-tabla .ze-normal { font-size: 12.5px; } .ze-tabla .ze-large { font-size: 15px; }
+        .ze-tabla .ze-hdr td { font-weight: 700; letter-spacing: .02em; padding: 5px 8px; cursor: pointer; }
+        .ze-tabla .ze-div td { padding: 0 8px; font-size: 7px; line-height: 9px; color: rgba(54,58,69,.8); overflow: hidden; }
         .ze-tabla .ze-exp td { cursor: pointer; font-weight: 600; }
-        .ze-e2 { font-size: 9.5px; font-weight: 600; color: #9CA3AF; border: 1px solid rgba(156,163,175,.35); border-radius: 4px; padding: 0 4px; }
         .ze-tabla.ze-min tr:not(.ze-hdr) { display: none; }
+        .ze-tabla.ze-nlt { min-width: 0; background: rgba(13,16,22,.92); border: 1px solid rgba(67,120,255,.45); }
+        .ze-tabla.ze-nlt td { text-align: left; }
         @media (max-width: 767px) { .ze-tabla { min-width: 0; font-size: 9.5px; } .ze-tabla td { padding: 2px 5px; } }
         /* Minimizado: solo la primera fila (el título) */
         .ud-dash.ud-min tr:not(:first-child) { display: none; }
@@ -255,21 +256,21 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=021116b1"></script>
-    <script src="assets/js/nlt-api-client.js?v=e77976dd"></script>
+    <script src="assets/js/nlt-api-client.js?v=5dbe487c"></script>
     <script src="assets/js/charts/diag.js?v=d278a037"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
     <script src="assets/js/charts/market-data.js?v=7e18b78e"></script>
     <script src="assets/js/charts/engine.js?v=88be89f5"></script>
-    <script src="assets/js/charts/ui.js?v=9ee3395f"></script>
-    <script src="assets/js/charts/pine.js?v=61ff9cef"></script>
+    <script src="assets/js/charts/ui.js?v=98426bd3"></script>
+    <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
     <script src="assets/js/charts/drawings.js?v=b7341601"></script>
-    <script src="assets/js/charts/watchlist.js?v=d8945505"></script>
+    <script src="assets/js/charts/watchlist.js?v=3f72b6fd"></script>
     <script src="assets/js/charts/indicators-free.js?v=7078ae1a"></script>
     <script src="assets/js/charts/unified-suite.js?v=890b6dc4"></script>
     <script src="assets/js/charts/indicators.js?v=58fb91b2"></script>
-    <script src="assets/js/charts/pro.js?v=1d2b6171"></script>
+    <script src="assets/js/charts/pro.js?v=2bf8588b"></script>
     <script src="assets/js/charts/app.js?v=7d831a5e"></script>
 </body>
 </html>
