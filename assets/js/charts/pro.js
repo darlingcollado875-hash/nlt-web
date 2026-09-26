@@ -41,8 +41,18 @@
     let visuales = {};            // valores de las entradas visuales
     let registrado = false;
 
+    // Etiquetas y formas llegan compactas ([x, y, texto, estilo] / [x, estilo] + tabla de estilos).
+    function expandir(d) {
+        if (d._expandido) return;
+        const st = d.styles || [];
+        d.labels = d.labels.map(([x, y, t, k]) => { const e = st[k]; return { x, y, t, g: e[1], s: e[2], c: e[3], tc: e[4], z: e[5], a: e[6] }; });
+        d.shapes = d.shapes.map(([x, k]) => { const e = st[k]; return { x, g: e[1], f: e[2], loc: e[3], c: e[4], z: e[5], t: e[6] }; });
+        d._expandido = true;
+    }
+
     function armarVista() {
         if (!dibujo) { vista = null; return; }
+        expandir(dibujo);
         const ve = (g) => !g || visuales[g] !== false;
         const pool = (lista) => { const f = lista.filter((o) => ve(o.g)); return f.length > POOL ? f.slice(f.length - POOL) : f; };
         vista = {
