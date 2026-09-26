@@ -92,6 +92,10 @@
 
         // El contenedor cambia de tamaño con el sidebar, la rotación del
         // celular o el teclado virtual: el canvas tiene que acompañar.
+        // Margen a la derecha como TradingView: ahí van las etiquetas que los
+        // indicadores dibujan en velas futuras (ej. bar_index + 10).
+        chart.setOffsetRightDistance(90);
+
         const ro = new ResizeObserver(() => chart.resize());
         ro.observe(el);
 

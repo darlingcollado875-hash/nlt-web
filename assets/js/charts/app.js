@@ -15,6 +15,7 @@
         const session = await NLT.requireSession();
         if (!session) return;
         state.setUser(session.user.id);
+        NLTCharts.settings.setUser(session.user.id);
         NLT.mountSidebar(session, { activo: 'charts', seccion: 'indicator' });
 
         let catalogo;
@@ -78,6 +79,7 @@
             mostrarEstado('Cargando precios...');
             // Key Levels pide las diarias del símbolo: tiene que saberlo antes del recálculo.
             NLTCharts.freeIndicators.setSymbol(symbol);
+            NLTCharts.unified.setContexto({ symbol, pricePrecision: porSimbolo[symbol].price_precision });
             motor.cargar(porSimbolo[symbol], timeframe);
         }
         cargar();

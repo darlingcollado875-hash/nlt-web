@@ -145,14 +145,15 @@
     const FVG_MIN_RANGO = 0.25;
     const FVG_VENTANA_RANGO = 14;
 
-    function calcularFVG(data) {
+    function calcularFVG(data, opt = {}) {
+        const maxLado = opt.max ?? MAX_FVG_POR_LADO, minRango = opt.minRango ?? FVG_MIN_RANGO;
         const zonas = [];
         let sumaRango = 0;
         for (let i = 0; i < data.length; i++) {
             sumaRango += data[i].high - data[i].low;
             if (i >= FVG_VENTANA_RANGO) sumaRango -= data[i - FVG_VENTANA_RANGO].high - data[i - FVG_VENTANA_RANGO].low;
             if (i < 2) continue;
-            const minimo = (sumaRango / Math.min(i + 1, FVG_VENTANA_RANGO)) * FVG_MIN_RANGO;
+            const minimo = (sumaRango / Math.min(i + 1, FVG_VENTANA_RANGO)) * minRango;
             const a = data[i - 2], c = data[i];
             if (c.low - a.high >= minimo && c.low > a.high) zonas.push({ dir: 1, desde: i - 1, top: c.low, bottom: a.high, fin: null });
             else if (a.low - c.high >= minimo && c.high < a.low) zonas.push({ dir: -1, desde: i - 1, top: a.low, bottom: c.high, fin: null });
@@ -165,8 +166,8 @@
         });
         const abiertas = zonas.filter((z) => z.fin === null);
         return [
-            ...abiertas.filter((z) => z.dir === 1).slice(-MAX_FVG_POR_LADO),
-            ...abiertas.filter((z) => z.dir === -1).slice(-MAX_FVG_POR_LADO),
+            ...abiertas.filter((z) => z.dir === 1).slice(-maxLado),
+            ...abiertas.filter((z) => z.dir === -1).slice(-maxLado),
         ];
     }
 
@@ -174,11 +175,12 @@
     const PIVOTE = 2; // velas a cada lado
     const MAX_ZONAS_POR_LADO = 3;
 
-    function calcularFreeZones(data) {
+    function calcularFreeZones(data, opt = {}) {
+        const PIV = opt.pivote ?? PIVOTE, maxLado = opt.max ?? MAX_ZONAS_POR_LADO;
         const zonas = [];
-        for (let i = PIVOTE; i < data.length - PIVOTE; i++) {
+        for (let i = PIV; i < data.length - PIV; i++) {
             let esAlto = true, esBajo = true;
-            for (let k = 1; k <= PIVOTE; k++) {
+            for (let k = 1; k <= PIV; k++) {
                 if (!(data[i].high > data[i - k].high && data[i].high > data[i + k].high)) esAlto = false;
                 if (!(data[i].low < data[i - k].low && data[i].low < data[i + k].low)) esBajo = false;
             }
@@ -189,15 +191,20 @@
         }
         // Invalidada = una vela CIERRA del otro lado de la zona.
         zonas.forEach((z) => {
-            for (let j = z.desde + PIVOTE + 1; j < data.length; j++) {
+            for (let j = z.desde + PIV + 1; j < data.length; j++) {
                 if ((z.dir === -1 && data[j].close > z.top) || (z.dir === 1 && data[j].close < z.bottom)) { z.fin = j; break; }
             }
         });
         const vivas = zonas.filter((z) => z.fin === null);
         return [
-            ...vivas.filter((z) => z.dir === 1).slice(-MAX_ZONAS_POR_LADO),
-            ...vivas.filter((z) => z.dir === -1).slice(-MAX_ZONAS_POR_LADO),
+            ...vivas.filter((z) => z.dir === 1).slice(-maxLado),
+            ...vivas.filter((z) => z.dir === -1).slice(-maxLado),
         ];
+    }
+
+    function estiloZonas(v, kB, kR, etiqueta) {
+        const rgb = (c) => { const h = c.hex.replace('#', ''); return `${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)}`; };
+        return { alcista: rgb(v[kB]), bajista: rgb(v[kR]), alfa: 1 - v[kB].t / 100, alfaBajista: 1 - v[kR].t / 100, etiqueta };
     }
 
     // Dibuja zonas (FVG o Free Zones) desde su vela de origen hasta el borde derecho.
@@ -211,7 +218,7 @@
             const x0 = Math.max(0, xAxis.convertToPixel(Math.max(z.desde, from)) - media);
             const y0 = yAxis.convertToPixel(z.top), y1 = yAxis.convertToPixel(z.bottom);
             const rgb = z.dir === 1 ? estilo.alcista : estilo.bajista;
-            caja(ctx, x0, xFin, y0, y1, rgb, estilo.alfa);
+            caja(ctx, x0, xFin, y0, y1, rgb, z.dir === 1 ? estilo.alfa : (estilo.alfaBajista ?? estilo.alfa));
             if (z.desde >= from && Math.abs(y1 - y0) >= 10) {
                 ctx.fillStyle = `rgba(${rgb},0.85)`;
                 ctx.fillText(estilo.etiqueta(z), x0 + 3, Math.min(y0, y1) + 1);
@@ -225,11 +232,48 @@
     // del largo de los datos (el motor lo necesita así).
     const zonasPorIndicador = new Map();
 
+    // ---------------------------------------------------------------- configuración (engranaje)
+    const Pc = (hex, t) => ({ hex, t });
+    const rgbDe = (c) => { const h = c.hex.replace('#', ''); return `${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)}`; };
+    const alfaDe = (c) => 1 - c.t / 100;
+    const aj = (id) => NLTCharts.settings.valores(id);
+    const ESQUEMAS = {
+        NLT_SESSIONS: { titulo: 'NLT Sessions', inputs: [
+            { id: 'asia', tipo: 'bool', def: true, titulo: 'Asia (20:00-02:00 NY)', grupo: 'Sesiones', inline: 'a' },
+            { id: 'colAsia', tipo: 'color', def: Pc('#A855F7', 93), titulo: '', grupo: 'Sesiones', inline: 'a' },
+            { id: 'london', tipo: 'bool', def: true, titulo: 'Londres (02:00-05:00 NY)', grupo: 'Sesiones', inline: 'l' },
+            { id: 'colLondon', tipo: 'color', def: Pc('#4378FF', 93), titulo: '', grupo: 'Sesiones', inline: 'l' },
+            { id: 'ny', tipo: 'bool', def: true, titulo: 'Nueva York (08:00-11:00 NY)', grupo: 'Sesiones', inline: 'n' },
+            { id: 'colNY', tipo: 'color', def: Pc('#F59E0B', 93), titulo: '', grupo: 'Sesiones', inline: 'n' },
+            { id: 'etiquetas', tipo: 'bool', def: true, titulo: 'Mostrar nombres', grupo: 'Visuales' },
+        ] },
+        NLT_KEY_LEVELS: { titulo: 'NLT Key Levels', inputs: [
+            { id: 'pd', tipo: 'bool', def: true, titulo: 'PDH / PDL (día anterior)', grupo: 'Niveles', inline: 'd' },
+            { id: 'colPD', tipo: 'color', def: Pc('#E5E7EB', 30), titulo: '', grupo: 'Niveles', inline: 'd' },
+            { id: 'pw', tipo: 'bool', def: true, titulo: 'PWH / PWL (semana anterior)', grupo: 'Niveles', inline: 'w' },
+            { id: 'colPW', tipo: 'color', def: Pc('#22D3EE', 30), titulo: '', grupo: 'Niveles', inline: 'w' },
+            { id: 'etiquetas', tipo: 'bool', def: true, titulo: 'Mostrar nombres', grupo: 'Visuales' },
+        ] },
+        NLT_FVG: { titulo: 'FVG básico', inputs: [
+            { id: 'max', tipo: 'int', def: MAX_FVG_POR_LADO, titulo: 'Máximo por lado', grupo: 'Cálculo', min: 1, max: 30 },
+            { id: 'minRango', tipo: 'float', def: FVG_MIN_RANGO, titulo: 'Tamaño mínimo (× rango promedio de 14 velas)', grupo: 'Cálculo', min: 0, max: 5, step: 0.05 },
+            { id: 'colBull', tipo: 'color', def: Pc('#22C55E', 92), titulo: 'Alcista', grupo: 'Visuales', inline: 'c' },
+            { id: 'colBear', tipo: 'color', def: Pc('#EF4444', 92), titulo: 'Bajista', grupo: 'Visuales', inline: 'c' },
+        ] },
+        NLT_FREE_ZONES: { titulo: 'NLT Free Zones', inputs: [
+            { id: 'pivote', tipo: 'int', def: PIVOTE, titulo: 'Velas a cada lado del pivote', grupo: 'Cálculo', min: 1, max: 20 },
+            { id: 'max', tipo: 'int', def: MAX_ZONAS_POR_LADO, titulo: 'Máximo por lado', grupo: 'Cálculo', min: 1, max: 20 },
+            { id: 'colDem', tipo: 'color', def: Pc('#2DD4BF', 94), titulo: 'Demanda', grupo: 'Visuales', inline: 'c' },
+            { id: 'colOf', tipo: 'color', def: Pc('#FB923C', 94), titulo: 'Oferta', grupo: 'Visuales', inline: 'c' },
+        ] },
+    };
+
     // ---------------------------------------------------------------- registro
     let registrados = false;
     function registrar() {
         if (registrados) return;
         registrados = true;
+        Object.entries(ESQUEMAS).forEach(([id, e]) => NLTCharts.settings.registrar(id, e));
         const vacio = () => ({ name: '', calcParamsText: '', features: [], legends: [] });
 
         klinecharts.registerIndicator({
@@ -243,18 +287,22 @@
                 if (!periodoIntradia(chart, 1)) return false;
                 const { from, to } = chart.getVisibleRange();
                 const media = chart.getBarSpace().halfGapBar;
+                const v = aj('NLT_SESSIONS');
+                const conf = { asia: [v.asia, v.colAsia], london: [v.london, v.colLondon], ny: [v.ny, v.colNY] };
                 ctx.save();
                 ctx.font = `600 10px ${FUENTE}`;
                 // Etiqueta abajo: arriba está la leyenda OHLC del gráfico.
                 ctx.textBaseline = 'bottom';
                 tramos(indicator.result, from, to, (r) => r.s, (s, i, j) => {
+                    const [visible, col] = conf[s];
+                    if (!visible) return;
                     const x0 = xAxis.convertToPixel(i) - media;
                     const x1 = xAxis.convertToPixel(j) + media;
                     const ses = SESION_POR_ID[s];
-                    ctx.fillStyle = `rgba(${ses.rgb},0.07)`;
+                    ctx.fillStyle = `rgba(${rgbDe(col)},${alfaDe(col)})`;
                     ctx.fillRect(x0, 0, x1 - x0, bounding.height);
-                    if (x1 - x0 > 44) {
-                        ctx.fillStyle = `rgba(${ses.rgb},0.8)`;
+                    if (v.etiquetas && x1 - x0 > 44) {
+                        ctx.fillStyle = `rgba(${rgbDe(col)},0.8)`;
                         ctx.fillText(ses.nombre, x0 + 4, bounding.height - 4);
                     }
                 });
@@ -292,9 +340,13 @@
                 ctx.save();
                 ctx.font = `600 10px ${FUENTE}`;
                 ctx.textBaseline = 'bottom';
+                const v = aj('NLT_KEY_LEVELS');
                 NIVELES.forEach((n) => {
+                    const semanal = n.k === 'pwh' || n.k === 'pwl';
+                    if (!(semanal ? v.pw : v.pd)) return;
+                    const col = semanal ? v.colPW : v.colPD;
                     ctx.setLineDash(n.guiones);
-                    ctx.strokeStyle = `rgba(${n.rgb},0.7)`;
+                    ctx.strokeStyle = `rgba(${rgbDe(col)},${alfaDe(col)})`;
                     ctx.lineWidth = 1;
                     let ultimo = null;
                     tramos(res, from, to, (r) => r[n.k], (valor, i, j) => {
@@ -303,9 +355,9 @@
                         ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
                         ultimo = { x0, x1, y };
                     });
-                    if (ultimo) {
+                    if (ultimo && v.etiquetas) {
                         ctx.setLineDash([]);
-                        ctx.fillStyle = `rgba(${n.rgb},0.9)`;
+                        ctx.fillStyle = `rgba(${rgbDe(col)},0.9)`;
                         ctx.fillText(n.nombre, Math.max(ultimo.x0, ultimo.x1 - 34), ultimo.y - 2);
                     }
                 });
@@ -319,14 +371,14 @@
             shortName: 'FVG',
             figures: [],
             calc: (dataList, indicator) => {
-                zonasPorIndicador.set(indicator.id || indicator.name, calcularFVG(dataList));
+                zonasPorIndicador.set(indicator.id || indicator.name, calcularFVG(dataList, aj('NLT_FVG')));
                 return dataList.map(() => ({}));
             },
             createTooltipDataSource: () => ({ ...vacio(), name: 'FVG básico' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
                 dibujarZonas(ctx, zonasPorIndicador.get(indicator.id || indicator.name) || [], chart.getVisibleRange(), xAxis, yAxis,
                     chart.getBarSpace().halfGapBar, bounding,
-                    { alcista: '34,197,94', bajista: '239,68,68', alfa: 0.08, etiqueta: () => 'FVG' });
+                    estiloZonas(aj('NLT_FVG'), 'colBull', 'colBear', () => 'FVG'));
                 return false;
             },
         });
@@ -336,14 +388,14 @@
             shortName: 'Free Zones',
             figures: [],
             calc: (dataList, indicator) => {
-                zonasPorIndicador.set(indicator.id || indicator.name, calcularFreeZones(dataList));
+                zonasPorIndicador.set(indicator.id || indicator.name, calcularFreeZones(dataList, aj('NLT_FREE_ZONES')));
                 return dataList.map(() => ({}));
             },
             createTooltipDataSource: () => ({ ...vacio(), name: 'Free Zones' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
                 dibujarZonas(ctx, zonasPorIndicador.get(indicator.id || indicator.name) || [], chart.getVisibleRange(), xAxis, yAxis,
                     chart.getBarSpace().halfGapBar, bounding,
-                    { alcista: '45,212,191', bajista: '251,146,60', alfa: 0.06, etiqueta: (z) => (z.dir === 1 ? 'Demanda' : 'Oferta') });
+                    estiloZonas(aj('NLT_FREE_ZONES'), 'colDem', 'colOf', (z) => (z.dir === 1 ? 'Demanda' : 'Oferta')));
                 return false;
             },
         });

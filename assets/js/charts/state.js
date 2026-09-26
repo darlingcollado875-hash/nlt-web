@@ -31,7 +31,7 @@
         setUser(id) { userId = id || 'anon'; },
 
         prefs() {
-            return { symbol: 'XAUUSD', timeframe: '15m', indicators: ['VOL'], ...leer(PREFS, {}) };
+            return { symbol: 'XAUUSD', timeframe: '15m', indicators: ['NLT_UNIFIED'], ...leer(PREFS, {}) };
         },
         savePrefs(parcial) {
             escribir(PREFS, { ...this.prefs(), ...parcial });

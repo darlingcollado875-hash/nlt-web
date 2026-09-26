@@ -68,15 +68,33 @@
     /**
      * crear({ chart, getSymbol, getTimeframe, getRectangulo, onCambio }) -> api
      */
+    // Mismas entradas que el grupo "📦 ZONA MANUAL (precios)" del V13.4 en TradingView.
+    // Son datos del usuario (su zona), no permisos: el backend decide el acceso.
+    const AJUSTES = {
+        titulo: 'NLT Zone Engine PRO',
+        inputs: [
+            { id: 'zoneTop', tipo: 'float', def: 0, titulo: 'Zona TOP', grupo: '📦 ZONA MANUAL (precios)', step: 0.00001, min: 0 },
+            { id: 'zoneBot', tipo: 'float', def: 0, titulo: 'Zona BOTTOM', grupo: '📦 ZONA MANUAL (precios)', step: 0.00001, min: 0 },
+            { id: 'zoneIsOB', tipo: 'bool', def: true, titulo: 'Tipo de zona: Order Block  (desmarcar = FVG)', grupo: '📦 ZONA MANUAL (precios)' },
+            { id: 'zoneIsBull', tipo: 'bool', def: true, titulo: 'Dirección: ALCISTA / LONG  (desmarcar = Bajista / SHORT)', grupo: '📦 ZONA MANUAL (precios)' },
+        ],
+    };
+
     function crear({ chart, getSymbol, getTimeframe, getRectangulo, onCambio }) {
         registrar();
+        NLTCharts.settings.registrar(ZE, AJUSTES);
         const esc = NLTCharts.ui.esc;
         let catalogo = null;
         let error = '';
         let ver = leerPref();
         let dibujado = false;
         let manual = null;       // resultado de la zona manual
-        let zonaManual = null;   // { top, bottom, desde, esOB, alcista }
+        let zonaManual = null;   // { top, bottom, desde, esOB, alcista } -- desde el rectángulo
+        const zonaDeAjustes = () => {
+            const a = NLTCharts.settings.valores(ZE);
+            return a.zoneTop > 0 && a.zoneBot > 0 && a.zoneTop > a.zoneBot
+                ? { top: a.zoneTop, bottom: a.zoneBot, esOB: a.zoneIsOB, alcista: a.zoneIsBull, desde: null } : null;
+        };
         let timer = null;
         let tipoSel = 'ob', dirSel = 'bull';
 
@@ -106,7 +124,7 @@
             if (!ver || !acc || !acc.has_access) { mostrarEnGrafico(false); return; }
             if (document.visibilityState !== 'visible') { timer = setTimeout(refrescar, REFRESCO_MS); return; }
             try {
-                const r = await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), zonaManual);
+                const r = await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), zonaManual || zonaDeAjustes());
                 zonas = r.zones || [];
                 manual = r.manual_zone;
                 mostrarEnGrafico(true);
@@ -149,7 +167,7 @@
             } else {
                 cuerpo = `<a href="indicator.html" class="ch-btn" style="margin-top:6px; display:inline-flex">Ver planes de NLT Indicator</a>`;
             }
-            return `<div class="ch-pro"><div class="ch-pro-head"><span class="ch-ind-name">${esc(ind.name)}</span>${acc.has_access ? '' : '<span class="ch-lock">PRO</span>'}</div>
+            return `<div class="ch-pro"><div class="ch-pro-head"><span class="ch-ind-name">${esc(ind.name)}</span>${acc.has_access ? '<button type="button" class="ch-gear" data-pro-gear title="Configuración" aria-label="Configuración del Zone Engine"><i class="ph ph-gear-six"></i></button>' : '<span class="ch-lock">PRO</span>'}</div>
                     <p class="ch-ind-desc">${esc(ind.description)}</p>${cuerpo}</div>`;
         }
 
@@ -183,6 +201,13 @@
                         await cargarCatalogo();
                         await refrescar();
                     } catch (err) { error = err.message; onCambio && onCambio(); }
+                });
+                const gear = el.querySelector('[data-pro-gear]');
+                if (gear) gear.addEventListener('click', () => {
+                    document.getElementById('chPanel').hidden = true;
+                    document.getElementById('chPanelBg').hidden = true;
+                    // La zona de los ajustes reemplaza a la del rectángulo.
+                    NLTCharts.settings.abrir(ZE, () => { zonaManual = null; ver = true; guardarPref(true); refrescar(); });
                 });
                 const an = el.querySelector('[data-pro-analizar]');
                 if (an) an.addEventListener('click', () => {

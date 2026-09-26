@@ -75,6 +75,74 @@
         .ch-pro-manual { border-top: 1px solid var(--ch-line); margin-top: 8px; padding-top: 10px; }
         .ch-lock { font-size: 10px; font-weight: 700; letter-spacing: .06em; color: rgb(168,85,247); background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.3); padding: 2px 7px; border-radius: 999px; }
 
+        /* Engranaje por indicador */
+        .ch-ind-fila { display: flex; align-items: center; gap: 4px; }
+        .ch-ind-fila .ch-ind { flex: 1; }
+        .ch-gear { width: 32px; height: 32px; display: grid; place-items: center; border-radius: 8px; color: #9CA3AF; font-size: 17px; cursor: pointer; flex-shrink: 0; }
+        .ch-gear:hover { color: #fff; background: rgba(255,255,255,0.06); }
+
+        /* Diálogo de configuración (estilo TradingView) */
+        .cs-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 80; }
+        .cs-modal { position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(520px, calc(100vw - 24px)); max-height: min(720px, calc(100vh - 32px)); display: flex; flex-direction: column; background: #131722; border: 1px solid #2A2E39; border-radius: 12px; box-shadow: 0 20px 60px rgba(0,0,0,0.6); color: #D1D4DC; font-size: 13px; }
+        .cs-head { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 6px; }
+        .cs-titulo { font-size: 16px; font-weight: 700; color: #fff; }
+        .cs-tabs { display: flex; gap: 16px; padding: 0 16px; border-bottom: 1px solid #2A2E39; }
+        .cs-tab { padding: 8px 0; font-weight: 600; color: #787B86; }
+        .cs-tab.on { color: #fff; box-shadow: inset 0 -2px 0 #2962FF; }
+        .cs-cuerpo { overflow-y: auto; padding: 8px 16px 16px; }
+        .cs-grupo { padding-top: 10px; }
+        .cs-grupo-t { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #787B86; margin: 6px 0 8px; }
+        .cs-fila { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+        .cs-fila.cs-inline { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+        .cs-campo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+        .cs-inline .cs-campo { justify-content: flex-start; }
+        .cs-label { color: #D1D4DC; }
+        .cs-label i { color: #787B86; font-size: 12px; }
+        .cs-bool { justify-content: flex-start; cursor: pointer; }
+        .cs-bool input { width: 16px; height: 16px; accent-color: #2962FF; }
+        .cs-num, .cs-sel, .cs-sesion input { background: #1E222D; border: 1px solid #363A45; border-radius: 6px; color: #fff; padding: 6px 8px; font-size: 13px; }
+        .cs-num { width: 110px; text-align: right; }
+        .cs-sel { min-width: 140px; }
+        .cs-num:focus, .cs-sel:focus, .cs-sesion input:focus { outline: none; border-color: #2962FF; }
+        .cs-sesion { display: inline-flex; align-items: center; gap: 6px; color: #787B86; }
+        .cs-sesion input { color-scheme: dark; }
+        .cs-color-in { display: inline-flex; align-items: center; gap: 6px; }
+        .cs-color-in input[type=color] { width: 28px; height: 24px; padding: 0; border: 1px solid #363A45; border-radius: 5px; background: none; cursor: pointer; }
+        .cs-color-in input[type=range] { width: 70px; accent-color: #2962FF; }
+        .cs-pie { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-top: 1px solid #2A2E39; }
+        .cs-ok { background: #2962FF; border-color: #2962FF; color: #fff; }
+        .cs-ok:hover { background: #1E53E5; color: #fff; }
+
+        /* Dashboards de la Unified Suite (tablas de TradingView) */
+        .ud-host { position: absolute; pointer-events: none; z-index: 4; }
+        .ud-esq { position: absolute; display: flex; flex-direction: column; gap: 6px; max-width: 46%; }
+        .ud-esq[data-pos="Top Left"] { top: 44px; left: 8px; }
+        .ud-esq[data-pos="Top Right"] { top: 8px; right: 8px; align-items: flex-end; }
+        .ud-esq[data-pos="Bottom Left"] { bottom: 8px; left: 8px; }
+        .ud-esq[data-pos="Bottom Right"] { bottom: 8px; right: 8px; align-items: flex-end; }
+        .ud-dash { pointer-events: auto; cursor: pointer; }
+        /* Minimizado: solo la primera fila (el título) */
+        .ud-dash.ud-min tr:not(:first-child) { display: none; }
+        .ud-dash.ud-min .ud-pre { max-height: 1.6em; overflow: hidden; }
+        .ud-tabla { border-collapse: collapse; font-size: 11px; line-height: 1.35; }
+        .ud-tabla td, .ud-tabla th { padding: 3px 8px; white-space: nowrap; }
+        .ud-sr { background: rgba(17,19,26,.95); border: 1px solid rgba(43,48,64,.5); }
+        .ud-sr th { background: rgba(30,34,45,.9); color: #fff; font-weight: 600; text-align: center; }
+        .ud-sr td { border: 1px solid rgba(43,48,64,.5); color: #C0C0C0; }
+        .ud-sr td + td { text-align: right; }
+        .ud-pre { margin: 0; padding: 6px 8px; font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: rgba(255,255,255,.95); background: rgba(13,17,23,.85); border: 1px solid rgba(255,215,0,.6); }
+        .ud-smc-t { background: rgba(10,10,10,.94); border: 1px solid rgba(138,43,226,.12); }
+        .ud-smc-t .ud-head td { background: #000; }
+        .ud-smc-t .ud-titulo { color: #fff; text-align: center; font-size: 15px; font-weight: 700; }
+        .ud-smc-t .ud-sub { color: #7A7A7A; text-align: center; font-size: 11px; }
+        .ud-smc-t .ud-muted { color: #7A7A7A; }
+        .ud-sz-s { font-size: 11px; } .ud-sz-n { font-size: 13px; } .ud-sz-l { font-size: 16px; }
+        .ud-sz-s .ud-titulo { font-size: 13px; } .ud-sz-l .ud-titulo { font-size: 20px; }
+        @media (max-width: 767px) {
+            .ud-tabla { font-size: 10px; } .ud-pre { font-size: 9.5px; }
+            .ud-smc-t .ud-titulo { font-size: 12px; }
+            .cs-num { width: 90px; } .cs-sel { min-width: 110px; }
+        }
         @media (max-width: 767px) {
             #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
             #sidebar.sidebar-open { transform: translateX(0); }
@@ -116,14 +184,17 @@
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=021116b1"></script>
     <script src="assets/js/nlt-api-client.js?v=7e605a70"></script>
-    <script src="assets/js/charts/state.js?v=72d146fa"></script>
+    <script src="assets/js/charts/state.js?v=d22f56da"></script>
     <script src="assets/js/charts/market-data.js?v=ed2e0aef"></script>
-    <script src="assets/js/charts/engine.js?v=bcd44882"></script>
+    <script src="assets/js/charts/engine.js?v=a346519e"></script>
     <script src="assets/js/charts/ui.js?v=c8ed31c3"></script>
+    <script src="assets/js/charts/pine.js?v=2dd028dd"></script>
+    <script src="assets/js/charts/settings.js?v=477bdb76"></script>
     <script src="assets/js/charts/drawings.js?v=540ac4a4"></script>
-    <script src="assets/js/charts/indicators-free.js?v=9a1192d7"></script>
-    <script src="assets/js/charts/indicators.js?v=55deec29"></script>
-    <script src="assets/js/charts/pro.js?v=65cdef37"></script>
-    <script src="assets/js/charts/app.js?v=691ee1d0"></script>
+    <script src="assets/js/charts/indicators-free.js?v=959d860c"></script>
+    <script src="assets/js/charts/unified-suite.js?v=640518d1"></script>
+    <script src="assets/js/charts/indicators.js?v=99d02a05"></script>
+    <script src="assets/js/charts/pro.js?v=25ced15d"></script>
+    <script src="assets/js/charts/app.js?v=99ae729e"></script>
 </body>
 </html>
