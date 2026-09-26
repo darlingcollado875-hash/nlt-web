@@ -627,6 +627,7 @@
         afiliadoSolicitarPayout: (monto) => request('/affiliates/me/payouts', { method: 'POST', body: JSON.stringify({ monto }) }),
         afiliadoMisPayouts: () => request('/affiliates/me/payouts'),
         afiliadoAtribuirReferido: (codigo) => request('/affiliates/atribuir', { method: 'POST', body: JSON.stringify({ codigo }) }),
+        afiliadoRegistrarClick: (codigo) => requestPublico('/affiliates/track-click', { method: 'POST', body: JSON.stringify({ codigo }) }),
 
         // --- admin: NLT Affiliates ---
         adminAfiliadosStats: () => request('/admin/affiliates/stats'),

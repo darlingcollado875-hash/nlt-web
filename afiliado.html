@@ -122,7 +122,11 @@
                 </div>
 
                 <!-- Stats -->
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-5">
+                <div class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-5">
+                    <div class="glass-card p-5">
+                        <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">👁️ Visitas</p>
+                        <p class="text-2xl font-bold" id="statClicks">—</p>
+                    </div>
                     <div class="glass-card p-5">
                         <p class="text-[10px] font-medium text-gray-400 mb-1 uppercase tracking-wider">👥 Referidos</p>
                         <p class="text-2xl font-bold" id="statReferidos">—</p>
@@ -201,7 +205,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=04fc06e7"></script>
-    <script src="assets/js/nlt-api-client.js?v=36a041e6"></script>
+    <script src="assets/js/nlt-api-client.js?v=b24071b4"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '')
@@ -237,6 +241,7 @@
         async function cargarStats() {
             try {
                 const s = await NLT_API.afiliadoMisStats();
+                document.getElementById('statClicks').textContent = s.clicks;
                 document.getElementById('statReferidos').textContent = s.referidos;
                 document.getElementById('statVentas').textContent = '$' + s.ventas_total.toFixed(2);
                 document.getElementById('statComisiones').textContent = '$' + (s.comisiones_pending + s.comisiones_approved + s.comisiones_paid).toFixed(2);
