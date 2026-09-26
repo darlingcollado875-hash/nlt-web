@@ -165,6 +165,39 @@
         .cs-off { opacity: .5; }
         .cs-etapa2 { font-size: 9px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #A78BFA; border: 1px solid rgba(167,139,250,.4); border-radius: 999px; padding: 1px 6px; margin-left: 6px; }
         .cs-plantilla { min-width: 0; }
+        /* Watchlist: columna a la derecha en escritorio, hoja inferior en celular */
+        .ch-fav { padding: 7px 8px; }
+        .ch-fav.on, .ch-fav.on i { color: #FACC15; }
+        .wl { width: 250px; flex-shrink: 0; border-left: 1px solid var(--ch-line); background: #0B0E14; display: flex; flex-direction: column; overflow-y: auto; }
+        .wl[hidden] { display: none; }
+        .wl-head { display: flex; align-items: center; justify-content: space-between; padding: 10px 10px 4px 14px; font-size: 13px; font-weight: 700; }
+        .wl-sec { font-size: 10px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #6B7280; margin: 10px 14px 4px; display: flex; gap: 5px; align-items: center; }
+        .wl-sec i { color: #FACC15; }
+        .wl-buscar { margin: 2px 10px 6px; background: #1E222D; border: 1px solid #363A45; border-radius: 8px; color: #fff; font-size: 12px; padding: 6px 9px; }
+        .wl-buscar:focus { outline: none; border-color: rgb(var(--ch-accent)); }
+        .wl-lista { display: flex; flex-direction: column; }
+        .wl-fila { display: flex; align-items: center; gap: 8px; padding: 7px 8px 7px 12px; cursor: pointer; border-left: 2px solid transparent; }
+        .wl-fila:hover { background: rgba(255,255,255,.03); }
+        .wl-fila.on { background: rgba(var(--ch-accent),.08); border-left-color: rgb(var(--ch-accent)); }
+        .wl-fila.arrastrando { opacity: .4; }
+        .wl-grip { color: #4B5563; cursor: grab; font-size: 14px; }
+        .wl-sym { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+        .wl-sym b { font-size: 12.5px; font-weight: 700; }
+        .wl-sym small, .wl-cat { font-size: 10.5px; color: #6B7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .wl-num { display: flex; flex-direction: column; align-items: flex-end; font-variant-numeric: tabular-nums; }
+        .wl-num b { font-size: 12px; font-weight: 600; }
+        .wl-num small { font-size: 10.5px; color: #6B7280; }
+        .wl-num small.up { color: #4378FF; } .wl-num small.down { color: #F87171; }
+        .wl-star { width: 26px; height: 26px; display: grid; place-items: center; border-radius: 6px; color: #6B7280; cursor: pointer; flex-shrink: 0; }
+        .wl-star:hover { background: rgba(255,255,255,.06); color: #FACC15; }
+        .wl-star.on { color: #FACC15; }
+        .wl-orden { display: flex; flex-direction: column; }
+        .wl-orden button { color: #9CA3AF; font-size: 12px; line-height: 1; padding: 1px 4px; cursor: pointer; }
+        .wl-orden button:disabled { opacity: .25; cursor: default; }
+        .wl-vacio { font-size: 11px; color: #6B7280; padding: 6px 14px; }
+        @media (max-width: 767px) {
+            .wl { position: fixed; left: 0; right: 0; bottom: 0; width: auto; max-height: 70vh; z-index: 72; border-left: 0; border-top: 1px solid var(--ch-line); border-radius: 16px 16px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); padding-bottom: env(safe-area-inset-bottom); }
+        }
         @media (max-width: 767px) {
             #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
             #sidebar.sidebar-open { transform: translateX(0); }
@@ -197,6 +230,7 @@
                 <div id="chHint" class="ch-hint" hidden></div>
                 <div id="chBarraDibujo" class="dw-bar" role="toolbar" aria-label="Dibujo seleccionado" hidden></div>
             </div>
+            <aside id="chWatch" class="wl" aria-label="Watchlist" hidden></aside>
         </div>
     </main>
 
@@ -206,19 +240,20 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=021116b1"></script>
-    <script src="assets/js/nlt-api-client.js?v=7e605a70"></script>
+    <script src="assets/js/nlt-api-client.js?v=9a6cba4e"></script>
     <script src="assets/js/charts/diag.js?v=d278a037"></script>
     <script src="assets/js/charts/state.js?v=d22f56da"></script>
     <script src="assets/js/charts/market-data.js?v=ed2e0aef"></script>
     <script src="assets/js/charts/engine.js?v=68e75d4c"></script>
-    <script src="assets/js/charts/ui.js?v=e120dde1"></script>
+    <script src="assets/js/charts/ui.js?v=c141247d"></script>
     <script src="assets/js/charts/pine.js?v=ac5d799c"></script>
     <script src="assets/js/charts/settings.js?v=b7592e2c"></script>
     <script src="assets/js/charts/drawings.js?v=039bef74"></script>
+    <script src="assets/js/charts/watchlist.js?v=d8945505"></script>
     <script src="assets/js/charts/indicators-free.js?v=fc45d737"></script>
     <script src="assets/js/charts/unified-suite.js?v=2e2ae529"></script>
     <script src="assets/js/charts/indicators.js?v=26458fdb"></script>
     <script src="assets/js/charts/pro.js?v=55f04647"></script>
-    <script src="assets/js/charts/app.js?v=a1dd8c1c"></script>
+    <script src="assets/js/charts/app.js?v=fdf885aa"></script>
 </body>
 </html>

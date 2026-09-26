@@ -908,6 +908,7 @@
 
         // --- NLT Charts (ver assets/js/charts/market-data.js) ---
         chartsSimbolos: () => request('/charts/symbols'),
+        chartsQuotes: (symbols) => request(`/charts/quotes?symbols=${encodeURIComponent(symbols.join(','))}`),
         chartsVelas: (symbol, timeframe, { limit = 500, end = null } = {}) => {
             const qs = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
             if (end != null) qs.set('end', String(end));

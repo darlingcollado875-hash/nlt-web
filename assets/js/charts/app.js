@@ -80,11 +80,34 @@
             simbolos: catalogo.symbols,
             timeframes: catalogo.timeframes,
             symbol, timeframe,
-            onSymbol: (s) => { symbol = s; state.savePrefs({ symbol }); cargar(); pro.cambioDeSimbolo(); },
+            onSymbol: (s) => cambiarSimbolo(s),
             onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); cargar(); pro.refrescar(); },
             onIndicadores: () => ind.abrir(),
             onConfig: () => NLTCharts.settings.abrir('GRAFICO', (v) => motor.aplicarApariencia(v)),
+            onWatchlist: () => wl.alternar(),
+            onFavorito: () => { wl.alternarFav(symbol); toolbar.setFavorito(wl.esFavorito(symbol)); },
         });
+
+        function cambiarSimbolo(s) {
+            if (!porSimbolo[s]) return;
+            symbol = s;
+            state.savePrefs({ symbol });
+            toolbar.setSymbol(s);
+            toolbar.setFavorito(wl.esFavorito(s));
+            wl.marcarActual();
+            cargar();
+            pro.cambioDeSimbolo();
+        }
+
+        const wl = NLTCharts.watchlist.montar({
+            el: document.getElementById('chWatch'),
+            catalogo: catalogo.symbols,
+            getSymbol: () => symbol,
+            onSeleccionar: (s) => cambiarSimbolo(s),
+            onCambio: () => { toolbar.setFavorito(wl.esFavorito(symbol)); toolbar.setWatchlist(!document.getElementById('chWatch').hidden); motor.chart.resize(); },
+        });
+        toolbar.setFavorito(wl.esFavorito(symbol));
+        toolbar.setWatchlist(!document.getElementById('chWatch').hidden);
 
         function cargar() {
             mostrarEstado('Cargando precios...');
