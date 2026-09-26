@@ -67,6 +67,33 @@
         return out;
     }
 
+    // Lo mismo que pivots() pero solo para el índice i (actualizaciones incrementales).
+    function pivotEn(src, i, left, right, alto) {
+        if (i < left + right) return null;
+        const c = src[i - right];
+        for (let k = 1; k <= left; k++) { const v = src[i - right - k]; if (alto ? v >= c : v <= c) return null; }
+        for (let k = 1; k <= right; k++) { const v = src[i - right + k]; if (alto ? v >= c : v <= c) return null; }
+        return c;
+    }
+
+    // Resultado por vela reutilizable: si solo cambió la última vela (tick) o se agregó una
+    // (vela nueva), copia el resultado anterior y recalcula únicamente esos índices.
+    // `version` invalida todo (ej. cambió un parámetro o un dato externo).
+    function incremental(estado, d, version, completo, porIndice) {
+        const N = d.length;
+        let r = null;
+        if (estado.r && estado.version === version && N >= 2 && estado.primerTs === d[0].timestamp) {
+            if (N === estado.N && d[N - 2].timestamp === estado.tsPen) {
+                r = estado.r.slice(); r[N - 1] = porIndice(N - 1);
+            } else if (N === estado.N + 1 && d[N - 2].timestamp === estado.tsUlt) {
+                r = estado.r.slice(); r[N - 2] = porIndice(N - 2); r[N - 1] = porIndice(N - 1);
+            }
+        }
+        if (!r) r = completo();
+        Object.assign(estado, { r, version, N, primerTs: N ? d[0].timestamp : null, tsPen: N > 1 ? d[N - 2].timestamp : null, tsUlt: N ? d[N - 1].timestamp : null });
+        return r;
+    }
+
     // ------------------------------------------------------------ sesiones (huso fijo)
     function minutosDelDia(ts, offsetHoras) {
         const m = Math.floor(ts / 60000) + offsetHoras * 60;
@@ -209,5 +236,5 @@
     }
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.pine = { col, css, conT, rma, atr, pivots, minutosDelDia, enSesion, lienzo, caja, linea, etiqueta, pintarVela, fondo, formatoPrecio, FUENTE, TAM };
+    window.NLTCharts.pine = { col, css, conT, rma, atr, pivots, pivotEn, incremental, minutosDelDia, enSesion, lienzo, caja, linea, etiqueta, pintarVela, fondo, formatoPrecio, FUENTE, TAM };
 })();

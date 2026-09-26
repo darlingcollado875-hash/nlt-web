@@ -231,6 +231,7 @@
     // vela: se guardan por id de indicador y calc devuelve un arreglo vacío
     // del largo de los datos (el motor lo necesita así).
     const zonasPorIndicador = new Map();
+    const incSesiones = {}, incNiveles = {};   // estado de P.incremental
 
     // ---------------------------------------------------------------- configuración (engranaje)
     const Pc = (hex, t) => ({ hex, t });
@@ -280,7 +281,8 @@
             name: 'NLT_SESSIONS',
             shortName: 'Sesiones',
             figures: [],
-            calc: (dataList) => dataList.map((d) => ({ s: sesionDe(d.timestamp) })),
+            calc: (dataList) => NLTCharts.pine.incremental(incSesiones, dataList, 'v1',
+                () => dataList.map((d) => ({ s: sesionDe(d.timestamp) })), (i) => ({ s: sesionDe(dataList[i].timestamp) })),
             createTooltipDataSource: () => ({ ...vacio(), name: 'Sesiones' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis }) => {
                 // En 4H y diario una vela abarca varias sesiones: no se marcan.
@@ -317,13 +319,18 @@
             figures: [],
             calc: async (dataList) => {
                 if (!simboloActual || !dataList.length) return dataList.map(() => ({}));
-                let niveles;
+                let vd;
                 try {
-                    niveles = nivelesPorDiaria(await diarias(simboloActual));
+                    vd = await diarias(simboloActual);
                 } catch (_) {
                     return dataList.map(() => ({}));
                 }
-                return dataList.map((d) => diariaDe(niveles, d.timestamp) || {});
+                // Los niveles solo cambian cuando llegan diarias nuevas (cache de 60 s).
+                const version = `${simboloActual}|${(cacheDiarias.get(simboloActual) || {}).t}`;
+                if (incNiveles.version !== version) incNiveles.niveles = nivelesPorDiaria(vd);
+                const niv = incNiveles.niveles;
+                return NLTCharts.pine.incremental(incNiveles, dataList, version,
+                    () => dataList.map((d) => diariaDe(niv, d.timestamp) || {}), (i) => diariaDe(niv, dataList[i].timestamp) || {});
             },
             createTooltipDataSource: ({ indicator, crosshair }) => {
                 const r = indicator.result[crosshair.dataIndex] || {};

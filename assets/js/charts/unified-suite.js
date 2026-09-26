@@ -125,6 +125,11 @@
         cacheHTF.set(k, { t: Date.now(), v: r.velas });
         return r.velas;
     }
+    // Igual, pero con la hora en que se trajeron (sirve de "versión" para las cachés).
+    async function velasHTFconFecha(tfNLT) {
+        await velasHTF(tfNLT);
+        return cacheHTF.get(`${simbolo}|${tfNLT}`);
+    }
 
     // ─────────────────────────────── ④ motor de estructura HTF (smc_f_struct) ───────────────────────────────
     function smcStruct(d, len) {
@@ -159,297 +164,365 @@
         return out;
     }
 
-    // ─────────────────────────────── cálculo principal ───────────────────────────────
-    async function calcular(d, v) {
-        const N = d.length;
-        const o = { boxes: [], lines: [], labels: [], bg: [], barColor: new Array(N).fill(null), dash: {} };
-        if (!N) return o;
+    // ─────────────────────────────── cálculo principal (motor con estado) ───────────────────────────────
+    // Mismo recorrido vela por vela que el .pine. Para no reprocesar toda la historia en cada tick,
+    // el estado se guarda tras la última vela CERRADA: un tick reprocesa solo la vela en curso y una
+    // vela nueva solo las dos últimas. Cambio de símbolo / TF / historia / parámetro -> cálculo completo.
+
+    const TZ = -5; // "UTC-5", huso FIJO (sin horario de verano) -- igual que ict_TZ del .pine
+    const HTF_DEFS = (v) => [
+        [v.i_htf1On, v.i_htf1, v.i_h1BB, v.i_h1BrB, v.i_h1BF, v.i_h1BrF, 'HTF1 FVG'],
+        [v.i_htf2On, v.i_htf2, v.i_h2BB, v.i_h2BrB, v.i_h2BF, v.i_h2BrF, 'HTF2 FVG'],
+    ];
+
+    // Series HTF crudas (en la temporalidad mayor): FVG y valuewhen de sus bordes.
+    function seriesHTFcrudas(hv) {
+        const bull = [], bear = [], bTop = [], bBot = [], rTop = [], rBot = [];
+        let vbT = null, vbB = null, vrT = null, vrB = null;
+        hv.forEach((x, j) => {
+            const bu = j >= 2 && x.low - hv[j - 2].high > 0 && hv[j - 1].open < hv[j - 1].close;
+            const be = j >= 2 && hv[j - 2].low - x.high > 0 && hv[j - 1].open > hv[j - 1].close;
+            if (bu) { vbT = hv[j - 2].high; vbB = x.low; }
+            if (be) { vrT = x.high; vrB = hv[j - 2].low; }
+            bull.push(bu); bear.push(be); bTop.push(vbT); bBot.push(vbB); rTop.push(vrT); rBot.push(vrB);
+        });
+        return { bull, bear, bTop, bBot, rTop, rBot };
+    }
+
+    // mapearHTF para un solo índice (misma regla que mapearHTF).
+    function mapearHTFen(d, htf, serie, i) {
+        if (!htf.length) return null;
+        let lo = 0, hi = htf.length - 1, j = -1;
+        while (lo <= hi) { const m = (lo + hi) >> 1; if (htf[m].timestamp <= d[i].timestamp) { j = m; lo = m + 1; } else hi = m - 1; }
+        if (j < 0) return null;
+        const ultimaDelPeriodo = i === d.length - 1 || !(d[i + 1].timestamp < (htf[j + 1] ? htf[j + 1].timestamp : Infinity));
+        const k = ultimaDelPeriodo ? j : j - 1;
+        return k >= 0 ? serie[k] : null;
+    }
+
+    // ── series por vela: dependen solo de las velas y de los parámetros ──
+    async function prepararSeries(d, v) {
         const high = d.map((x) => x.high), low = d.map((x) => x.low);
-        const AT = (arr, i, k) => (i - k >= 0 ? arr[i - k] : null);
-        const op = (i, k) => (i - k >= 0 ? d[i - k].open : null);
-        const cl = (i, k) => (i - k >= 0 ? d[i - k].close : null);
-        const hi = (i, k) => AT(high, i, k), lo = (i, k) => AT(low, i, k);
+        const se = {
+            high, low,
+            atr: P.atr(d, v.srp_atrLength),
+            srpPH: P.pivots(high, v.srp_pivotLookback, v.srp_pivotLookback, true),
+            srpPL: P.pivots(low, v.srp_pivotLookback, v.srp_pivotLookback, false),
+            bosPH: P.pivots(high, v.bos_length, v.bos_length, true),
+            bosPL: P.pivots(low, v.bos_length, v.bos_length, false),
+            liqPH: P.pivots(high, v.i_liqLen, v.i_liqLen, true),
+            liqPL: P.pivots(low, v.i_liqLen, v.i_liqLen, false),
+            smcPH: P.pivots(high, v.smc_swingLen, v.smc_swingLen, true),
+            smcPL: P.pivots(low, v.smc_swingLen, v.smc_swingLen, false),
+            inSOD: d.map((x) => P.enSesion(x.timestamp, v.i_sodTime, TZ)),
+            inLon: d.map((x) => P.enSesion(x.timestamp, v.i_lonTime, TZ)),
+            inNYC: d.map((x) => P.enSesion(x.timestamp, v.i_nycTime, TZ)),
+            htf: [], htfVersion: '',
+        };
+        for (const [on, tfIn, bb, brb, bf, brf, nombre] of HTF_DEFS(v)) {
+            if (!v.m3_on || !on || !simbolo) { se.htf.push(null); continue; }
+            let hv = [], t = 0;
+            try { const r = await velasHTFconFecha(HTF_A_NLT[tfIn]); hv = r.v; t = r.t; } catch (_) { hv = []; }
+            const cr = seriesHTFcrudas(hv);
+            se.htfVersion += `${tfIn}:${t};`;
+            se.htf.push({
+                hv, cr, bb, brb, bf, brf, nombre,
+                bull: mapearHTF(d, hv, cr.bull), bear: mapearHTF(d, hv, cr.bear), bTop: mapearHTF(d, hv, cr.bTop),
+                bBot: mapearHTF(d, hv, cr.bBot), rTop: mapearHTF(d, hv, cr.rTop), rBot: mapearHTF(d, hv, cr.rBot),
+            });
+        }
+        return se;
+    }
+
+    // Recalcula las series en los índices [desde, N) (N puede haber crecido en 1).
+    function actualizarSeries(se, d, v, desde) {
+        const n = v.srp_atrLength;
+        for (let i = desde; i < d.length; i++) {
+            se.high[i] = d[i].high; se.low[i] = d[i].low;
+            const prev = se.atr[i - 1];
+            if (i < n || prev === null || prev === undefined) {
+                se.atr = P.atr(d, n);   // sin valor previo (principio de la serie): completo
+            } else {
+                const b = d[i], c1 = d[i - 1].close;
+                const tr = Math.max(Math.max(b.high - b.low, Math.abs(b.high - c1)), Math.abs(b.low - c1));
+                se.atr[i] = (1 / n) * tr + (1 - 1 / n) * prev;
+            }
+            se.srpPH[i] = P.pivotEn(se.high, i, v.srp_pivotLookback, v.srp_pivotLookback, true);
+            se.srpPL[i] = P.pivotEn(se.low, i, v.srp_pivotLookback, v.srp_pivotLookback, false);
+            se.bosPH[i] = P.pivotEn(se.high, i, v.bos_length, v.bos_length, true);
+            se.bosPL[i] = P.pivotEn(se.low, i, v.bos_length, v.bos_length, false);
+            se.liqPH[i] = P.pivotEn(se.high, i, v.i_liqLen, v.i_liqLen, true);
+            se.liqPL[i] = P.pivotEn(se.low, i, v.i_liqLen, v.i_liqLen, false);
+            se.smcPH[i] = P.pivotEn(se.high, i, v.smc_swingLen, v.smc_swingLen, true);
+            se.smcPL[i] = P.pivotEn(se.low, i, v.smc_swingLen, v.smc_swingLen, false);
+            se.inSOD[i] = P.enSesion(d[i].timestamp, v.i_sodTime, TZ);
+            se.inLon[i] = P.enSesion(d[i].timestamp, v.i_lonTime, TZ);
+            se.inNYC[i] = P.enSesion(d[i].timestamp, v.i_nycTime, TZ);
+            se.htf.forEach((h) => {
+                if (!h) return;
+                ['bull', 'bear', 'bTop', 'bBot', 'rTop', 'rBot'].forEach((k) => { h[k][i] = mapearHTFen(d, h.hv, h.cr[k], i); });
+            });
+        }
+    }
+
+    function estadoNuevo() {
+        return {
+            zones: [], lastBreak: 'Ninguno', activeCount: 0, closestSup: null, closestRes: null,
+            swHP: null, swHI: null, swLP: null, swLI: null, trend: 0,
+            bullFVGs: [], bearFVGs: [], bullOBs: [], bearOBs: [], bullMid: [], bearMid: [],
+            lastBSL: null, lastSSL: null, bslLine: null, sslLine: null, bslLbl: null, sslLbl: null,
+            barc: [[], [], []], bg: [], fueraLineas: [], fueraLabels: [], htfBoxes: [[], []],
+            dHi: null, dLo: null, dHiBroken: false, dLoBroken: false, dBias: 0,
+        };
+    }
+
+    // Copia profunda de lo que se modifica en el lugar; lo inmutable se comparte.
+    function clonar(S) {
+        const cajas = (a) => a.map((b) => ({ ...b }));
+        return {
+            ...S,
+            zones: S.zones.map((z) => ({ ...z })),
+            bullFVGs: cajas(S.bullFVGs), bearFVGs: cajas(S.bearFVGs), bullOBs: cajas(S.bullOBs), bearOBs: cajas(S.bearOBs),
+            bullMid: S.bullMid.slice(), bearMid: S.bearMid.slice(),
+            barc: S.barc.map((a) => a.slice()), bg: S.bg.slice(),
+            fueraLineas: S.fueraLineas.slice(), fueraLabels: S.fueraLabels.slice(),
+            htfBoxes: S.htfBoxes.map((a) => a.slice()),
+        };
+    }
+
+    // Una vela del .pine, en el mismo orden de bloques: ① ② ③ ④.
+    function procesarVela(S, se, d, v, i) {
+        const N = d.length;
+        const bar = d[i];
+        const high = se.high, low = se.low;
+        const op = (k) => (i - k >= 0 ? d[i - k].open : null);
+        const cl = (k) => (i - k >= 0 ? d[i - k].close : null);
+        const hi = (k) => (i - k >= 0 ? high[i - k] : null), lo = (k) => (i - k >= 0 ? low[i - k] : null);
         const gt = (a, x) => a !== null && x !== null && a > x;
         const lt = (a, x) => a !== null && x !== null && a < x;
+        const le = (a, x) => a !== null && x !== null && a <= x, ge = (a, x) => a !== null && x !== null && a >= x;
         const dif = (a, x) => (a === null || x === null ? null : a - x);   // na - x = na (en JS null - x daría un número)
-        const fueraLineas = [], fueraLabels = [];   // objetos "fire and forget" (máx. 500, como TradingView)
-        const push500 = (arr, x) => { arr.push(x); if (arr.length > 500) arr.shift(); };
-
-        // ── ① S/R ──
-        const atrS = P.atr(d, v.srp_atrLength);
-        const srpPH = P.pivots(high, v.srp_pivotLookback, v.srp_pivotLookback, true);
-        const srpPL = P.pivots(low, v.srp_pivotLookback, v.srp_pivotLookback, false);
-        let zones = [];
-        let lastBreak = 'Ninguno';
-        let activeCount = 0, closestSup = null, closestRes = null;
-
-        function addZone(price, isSup, pivotBar, width, atrVal) {
-            const top = width === null ? null : price + width / 2;
-            const bottom = width === null ? null : price - width / 2;
-            let merge = false;
-            for (const z of zones) {
-                if (z.isSupport === isSup && !z.isBroken && atrVal !== null && Math.abs(z.midPrice - price) <= atrVal * v.srp_mergeThreshold) { merge = true; break; }
-            }
-            if (!merge) zones.push({ top, bottom, midPrice: price, startBar: pivotBar, isSupport: isSup, testCount: 1, lastTestBar: pivotBar, isBroken: false, isRetested: false, breakBar: 0, closesOut: 0 });
-        }
-
-        // ── ② BOS & CHoCH ──
-        const bosPH = P.pivots(high, v.bos_length, v.bos_length, true);
-        const bosPL = P.pivots(low, v.bos_length, v.bos_length, false);
-        let swHP = null, swHI = null, swLP = null, swLI = null, trend = 0;
-        const bosLinea = (x1, y1, x2, y2, color, txt) => {
-            push500(fueraLineas, { x1, y1, x2, y2, color, style: 'solid', width: 1 });
-            if (v.bos_showLabels) push500(fueraLabels, { x: Math.trunc((x1 + x2) / 2), y: y1, text: txt, style: 'down', color: P.col('#FFFFFF', 100), textColor: color, size: 'tiny' });
-        };
-
-        // ── ③ ICT Pro ──
-        const TZ = -5; // "UTC-5", huso fijo
-        const inSOD = d.map((x) => P.enSesion(x.timestamp, v.i_sodTime, TZ));
-        const inLon = d.map((x) => P.enSesion(x.timestamp, v.i_lonTime, TZ));
-        const inNYC = d.map((x) => P.enSesion(x.timestamp, v.i_nycTime, TZ));
-        let bullFVGs = [], bearFVGs = [], bullOBs = [], bearOBs = [], bullMid = [], bearMid = [];
-        const extRight = !v.i_simple;
+        const push500 = (arr, x) => { arr.push(x); if (arr.length > 500) arr.shift(); };   // objetos "fire and forget"
         const trim = (arr, maxN) => { while (arr.length > maxN) arr.shift(); };
-        const liqPH = P.pivots(high, v.i_liqLen, v.i_liqLen, true);
-        const liqPL = P.pivots(low, v.i_liqLen, v.i_liqLen, false);
-        let lastBSL = null, lastSSL = null, bslLine = null, sslLine = null, bslLbl = null, sslLbl = null;
-        const barc = [new Array(N).fill(null), new Array(N).fill(null), new Array(N).fill(null)];
-        const fvgFlag = (i) => ({
-            bull: i >= 2 && low[i] - high[i - 2] > 0 && op(i, 1) < cl(i, 1),
-            bear: i >= 2 && low[i - 2] - high[i] > 0 && op(i, 1) > cl(i, 1),
-        });
+        const extRight = !v.i_simple;
 
-        // HTF FVG (apagado por defecto): series en la temporalidad mayor, mapeadas como request.security
-        const htf = [];
-        for (const [on, tfIn, bb, brb, bf, brf, nombre] of [
-            [v.i_htf1On, v.i_htf1, v.i_h1BB, v.i_h1BrB, v.i_h1BF, v.i_h1BrF, 'HTF1 FVG'],
-            [v.i_htf2On, v.i_htf2, v.i_h2BB, v.i_h2BrB, v.i_h2BF, v.i_h2BrF, 'HTF2 FVG'],
-        ]) {
-            if (!v.m3_on || !on || !simbolo) { htf.push(null); continue; }
-            let hv = [];
-            try { hv = await velasHTF(HTF_A_NLT[tfIn]); } catch (_) { hv = []; }
-            const bull = [], bear = [], bTop = [], bBot = [], rTop = [], rBot = [];
-            let vbT = null, vbB = null, vrT = null, vrB = null;
-            hv.forEach((x, j) => {
-                const bu = j >= 2 && x.low - hv[j - 2].high > 0 && hv[j - 1].open < hv[j - 1].close;
-                const be = j >= 2 && hv[j - 2].low - x.high > 0 && hv[j - 1].open > hv[j - 1].close;
-                if (bu) { vbT = hv[j - 2].high; vbB = x.low; }
-                if (be) { vrT = x.high; vrB = hv[j - 2].low; }
-                bull.push(bu); bear.push(be); bTop.push(vbT); bBot.push(vbB); rTop.push(vrT); rBot.push(vrB);
-            });
-            htf.push({
-                bull: mapearHTF(d, hv, bull), bear: mapearHTF(d, hv, bear), bTop: mapearHTF(d, hv, bTop), bBot: mapearHTF(d, hv, bBot),
-                rTop: mapearHTF(d, hv, rTop), rBot: mapearHTF(d, hv, rBot), bb, brb, bf, brf, nombre, boxes: [],
-            });
-        }
+        // ===== ① S/R =====
+        S.activeCount = 0; S.closestSup = null; S.closestRes = null;   // no son `var`: se reinician en cada vela
+        if (v.m1_on) {
+            const atrVal = se.atr[i];
+            const calcW = atrVal === null && v.srp_zoneWidthMode === 'ATR' ? null
+                : v.srp_zoneWidthMode === 'ATR' ? atrVal * v.srp_zoneWidthMult : bar.close * v.srp_zoneWidthMult * 0.001;
+            const maxW = atrVal === null ? null : atrVal * v.srp_maxZoneWidth;
+            const finalW = calcW === null || maxW === null ? null : Math.min(calcW, maxW);
+            const addZone = (price, isSup, pivotBar) => {
+                const top = finalW === null ? null : price + finalW / 2;
+                const bottom = finalW === null ? null : price - finalW / 2;
+                let merge = false;
+                for (const z of S.zones) {
+                    if (z.isSupport === isSup && !z.isBroken && atrVal !== null && Math.abs(z.midPrice - price) <= atrVal * v.srp_mergeThreshold) { merge = true; break; }
+                }
+                if (!merge) S.zones.push({ top, bottom, midPrice: price, startBar: pivotBar, isSupport: isSup, testCount: 1, lastTestBar: pivotBar, isBroken: false, isRetested: false, breakBar: 0, closesOut: 0 });
+            };
+            if (se.srpPH[i] !== null) addZone(se.srpPH[i], false, i - v.srp_pivotLookback);
+            if (se.srpPL[i] !== null) addZone(se.srpPL[i], true, i - v.srp_pivotLookback);
 
-        // ── ④ debug (estructura del TF del gráfico) ──
-        const smcPH = P.pivots(high, v.smc_swingLen, v.smc_swingLen, true);
-        const smcPL = P.pivots(low, v.smc_swingLen, v.smc_swingLen, false);
-        let dHi = null, dLo = null, dHiBroken = false, dLoBroken = false, dBias = 0;
-
-        for (let i = 0; i < N; i++) {
-            const bar = d[i];
-            // ===== ① =====
-            activeCount = 0; closestSup = null; closestRes = null;   // no son `var`: se reinician en cada vela
-            if (v.m1_on) {
-                const atrVal = atrS[i];
-                const calcW = atrVal === null && v.srp_zoneWidthMode === 'ATR' ? null
-                    : v.srp_zoneWidthMode === 'ATR' ? atrVal * v.srp_zoneWidthMult : bar.close * v.srp_zoneWidthMult * 0.001;
-                const maxW = atrVal === null ? null : atrVal * v.srp_maxZoneWidth;
-                const finalW = calcW === null || maxW === null ? null : Math.min(calcW, maxW);
-                if (srpPH[i] !== null) addZone(srpPH[i], false, i - v.srp_pivotLookback, finalW, atrVal);
-                if (srpPL[i] !== null) addZone(srpPL[i], true, i - v.srp_pivotLookback, finalW, atrVal);
-
-                if (zones.length > 0) {
-                    let supCount = 0, resCount = 0;
-                    for (let k = zones.length - 1; k >= 0; k--) {
-                        const z = zones[k];
-                        let quitar = false;
-                        if (z.isBroken) {
-                            if (!v.srp_keepBroken || (i - z.breakBar > v.srp_maxBrokenAge)) quitar = true;
-                        } else if (z.isSupport) {
-                            supCount += 1; if (supCount > v.srp_maxZonesPerType) quitar = true;
-                        } else {
-                            resCount += 1; if (resCount > v.srp_maxZonesPerType) quitar = true;
-                        }
-                        if (quitar) { zones.splice(k, 1); continue; }
-                        const buffer = atrVal === null ? null : atrVal * v.srp_breakBufferMult;
-                        if (!z.isBroken) {
-                            activeCount += 1;
-                            if (z.isSupport && z.midPrice <= bar.close) closestSup = closestSup === null ? z.midPrice : Math.max(closestSup, z.midPrice);
-                            else if (!z.isSupport && z.midPrice >= bar.close) closestRes = closestRes === null ? z.midPrice : Math.min(closestRes, z.midPrice);
-                            const touched = buffer !== null && z.bottom !== null && bar.high >= z.bottom - buffer && bar.low <= z.top + buffer;
-                            if (touched && (i - z.lastTestBar >= v.srp_minBarsBetween)) { z.testCount += 1; z.lastTestBar = i; }
-                            const closedOut = buffer !== null && z.bottom !== null && (z.isSupport ? bar.close < z.bottom - buffer : bar.close > z.top + buffer);
-                            z.closesOut = closedOut ? z.closesOut + 1 : 0;
-                            if (z.closesOut >= v.srp_breakCloses) { z.isBroken = true; z.breakBar = i; lastBreak = z.isSupport ? 'Bearish' : 'Bullish'; }
-                        } else if (!z.isRetested) {
-                            const retested = (z.isSupport && bar.high >= z.bottom) || (!z.isSupport && bar.low <= z.top);
-                            if (retested) {
-                                z.isRetested = true;
-                                push500(fueraLabels, { x: i, y: z.isSupport ? bar.high : bar.low, text: 'retest', style: z.isSupport ? 'down' : 'up', color: P.col('#2962FF', 20), textColor: P.col('#FFFFFF', 0), size: 'tiny' });
-                            }
+            if (S.zones.length > 0) {
+                let supCount = 0, resCount = 0;
+                for (let k = S.zones.length - 1; k >= 0; k--) {
+                    const z = S.zones[k];
+                    let quitar = false;
+                    if (z.isBroken) {
+                        if (!v.srp_keepBroken || (i - z.breakBar > v.srp_maxBrokenAge)) quitar = true;
+                    } else if (z.isSupport) {
+                        supCount += 1; if (supCount > v.srp_maxZonesPerType) quitar = true;
+                    } else {
+                        resCount += 1; if (resCount > v.srp_maxZonesPerType) quitar = true;
+                    }
+                    if (quitar) { S.zones.splice(k, 1); continue; }
+                    const buffer = atrVal === null ? null : atrVal * v.srp_breakBufferMult;
+                    if (!z.isBroken) {
+                        S.activeCount += 1;
+                        if (z.isSupport && z.midPrice <= bar.close) S.closestSup = S.closestSup === null ? z.midPrice : Math.max(S.closestSup, z.midPrice);
+                        else if (!z.isSupport && z.midPrice >= bar.close) S.closestRes = S.closestRes === null ? z.midPrice : Math.min(S.closestRes, z.midPrice);
+                        const touched = buffer !== null && z.bottom !== null && bar.high >= z.bottom - buffer && bar.low <= z.top + buffer;
+                        if (touched && (i - z.lastTestBar >= v.srp_minBarsBetween)) { z.testCount += 1; z.lastTestBar = i; }
+                        const closedOut = buffer !== null && z.bottom !== null && (z.isSupport ? bar.close < z.bottom - buffer : bar.close > z.top + buffer);
+                        z.closesOut = closedOut ? z.closesOut + 1 : 0;
+                        if (z.closesOut >= v.srp_breakCloses) { z.isBroken = true; z.breakBar = i; S.lastBreak = z.isSupport ? 'Bearish' : 'Bullish'; }
+                    } else if (!z.isRetested) {
+                        const retested = (z.isSupport && bar.high >= z.bottom) || (!z.isSupport && bar.low <= z.top);
+                        if (retested) {
+                            z.isRetested = true;
+                            push500(S.fueraLabels, { x: i, y: z.isSupport ? bar.high : bar.low, text: 'retest', style: z.isSupport ? 'down' : 'up', color: P.col('#2962FF', 20), textColor: P.col('#FFFFFF', 0), size: 'tiny' });
                         }
                     }
                 }
             }
+        }
 
-            // ===== ② =====
-            if (v.m2_on) {
-                if (bosPH[i] !== null) { swHP = high[i - v.bos_length]; swHI = i - v.bos_length; }
-                if (bosPL[i] !== null) { swLP = low[i - v.bos_length]; swLI = i - v.bos_length; }
-                if (swHP !== null && bar.close > swHP) {
-                    bosLinea(swHI, swHP, i, swHP, v.bos_colBull, trend === -1 ? 'CHoCH' : 'BOS');
-                    trend = 1; swHP = null;
-                }
-                if (swLP !== null && bar.close < swLP) {
-                    bosLinea(swLI, swLP, i, swLP, v.bos_colBear, trend === 1 ? 'CHoCH' : 'BOS');
-                    trend = -1; swLP = null;
-                }
-            }
-
-            // ===== ③ =====
-            const capas = [];
-            if (v.m3_on && v.i_showSOD && inSOD[i]) capas.push(v.i_sodCol);
-            if (v.m3_on && v.i_showLon && inLon[i]) capas.push(v.i_lonCol);
-            if (v.m3_on && v.i_showNYC && inNYC[i]) capas.push(v.i_nycCol);
-            o.bg.push(capas);
-            const aperturas = [
-                [v.i_showSOD && inSOD[i] && !(i > 0 && inSOD[i - 1]), '#2962FF'],
-                [v.i_showLon && inLon[i] && !(i > 0 && inLon[i - 1]), '#4CAF50'],
-                [v.i_showNYC && inNYC[i] && !(i > 0 && inNYC[i - 1]), '#FF6D00'],
-            ];
-            aperturas.forEach(([abre, hex]) => {
-                if (v.m3_on && v.i_sessLines && abre) push500(fueraLineas, { x1: i, y1: bar.low * 0.999, x2: i, y2: bar.high * 1.001, color: P.col(hex, 40), style: 'dashed', width: 1 });
-            });
-
-            const mitLow = v.i_mit === 'Close' ? cl(i, 1) : bar.low;
-            const mitHigh = v.i_mit === 'Close' ? cl(i, 1) : bar.high;
-            const f = fvgFlag(i);
-
-            if (v.m3_on && f.bull && v.i_showFVG) {
-                bullFVGs.push({ left: i - 2, top: high[i - 2], right: i, bottom: bar.low, border: v.i_simple ? P.col(C.BULL, 75) : v.i_fvgBullB, bg: v.i_fvgBullF, text: 'FVG', textColor: P.col(C.WHITE, 40), textSize: 'tiny', extendRight: extRight });
-                trim(bullFVGs, v.i_maxBoxes);
-            }
-            if (v.m3_on && f.bear && v.i_showFVG) {
-                bearFVGs.push({ left: i - 2, top: low[i - 2], right: i, bottom: bar.high, border: v.i_simple ? P.col(C.BEAR, 75) : v.i_fvgBearB, bg: v.i_fvgBearF, text: 'FVG', textColor: P.col(C.WHITE, 40), textSize: 'tiny', extendRight: extRight });
-                trim(bearFVGs, v.i_maxBoxes);
-            }
-            // Nota: igual que en el .pine, para el FVG alcista box.new(..., top=high[2], ..., bottom=low) deja
-            // "top" por debajo de "bottom", así que rng < 0 y el color dinámico nunca se aplica a los alcistas.
-            if (v.m3_on) {
-                for (let k = bullFVGs.length - 1; k >= 0; k--) {
-                    const bx = bullFVGs[k], rng = bx.top - bx.bottom;
-                    if (v.i_fvgDyn && rng > 0 && bar.close > bx.bottom && bar.close < bx.top + rng * 0.3) { bx.border = v.i_fvgNearB; bx.bg = v.i_fvgNearF; }
-                    if (!v.i_simple && lt(mitLow, bx.bottom)) { bx.right = i; bx.extendRight = false; bullFVGs.splice(k, 1); if (!v.i_delFVG) push500(fueraLineas, { caja: bx }); }
-                }
-                for (let k = bearFVGs.length - 1; k >= 0; k--) {
-                    const bx = bearFVGs[k], rng = bx.top - bx.bottom;
-                    if (v.i_fvgDyn && rng > 0 && bar.close < bx.top && bar.close > bx.bottom - rng * 0.3) { bx.border = v.i_fvgNearB; bx.bg = v.i_fvgNearF; }
-                    if (!v.i_simple && gt(mitHigh, bx.top)) { bx.right = i; bx.extendRight = false; bearFVGs.splice(k, 1); if (!v.i_delFVG) push500(fueraLineas, { caja: bx }); }
-                }
-            }
-
-            // Order Blocks
-            const b2 = gt(op(i, 2), cl(i, 2)), b3 = gt(op(i, 3), cl(i, 3)), b4 = gt(op(i, 4), cl(i, 4));   // vela bajista k atrás
-            const u2 = lt(op(i, 2), cl(i, 2)), u3 = lt(op(i, 3), cl(i, 3)), u4 = lt(op(i, 4), cl(i, 4));   // vela alcista k atrás
-            const obBullN = f.bull && b2 && gt(cl(i, 1), hi(i, 2));
-            const le = (a, x) => a !== null && x !== null && a <= x, ge = (a, x) => a !== null && x !== null && a >= x;
-            const obBullC1 = f.bull && le(op(i, 2), cl(i, 2)) && b3 && gt(cl(i, 1), hi(i, 3)) && !b2;
-            const obBullC2 = f.bull && le(op(i, 2), cl(i, 2)) && le(op(i, 3), cl(i, 3)) && b4 && gt(cl(i, 1), hi(i, 4)) && !b2 && !b3;
-            const noFC1 = !(gt(dif(lo(i, 1), hi(i, 3)), 0) && b3);
-            const noFC2 = !(gt(dif(lo(i, 1), hi(i, 3)), 0) && b3) && !(gt(dif(lo(i, 2), hi(i, 4)), 0) && b4);
-            const obBearN = f.bear && u2 && lt(cl(i, 1), lo(i, 2));
-            const obBearC1 = f.bear && ge(op(i, 2), cl(i, 2)) && u3 && lt(cl(i, 1), lo(i, 3)) && !u2;
-            const obBearC2 = f.bear && ge(op(i, 2), cl(i, 2)) && ge(op(i, 3), cl(i, 3)) && u4 && lt(cl(i, 1), lo(i, 4)) && !u2 && !u3;
-            const noBFC1 = !(gt(dif(lo(i, 3), hi(i, 1)), 0) && u3);
-            const noBFC2 = !(gt(dif(lo(i, 3), hi(i, 1)), 0) && u3) && !(gt(dif(lo(i, 4), hi(i, 2)), 0) && u4);
-
-            const nuevoOB = (arr, mids, k, texto, borde, relleno, colMid) => {
-                arr.push({ left: i - k, top: high[i - k], right: i, bottom: low[i - k], border: borde, bg: relleno, text: texto, textColor: v.i_obTxtC, textSize: 'tiny', extendRight: extRight });
-                if (v.i_obMidLine) {
-                    const mid = (high[i - k] + low[i - k]) / 2;
-                    mids.push({ x1: i - k, y1: mid, x2: i + 20, y2: mid, color: P.col(colMid, 40), style: 'dashed', width: 1 });
-                    trim(mids, v.i_maxBoxes);
-                }
-                trim(arr, v.i_maxBoxes);
+        // ===== ② BOS & CHoCH =====
+        if (v.m2_on) {
+            if (se.bosPH[i] !== null) { S.swHP = high[i - v.bos_length]; S.swHI = i - v.bos_length; }
+            if (se.bosPL[i] !== null) { S.swLP = low[i - v.bos_length]; S.swLI = i - v.bos_length; }
+            const bosLinea = (x1, y1, x2, y2, color, txt) => {
+                push500(S.fueraLineas, { x1, y1, x2, y2, color, style: 'solid', width: 1 });
+                if (v.bos_showLabels) push500(S.fueraLabels, { x: Math.trunc((x1 + x2) / 2), y: y1, text: txt, style: 'down', color: P.col('#FFFFFF', 100), textColor: color, size: 'tiny' });
             };
-            if (v.m3_on && v.i_showOB) {
-                if (obBullN) nuevoOB(bullOBs, bullMid, 2, 'Naked OB', v.i_obBullB, v.i_obBullF, C.CYAN);
-                if (obBullC1 && noFC1) nuevoOB(bullOBs, bullMid, 3, 'Covered OB', v.i_obBullB, v.i_obBullF, C.CYAN);
-                if (obBullC2 && noFC2) nuevoOB(bullOBs, bullMid, 4, 'Covered OB', v.i_obBullB, v.i_obBullF, C.CYAN);
-                if (obBearN) nuevoOB(bearOBs, bearMid, 2, 'Naked OB', v.i_obBearB, v.i_obBearF, C.PURPLE);
-                if (obBearC1 && noBFC1) nuevoOB(bearOBs, bearMid, 3, 'Covered OB', v.i_obBearB, v.i_obBearF, C.PURPLE);
-                if (obBearC2 && noBFC2) nuevoOB(bearOBs, bearMid, 4, 'Covered OB', v.i_obBearB, v.i_obBearF, C.PURPLE);
+            if (S.swHP !== null && bar.close > S.swHP) {
+                bosLinea(S.swHI, S.swHP, i, S.swHP, v.bos_colBull, S.trend === -1 ? 'CHoCH' : 'BOS');
+                S.trend = 1; S.swHP = null;
             }
-            if (v.m3_on && !v.i_simple) {
-                for (let k = bullOBs.length - 1; k >= 0; k--) {
-                    const bx = bullOBs[k];
-                    if (lt(mitLow, bx.bottom)) { bx.right = i; bx.extendRight = false; bullOBs.splice(k, 1); if (!v.i_delOB) push500(fueraLineas, { caja: bx }); }
-                }
-                for (let k = bearOBs.length - 1; k >= 0; k--) {
-                    const bx = bearOBs[k];
-                    if (gt(mitHigh, bx.top)) { bx.right = i; bx.extendRight = false; bearOBs.splice(k, 1); if (!v.i_delOB) push500(fueraLineas, { caja: bx }); }
-                }
-            }
-            // barcolor con offset -2 / -3 / -4 (el último barcolor gana)
-            if (v.m3_on && v.i_colOBbar) {
-                if (obBullN) barc[0][i - 2] = v.i_obBullC; else if (obBearN) barc[0][i - 2] = v.i_obBearC;
-                if (obBullC1 && noFC1) barc[1][i - 3] = v.i_obBullC; else if (obBearC1 && noBFC1) barc[1][i - 3] = v.i_obBearC;
-                if (obBullC2 && noFC2) barc[2][i - 4] = v.i_obBullC; else if (obBearC2 && noBFC2) barc[2][i - 4] = v.i_obBearC;
-            }
-
-            // Liquidez
-            if (v.m3_on && v.i_showLiq && liqPH[i] !== null) {
-                lastBSL = liqPH[i];
-                bslLine = { x1: i - v.i_liqLen, y1: lastBSL, x2: i + 30, y2: lastBSL, color: P.conT(v.i_bslCol, 50), style: 'dotted', width: 2 };
-                bslLbl = { x: i - v.i_liqLen, y: lastBSL, text: 'BSL', style: 'right', color: P.conT(v.i_bslCol, 80), textColor: v.i_bslCol, size: 'tiny' };
-            }
-            if (v.m3_on && v.i_showLiq && liqPL[i] !== null) {
-                lastSSL = liqPL[i];
-                sslLine = { x1: i - v.i_liqLen, y1: lastSSL, x2: i + 30, y2: lastSSL, color: P.conT(v.i_sslCol, 50), style: 'dotted', width: 2 };
-                sslLbl = { x: i - v.i_liqLen, y: lastSSL, text: 'SSL', style: 'right', color: P.conT(v.i_sslCol, 80), textColor: v.i_sslCol, size: 'tiny' };
-            }
-            const bullSweep = v.m3_on && v.i_showLiq && lastSSL !== null && bar.low < lastSSL && bar.close > lastSSL;
-            const bearSweep = v.m3_on && v.i_showLiq && lastBSL !== null && bar.high > lastBSL && bar.close < lastBSL;
-            if (bullSweep) { push500(fueraLabels, { x: i, y: bar.low, text: '⚡ SSL Swept', style: 'up', color: P.col(C.GOLD, 70), textColor: P.col(C.GOLD, 0), size: 'small' }); lastSSL = null; }
-            if (bearSweep) { push500(fueraLabels, { x: i, y: bar.high, text: '⚡ BSL Swept', style: 'down', color: P.col(C.GOLD, 70), textColor: P.col(C.GOLD, 0), size: 'small' }); lastBSL = null; }
-
-            // HTF FVG
-            htf.forEach((h) => {
-                if (!h) return;
-                if (h.bull[i] && h.bBot[i] !== null) { h.boxes.push({ left: i, bottom: h.bBot[i], top: h.bTop[i], right: N - 1 + 20, border: h.bb, bg: h.bf, text: h.nombre, textColor: P.col(C.WHITE, 40), textSize: 'tiny', halign: 'right', extendRight: true }); trim(h.boxes, 5); }
-                if (h.bear[i] && h.rBot[i] !== null) { h.boxes.push({ left: i, bottom: h.rBot[i], top: h.rTop[i], right: N - 1 + 20, border: h.brb, bg: h.brf, text: h.nombre, textColor: P.col(C.WHITE, 40), textSize: 'tiny', halign: 'right', extendRight: true }); trim(h.boxes, 5); }
-            });
-
-            // ===== ④ debug =====
-            if (v.m4_on) {
-                if (smcPH[i] !== null) {
-                    dHi = smcPH[i]; dHiBroken = false;
-                    if (v.smc_showDebug) push500(fueraLineas, { x1: i - v.smc_swingLen, y1: dHi, x2: i, y2: dHi, color: P.col('#8A2BE2', 15), style: 'dotted', width: 1 });
-                }
-                if (smcPL[i] !== null) {
-                    dLo = smcPL[i]; dLoBroken = false;
-                    if (v.smc_showDebug) push500(fueraLineas, { x1: i - v.smc_swingLen, y1: dLo, x2: i, y2: dLo, color: P.col('#00FF00', 15), style: 'dotted', width: 1 });
-                }
-                if (dHi !== null && bar.close > dHi && !dHiBroken) {
-                    dHiBroken = true;
-                    const choch = dBias === -1; dBias = 1;
-                    if (v.smc_showDebug) push500(fueraLabels, { x: i, y: bar.high, yloc: 'abovebar', text: choch ? 'CHOCH' : 'BOS', style: 'down', color: P.col('#000000', 15), textColor: P.col('#00FF00', 0), size: 'small' });
-                }
-                if (dLo !== null && bar.close < dLo && !dLoBroken) {
-                    dLoBroken = true;
-                    const choch = dBias === 1; dBias = -1;
-                    if (v.smc_showDebug) push500(fueraLabels, { x: i, y: bar.low, yloc: 'belowbar', text: choch ? 'CHOCH' : 'BOS', style: 'up', color: P.col('#000000', 15), textColor: P.col('#8A2BE2', 0), size: 'small' });
-                }
+            if (S.swLP !== null && bar.close < S.swLP) {
+                bosLinea(S.swLI, S.swLP, i, S.swLP, v.bos_colBear, S.trend === 1 ? 'CHoCH' : 'BOS');
+                S.trend = -1; S.swLP = null;
             }
         }
 
-        // ── armar la salida con el estado de la última vela (como los objetos de TradingView) ──
+        // ===== ③ ICT Pro =====
+        const capas = [];
+        if (v.m3_on && v.i_showSOD && se.inSOD[i]) capas.push(v.i_sodCol);
+        if (v.m3_on && v.i_showLon && se.inLon[i]) capas.push(v.i_lonCol);
+        if (v.m3_on && v.i_showNYC && se.inNYC[i]) capas.push(v.i_nycCol);
+        S.bg[i] = capas;
+        [
+            [v.i_showSOD && se.inSOD[i] && !(i > 0 && se.inSOD[i - 1]), '#2962FF'],
+            [v.i_showLon && se.inLon[i] && !(i > 0 && se.inLon[i - 1]), '#4CAF50'],
+            [v.i_showNYC && se.inNYC[i] && !(i > 0 && se.inNYC[i - 1]), '#FF6D00'],
+        ].forEach(([abre, hex]) => {
+            if (v.m3_on && v.i_sessLines && abre) push500(S.fueraLineas, { x1: i, y1: bar.low * 0.999, x2: i, y2: bar.high * 1.001, color: P.col(hex, 40), style: 'dashed', width: 1 });
+        });
+
+        const mitLow = v.i_mit === 'Close' ? cl(1) : bar.low;
+        const mitHigh = v.i_mit === 'Close' ? cl(1) : bar.high;
+        const fBull = i >= 2 && low[i] - high[i - 2] > 0 && op(1) < cl(1);
+        const fBear = i >= 2 && low[i - 2] - high[i] > 0 && op(1) > cl(1);
+
+        if (v.m3_on && fBull && v.i_showFVG) {
+            S.bullFVGs.push({ left: i - 2, top: high[i - 2], right: i, bottom: bar.low, border: v.i_simple ? P.col(C.BULL, 75) : v.i_fvgBullB, bg: v.i_fvgBullF, text: 'FVG', textColor: P.col(C.WHITE, 40), textSize: 'tiny', extendRight: extRight });
+            trim(S.bullFVGs, v.i_maxBoxes);
+        }
+        if (v.m3_on && fBear && v.i_showFVG) {
+            S.bearFVGs.push({ left: i - 2, top: low[i - 2], right: i, bottom: bar.high, border: v.i_simple ? P.col(C.BEAR, 75) : v.i_fvgBearB, bg: v.i_fvgBearF, text: 'FVG', textColor: P.col(C.WHITE, 40), textSize: 'tiny', extendRight: extRight });
+            trim(S.bearFVGs, v.i_maxBoxes);
+        }
+        // Nota (paridad con el .pine, documentado, NO corregido): el FVG alcista se crea con
+        // box.new(..., top=high[2], ..., bottom=low), "top" queda por debajo de "bottom", rng < 0 y el
+        // color dinámico nunca se aplica a los alcistas.
+        if (v.m3_on) {
+            for (let k = S.bullFVGs.length - 1; k >= 0; k--) {
+                const bx = S.bullFVGs[k], rng = bx.top - bx.bottom;
+                if (v.i_fvgDyn && rng > 0 && bar.close > bx.bottom && bar.close < bx.top + rng * 0.3) { bx.border = v.i_fvgNearB; bx.bg = v.i_fvgNearF; }
+                if (!v.i_simple && lt(mitLow, bx.bottom)) { bx.right = i; bx.extendRight = false; S.bullFVGs.splice(k, 1); if (!v.i_delFVG) push500(S.fueraLineas, { caja: bx }); }
+            }
+            for (let k = S.bearFVGs.length - 1; k >= 0; k--) {
+                const bx = S.bearFVGs[k], rng = bx.top - bx.bottom;
+                if (v.i_fvgDyn && rng > 0 && bar.close < bx.top && bar.close > bx.bottom - rng * 0.3) { bx.border = v.i_fvgNearB; bx.bg = v.i_fvgNearF; }
+                if (!v.i_simple && gt(mitHigh, bx.top)) { bx.right = i; bx.extendRight = false; S.bearFVGs.splice(k, 1); if (!v.i_delFVG) push500(S.fueraLineas, { caja: bx }); }
+            }
+        }
+
+        // Order Blocks
+        const b2 = gt(op(2), cl(2)), b3 = gt(op(3), cl(3)), b4 = gt(op(4), cl(4));   // vela bajista k atrás
+        const u2 = lt(op(2), cl(2)), u3 = lt(op(3), cl(3)), u4 = lt(op(4), cl(4));   // vela alcista k atrás
+        const obBullN = fBull && b2 && gt(cl(1), hi(2));
+        const obBullC1 = fBull && le(op(2), cl(2)) && b3 && gt(cl(1), hi(3)) && !b2;
+        const obBullC2 = fBull && le(op(2), cl(2)) && le(op(3), cl(3)) && b4 && gt(cl(1), hi(4)) && !b2 && !b3;
+        const noFC1 = !(gt(dif(lo(1), hi(3)), 0) && b3);
+        const noFC2 = !(gt(dif(lo(1), hi(3)), 0) && b3) && !(gt(dif(lo(2), hi(4)), 0) && b4);
+        const obBearN = fBear && u2 && lt(cl(1), lo(2));
+        const obBearC1 = fBear && ge(op(2), cl(2)) && u3 && lt(cl(1), lo(3)) && !u2;
+        const obBearC2 = fBear && ge(op(2), cl(2)) && ge(op(3), cl(3)) && u4 && lt(cl(1), lo(4)) && !u2 && !u3;
+        const noBFC1 = !(gt(dif(lo(3), hi(1)), 0) && u3);
+        const noBFC2 = !(gt(dif(lo(3), hi(1)), 0) && u3) && !(gt(dif(lo(4), hi(2)), 0) && u4);
+
+        const nuevoOB = (arr, mids, k, texto, borde, relleno, colMid) => {
+            arr.push({ left: i - k, top: high[i - k], right: i, bottom: low[i - k], border: borde, bg: relleno, text: texto, textColor: v.i_obTxtC, textSize: 'tiny', extendRight: extRight });
+            if (v.i_obMidLine) {
+                const mid = (high[i - k] + low[i - k]) / 2;
+                mids.push({ x1: i - k, y1: mid, x2: i + 20, y2: mid, color: P.col(colMid, 40), style: 'dashed', width: 1 });
+                trim(mids, v.i_maxBoxes);
+            }
+            trim(arr, v.i_maxBoxes);
+        };
+        if (v.m3_on && v.i_showOB) {
+            if (obBullN) nuevoOB(S.bullOBs, S.bullMid, 2, 'Naked OB', v.i_obBullB, v.i_obBullF, C.CYAN);
+            if (obBullC1 && noFC1) nuevoOB(S.bullOBs, S.bullMid, 3, 'Covered OB', v.i_obBullB, v.i_obBullF, C.CYAN);
+            if (obBullC2 && noFC2) nuevoOB(S.bullOBs, S.bullMid, 4, 'Covered OB', v.i_obBullB, v.i_obBullF, C.CYAN);
+            if (obBearN) nuevoOB(S.bearOBs, S.bearMid, 2, 'Naked OB', v.i_obBearB, v.i_obBearF, C.PURPLE);
+            if (obBearC1 && noBFC1) nuevoOB(S.bearOBs, S.bearMid, 3, 'Covered OB', v.i_obBearB, v.i_obBearF, C.PURPLE);
+            if (obBearC2 && noBFC2) nuevoOB(S.bearOBs, S.bearMid, 4, 'Covered OB', v.i_obBearB, v.i_obBearF, C.PURPLE);
+        }
+        if (v.m3_on && !v.i_simple) {
+            for (let k = S.bullOBs.length - 1; k >= 0; k--) {
+                const bx = S.bullOBs[k];
+                if (lt(mitLow, bx.bottom)) { bx.right = i; bx.extendRight = false; S.bullOBs.splice(k, 1); if (!v.i_delOB) push500(S.fueraLineas, { caja: bx }); }
+            }
+            for (let k = S.bearOBs.length - 1; k >= 0; k--) {
+                const bx = S.bearOBs[k];
+                if (gt(mitHigh, bx.top)) { bx.right = i; bx.extendRight = false; S.bearOBs.splice(k, 1); if (!v.i_delOB) push500(S.fueraLineas, { caja: bx }); }
+            }
+        }
+        // barcolor con offset -2 / -3 / -4 (el último barcolor gana)
+        if (v.m3_on && v.i_colOBbar) {
+            if (obBullN) S.barc[0][i - 2] = v.i_obBullC; else if (obBearN) S.barc[0][i - 2] = v.i_obBearC;
+            if (obBullC1 && noFC1) S.barc[1][i - 3] = v.i_obBullC; else if (obBearC1 && noBFC1) S.barc[1][i - 3] = v.i_obBearC;
+            if (obBullC2 && noFC2) S.barc[2][i - 4] = v.i_obBullC; else if (obBearC2 && noBFC2) S.barc[2][i - 4] = v.i_obBearC;
+        }
+
+        // Liquidez
+        if (v.m3_on && v.i_showLiq && se.liqPH[i] !== null) {
+            S.lastBSL = se.liqPH[i];
+            S.bslLine = { x1: i - v.i_liqLen, y1: S.lastBSL, x2: i + 30, y2: S.lastBSL, color: P.conT(v.i_bslCol, 50), style: 'dotted', width: 2 };
+            S.bslLbl = { x: i - v.i_liqLen, y: S.lastBSL, text: 'BSL', style: 'right', color: P.conT(v.i_bslCol, 80), textColor: v.i_bslCol, size: 'tiny' };
+        }
+        if (v.m3_on && v.i_showLiq && se.liqPL[i] !== null) {
+            S.lastSSL = se.liqPL[i];
+            S.sslLine = { x1: i - v.i_liqLen, y1: S.lastSSL, x2: i + 30, y2: S.lastSSL, color: P.conT(v.i_sslCol, 50), style: 'dotted', width: 2 };
+            S.sslLbl = { x: i - v.i_liqLen, y: S.lastSSL, text: 'SSL', style: 'right', color: P.conT(v.i_sslCol, 80), textColor: v.i_sslCol, size: 'tiny' };
+        }
+        const bullSweep = v.m3_on && v.i_showLiq && S.lastSSL !== null && bar.low < S.lastSSL && bar.close > S.lastSSL;
+        const bearSweep = v.m3_on && v.i_showLiq && S.lastBSL !== null && bar.high > S.lastBSL && bar.close < S.lastBSL;
+        if (bullSweep) { push500(S.fueraLabels, { x: i, y: bar.low, text: '⚡ SSL Swept', style: 'up', color: P.col(C.GOLD, 70), textColor: P.col(C.GOLD, 0), size: 'small' }); S.lastSSL = null; }
+        if (bearSweep) { push500(S.fueraLabels, { x: i, y: bar.high, text: '⚡ BSL Swept', style: 'down', color: P.col(C.GOLD, 70), textColor: P.col(C.GOLD, 0), size: 'small' }); S.lastBSL = null; }
+
+        // HTF FVG
+        se.htf.forEach((h, idx) => {
+            if (!h) return;
+            const cajas = S.htfBoxes[idx];
+            if (h.bull[i] && h.bBot[i] !== null) { cajas.push({ left: i, bottom: h.bBot[i], top: h.bTop[i], right: N - 1 + 20, border: h.bb, bg: h.bf, text: h.nombre, textColor: P.col(C.WHITE, 40), textSize: 'tiny', halign: 'right', extendRight: true }); trim(cajas, 5); }
+            if (h.bear[i] && h.rBot[i] !== null) { cajas.push({ left: i, bottom: h.rBot[i], top: h.rTop[i], right: N - 1 + 20, border: h.brb, bg: h.brf, text: h.nombre, textColor: P.col(C.WHITE, 40), textSize: 'tiny', halign: 'right', extendRight: true }); trim(cajas, 5); }
+        });
+
+        // ===== ④ debug (estructura del TF del gráfico) =====
+        if (v.m4_on) {
+            if (se.smcPH[i] !== null) {
+                S.dHi = se.smcPH[i]; S.dHiBroken = false;
+                if (v.smc_showDebug) push500(S.fueraLineas, { x1: i - v.smc_swingLen, y1: S.dHi, x2: i, y2: S.dHi, color: P.col('#8A2BE2', 15), style: 'dotted', width: 1 });
+            }
+            if (se.smcPL[i] !== null) {
+                S.dLo = se.smcPL[i]; S.dLoBroken = false;
+                if (v.smc_showDebug) push500(S.fueraLineas, { x1: i - v.smc_swingLen, y1: S.dLo, x2: i, y2: S.dLo, color: P.col('#00FF00', 15), style: 'dotted', width: 1 });
+            }
+            if (S.dHi !== null && bar.close > S.dHi && !S.dHiBroken) {
+                S.dHiBroken = true;
+                const choch = S.dBias === -1; S.dBias = 1;
+                if (v.smc_showDebug) push500(S.fueraLabels, { x: i, y: bar.high, yloc: 'abovebar', text: choch ? 'CHOCH' : 'BOS', style: 'down', color: P.col('#000000', 15), textColor: P.col('#00FF00', 0), size: 'small' });
+            }
+            if (S.dLo !== null && bar.close < S.dLo && !S.dLoBroken) {
+                S.dLoBroken = true;
+                const choch = S.dBias === 1; S.dBias = -1;
+                if (v.smc_showDebug) push500(S.fueraLabels, { x: i, y: bar.low, yloc: 'belowbar', text: choch ? 'CHOCH' : 'BOS', style: 'up', color: P.col('#000000', 15), textColor: P.col('#8A2BE2', 0), size: 'small' });
+            }
+        }
+    }
+
+    // Salida con el estado de la última vela (como los objetos de TradingView en barstate.islast).
+    function construirSalida(S, se, d, v, sesgosSMC) {
+        const N = d.length;
         const ultima = N - 1;
+        const o = { boxes: [], lines: [], labels: [], bg: S.bg, barColor: new Array(N).fill(null), dash: {} };
         if (v.m1_on) {
-            zones.forEach((z) => {
+            S.zones.forEach((z) => {
                 if (z.top === null) return;
                 const right = v.srp_extendRight ? ultima + 10 : ultima;
                 o.boxes.push({
@@ -464,49 +537,114 @@
                     o.labels.push({ x: right, y: z.midPrice, text: `${precioTxt}${z.testCount}T${estado}`, style: 'left', color: P.col('#000000', 100), textColor: P.col('#FFFFFF', 0), size: 'small' });
                 }
             });
-            if (v.srp_showDashboard) {
-                o.dash.sr = {
-                    pos: v.srp_dashPositionIn,
-                    html: tablaSR(closestRes, closestSup, lastBreak, activeCount),
-                };
-            }
+            if (v.srp_showDashboard) o.dash.sr = { pos: v.srp_dashPositionIn, html: tablaSR(S.closestRes, S.closestSup, S.lastBreak, S.activeCount) };
         }
-        fueraLineas.forEach((x) => (x.caja ? o.boxes.push(x.caja) : o.lines.push(x)));
-        o.boxes.push(...bullFVGs, ...bearFVGs, ...bullOBs, ...bearOBs);
-        htf.forEach((h) => h && o.boxes.push(...h.boxes));
-        o.lines.push(...bullMid, ...bearMid);
-        [bslLine, sslLine].forEach((l) => l && o.lines.push(l));
-        o.labels.push(...fueraLabels);
-        [bslLbl, sslLbl].forEach((l) => l && o.labels.push(l));
-        for (let i = 0; i < N; i++) o.barColor[i] = barc[2][i] || barc[1][i] || barc[0][i];
+        S.fueraLineas.forEach((x) => (x.caja ? o.boxes.push(x.caja) : o.lines.push(x)));
+        o.boxes.push(...S.bullFVGs, ...S.bearFVGs, ...S.bullOBs, ...S.bearOBs);
+        S.htfBoxes.forEach((a) => o.boxes.push(...a));
+        o.lines.push(...S.bullMid, ...S.bearMid);
+        [S.bslLine, S.sslLine].forEach((l) => l && o.lines.push(l));
+        o.labels.push(...S.fueraLabels);
+        [S.bslLbl, S.sslLbl].forEach((l) => l && o.labels.push(l));
+        for (let i = 0; i < N; i++) o.barColor[i] = S.barc[2][i] || S.barc[1][i] || S.barc[0][i] || null;
 
         if (v.m3_on && v.i_showDash) {
-            const sesion = inSOD[ultima] ? 'Start of Day 🔵' : inLon[ultima] ? 'London 🟢' : inNYC[ultima] ? 'New York 🟠' : 'Off-Hours ⚫';
-            const hb = htf.map((h) => (h ? !!h.bull[ultima] : false)), hr = htf.map((h) => (h ? !!h.bear[ultima] : false));
+            const sesion = se.inSOD[ultima] ? 'Start of Day 🔵' : se.inLon[ultima] ? 'London 🟢' : se.inNYC[ultima] ? 'New York 🟠' : 'Off-Hours ⚫';
+            const hb = se.htf.map((h) => (h ? !!h.bull[ultima] : false)), hr = se.htf.map((h) => (h ? !!h.bear[ultima] : false));
             const anyB = hb[0] || hb[1], anyR = hr[0] || hr[1];
             const sesgo = anyB && !anyR ? 'Bullish 🟢' : anyR && !anyB ? 'Bearish 🔴' : 'Neutral ⚪';
             const fmt = (x) => (x === null ? 'Swept' : x.toFixed(precision));
             o.dash.ict = {
                 pos: v.i_dashPos,
-                html: `<pre class="ud-pre">╔══ ICT PRO ══════════════╗\n║ Session : ${sesion}\n║ HTF Bias: ${sesgo}\n║ Bull OBs: ${bullOBs.length}  Bear OBs: ${bearOBs.length}\n║ Bull FVG: ${bullFVGs.length}  Bear FVG: ${bearFVGs.length}\n║ BSL: ${fmt(lastBSL)}  SSL: ${fmt(lastSSL)}\n╚═════════════════════════╝</pre>`,
+                html: `<pre class="ud-pre">╔══ ICT PRO ══════════════╗\n║ Session : ${sesion}\n║ HTF Bias: ${sesgo}\n║ Bull OBs: ${S.bullOBs.length}  Bear OBs: ${S.bearOBs.length}\n║ Bull FVG: ${S.bullFVGs.length}  Bear FVG: ${S.bearFVGs.length}\n║ BSL: ${fmt(S.lastBSL)}  SSL: ${fmt(S.lastSSL)}\n╚═════════════════════════╝</pre>`,
                 clase: 'ud-ict',
             };
         }
-
-        if (v.m4_on && simbolo) {
-            const sesgos = [];
-            for (const tf of [v.smc_tf1, v.smc_tf2, v.smc_tf3]) {
-                try {
-                    const hv = await velasHTF(TF_A_NLT[tf]);
-                    // s[1] con lookahead_off en la vela en curso = evento tras la última vela HTF cerrada
-                    const cerradas = hv.slice(0, -1);
-                    const ev = cerradas.length ? smcStruct(cerradas, v.smc_swingLen).pop() : 0;
-                    sesgos.push(ev > 0 ? 1 : ev < 0 ? -1 : 0);
-                } catch (_) { sesgos.push(0); }
-            }
-            o.dash.smc = { pos: { 'Inferior Derecha': 'Bottom Right', 'Inferior Izquierda': 'Bottom Left', 'Superior Derecha': 'Top Right', 'Superior Izquierda': 'Top Left' }[v.smc_posInput], html: tablaSMC(v, sesgos), clase: 'ud-smc' };
+        if (v.m4_on && sesgosSMC) {
+            o.dash.smc = { pos: { 'Inferior Derecha': 'Bottom Right', 'Inferior Izquierda': 'Bottom Left', 'Superior Derecha': 'Top Right', 'Superior Izquierda': 'Top Left' }[v.smc_posInput], html: tablaSMC(v, sesgosSMC), clase: 'ud-smc' };
         }
+        // Firma del contenido de los dashboards: el DOM solo se toca si cambió.
+        o.dashFirma = JSON.stringify(o.dash);
         return o;
+    }
+
+    // ④ panel SMC: solo se recalcula cuando cambian las velas HTF (cache por TF).
+    const cacheSMC = new Map();
+    async function sesgosSMC(v) {
+        if (!v.m4_on || !simbolo) return null;
+        const out = [];
+        for (const tf of [v.smc_tf1, v.smc_tf2, v.smc_tf3]) {
+            try {
+                const r = await velasHTFconFecha(TF_A_NLT[tf]);
+                const clave = `${simbolo}|${tf}|${r.t}|${v.smc_swingLen}`;
+                let b = cacheSMC.get(clave);
+                if (b === undefined) {
+                    // s[1] con lookahead_off en la vela en curso = evento tras la última vela HTF cerrada
+                    const cerradas = r.v.slice(0, -1);
+                    const ev = cerradas.length ? smcStruct(cerradas, v.smc_swingLen).pop() : 0;
+                    b = ev > 0 ? 1 : ev < 0 ? -1 : 0;
+                    if (cacheSMC.size > 50) cacheSMC.clear();
+                    cacheSMC.set(clave, b);
+                }
+                out.push(b);
+            } catch (_) { out.push(0); }
+        }
+        return out;
+    }
+
+    /** Cálculo completo, sin caché (lo usan los tests). */
+    async function calcular(d, v) {
+        const N = d.length;
+        if (!N) return { boxes: [], lines: [], labels: [], bg: [], barColor: [], dash: {}, dashFirma: '{}' };
+        const se = await prepararSeries(d, v);
+        const S = estadoNuevo();
+        for (let i = 0; i < N; i++) procesarVela(S, se, d, v, i);
+        return construirSalida(S, se, d, v, await sesgosSMC(v));
+    }
+
+    // Motor incremental por instancia de indicador.
+    const motores = new Map();
+    const stats = { completo: 0, tick: 0, velaNueva: 0 };
+    async function calcularIncremental(id, d, v) {
+        const N = d.length;
+        if (!N) return calcular(d, v);
+        const clave = JSON.stringify(v) + '|' + simbolo;
+        let m = motores.get(id);
+        let S = null;
+        if (m && m.clave === clave && N >= 4 && m.primerTs === d[0].timestamp) {
+            // Si cambiaron las velas HTF (se refrescan cada 60 s), completo.
+            let htfVersion = '';
+            for (const [on, tfIn] of HTF_DEFS(v)) {
+                if (!v.m3_on || !on || !simbolo) continue;
+                try { htfVersion += `${tfIn}:${(await velasHTFconFecha(HTF_A_NLT[tfIn])).t};`; } catch (_) { /* sin HTF */ }
+            }
+            if (htfVersion === m.se.htfVersion) {
+                if (N === m.N && d[N - 2].timestamp === m.tsPenultima) {
+                    actualizarSeries(m.se, d, v, N - 1);
+                    S = clonar(m.snap);
+                    procesarVela(S, m.se, d, v, N - 1);
+                    stats.tick += 1;
+                } else if (N === m.N + 1 && d[N - 2].timestamp === m.tsUltima) {
+                    actualizarSeries(m.se, d, v, N - 2);
+                    S = clonar(m.snap);
+                    procesarVela(S, m.se, d, v, N - 2);
+                    m.snap = clonar(S);
+                    procesarVela(S, m.se, d, v, N - 1);
+                    stats.velaNueva += 1;
+                }
+            }
+        }
+        if (!S) {
+            const se = await prepararSeries(d, v);
+            S = estadoNuevo();
+            for (let i = 0; i < N - 1; i++) procesarVela(S, se, d, v, i);
+            m = { clave, se, snap: clonar(S) };
+            procesarVela(S, se, d, v, N - 1);
+            stats.completo += 1;
+        }
+        m.N = N; m.primerTs = d[0].timestamp; m.tsPenultima = d[N - 2] ? d[N - 2].timestamp : null; m.tsUltima = d[N - 1].timestamp;
+        motores.set(id, m);
+        return construirSalida(S, m.se, d, v, await sesgosSMC(v));
     }
 
     function tablaSR(res, sup, brk, activas) {
@@ -576,11 +714,11 @@
             h.style.width = `${main.width}px`;
             h.style.height = `${main.height}px`;
         }
+        const firma = (dash && dash.firma) || '';
+        if (firma === ultimoHTML) return;   // el DOM solo se toca si cambió el contenido
+        ultimoHTML = firma;
         const porPos = { 'Top Left': [], 'Top Right': [], 'Bottom Left': [], 'Bottom Right': [] };
         ['sr', 'ict', 'smc'].forEach((k) => { if (dash && dash[k]) porPos[dash[k].pos || 'Top Right'].push(`<div class="ud-dash ${dash[k].clase || ''}${minimizados.has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Tocá para minimizar o expandir">${dash[k].html}</div>`); });
-        const html = JSON.stringify(porPos);
-        if (html === ultimoHTML) return;
-        ultimoHTML = html;
         h.querySelectorAll('.ud-esq').forEach((e) => { e.innerHTML = porPos[e.dataset.pos].join(''); });
     }
 
@@ -602,7 +740,7 @@
             figures: [],
             calcParams: [0],
             calc: async (dataList, indicator) => {
-                const salida = await calcular(dataList, NLTCharts.settings.valores(ID));
+                const salida = await calcularIncremental(indicator.id || ID, dataList, NLTCharts.settings.valores(ID));
                 salidas.set(indicator.id || ID, { salida, velas: dataList });
                 // No hace falta pedir redibujado: al terminar un calc async el motor ya
                 // llama a layout({ update: true }). (Forzarlo con overrideIndicator
@@ -636,7 +774,7 @@
                 }
                 salida.labels.forEach((lb) => { if (lb.x >= from - 5 && lb.x <= to + 40) P.etiqueta(L, lb, velas); });
                 ctx.restore();
-                pintarDashboards(salida.dash, chart);
+                pintarDashboards({ ...salida.dash, firma: salida.dashFirma }, chart);
                 return false;
             },
         });
@@ -644,7 +782,7 @@
 
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.unified = {
-        ID, INPUTS, registrar, limpiar, calcular,
+        ID, INPUTS, registrar, limpiar, calcular, calcularIncremental, stats,
         setContexto({ symbol, pricePrecision }) {
             if (symbol !== simbolo) cacheHTF.clear();
             simbolo = symbol;
