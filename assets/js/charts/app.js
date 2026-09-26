@@ -17,7 +17,7 @@
         state.setUser(session.user.id);
         NLTCharts.settings.setUser(session.user.id);
         NLTCharts.layout.setUser(session.user.id);
-        NLT.mountSidebar(session, { activo: 'charts', seccion: 'indicator' });
+        NLT.mountSidebar(session, { activo: 'charts', seccion: 'charts' });
 
         // Preferencias de la cuenta (otro dispositivo) en paralelo con el catálogo; nunca bloquea
         // más de 2,5 s ni falla: sin cuenta disponible se sigue con las de este dispositivo.

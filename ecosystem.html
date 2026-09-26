@@ -28,7 +28,7 @@
         <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
     </noscript>
     <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script defer src="assets/js/nlt-shared.js?v=021116b1"></script>
+    <script defer src="assets/js/nlt-shared.js?v=fb160b20"></script>
     <script defer src="assets/js/nlt-api-client.js?v=5dbe487c"></script>
     <style>
         /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
@@ -92,6 +92,13 @@
         .bt-zones .p { fill: none; stroke: rgb(var(--bt-c)); stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 340; stroke-dashoffset: 340; filter: drop-shadow(0 0 6px rgba(var(--bt-c), .8)); animation: btDraw 5.5s ease-in-out infinite; }
         @keyframes btDraw { 0% { stroke-dashoffset: 340; } 55%, 85% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: -340; } }
 
+        /* arte: velas (NLT Charts) -- azules/blancas como el gráfico */
+        .bt-candles { right: 36px; bottom: 36px; width: 46%; max-width: 300px; }
+        .bt-candles svg { width: 100%; height: auto; overflow: visible; }
+        .bt-candles .w line { stroke: rgba(var(--bt-c), .45); stroke-width: 1.4; }
+        .bt-candles .u rect { fill: rgba(var(--bt-c), .55); stroke: rgb(var(--bt-c)); stroke-width: 1; filter: drop-shadow(0 0 6px rgba(var(--bt-c), .6)); }
+        .bt-candles .d rect { fill: rgba(255, 255, 255, .85); }
+
         /* arte: difusion de señal (elite signals) */
         .bt-rings { right: 34px; top: 50%; width: 120px; height: 120px; margin-top: -60px; }
         .bt-rings i { position: absolute; inset: 0; border-radius: 50%; border: 1px solid rgba(var(--bt-c), .6); opacity: 0; animation: btRing 3.6s ease-out infinite; }
@@ -111,7 +118,7 @@
             .bento { grid-template-columns: minmax(0, 1fr); }
             .bt-card.bt-feat, .bt-card.bt-wide { grid-column: span 1; }
             .bt-card.bt-feat { min-height: 360px; padding: 26px; }
-            .bt-zones, .bt-rings { opacity: .45; }
+            .bt-zones, .bt-rings, .bt-candles { opacity: .45; }
         }
         @media (prefers-reduced-motion: reduce) {
             .bento *, .bento *::before, .bento *::after { animation: none !important; transition: none !important; }
@@ -343,6 +350,7 @@
             <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
                 <a href="index.html#modulos" class="hover:text-white transition-colors">Ecosistema</a>
                 <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="charts.html" class="hover:text-white transition-colors">NLT Charts</a>
                 <a href="#prop-hub" class="hover:text-white transition-colors">Prop Hub</a>
                 <a href="copy-system.html" class="hover:text-white transition-colors">Copy System</a>
             </nav>
@@ -612,9 +620,10 @@
         (function () {
             // Bento: orden y tamaño por producto (4 columnas). Un producto nuevo
             // que no figure acá entra al final como tarjeta chica.
-            // 24 celdas = 6 filas completas: NLT Funded y Prop Hub quedan lado a lado.
-            const ORDEN = ['copy', 'indicator', 'news', 'tools', 'elite-signals', 'futures-calc', 'forex-calc', 'academy', 'community', 'propfirm', 'prop-hub', 'broker', 'journal'];
-            const TAMANO = { copy: 'bt-feat', indicator: 'bt-wide', 'elite-signals': 'bt-wide', academy: 'bt-wide', community: 'bt-wide', propfirm: 'bt-wide', 'prop-hub': 'bt-wide', broker: 'bt-wide', journal: 'bt-wide' };
+            // 28 celdas = 7 filas completas: Copy System y NLT Charts son los dos
+            // productos principales (2x2); NLT Funded y Prop Hub quedan lado a lado.
+            const ORDEN = ['copy', 'charts', 'indicator', 'news', 'tools', 'elite-signals', 'futures-calc', 'forex-calc', 'academy', 'community', 'propfirm', 'prop-hub', 'broker', 'journal'];
+            const TAMANO = { copy: 'bt-feat', charts: 'bt-feat', indicator: 'bt-wide', 'elite-signals': 'bt-wide', academy: 'bt-wide', community: 'bt-wide', propfirm: 'bt-wide', 'prop-hub': 'bt-wide', broker: 'bt-wide', journal: 'bt-wide' };
             const ARTE = {
                 copy: `<div class="bt-art bt-copy" aria-hidden="true">
                         <i class="ln" style="--len:193px; --ang:-21.2deg; --d:0s"></i><i class="ln" style="--len:198px; --ang:0deg; --d:-.9s"></i><i class="ln" style="--len:193px; --ang:21.2deg; --d:-1.8s"></i>
@@ -624,6 +633,13 @@
                         <svg viewBox="0 0 200 120" preserveAspectRatio="none">
                             <rect class="z" x="0" y="14" width="200" height="26" rx="4"/><rect class="z" x="0" y="74" width="200" height="20" rx="4"/>
                             <polyline class="p" points="0,88 24,80 44,92 68,58 90,66 114,30 138,46 160,22 200,34"/>
+                        </svg>
+                    </div>`,
+                charts: `<div class="bt-art bt-candles" aria-hidden="true">
+                        <svg viewBox="0 0 220 150">
+                            <g class="w"><line x1="14" y1="96" x2="14" y2="132"/><line x1="40" y1="84" x2="40" y2="122"/><line x1="66" y1="90" x2="66" y2="128"/><line x1="92" y1="62" x2="92" y2="104"/><line x1="118" y1="70" x2="118" y2="100"/><line x1="144" y1="38" x2="144" y2="84"/><line x1="170" y1="46" x2="170" y2="76"/><line x1="196" y1="16" x2="196" y2="58"/></g>
+                            <g class="u"><rect x="8" y="104" width="12" height="20" rx="2"/><rect x="34" y="92" width="12" height="22" rx="2"/><rect x="86" y="70" width="12" height="26" rx="2"/><rect x="138" y="46" width="12" height="30" rx="2"/><rect x="190" y="24" width="12" height="26" rx="2"/></g>
+                            <g class="d"><rect x="60" y="98" width="12" height="18" rx="2"/><rect x="112" y="76" width="12" height="16" rx="2"/><rect x="164" y="52" width="12" height="16" rx="2"/></g>
                         </svg>
                     </div>`,
                 'elite-signals': `<div class="bt-art bt-rings" aria-hidden="true"><i></i><i></i><i></i><b></b></div>`,

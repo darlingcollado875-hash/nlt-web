@@ -1034,6 +1034,7 @@
         fromNav(NAV_BROKER, 'NLT Broker', SECTION_RGB.broker);
         fromNav(NAV_PROPFIRM, 'NLT Funded', SECTION_RGB.propfirm);
         fromNav(NAV_SIGNALS, 'Elite Signals', SECTION_RGB.signals);
+        fromNav(NAV_CHARTS, 'NLT Charts', SECTION_RGB.charts);
         fromNav(NAV_INDICATOR, 'Indicator', SECTION_RGB.indicator);
         fromNav(NAV_BOT, 'Bot Supreme', SECTION_RGB.bot);
         fromNav(NAV_CFD_AJUSTES, 'Ajustes', SECTION_RGB.cfd);
@@ -2091,6 +2092,14 @@
             color: '67,120,255',
         },
         {
+            // NLT Charts es producto principal (no una sub-página del
+            // Indicator): gráfico con datos reales del proveedor de NLT,
+            // watchlist, dibujos e indicadores (NLT Zone Engine, NLT AI...).
+            id: 'charts', nombre: 'NLT Charts', status: 'live', href: 'charts.html',
+            icono: 'ph-chart-line-up', descripcion: 'Gráficos en vivo con watchlist, dibujos, Long/Short Position y los indicadores NLT (Zone Engine, NLT AI) calculados en el servidor.',
+            color: '96,165,250',
+        },
+        {
             // DAFRYX ZONE AI es el indicador real de NLT -- análisis de zonas
             // (oferta/demanda, FVG, BOS), AI Score, bias y probabilidad,
             // directo en TradingView. No es un producto separado de "Zone
@@ -2232,6 +2241,12 @@
         { id: 'charts', href: 'charts.html', icono: 'ph-chart-line-up', label: 'NLT Charts' },
     ];
 
+    // NLT Charts -- producto principal propio (antes colgaba de NLT Indicator).
+    const NAV_CHARTS = [
+        { id: 'charts', href: 'charts.html', icono: 'ph-chart-line-up', label: 'Gráfico' },
+        { id: 'indicator-dashboard', href: 'indicator-dashboard.html', icono: 'ph-crosshair', label: 'NLT Indicator' },
+    ];
+
     // NLT Bot Supreme (Fase 4, ver RATIFIED INTEGRATION CONTRACT v1) -- un
     // solo item hoy: todavía no existe una landing/marketing page propia
     // (eso es Fase 6+, fuera de esta fase), así que a diferencia de
@@ -2255,7 +2270,7 @@
     // que el sidebar hable el mismo idioma visual que el resto del sitio.
     const SECTION_RGB = {
         cfd: '67,120,255', broker: '45,212,191', propfirm: '245,158,11',
-        signals: '34,197,94', indicator: '34,211,238', bot: '248,113,113',
+        signals: '34,197,94', indicator: '34,211,238', bot: '248,113,113', charts: '96,165,250',
         equipo: '168,85,247', futures: '245,158,11',
     };
 
@@ -2278,9 +2293,9 @@
     // se usa un solo link de vuelta a futuros.html.
     function renderSidebar({ activo, seccion = 'cfd' } = {}) {
         const esFuturesHome = seccion === 'futures' && FUTURES_HOME_IDS.includes(activo);
-        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'indicator' ? NAV_INDICATOR : seccion === 'bot' ? NAV_BOT : seccion === 'equipo' ? NAV_EQUIPO : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
+        const nav = seccion === 'broker' ? NAV_BROKER : seccion === 'propfirm' ? NAV_PROPFIRM : seccion === 'signals' ? NAV_SIGNALS : seccion === 'indicator' ? NAV_INDICATOR : seccion === 'charts' ? NAV_CHARTS : seccion === 'bot' ? NAV_BOT : seccion === 'equipo' ? NAV_EQUIPO : seccion === 'futures' ? (esFuturesHome ? NAV_FUTURES_HOME : NAV_FUTURES_LINK) : NAV_CFD;
         const ajustes = seccion === 'futures' ? NAV_FUTURES_AJUSTES : NAV_CFD_AJUSTES;
-        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'indicator' ? 'NLT Indicator' : seccion === 'bot' ? 'NLT Bot Supreme' : seccion === 'equipo' ? 'Equipo NLT' : seccion === 'futures' ? 'Futuros' : null;
+        const grupoLabel = seccion === 'broker' ? 'NLT Broker' : seccion === 'propfirm' ? 'NLT Funded' : seccion === 'signals' ? 'NLT Elite Signals' : seccion === 'indicator' ? 'NLT Indicator' : seccion === 'charts' ? 'NLT Charts' : seccion === 'bot' ? 'NLT Bot Supreme' : seccion === 'equipo' ? 'Equipo NLT' : seccion === 'futures' ? 'Futuros' : null;
         const ajustesLabel = seccion === 'futures' ? 'Ajustes Futures' : 'Ajustes';
         const adminLabel = seccion === 'futures' ? 'Administración' : 'Panel Admin';
         const adminHref = seccion === 'broker' ? 'admin.html#broker' : seccion === 'propfirm' ? 'admin.html#propfirm' : seccion === 'signals' ? 'admin.html#elite_signals' : seccion === 'indicator' ? 'admin.html#indicador' : seccion === 'futures' ? 'admin.html#futures' : 'admin.html';
@@ -2302,9 +2317,12 @@
                 <button type="button" data-nlt-palette class="w-full flex items-center gap-3 px-4 py-2.5 mb-2 rounded-2xl text-sm text-gray-500 bg-white/[0.03] border border-white/[0.07] hover:border-white/20 hover:text-gray-300 transition-all cursor-pointer">
                     <i class="ph ph-magnifying-glass text-lg"></i><span class="flex-1 text-left">Buscar…</span><span class="nlt-kbd">${/Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘K' : 'Ctrl K'}</span>
                 </button>
-                <a href="ecosystem.html" class="flex items-center gap-3 px-4 py-3 mb-2 pb-4 border-b border-white/5 rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
+                <a href="ecosystem.html" class="flex items-center gap-3 px-4 py-3 ${seccion === 'charts' ? 'mb-2 pb-4 border-b border-white/5' : ''} rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
                     <i class="ph ph-compass text-lg"></i> Ecosistema
                 </a>
+                ${seccion === 'charts' ? '' : `<a href="charts.html" class="flex items-center gap-3 px-4 py-3 mb-2 pb-4 border-b border-white/5 rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
+                    <i class="ph ph-chart-line-up text-lg" style="color:rgba(${SECTION_RGB.charts},0.85)"></i> NLT Charts
+                </a>`}
                 ${grupoLabel ? `<p class="px-4 pb-2 text-[10px] font-bold uppercase tracking-widest" style="color:rgba(${rgb},0.8)">${grupoLabel}</p>` : ''}
                 ${nav.map((i) => _navItemHTML(i, activo, rgb)).join('')}
                 <div class="pt-6 pb-2 px-4"><p class="text-[10px] font-bold text-gray-600 uppercase tracking-widest">${ajustesLabel}</p></div>
