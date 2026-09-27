@@ -31,6 +31,7 @@
     //   desconectado 3 refrescos fallidos seguidos, o el navegador está sin red
     //   cerrado      forex/metales/índices en fin de semana (no es un problema)
     const FALLOS_DESCONECTADO = 3, SIN_DATOS_MS = 20000;
+    const REFRESCO_CERRADO_MS = 60000;   // mercado cerrado: nada cambia, se mira cada minuto
     let estado = 'conectando';
     const oyentesEstado = new Set();
     function fijarEstado(e, detalle) {
@@ -85,7 +86,7 @@
                 }
                 enCurso = false;
             }
-            if (vivo) timer = setTimeout(tick, REFRESCO_MS);
+            if (vivo) timer = setTimeout(tick, estado === 'cerrado' ? REFRESCO_CERRADO_MS : REFRESCO_MS);
         }
         const alVolver = () => { if (document.visibilityState === 'visible') tick(); };
         const alConectar = () => tick();

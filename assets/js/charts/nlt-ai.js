@@ -44,22 +44,28 @@
         const hora = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         const nonce = () => (state.prefs().nltAiNonce || {})[getSymbol()] || 0;
 
+        // Un solo pedido a la vez: si llega otro aviso mientras hay uno en curso, se repite UNA vez al terminar.
+        let enCurso = false, otraVez = false;
         async function refrescar() {
             clearTimeout(timer);
             if (!ver) { pintar(); return; }
             if (!pro.tieneAcceso()) { datos = null; error = 'NLT AI recibe los eventos del NLT Zone Engine: activalo primero.'; pintar(); return; }
+            if (enCurso) { otraVez = true; return; }
+            enCurso = true;
             const n = ++seq;
             try {
                 const r = await NLT_API.chartsNltAi(getSymbol(), getTimeframe(), pro.entradasActuales(), S.valores(ID).modo, nonce());
-                if (n !== seq) return;
+                if (n !== seq) { enCurso = false; return; }
                 datos = r; error = '';
             } catch (err) {
-                if (n !== seq) return;
+                if (n !== seq) { enCurso = false; return; }
                 error = err.message;
             }
+            enCurso = false;
             pintar();
             onCambio && onCambio();
-            timer = setTimeout(refrescar, REFRESCO_MS);
+            clearTimeout(timer);
+            if (otraVez) { otraVez = false; timer = setTimeout(refrescar, 0); } else timer = setTimeout(refrescar, REFRESCO_MS);
         }
         const programar = (ms) => { clearTimeout(timer); timer = setTimeout(refrescar, ms); };
         pro.alRefrescar(() => { if (ver) programar(150); });   // cada cálculo del Zone Engine (vela nueva, zona movida...)
