@@ -134,8 +134,12 @@
             onCambio: () => { toolbar.setFavorito(wl.esFavorito(symbol)); toolbar.setWatchlist(!document.getElementById('chWatch').hidden); motor.chart.resize(); },
         });
         toolbar.setFavorito(wl.esFavorito(symbol));
+        const horaUltimaVela = () => {
+            const d = motor.chart.getDataList();
+            return d.length ? new Date(d[d.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+        };
         toolbar.setConexion(market.estado());
-        market.alCambiarEstado((e, detalle) => toolbar.setConexion(e, detalle));
+        market.alCambiarEstado((e, detalle) => toolbar.setConexion(e, detalle, horaUltimaVela()));
         toolbar.setWatchlist(!document.getElementById('chWatch').hidden);
 
         function cargar() {
