@@ -946,7 +946,7 @@
         }),
         // NLT Backtest Lab: el servidor decide acceso, límites y cuenta de precios; el navegador
         // solo manda la configuración y lee progreso/resultados de SUS backtests.
-        chartsBacktestConfig: () => request('/charts/backtest/config'),
+        chartsBacktestConfig: () => request('/charts/backtest/config', { timeoutMs: 20000 }),
         chartsBacktestCrear: (pedido) => request('/charts/backtest/runs', { method: 'POST', body: JSON.stringify(pedido), intentos: 1 }),
         chartsBacktestEstado: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}`),
         chartsBacktestResultado: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/result`, { timeoutMs: 30000 }),

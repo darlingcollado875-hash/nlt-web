@@ -282,7 +282,7 @@
 
         function htmlConfig() {
             const c = st.cfg;
-            if (!c) return '<p class="lab-vacio">Cargando…</p>';
+            if (!c) return st.error ? `<p class="lab-error">${esc(st.error)}</p><button type="button" class="lab-sec" data-a="reintentarConfig">Reintentar</button>` : '<p class="lab-vacio">Cargando…</p>';
             const bloqueado = !c.access;
             const corriendo = st.job && ['queued', 'data', 'engine', 'simulation'].includes(st.job.status);
             const presets = [...c.presets.map((p) => [p.id, p.name]), ...st.presetsUsuario.map((p) => [p.id, `★ ${p.name}`])];
@@ -491,6 +491,7 @@
             if (acc === 'step') { if (!st.replay.activo) iniciarReplay(); detenerReplay(); paso(); pintar(); }
             if (acc === 'reset') { detenerReplay(); iniciarReplay(); pintar(); }
             if (acc === 'guardarPreset') guardarPreset();
+            if (acc === 'reintentarConfig') { st.error = ''; pintar(); cargarConfig(); }
             if (acc === 'abrirReplay' && NLTCharts.replayApi) { const m = st.res.meta; salirGrafico(); api.abrir(false); NLTCharts.replayApi.iniciar(m.symbol, m.timeframe, m.dataset.first); }
         });
         el.addEventListener('change', (ev) => {
@@ -532,6 +533,7 @@
         }
         async function cargarConfig() {
             try {
+                st.error = '';
                 st.cfg = await NLT_API.chartsBacktestConfig();
                 if (!st.cfg.symbols.includes(form.symbol)) form.symbol = st.cfg.symbols[0];
             } catch (err) { st.error = err.message; }
