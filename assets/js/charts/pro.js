@@ -383,6 +383,9 @@
             return null;
         }
 
+        // Sin esquema no se calcula: las entradas del usuario no viajarían y el motor usaría
+        // los valores por defecto. Si el pedido falla (red, 429) se reintenta solo.
+        let reintentoEsquema = null, esperaEsquema = 3000;
         async function cargarEsquema() {
             if (esquema || !tieneAcceso()) return;
             try {
@@ -397,7 +400,12 @@
                     })), ...inputsEstilo(), ...VIS_TF],
                 });
                 actualizarVisuales();
-            } catch (_) { /* sin esquema: solo la zona manual */ }
+                esperaEsquema = 3000;
+            } catch (_) {
+                clearTimeout(reintentoEsquema);
+                reintentoEsquema = setTimeout(() => cargarEsquema().then(() => { if (esquema && ver) programar(100); }), esperaEsquema);
+                esperaEsquema = Math.min(esperaEsquema * 2, 30000);
+            }
         }
 
         function mostrarEnGrafico(si) {
@@ -461,6 +469,7 @@
             clearTimeout(timer); clearTimeout(timerCorto);
             if (!ver || !tieneAcceso()) { mostrarEnGrafico(false); return; }
             if (document.visibilityState !== 'visible') { timer = setTimeout(refrescar, REFRESCO_MS); return; }
+            if (!esquema) { await cargarEsquema(); if (!esquema) return; }   // el reintento vuelve a llamar
             const rect = resolverRect();
             if (rect && !previa) {
                 // el rectángulo manda sobre los precios de la zona (el usuario lo movió)
@@ -653,6 +662,7 @@
             visible: () => ver,
             alternar(si) { ver = !!si; guardarPref(ver); refrescar(); onCambio && onCambio(); },
             catalogoCargado: () => catalogo,
+            vistaActual: () => vista,   // diagnóstico: lo que se está dibujando (ya filtrado y con estilos)
             // ojo de la leyenda: oculta todo lo del indicador (dibujos y tablas) sin quitarlo
             alternarVisible() {
                 oculto = !oculto;

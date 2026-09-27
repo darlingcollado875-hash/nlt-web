@@ -379,6 +379,7 @@
 
         return {
             activar(id) { activar(id); guardarActivos(); },
+            desactivar(id) { desactivar(id); guardarActivos(); },
             abrir() { render(); panelEl.hidden = false; panelBgEl.hidden = false; },
             refrescarPanel,
             // Recalcula los indicadores propios (ej. al cambiar de símbolo el

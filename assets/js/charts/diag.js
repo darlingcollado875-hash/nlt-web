@@ -186,7 +186,8 @@
         });
         chart.resetData();
         await esperar(800);
-        const panelInd = document.querySelector('[data-ind]') ? null : null; void panelInd;
+        // Los indicadores que la prueba prende se apagan al final: no cambia la configuración del usuario.
+        const antes = new Set(NLTCharts.app ? NLTCharts.app.indicadoresActivos() : []);
         indicadores.forEach((id) => NLTCharts.app && NLTCharts.app.activarIndicador(id));
         const n = datos.length;
         for (let k = 0; k < dibujos; k++) {
@@ -215,6 +216,7 @@
             empujar(ultima);
         }));
         chart.removeOverlay({ groupId: 'diag' });
+        indicadores.filter((id) => !antes.has(id)).forEach((id) => NLTCharts.app && NLTCharts.app.desactivarIndicador(id));
         console.table(res.map((r) => ({ ...r, calc: JSON.stringify(r.calc) })));
         return res;
     };

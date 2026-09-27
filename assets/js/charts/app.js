@@ -150,7 +150,10 @@
         pro.iniciar();
         nltAi.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
-        window.NLTCharts.app = { activarIndicador: (id) => ind.activar(id), pro, nltAi, dibujos: dib };   // favoritos PRO y consola
+        window.NLTCharts.app = {
+            activarIndicador: (id) => ind.activar(id), desactivarIndicador: (id) => ind.desactivar(id), indicadoresActivos: () => ind.activos(),
+            pro, nltAi, dibujos: dib,
+        };   // favoritos PRO y consola
     }
 
     init();
