@@ -175,10 +175,10 @@
     const PIVOTE = 2; // velas a cada lado
     const MAX_ZONAS_POR_LADO = 3;
 
-    function calcularFreeZones(data, opt = {}) {
-        const PIV = opt.pivote ?? PIVOTE, maxLado = opt.max ?? MAX_ZONAS_POR_LADO;
+    // Zonas vivas usando SOLO data[0..n-1]: pivotes confirmados y no invalidados por un cierre.
+    function vivasFreeZones(data, PIV, n) {
         const zonas = [];
-        for (let i = PIV; i < data.length - PIV; i++) {
+        for (let i = PIV; i < n - PIV; i++) {
             let esAlto = true, esBajo = true;
             for (let k = 1; k <= PIV; k++) {
                 if (!(data[i].high > data[i - k].high && data[i].high > data[i + k].high)) esAlto = false;
@@ -191,16 +191,47 @@
         }
         // Invalidada = una vela CIERRA del otro lado de la zona.
         zonas.forEach((z) => {
-            for (let j = z.desde + PIV + 1; j < data.length; j++) {
+            for (let j = z.desde + PIV + 1; j < n; j++) {
                 if ((z.dir === -1 && data[j].close > z.top) || (z.dir === 1 && data[j].close < z.bottom)) { z.fin = j; break; }
             }
         });
-        const vivas = zonas.filter((z) => z.fin === null);
-        return [
-            ...vivas.filter((z) => z.dir === 1).slice(-maxLado),
-            ...vivas.filter((z) => z.dir === -1).slice(-maxLado),
-        ];
+        return zonas.filter((z) => z.fin === null);
     }
+    const elegirFreeZones = (vivas, maxLado) => [
+        ...vivas.filter((z) => z.dir === 1).slice(-maxLado),
+        ...vivas.filter((z) => z.dir === -1).slice(-maxLado),
+    ];
+    function calcularFreeZones(data, opt = {}) {
+        return elegirFreeZones(vivasFreeZones(data, opt.pivote ?? PIVOTE, data.length), opt.max ?? MAX_ZONAS_POR_LADO);
+    }
+    // Igual que calcularFreeZones, pero en un tick (solo cambió la última vela) reutiliza las zonas
+    // vivas hasta la anteúltima vela: solo la última vela puede invalidarlas, y solo el pivote de
+    // i = N-1-PIV usa la última vela (sus invalidaciones empiezan en N: ninguna todavía). EXACTO.
+    const cacheFZ = new Map();
+    function calcularFreeZonesInc(id, data, opt = {}) {
+        const PIV = opt.pivote ?? PIVOTE, maxLado = opt.max ?? MAX_ZONAS_POR_LADO, N = data.length;
+        if (N < 2 * PIV + 2) return calcularFreeZones(data, opt);
+        const firma = `${PIV}|${N}|${data[0].timestamp}|${data[N - 2].timestamp}`;
+        let c = cacheFZ.get(id);
+        if (!c || c.firma !== firma) { c = { firma, base: vivasFreeZones(data, PIV, N - 1) }; cacheFZ.set(id, c); }
+        const u = data[N - 1];
+        const vivas = c.base.filter((z) => !((z.dir === -1 && u.close > z.top) || (z.dir === 1 && u.close < z.bottom)));
+        const i = N - 1 - PIV;
+        let esAlto = true, esBajo = true;
+        for (let k = 1; k <= PIV; k++) {
+            if (!(data[i].high > data[i - k].high && data[i].high > data[i + k].high)) esAlto = false;
+            if (!(data[i].low < data[i - k].low && data[i].low < data[i + k].low)) esBajo = false;
+        }
+        const cuerpoAlto = Math.max(data[i].open, data[i].close), cuerpoBajo = Math.min(data[i].open, data[i].close);
+        if (esAlto) vivas.push({ dir: -1, desde: i, top: data[i].high, bottom: cuerpoAlto, fin: null });
+        if (esBajo) vivas.push({ dir: 1, desde: i, top: cuerpoBajo, bottom: data[i].low, fin: null });
+        return elegirFreeZones(vivas, maxLado);
+    }
+    // Resultado por vela de los indicadores que dibujan listas (FVG, Free Zones): nadie lo lee, pero el
+    // motor necesita un arreglo del largo de los datos. Se reutiliza uno en vez de crear N objetos por cálculo.
+    let vaciosCache = [];
+    const VACIO = {};
+    const vacios = (n) => { if (vaciosCache.length !== n) vaciosCache = Array.from({ length: n }, () => VACIO); return vaciosCache; };
 
     function estiloZonas(v, kB, kR, etiqueta) {
         const rgb = (c) => { const h = c.hex.replace('#', ''); return `${parseInt(h.slice(0, 2), 16)},${parseInt(h.slice(2, 4), 16)},${parseInt(h.slice(4, 6), 16)}`; };
@@ -379,7 +410,7 @@
             figures: [],
             calc: (dataList, indicator) => {
                 zonasPorIndicador.set(indicator.id || indicator.name, calcularFVG(dataList, aj('NLT_FVG')));
-                return dataList.map(() => ({}));
+                return vacios(dataList.length);
             },
             createTooltipDataSource: ({ indicator }) => ({ ...vacio(indicator), name: 'FVG básico' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
@@ -395,8 +426,9 @@
             shortName: 'Free Zones',
             figures: [],
             calc: (dataList, indicator) => {
-                zonasPorIndicador.set(indicator.id || indicator.name, calcularFreeZones(dataList, aj('NLT_FREE_ZONES')));
-                return dataList.map(() => ({}));
+                const id = indicator.id || indicator.name;
+                zonasPorIndicador.set(id, calcularFreeZonesInc(id, dataList, aj('NLT_FREE_ZONES')));
+                return vacios(dataList.length);
             },
             createTooltipDataSource: ({ indicator }) => ({ ...vacio(indicator), name: 'Free Zones' }),
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
@@ -413,6 +445,6 @@
         registrar,
         setSymbol(s) { simboloActual = s; },
         // expuestos para tests en el navegador
-        SESIONES, horaNY, sesionDe, calcularFVG, calcularFreeZones, nivelesPorDiaria, claveSemana, diariaDe,
+        SESIONES, horaNY, sesionDe, calcularFVG, calcularFreeZones, calcularFreeZonesInc, nivelesPorDiaria, claveSemana, diariaDe,
     };
 })();
