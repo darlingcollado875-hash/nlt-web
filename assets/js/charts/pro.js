@@ -678,6 +678,8 @@
             dibujosRestaurados() { if (ver) programar(150); },
             // Al cambiar de símbolo: cada símbolo tiene su zona y sus rectángulos.
             cambioDeSimbolo() { rectId = null; rectVisto = false; dibujo = null; vista = null; pintarTablas(); programar(600); },
+            // Otra temporalidad: las zonas de la anterior no valen; un solo cálculo cuando llegan las velas nuevas.
+            cambioDeTimeframe() { dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); programar(600); },
         };
     }
 

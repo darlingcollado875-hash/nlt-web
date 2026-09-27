@@ -107,7 +107,7 @@
             timeframes: catalogo.timeframes,
             symbol, timeframe,
             onSymbol: (s) => cambiarSimbolo(s),
-            onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); cargar(); pro.refrescar(); },
+            onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); cargar(); pro.cambioDeTimeframe(); nltAi.cambioDeSimbolo(); },
             onIndicadores: () => ind.abrir(),
             onConfig: () => NLTCharts.settings.abrir('GRAFICO', (v) => motor.aplicarApariencia(v)),
             onWatchlist: () => wl.alternar(),
