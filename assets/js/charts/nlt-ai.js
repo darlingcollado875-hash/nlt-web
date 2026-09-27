@@ -79,8 +79,8 @@
             const ev = datos && datos.events.length ? datos.events[datos.events.length - 1] : null;
             const env = datos && datos.last_sent;
             const f = NLTCharts.drawings.formatear;
-            return `<table class="ze-tabla ze-nlt">
-                <tr class="ze-hdr" style="background:rgba(67,120,255,.12)"><td style="color:#fff">🌐 NLT AI</td>
+            return `<table class="ze-tabla ze-nlt${minimizado() ? ' ze-min' : ''}">
+                <tr class="ze-hdr" data-nltai="minimizar" title="Tocá para minimizar o expandir" style="background:rgba(67,120,255,.12)"><td style="color:#fff">🌐 NLT AI</td>
                     <td style="color:${st ? st[0] : '#9CA3AF'}">${esc(error ? 'ERROR' : st ? st[1] : 'cargando…')}</td></tr>
                 ${fila('Zona', z ? `${z.esOB ? 'OB' : 'FVG'} · ${z.alcista ? 'LONG' : 'SHORT'}` : '—', z ? (z.alcista ? '#3FB950' : '#F85149') : '#6B7280')}
                 ${z ? fila('Precio', `${f(z.top)} → ${f(z.bottom)}`) : ''}
@@ -105,6 +105,16 @@
                 ${lista('Invalida', a.invalidation, '#F85149')}
                 ${a.ai_called ? '' : fila('Modo', 'solo cuantitativo (sin IA)', '#9CA3AF')}`;
         }
+        // Minimizado (solo la cabecera con el estado): lo elige el usuario tocando la cabecera, igual que el
+        // panel del Zone Engine. Por defecto, minimizado en pantallas chicas para no tapar el otro panel.
+        function minimizado() {
+            const m = state.prefs().nltAiMin;
+            return typeof m === 'boolean' ? m : window.innerWidth < 900;
+        }
+        function alternarMinimizado() {
+            state.savePrefs({ nltAiMin: !minimizado() });
+            firma = ''; pintar();
+        }
         function pintar() {
             const T = NLTCharts.ui.tablero;
             if (!ver) { T.quitar('nlt-ai'); firma = ''; return; }
@@ -112,6 +122,10 @@
             if (html === firma) return;
             firma = html;
             const el = T.slot(S.valores(ID).posicion, 'nlt-ai');
+            if (el && !el.dataset.oyente) {
+                el.dataset.oyente = '1';
+                el.addEventListener('click', (ev) => { if (ev.target.closest('[data-nltai="minimizar"]')) alternarMinimizado(); });
+            }
             if (el) el.innerHTML = `<div class="ud-dash">${html}</div>`;
         }
 

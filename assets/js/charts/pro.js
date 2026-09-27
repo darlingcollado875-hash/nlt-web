@@ -446,12 +446,21 @@
             } else { NLTCharts.ui.tablero.quitar('ze'); firmaPanel = ''; }
         }
 
+        // Sin catálogo no se sabe si hay acceso: si falla (token vencido al cargar, red, 429)
+        // se reintenta solo, para no dejar sin el Zone Engine a quien lo pagó hasta que recargue.
+        let reintentoCatalogo = null, esperaCatalogo = 3000;
         async function cargarCatalogo() {
+            clearTimeout(reintentoCatalogo);
             try {
                 catalogo = await NLT_API.chartsProCatalogo();
                 error = '';
+                esperaCatalogo = 3000;
             } catch (err) {
                 error = err.message;
+                if (!catalogo) {
+                    reintentoCatalogo = setTimeout(() => cargarCatalogo().then(() => { if (catalogo && ver) programar(100); }), esperaCatalogo);
+                    esperaCatalogo = Math.min(esperaCatalogo * 2, 30000);
+                }
             }
             await cargarEsquema();
             onCambio && onCambio();
