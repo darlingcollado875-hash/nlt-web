@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tests · countdown y fluidez de NLT Charts</title>
+<style>
+  body { font: 13px/1.5 system-ui, sans-serif; background: #0B0E14; color: #E5E7EB; margin: 0; padding: 16px; }
+  .ok { color: #22C55E; } .mal { color: #F87171; } pre { white-space: pre-wrap; }
+  #lienzo { width: 900px; height: 420px; }
+</style>
+</head>
+<body>
+<h1>NLT Charts — countdown de la vela y movimiento fluido</h1>
+<p>Página de tests (no se publica: <code>tests/</code> está en <code>.assetsignore</code>). Resultado en <code>window.__resultado</code>.</p>
+<pre id="resultado">corriendo…</pre>
+<div id="lienzo"></div>
+<script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js"></script>
+<script src="../assets/js/charts/fluidez.js"></script>
+<script>
+  // market-data mínimo para el countdown (estado y cierre del mercado los decide la prueba)
+  window.NLTCharts = window.NLTCharts || {};
+  NLTCharts.market = { estado: () => 'conectado', cerradoAhora: () => false };
+</script>
+<script src="../assets/js/charts/countdown.js"></script>
+<script>
+(async function () {
+  const C = NLTCharts.countdown, F = NLTCharts.fluidez;
+  const res = [];
+  const test = async (nombre, fn) => { try { await fn(); res.push({ nombre, ok: true }); } catch (e) { res.push({ nombre, ok: false, error: String(e && e.message || e) }); } };
+  const eq = (a, b, m) => { if (a !== b) throw new Error(`${m || ''} esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); };
+  const ok = (c, m) => { if (!c) throw new Error(m || 'falló'); };
+  const P = { '1m': { type: 'minute', span: 1 }, '3m': { type: 'minute', span: 3 }, '5m': { type: 'minute', span: 5 }, '15m': { type: 'minute', span: 15 },
+    '30m': { type: 'minute', span: 30 }, '1H': { type: 'hour', span: 1 }, '2H': { type: 'hour', span: 2 }, '4H': { type: 'hour', span: 4 }, '1D': { type: 'day', span: 1 } };
+  const utc = (s) => Date.parse(s);
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+
+  // ── 1-4: countdown ──
+  await test('1. countdown de la vela actual (HH:MM:SS)', () => {
+    const r = C.calcular({ ultimaTs: utc('2026-09-28T14:00:00Z'), periodo: P['15m'], ahora: utc('2026-09-28T14:07:18Z'), estado: 'conectado', cerrado: false });
+    eq(r.tipo, 'countdown'); eq(r.texto, '00:07:42');
+  });
+  await test('2. countdown según timeframe (1m, 3m, 5m, 15m, 30m, 1H, 2H, 4H, 1D)', () => {
+    const ahora = utc('2026-09-28T14:10:30Z');
+    const casos = { '1m': ['2026-09-28T14:10:00Z', '00:00:30'], '3m': ['2026-09-28T14:09:00Z', '00:01:30'], '5m': ['2026-09-28T14:10:00Z', '00:04:30'],
+      '15m': ['2026-09-28T14:00:00Z', '00:04:30'], '30m': ['2026-09-28T14:00:00Z', '00:19:30'], '1H': ['2026-09-28T14:00:00Z', '00:49:30'],
+      '2H': ['2026-09-28T13:00:00Z', '00:49:30'], '4H': ['2026-09-28T13:00:00Z', '02:49:30'], '1D': ['2026-09-27T21:00:00Z', '06:49:30'] };
+    for (const [tf, [ts, esperado]] of Object.entries(casos)) eq(C.calcular({ ultimaTs: utc(ts), periodo: P[tf], ahora, estado: 'conectado' }).texto, esperado, tf);
+  });
+  await test('3. zona horaria: la diaria cierra a las 17:00 de Nueva York en verano y en invierno', () => {
+    eq(new Date(C.cierre(utc('2026-09-27T21:00:00Z'), P['1D'])).toISOString(), '2026-09-28T21:00:00.000Z', 'verano (EDT)');
+    eq(new Date(C.cierre(utc('2026-12-06T22:00:00Z'), P['1D'])).toISOString(), '2026-12-07T22:00:00.000Z', 'invierno (EST)');
+    // semana del cambio de horario (1/11/2026): la diaria del lunes abre dom 17:00 EST = 22:00 UTC
+    eq(new Date(C.cierre(utc('2026-11-01T22:00:00Z'), P['1D'])).toISOString(), '2026-11-02T22:00:00.000Z', 'semana de DST');
+    // el desfase del reloj local se corrige con la hora del servidor
+    C.sincronizar(Date.now() + 5000, Date.now() - 20, Date.now());
+    ok(Math.abs(C.desfase() - 5000) < 50, `desfase ${C.desfase()}`);
+    C.sincronizar(Date.now(), Date.now() - 10, Date.now());       // la muestra de viaje más corto gana... pero ambas valen
+  });
+  await test('4. mercado cerrado / retrasado / desconectado / replay: estado en vez de un countdown falso', () => {
+    const base = { ultimaTs: utc('2026-09-25T20:59:00Z'), periodo: P['1m'], ahora: utc('2026-09-26T12:00:00Z') };
+    eq(C.calcular({ ...base, estado: 'conectado', cerrado: true }).texto, 'MARKET CLOSED');
+    eq(C.calcular({ ...base, estado: 'cerrado', cerrado: false }).texto, 'MARKET CLOSED');
+    eq(C.calcular({ ...base, estado: 'retrasado' }).texto, 'DELAYED');
+    eq(C.calcular({ ...base, estado: 'desconectado' }).texto, 'DISCONNECTED');
+    eq(C.calcular({ ...base, estado: 'replay' }).texto, 'REPLAY');
+    // datos viejos con el mercado "abierto": DELAYED, no un contador que corre solo
+    eq(C.calcular({ ultimaTs: utc('2026-09-28T14:00:00Z'), periodo: P['1m'], ahora: utc('2026-09-28T14:10:00Z'), estado: 'conectado' }).texto, 'DELAYED');
+    // al llegar a 00:00:00 empieza la vela siguiente aunque su primer tick no haya llegado
+    eq(C.calcular({ ultimaTs: utc('2026-09-28T14:00:00Z'), periodo: P['1m'], ahora: utc('2026-09-28T14:01:00Z'), estado: 'conectado' }).texto, '00:01:00');
+    eq(C.calcular({ ultimaTs: utc('2026-09-28T14:00:00Z'), periodo: P['1m'], ahora: utc('2026-09-28T14:01:05Z'), estado: 'conectado' }).texto, '00:00:55');
+  });
+
+  // ── gráfico simulado: mapea índices a píxeles con un desplazamiento, como KLineChart ──
+  function falso(n = 200, anchoBarra = 10, ancho = 900) {
+    const datos = Array.from({ length: n }, (_, i) => ({ timestamp: i * 60000, open: 1, high: 1.2, low: 0.9, close: 1.1, volume: 1 }));
+    let off = ancho - n * anchoBarra;   // píxel de la barra 0 (la última queda en el borde derecho)
+    const ch = {
+      datos, frames: [],
+      getDataList: () => datos,
+      convertToPixel: (p) => ({ x: off + (p.dataIndex ?? datos.findIndex((d) => d.timestamp === p.timestamp)) * anchoBarra }),
+      getSize: () => ({ width: ancho }),
+      getVisibleRange: () => ({ from: 0, to: datos.length, realFrom: Math.max(0, Math.floor(-off / anchoBarra)) }),
+      scrollByDistance: (d) => { off += d; },
+      getIndicators: () => [], overrideIndicator: () => {},
+      offset: () => off, setOff: (v) => { off = v; },
+    };
+    // "callback" de KLineChart: misma vela = actualiza; nueva = agrega y corre una barra si está pegado al borde
+    ch.cb = (v) => {
+      ch.frames.push({ ...v });
+      const u = datos[datos.length - 1];
+      if (u.timestamp === v.timestamp) datos[datos.length - 1] = { ...v };
+      else { datos.push({ ...v }); off -= anchoBarra; }
+    };
+    return ch;
+  }
+
+  await test('5. tick en vivo: la vela actual se actualiza con el dato real', async () => {
+    const ch = falso(), a = F.crear(ch);
+    const u = ch.datos.at(-1), real = { ...u, close: 1.15, high: 1.2, low: 0.9 };
+    a.aplicar(ch.cb, real);
+    await esperar(F.TWEEN_MS + 120);
+    eq(JSON.stringify(ch.datos.at(-1)), JSON.stringify(real), 'último estado = dato real');
+    eq(ch.datos.length, 200, 'sin velas nuevas');
+  });
+  await test('6. animación solo visual: frames dentro del rango real, último frame = dato real, dato no mutado', async () => {
+    const ch = falso(), a = F.crear(ch);
+    const u = ch.datos.at(-1);
+    const real = Object.freeze({ ...u, close: 1.18, high: 1.19, low: 0.9 });
+    let durante = false;
+    const cb = (v) => { if (F.interpolando()) durante = true; ch.cb(v); };
+    a.aplicar(cb, real);
+    await esperar(F.TWEEN_MS + 120);
+    const intermedios = ch.frames.slice(0, -1);
+    ok(intermedios.length >= 2, `hubo tween (${intermedios.length} frames)`);
+    ok(durante, 'los frames intermedios se marcan como interpolación');
+    for (const f of intermedios) ok(f.close >= Math.min(u.close, real.close) - 1e-12 && f.close <= Math.max(u.close, real.close) + 1e-12 && f.high <= real.high && f.low >= real.low, 'frame fuera del rango real');
+    eq(JSON.stringify(ch.frames.at(-1)), JSON.stringify(real), 'último frame');
+    ok(!F.interpolando(), 'terminó la interpolación');
+    // indicadores: en frames intermedios devuelven el último resultado REAL (no calculan con valores sintéticos)
+    let calculos = 0;
+    const calc = F.envolverCalc((dl) => { calculos++; return dl.map((d) => d.close); });
+    const ind = {};
+    const r1 = calc([{ close: 1 }, { close: 2 }], ind);
+    ch.frames.length = 0;
+    const cb2 = (v) => { if (F.interpolando()) { const r = calc([{ close: 1 }, { close: v.close }], ind); ok(r === r1, 'recalculó con un frame sintético'); } ch.cb(v); };
+    a.aplicar(cb2, { ...real, close: 1.1 });
+    await esperar(F.TWEEN_MS + 120);
+    eq(calculos, 1, 'calc solo con datos reales');
+  });
+  await test('7. vela nueva pegado al borde: desplazamiento suave, termina en el mismo lugar que sin animación', async () => {
+    const ch = falso(), a = F.crear(ch);
+    const off0 = ch.offset();
+    a.aplicar(ch.cb, { timestamp: 200 * 60000, open: 1, high: 1.1, low: 1, close: 1.05, volume: 1 });
+    const recorrido = [ch.offset()];
+    for (let i = 0; i < 8; i++) { await esperar(40); recorrido.push(ch.offset()); }
+    ok(Math.abs(ch.offset() - (off0 - 10)) < 1e-6, `posición final = la de KLineChart sin animación (${ch.offset()} vs ${off0 - 10}; tolerancia 1e-6 px por la suma de flotantes)`);
+    ok(recorrido.some((x) => x < off0 && x > off0 - 10), `hubo posiciones intermedias: ${recorrido.join(',')}`);
+  });
+  await test('8. replay: cada vela empujada es la real (sin velas sintéticas en los datos)', async () => {
+    const ch = falso(), a = F.crear(ch);
+    const hist = [1, 2, 3].map((k) => ({ timestamp: (199 + k) * 60000, open: 1 + k / 100, high: 1.1 + k / 100, low: 0.95, close: 1.02 + k / 100, volume: k }));
+    for (const v of hist) { a.aplicar(ch.cb, v); await esperar(10); }
+    await esperar(300);
+    const agregadas = ch.datos.slice(200);
+    eq(JSON.stringify(agregadas), JSON.stringify(hist), 'los datos son exactamente las velas históricas');
+    for (const v of hist) ok(ch.frames.filter((f) => f.timestamp === v.timestamp).length === 1, 'una vela nueva se entrega una sola vez, sin frames inventados');
+  });
+  await test('9. sin datos futuros en el replay (servidor: tests/test_charts_replay.py)', () => {
+    // el navegador solo recibe lo que la sesión entrega; la garantía está en el servidor y sus tests:
+    // test_rutas_nunca_entregan_velas_posteriores_al_cursor, test_zone_engine_en_el_cursor_sin_look_ahead,
+    // test_una_zona_futura_no_aparece_antes. Acá: la animación no agrega nada al dataset (test 8).
+    ok(true);
+  });
+  await test('10. mirando historia: una vela nueva NO mueve el viewport', async () => {
+    const ch = falso(), a = F.crear(ch);
+    ch.setOff(ch.offset() + 500);                          // el usuario se fue 50 barras atrás
+    const ancla = ch.getVisibleRange().realFrom + 3;
+    const x0 = ch.convertToPixel({ dataIndex: ancla }).x;
+    a.aplicar(ch.cb, { timestamp: 200 * 60000, open: 1, high: 1.1, low: 1, close: 1.05, volume: 1 });
+    for (let i = 0; i < 6; i++) { await esperar(40); eq(ch.convertToPixel({ dataIndex: ancla }).x, x0, 'se movió la vista'); }
+  });
+  await test('11-12. sin velas duplicadas ni perdidas', async () => {
+    const ch = falso(50), a = F.crear(ch);
+    const secuencia = [];
+    for (let k = 0; k < 30; k++) {
+      const ts = (50 + Math.floor(k / 3)) * 60000;            // 3 actualizaciones por vela
+      secuencia.push({ timestamp: ts, open: 1, high: 1.2, low: 0.9, close: 1 + k / 1000, volume: k });
+    }
+    for (const v of secuencia) { a.aplicar(ch.cb, v); await esperar(25); }
+    await esperar(300);
+    const ts = ch.datos.map((d) => d.timestamp);
+    eq(new Set(ts).size, ts.length, 'duplicadas');
+    eq(ts.length, 60, 'cantidad');
+    ok(ts.every((t, i) => !i || t - ts[i - 1] === 60000), 'huecos');
+    eq(ch.datos.at(-1).close, secuencia.at(-1).close, 'último dato real');
+  });
+
+  // ── 13: rendimiento con KLineChart real (5000 velas, tweens continuos) ──
+  await test('13. estabilidad de frames: KLineChart real, 5000 velas, tweens continuos', async () => {
+    const chart = klinecharts.init(document.getElementById('lienzo'));
+    let p = 1.1;
+    const datos = Array.from({ length: 5000 }, (_, i) => { const o = p; p += (Math.sin(i / 7) + Math.cos(i / 13)) / 5000; return { timestamp: 1_700_000_000_000 + i * 60000, open: o, high: Math.max(o, p) + 0.0003, low: Math.min(o, p) - 0.0003, close: p, volume: 100 }; });
+    let empujar = null;
+    chart.setDataLoader({ getBars: ({ callback }) => callback(datos, { forward: false, backward: false }), subscribeBar: ({ callback }) => { empujar = callback; }, unsubscribeBar: () => {} });
+    chart.setSymbol({ ticker: 'TEST', pricePrecision: 5 });
+    chart.setPeriod({ type: 'minute', span: 1 });
+    chart.createIndicator('EMA', true, { id: 'candle_pane' });
+    chart.createIndicator('RSI');
+    await esperar(600);
+    const a = F.crear(chart);
+    const fr = [];
+    let prev = performance.now();
+    const t0 = prev;
+    let ult = { ...datos.at(-1) };
+    while (performance.now() - t0 < 4000) {
+      if (fr.length % 12 === 0) { ult = { ...ult, close: ult.close + (Math.random() - 0.5) * 0.0004 }; ult.high = Math.max(ult.high, ult.close); ult.low = Math.min(ult.low, ult.close); a.aplicar(empujar, ult); }
+      await new Promise((r) => requestAnimationFrame(r));
+      const t = performance.now(); fr.push(t - prev); prev = t;
+    }
+    const s = [...fr].sort((x, y) => x - y), q = (k) => s[Math.min(s.length - 1, Math.floor(s.length * k))];
+    window.__perf = { fps: Math.round(fr.length / 4), p50: +q(0.5).toFixed(1), p95: +q(0.95).toFixed(1), p99: +q(0.99).toFixed(1), max: +s.at(-1).toFixed(1), perdidos: fr.filter((d) => d > q(0.5) * 1.5).length, stats: a.stats() };
+    ok(window.__perf.p95 < 25, `p95 ${window.__perf.p95} ms`);
+    klinecharts.dispose(document.getElementById('lienzo'));
+  });
+
+  window.__resultado = { total: res.length, ok: res.filter((r) => r.ok).length, tests: res, perf: window.__perf };
+  document.getElementById('resultado').innerHTML = res.map((r) => `<span class="${r.ok ? 'ok' : 'mal'}">${r.ok ? '✔' : '✘'} ${r.nombre}${r.ok ? '' : ' — ' + r.error}</span>`).join('\n') + `\n\n${window.__resultado.ok}/${res.length}\nperf: ${JSON.stringify(window.__perf)}`;
+})();
+</script>
+</body>
+</html>

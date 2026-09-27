@@ -116,6 +116,9 @@
         // NLT Backtest Lab: velas de un backtest en vez de las del mercado en vivo (sin suscripción).
         // `empujarExterno` agrega/actualiza velas una por una (Bar Replay).
         let externo = null, empujarExterno = null;
+        // Movimiento fluido (solo visual): tween de la vela en curso y entrada suave de la vela nueva
+        const fluidez = NLTCharts.fluidez ? NLTCharts.fluidez.crear(chart) : null;
+        const aplicarVela = (cb, vela) => (fluidez ? fluidez.aplicar(cb, vela) : cb(vela));
 
         chart.setDataLoader({
             // En KLineChart 10, "forward" pide historia MÁS VIEJA (a la
@@ -176,7 +179,7 @@
                 const dl = chart.getDataList();
                 let ultimoTs = dl.length ? dl[dl.length - 1].timestamp : null;
                 cancelarSuscripcion = market.suscribir(symbol.ticker, timeframe, (vela) => {
-                    callback(vela);
+                    aplicarVela(callback, vela);
                     if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
                     if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
                 }, { operaFinDeSemana });
@@ -212,7 +215,7 @@
                 const cambiaPeriodo = timeframe !== tf;
                 timeframe = tf;
                 operaFinDeSemana = symbolInfo.trades_weekends !== false;
-                market.fijarCategoria(symbolInfo.category);
+                market.fijarCategoria(symbolInfo.category, symbolInfo.trades_weekends);
                 clearTimeout(reintento); espera = 5000;
                 if (cambiaSimbolo || cambiaPeriodo) { market.fijarEstado('conectando'); historiaOk = false; }
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
@@ -220,13 +223,15 @@
             },
             // Backtest Lab: datos = { velas: KLineData[] } muestra esas velas (sin mercado en vivo); null vuelve al vivo.
             modoExterno(datos, recargar = true) {
+                if (fluidez) fluidez.cancelar();
                 externo = datos;
                 empujarExterno = null;
                 historiaOk = !!datos;
                 if (recargar) chart.resetData();
             },
             enModoExterno: () => !!externo,
-            empujar(vela) { if (externo && empujarExterno) empujarExterno(vela); },
+            empujar(vela) { if (externo && empujarExterno) aplicarVela(empujarExterno, vela); },
+            fluidez: () => fluidez,
             destruir() {
                 ro.disconnect();
                 if (cancelarSuscripcion) cancelarSuscripcion();

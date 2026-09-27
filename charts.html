@@ -313,6 +313,14 @@
             .lab-head nav span { display: none; }
             .lab-tabla { max-height: 45vh; }
         }
+        /* Countdown de la vela actual: debajo de la etiqueta del último precio, sobre la escala */
+        .ch-cd { position: absolute; top: 0; right: 1px; z-index: 6; pointer-events: none; will-change: transform; font: 600 10.5px/1 Inter, system-ui, sans-serif; font-variant-numeric: tabular-nums;
+                 padding: 3px 5px; border-radius: 3px; background: #1E222D; color: #D1D5DB; border: 1px solid rgba(255,255,255,.08); white-space: nowrap; }
+        .ch-cd[data-tipo="estado"] { font-size: 9.5px; letter-spacing: .04em; color: #9CA3AF; }
+        .ch-cd[data-estado="market-closed"] { color: #D29922; }
+        .ch-cd[data-estado="delayed"] { color: #EAB308; }
+        .ch-cd[data-estado="disconnected"] { color: #F87171; }
+        .ch-cd[data-estado="replay"], .ch-cd[data-estado="histórico"] { color: rgb(var(--ch-accent)); }
         /* NLT Bar Replay: barra flotante arriba del gráfico */
         .rp { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
               max-width: calc(100% - 24px); padding: 6px 8px; border-radius: 12px; background: rgba(13,16,22,.94); border: 1px solid rgba(var(--ch-accent),.35); box-shadow: 0 8px 30px rgba(0,0,0,.45); font-size: 12px; }
@@ -364,9 +372,11 @@
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
     <script src="assets/js/nlt-api-client.js?v=d272d12c"></script>
     <script src="assets/js/charts/diag.js?v=a548c4e2"></script>
+    <script src="assets/js/charts/fluidez.js?v=ca542510"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
-    <script src="assets/js/charts/market-data.js?v=0555e30c"></script>
-    <script src="assets/js/charts/engine.js?v=4ca0a224"></script>
+    <script src="assets/js/charts/market-data.js?v=103530fe"></script>
+    <script src="assets/js/charts/countdown.js?v=6433f09a"></script>
+    <script src="assets/js/charts/engine.js?v=8fe3a3c1"></script>
     <script src="assets/js/charts/ui.js?v=07153f5c"></script>
     <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
@@ -381,6 +391,6 @@
     <script src="assets/js/charts/nlt-ai.js?v=7770be0d"></script>
     <script src="assets/js/charts/replay.js?v=b2c700a8"></script>
     <script src="assets/js/charts/backtest.js?v=38be954c"></script>
-    <script src="assets/js/charts/app.js?v=082a02b4"></script>
+    <script src="assets/js/charts/app.js?v=ecf5de81"></script>
 </body>
 </html>

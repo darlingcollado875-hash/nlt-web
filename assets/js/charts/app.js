@@ -58,6 +58,8 @@
         });
 
         let pro = null;   // se crea más abajo; los dibujos lo consultan en tiempo de uso
+        // Tiempo restante de la vela actual (reloj del servidor), sobre la escala de precios
+        if (NLTCharts.countdown) NLTCharts.countdown.montar({ chart: motor.chart, stageEl: document.querySelector('.ch-stage') });
         NLTCharts.settings.registrar('GRAFICO', NLTCharts.engine.APARIENCIA);
         motor.aplicarApariencia(NLTCharts.settings.valores('GRAFICO'));
 

@@ -25,7 +25,9 @@
     let fuenteHistorica = null;
     async function velas(symbol, timeframe, { limit = LOTE, end = null, signal } = {}) {
         if (fuenteHistorica) return fuenteHistorica(symbol, timeframe, { limit, end });
+        const t0 = Date.now();
         const r = await NLT_API.chartsVelas(symbol, timeframe, { limit, end, signal });
+        if (r.server_time && NLTCharts.countdown) NLTCharts.countdown.sincronizar(r.server_time, t0, Date.now());
         return { demo: !!r.demo, provider: r.provider, precision: r.price_precision, velas: r.candles.map(aKline) };
     }
 
@@ -57,7 +59,7 @@
     }
 
     // Categoría del símbolo en pantalla (la fija el motor al cargar): metales tienen pausa diaria.
-    let categoria = '';
+    let categoria = '', operaFines = true;
     const fmtNY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hourCycle: 'h23' });
     // Forex, metales e índices: cerrados del viernes 17:00 al domingo 17:00 de Nueva York (sigue el
     // horario de verano de EE. UU.). Metales además pausan de 16:00 a 18:00 NY (MetaQuotes-Demo, 27/09).
@@ -150,7 +152,9 @@
         marcarDato,
         ultimoDato: () => ultimoDato,
         alRecibirDato(fn) { oyentesDato.add(fn); return () => oyentesDato.delete(fn); },
-        fijarCategoria(c) { categoria = c || ''; },
+        fijarCategoria(c, fines = true) { categoria = c || ''; operaFines = fines !== false; },
+        // ¿el instrumento en pantalla está cerrado en `fecha` (fin de semana o pausa de metales)?
+        cerradoAhora: (fecha = new Date()) => !operaFines && mercadoCerrado(fecha, categoria),
         fijarFuenteHistorica(fn) { fuenteHistorica = fn || null; },
         enReplay: () => !!fuenteHistorica,
     };
