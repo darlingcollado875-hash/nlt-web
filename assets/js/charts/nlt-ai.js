@@ -30,7 +30,10 @@
         waiting: ['#3FB950', '● LIVE · zona enviada', ''],
         sent: ['#4378FF', '⇧ ENVIADO', 'Analizando…'],
         pipeline_unavailable: ['#D29922', 'EVENTO LISTO', 'El análisis con IA todavía no está activo.'],
+        already_analyzed: ['#3FB950', '● LIVE · ya analizada', ''],
+        invalid: ['#F85149', 'ERROR', 'El evento no se pudo analizar.'],
     };
+    const COLOR_VEREDICTO = (v) => (/INVALID|AVOID|NO_/.test(v || '') ? '#F85149' : /WAIT|WATCH|CONFIRM/.test(v || '') ? '#D29922' : '#3FB950');
 
     function crear({ getSymbol, getTimeframe, pro, onCambio }) {
         const S = NLTCharts.settings, state = NLTCharts.state, esc = NLTCharts.ui.esc;
@@ -77,9 +80,24 @@
                 ${z ? fila('Precio', `${f(z.top)} → ${f(z.bottom)}`) : ''}
                 ${fila('Evento del motor', ev ? `${ev.event} ${ev.dir} · ${hora(ev.time)}` : '—')}
                 ${fila('Último envío', env ? `${hora(env.at)} (${env.event})` : '—')}
-                ${fila('Análisis IA', datos && datos.analysis ? datos.analysis.summary : '—')}
-                ${error || (st && st[2]) ? `<tr><td colspan="2" style="color:rgba(156,163,175,.8); white-space:normal; max-width:260px">${esc(error || st[2])}</td></tr>` : ''}
+                ${htmlAnalisis(datos && datos.analysis)}
+                ${error || (st && st[2] && !(datos && datos.analysis)) ? `<tr><td colspan="2" style="color:rgba(156,163,175,.8); white-space:normal; max-width:260px">${esc(error || st[2])}</td></tr>` : ''}
             </table>`;
+        }
+        // Resultado de NLT AI (Claude + motor cuantitativo): veredicto, calidad, explicación y listas.
+        function htmlAnalisis(a) {
+            if (!a) return fila('Análisis IA', '—');
+            const lista = (titulo, xs, c) => (xs && xs.length ? `<tr><td colspan="2" style="white-space:normal; max-width:280px; color:${c}"><span style="color:rgba(156,163,175,.9)">${esc(titulo)}:</span> ${xs.map(esc).join(' · ')}</td></tr>` : '');
+            return `${fila('Veredicto', a.verdict || '—', COLOR_VEREDICTO(a.verdict))}
+                ${fila('Calidad', [a.quality, a.category].filter(Boolean).join(' · ') || '—')}
+                ${fila('Score IA', a.score != null ? `${Math.round(a.score)} / 100` : '—')}
+                ${fila('Riesgo · R/R', [a.risk_level, a.rr_quality].filter(Boolean).join(' · ') || '—')}
+                ${a.explanation ? `<tr><td colspan="2" style="white-space:normal; max-width:280px; color:rgba(229,231,235,.9)">${esc(a.explanation)}</td></tr>` : ''}
+                ${lista('A favor', a.confluences, '#3FB950')}
+                ${lista('Advertencias', a.warnings, '#D29922')}
+                ${lista('Falta confirmar', a.confirmation_required, 'rgba(229,231,235,.85)')}
+                ${lista('Invalida', a.invalidation, '#F85149')}
+                ${a.ai_called ? '' : fila('Modo', 'solo cuantitativo (sin IA)', '#9CA3AF')}`;
         }
         function pintar() {
             const T = NLTCharts.ui.tablero;
