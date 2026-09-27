@@ -134,9 +134,13 @@
             onCambio: () => { toolbar.setFavorito(wl.esFavorito(symbol)); toolbar.setWatchlist(!document.getElementById('chWatch').hidden); motor.chart.resize(); },
         });
         toolbar.setFavorito(wl.esFavorito(symbol));
+        // Hora de la última vela; si no es de hoy, con el día (el domingo "datos 16:45" era del viernes).
         const horaUltimaVela = () => {
             const d = motor.chart.getDataList();
-            return d.length ? new Date(d[d.length - 1].timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : null;
+            if (!d.length) return null;
+            const f = new Date(d[d.length - 1].timestamp);
+            const hora = f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            return f.toDateString() === new Date().toDateString() ? hora : `${f.toLocaleDateString([], { weekday: 'short', day: 'numeric' })} ${hora}`;
         };
         toolbar.setConexion(market.estado());
         market.alCambiarEstado((e, detalle) => toolbar.setConexion(e, detalle, horaUltimaVela()));

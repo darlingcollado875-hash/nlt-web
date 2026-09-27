@@ -58,7 +58,7 @@
                 b.dataset.estado = estado;
                 const viejo = (estado === 'desconectado' || estado === 'retrasado') && desde;
                 b.querySelector('.ch-btn-label').textContent = (TXT[estado] || estado) + (viejo ? ` · datos ${desde}` : '');
-                b.title = AYUDA[estado] + (viejo ? ` Lo que ves en el gráfico es de las ${desde}, no es precio actual.` : '')
+                b.title = AYUDA[estado] + (viejo ? ` Lo que ves en el gráfico llega hasta ${desde}: no es precio actual.` : '')
                     + (detalle && estado !== 'conectado' ? ` (${detalle})` : '');
             },
             setFavorito(fav) {

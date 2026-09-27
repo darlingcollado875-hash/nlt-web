@@ -13,7 +13,11 @@
  * muestra los eventos del motor y el estado, sin análisis. */
 (function () {
     const ID = 'NLT_INDICATOR_AI';
+    // Con un análisis en curso ("sent") se consulta cada 30 s hasta que llega. Si no, el panel se
+    // actualiza con cada cálculo del Zone Engine (vela nueva, zona movida) y solo por las dudas cada
+    // 5 min: cada consulta hace que el servidor recalcule el motor con sus series externas.
     const REFRESCO_MS = 30000;
+    const REFRESCO_LENTO_MS = 300000;
     const POSICIONES = ['Top Left', 'Top Right', 'Bottom Left', 'Bottom Right'].map((p) => ({ v: p, t: p }));
     const INPUTS = [
         {
@@ -65,7 +69,7 @@
             pintar();
             onCambio && onCambio();
             clearTimeout(timer);
-            if (otraVez) { otraVez = false; timer = setTimeout(refrescar, 0); } else timer = setTimeout(refrescar, REFRESCO_MS);
+            if (otraVez) { otraVez = false; timer = setTimeout(refrescar, 0); } else timer = setTimeout(refrescar, datos && datos.status === 'sent' ? REFRESCO_MS : REFRESCO_LENTO_MS);
         }
         const programar = (ms) => { clearTimeout(timer); timer = setTimeout(refrescar, ms); };
         pro.alRefrescar(() => { if (ver) programar(150); });   // cada cálculo del Zone Engine (vela nueva, zona movida...)

@@ -24,6 +24,10 @@
 (function () {
     const ZE = 'NLT_ZONE_ENGINE';
     const REFRESCO_MS = 30000;
+    // Mercado cerrado (forex/metales el fin de semana): nada cambia. La vela de la reapertura
+    // dispara velaNueva() y el motor se recalcula en el acto; esto es solo por las dudas.
+    const REFRESCO_CERRADO_MS = 300000;
+    const espera = () => (NLTCharts.market.estado() === 'cerrado' ? REFRESCO_CERRADO_MS : REFRESCO_MS);
     const PREF = 'nlt_charts_pro_ver_v1';
     const ZONA_IDS = ['zoneTop', 'zoneBot', 'zoneIsOB', 'zoneIsBull'];
     const POOL = 500;   // max_labels_count / max_lines_count de V13.3.3
@@ -477,7 +481,7 @@
         async function refrescar() {
             clearTimeout(timer); clearTimeout(timerCorto);
             if (!ver || !tieneAcceso()) { mostrarEnGrafico(false); return; }
-            if (document.visibilityState !== 'visible') { timer = setTimeout(refrescar, REFRESCO_MS); return; }
+            if (document.visibilityState !== 'visible') { timer = setTimeout(refrescar, espera()); return; }
             if (!esquema) { await cargarEsquema(); if (!esquema) return; }   // el reintento vuelve a llamar
             const rect = resolverRect();
             if (rect && !previa) {
@@ -505,7 +509,7 @@
                 if (err.status === 403) { ver = false; mostrarEnGrafico(false); await cargarCatalogo(); }
             }
             onCambio && onCambio();
-            timer = setTimeout(refrescar, REFRESCO_MS);
+            timer = setTimeout(refrescar, espera());
         }
         const programar = (ms) => { clearTimeout(timerCorto); timerCorto = setTimeout(refrescar, ms); };
 

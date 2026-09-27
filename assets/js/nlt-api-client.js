@@ -108,8 +108,10 @@
     // más y NUNCA reintenta: con el timeout de 9s + reintento, el primer
     // pedido seguía corriendo en el servidor y el reintento creaba la cuenta
     // una segunda vez (doble conexión, doble cobro en TickerAll).
+    // `timeoutMs` / `intentos`: pedidos de lectura que pueden tardar más de 9 s en frío (NLT Charts
+    // con precios reales: la primera historia diaria de TickerAll tarda 13-20 s).
     async function request(path, options = {}, base = BASE_URL) {
-        const { lento, ...fetchOptions } = options;
+        const { lento, timeoutMs, intentos, ...fetchOptions } = options;
         const token = await _token();
         const resp = await _fetchConReintento(base + path, {
             ...fetchOptions,
@@ -118,7 +120,7 @@
                 'Authorization': `Bearer ${token}`,
                 ...(fetchOptions.headers || {}),
             },
-        }, lento ? 1 : 2, lento ? 120000 : FETCH_TIMEOUT_MS);
+        }, lento ? 1 : (intentos || 2), lento ? 120000 : (timeoutMs || FETCH_TIMEOUT_MS));
 
         let body = null;
         try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
@@ -922,7 +924,7 @@
         chartsVelas: (symbol, timeframe, { limit = 500, end = null, signal } = {}) => {
             const qs = new URLSearchParams({ symbol, timeframe, limit: String(limit) });
             if (end != null) qs.set('end', String(end));
-            return request(`/charts/candles?${qs}`, signal ? { signal } : {});
+            return request(`/charts/candles?${qs}`, { timeoutMs: 30000, ...(signal ? { signal } : {}) });
         },
         // PRO: el backend decide el acceso; estos métodos solo preguntan.
         chartsProCatalogo: () => request('/charts/pro/catalog'),
@@ -932,13 +934,15 @@
         // Zone Engine: `inputs` = entradas de V13.4 que cambian el cálculo, por su nombre en el
         // .pine (el esquema lo da el servidor en /zone-engine/settings; el servidor las valida).
         chartsZoneEngineAjustes: () => request('/charts/pro/zone-engine/settings'),
+        // Un solo intento largo: en frío el servidor trae varias series del proveedor (y las deja en
+        // caché aunque el navegador corte); el próximo refresco del panel es el reintento.
         chartsZoneEngine: (symbol, timeframe, inputs = {}) => request('/charts/pro/zone-engine', {
-            method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs }),
+            method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs }), timeoutMs: 45000, intentos: 1,
         }),
         // NLT AI (otro indicador): eventos del Zone Engine y estado del análisis. El payload
         // lo arma y lo manda el servidor; acá solo vuelven eventos y estado.
         chartsNltAi: (symbol, timeframe, inputs = {}, mode = 'Zona manual', nonce = 0) => request('/charts/pro/nlt-ai', {
-            method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs, mode, nonce }),
+            method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs, mode, nonce }), timeoutMs: 45000, intentos: 1,
         }),
         // Trading desde el gráfico: interfaz preparada; el servidor responde
         // 403 "trading_disabled" mientras la ejecución real esté apagada.
