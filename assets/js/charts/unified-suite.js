@@ -145,7 +145,9 @@
         }
         if (htfEnVuelo.has(k)) return htfEnVuelo.get(k);
         const gen = genHTF;
-        const pedido = NLTCharts.market.velas(simbolo, tfNLT, { limit: 1500 })
+        // 1D: 500 velas (~2 años). Con TickerAll real, 1500 diarias (~6 años) pasa los 30 s y falla una y
+        // otra vez (visto 27/09); la estructura HTF (pivotes de smc_swingLen velas) no necesita más.
+        const pedido = NLTCharts.market.velas(simbolo, tfNLT, { limit: tfNLT === '1D' ? 500 : 1500 })
             .then((r) => {
                 if (gen !== genHTF) return velasHTF(tfNLT);          // llegó tarde: se vuelve a pedir a la fuente actual
                 cacheHTF.set(k, { t: Date.now(), v: r.velas }); return r.velas;

@@ -174,10 +174,11 @@
      * pruebaCarga({ velas: 1500, dibujos: 10, indicadores: [...], fasesMs: 3000 })
      * Devuelve una tabla por fase. No toca el backend (datos sintéticos).
      */
-    api.pruebaCarga = async function ({ velas = 1500, dibujos = 10, indicadores = ['NLT_UNIFIED', 'NLT_SESSIONS', 'NLT_KEY_LEVELS', 'NLT_FREE_ZONES', 'NLT_FVG', 'EMA', 'RSI', 'MACD'], fasesMs = 3000 } = {}) {
+    api.pruebaCarga = async function ({ velas = 1500, reales = null, dibujos = 10, indicadores = ['NLT_UNIFIED', 'NLT_SESSIONS', 'NLT_KEY_LEVELS', 'NLT_FREE_ZONES', 'NLT_FVG', 'EMA', 'RSI', 'MACD'], fasesMs = 3000 } = {}) {
         const motor = NLTCharts.motor;
         const chart = motor.chart;
-        const datos = sinteticas(velas);
+        // `reales`: velas REALES (KLineData[], p. ej. las de un backtest) en vez de sintéticas
+        const datos = reales && reales.length ? reales : sinteticas(velas);
         let empujar = null;
         chart.setDataLoader({
             getBars: ({ type, callback }) => { callback(type === 'init' ? datos : [], { forward: false, backward: false }); },
@@ -212,7 +213,8 @@
         }));
         res.push(await medirFase('vela nueva cada 250ms', fasesMs, (t) => {
             if (!empujar || Math.floor(t / 250) === Math.floor((t - 17) / 250)) return;
-            ultima = { timestamp: ultima.timestamp + 900000, open: ultima.close, high: ultima.close + 1, low: ultima.close - 1, close: ultima.close + 0.5, volume: 500 };
+            const paso = datos.length > 1 ? datos[datos.length - 1].timestamp - datos[datos.length - 2].timestamp : 900000;
+            ultima = { timestamp: ultima.timestamp + paso, open: ultima.close, high: ultima.close + 1, low: ultima.close - 1, close: ultima.close + 0.5, volume: 500 };
             empujar(ultima);
         }));
         chart.removeOverlay({ groupId: 'diag' });
