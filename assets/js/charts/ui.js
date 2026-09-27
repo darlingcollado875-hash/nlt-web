@@ -45,8 +45,8 @@
             },
             setDemo(demo) { el.querySelector('#chDemo').classList.toggle('hidden', !demo); },
             // Estado de los precios: conectado / retrasado / desconectado / cerrado / conectando.
-            // `desde`: hora de la última vela recibida; con Retrasado/Desconectado se muestra para que
-            // nadie confunda las velas en pantalla con precios actuales.
+            // `desde`: hora del último dato recibido; se muestra siempre (salvo mercado cerrado) para
+            // que nadie confunda las velas en pantalla con precios actuales.
             setConexion(estado, detalle, desde) {
                 const TXT = { conectado: 'Conectado', retrasado: 'Retrasado', desconectado: 'Desconectado', cerrado: 'Mercado cerrado', conectando: 'Conectando…' };
                 const AYUDA = {
@@ -57,8 +57,10 @@
                 const b = el.querySelector('#chConexion');
                 b.dataset.estado = estado;
                 const viejo = (estado === 'desconectado' || estado === 'retrasado') && desde;
-                b.querySelector('.ch-btn-label').textContent = (TXT[estado] || estado) + (viejo ? ` · datos ${desde}` : '');
-                b.title = AYUDA[estado] + (viejo ? ` Lo que ves en el gráfico llega hasta ${desde}: no es precio actual.` : '')
+                const conHora = desde && (viejo || estado === 'conectado');
+                b.querySelector('.ch-btn-label').textContent = (TXT[estado] || estado) + (conHora ? ` · datos ${desde}` : '');
+                b.title = AYUDA[estado] + (estado === 'conectado' && desde ? ` Último dato: ${desde}.` : '')
+                    + (viejo ? ` Lo que ves en el gráfico llega hasta ${desde}: no es precio actual.` : '')
                     + (detalle && estado !== 'conectado' ? ` (${detalle})` : '');
             },
             setFavorito(fav) {

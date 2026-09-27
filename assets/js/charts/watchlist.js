@@ -6,12 +6,14 @@
  * /charts/quotes en UN pedido para todos los favoritos (cada 15 s, solo con
  * el panel abierto y la pestaña visible). Los favoritos y si el panel está
  * abierto se guardan por usuario (state.js). La lista de instrumentos sale
- * del catálogo del backend: agregar símbolos no requiere tocar este archivo. */
+ * del catálogo del backend: agregar símbolos no requiere tocar este archivo.
+ * Los que la cuenta de precios no ofrece (con TickerAll real: BTCUSD, DXY)
+ * se listan como NOT AVAILABLE: sin precio y sin poder elegirlos. */
 (function () {
     const REFRESCO_MS = 15000;
     const DEFAULT_FAVS = ['XAUUSD', 'EURUSD', 'BTCUSD'];
 
-    function montar({ el, catalogo, getSymbol, onSeleccionar, onCambio }) {
+    function montar({ el, catalogo, noDisponibles = [], getSymbol, onSeleccionar, onCambio }) {
         const state = NLTCharts.state;
         const esc = NLTCharts.ui.esc;
         const porSimbolo = Object.fromEntries(catalogo.map((s) => [s.symbol, s]));
@@ -49,16 +51,25 @@
             </div>`;
         }
 
+        function filaNoDisponible(s) {
+            return `<div class="wl-fila wl-nd" aria-disabled="true" title="La cuenta de precios no ofrece este instrumento.">
+                <span class="wl-sym"><b>${esc(s.symbol)}</b><small>${esc(s.display_name)}</small></span>
+                <span class="wl-cat">NOT AVAILABLE</span>
+            </div>`;
+        }
+
         function render() {
             const f = filtro.trim().toUpperCase();
-            const todos = catalogo.filter((s) => !f || s.symbol.includes(f) || s.display_name.toUpperCase().includes(f));
+            const coincide = (s) => !f || s.symbol.includes(f) || s.display_name.toUpperCase().includes(f);
+            const todos = catalogo.filter(coincide);
+            const nd = noDisponibles.filter(coincide);
             el.innerHTML = `
                 <div class="wl-head"><span>Watchlist</span><button type="button" class="ch-tool" data-wl="cerrar" aria-label="Cerrar watchlist"><i class="ph ph-x"></i></button></div>
                 <p class="wl-sec"><i class="ph-fill ph-star"></i> Favoritos</p>
                 <div class="wl-lista" data-lista="favs">${favs.length ? favs.map(filaFav).join('') : '<p class="wl-vacio">Tocá ☆ en un instrumento para agregarlo.</p>'}</div>
                 <p class="wl-sec">Instrumentos</p>
                 <input type="search" class="wl-buscar" placeholder="Buscar símbolo" value="${esc(filtro)}" aria-label="Buscar símbolo">
-                <div class="wl-lista">${todos.map(filaTodos).join('') || '<p class="wl-vacio">Sin resultados.</p>'}</div>`;
+                <div class="wl-lista">${todos.map(filaTodos).join('') + nd.map(filaNoDisponible).join('') || '<p class="wl-vacio">Sin resultados.</p>'}</div>`;
         }
 
         async function pedirQuotes() {
@@ -105,7 +116,7 @@
             const mv = ev.target.closest('[data-mover]');
             if (mv) { ev.stopPropagation(); mover(parseInt(mv.closest('.wl-fila').dataset.k, 10), parseInt(mv.dataset.mover, 10)); return; }
             const fila = ev.target.closest('.wl-fila');
-            if (fila) onSeleccionar(fila.dataset.sym);
+            if (fila && fila.dataset.sym) onSeleccionar(fila.dataset.sym);
         });
         el.addEventListener('input', (ev) => {
             if (!ev.target.classList.contains('wl-buscar')) return;

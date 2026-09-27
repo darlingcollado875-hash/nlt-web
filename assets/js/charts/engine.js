@@ -110,6 +110,9 @@
         let pedidoInicial = null;   // AbortController de la carga en curso (símbolo/timeframe)
         let operaFinDeSemana = true;
         let reintento = null, espera = 5000;   // la carga inicial falló: se reintenta sola (5 s, 10 s... hasta 30 s)
+        // ¿llegó la historia de este símbolo/timeframe? Si la carga inicial falló, el refresco en vivo
+        // igual agrega las 2 últimas velas: el reintento no puede mirar solo "¿hay velas?".
+        let historiaOk = false;
 
         chart.setDataLoader({
             // En KLineChart 10, "forward" pide historia MÁS VIEJA (a la
@@ -139,9 +142,13 @@
                     callback(r.velas, { forward: hayMas, backward: false });
                     if (type === 'init') {
                         espera = 5000;
+                        historiaOk = true;
                         const u = r.velas.length ? r.velas[r.velas.length - 1].timestamp : null;
                         const p = market.PERIODOS[tfPedido];
-                        market.fijarEstado(market.calcularEstado(u, ({ minute: 60000, hour: 3600000, day: 86400000 })[p.type] * p.span, operaFinDeSemana));
+                        const dur = ({ minute: 60000, hour: 3600000, day: 86400000 })[p.type] * p.span;
+                        // último dato de la historia: ahora si la última vela está en curso, si no su cierre
+                        market.marcarDato(u == null ? null : Math.min(Date.now(), u + dur));
+                        market.fijarEstado(market.calcularEstado(u, dur, operaFinDeSemana));
                     }
                     onData && onData({ demo: r.demo, primera: type === 'init' });
                 } catch (err) {
@@ -151,8 +158,9 @@
                     if (type === 'init') {
                         // sin historia no hay suscripción que reintente: se vuelve a pedir sola
                         market.fijarEstado('desconectado', err.message);
+                        historiaOk = false;
                         clearTimeout(reintento);
-                        reintento = setTimeout(() => { if (!chart.getDataList().length) chart.resetData(); }, espera);
+                        reintento = setTimeout(() => { if (!historiaOk) chart.resetData(); }, espera);
                         espera = Math.min(espera * 2, 30000);
                     }
                 }
@@ -198,8 +206,9 @@
                 const cambiaPeriodo = timeframe !== tf;
                 timeframe = tf;
                 operaFinDeSemana = symbolInfo.trades_weekends !== false;
+                market.fijarCategoria(symbolInfo.category);
                 clearTimeout(reintento); espera = 5000;
-                if (cambiaSimbolo || cambiaPeriodo) market.fijarEstado('conectando');
+                if (cambiaSimbolo || cambiaPeriodo) { market.fijarEstado('conectando'); historiaOk = false; }
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
                 if (cambiaPeriodo) chart.setPeriod(market.PERIODOS[tf]);
             },

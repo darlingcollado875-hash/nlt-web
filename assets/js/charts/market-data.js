@@ -26,10 +26,11 @@
     }
 
     // Estado de la conexión con los precios (lo muestra la barra):
-    //   conectado    el último refresco llegó bien y la última vela está al día
-    //   retrasado    falló 1-2 refrescos, o el proveedor responde pero su última vela es vieja
+    //   conectado    el último refresco llegó bien, la última vela está al día y llegan datos nuevos
+    //   retrasado    falló 1-2 refrescos, o el proveedor responde pero su última vela es vieja,
+    //                o hace más de 3 min que no llega ningún dato nuevo con el mercado abierto
     //   desconectado 3 refrescos fallidos seguidos, o el navegador está sin red
-    //   cerrado      forex/metales/índices en fin de semana (no es un problema)
+    //   cerrado      forex/metales/índices en fin de semana, o metales en su pausa diaria
     const FALLOS_DESCONECTADO = 3, SIN_DATOS_MS = 20000;
     const REFRESCO_CERRADO_MS = 60000;   // mercado cerrado: nada cambia, se mira cada minuto
     let estado = 'conectando';
@@ -39,16 +40,36 @@
         estado = e;
         oyentesEstado.forEach((fn) => fn(e, detalle));
     }
-    // Forex, metales e índices: cerrados del viernes 21:00 UTC al domingo 21:00 UTC (aprox., 17:00 NY).
-    function mercadoCerrado(ahora = new Date()) {
-        const d = ahora.getUTCDay(), h = ahora.getUTCHours();
-        return d === 6 || (d === 5 && h >= 21) || (d === 0 && h < 21);
+
+    // Último dato: cuándo llegó por última vez algo NUEVO (un tick que cambió la vela en curso o
+    // una vela nueva). Es lo que muestra la barra ("Conectado · datos 21:31:04"): nunca se
+    // presenta una vela vieja como precio actual.
+    const SIN_TICKS_MS = 180000;
+    let ultimoDato = null;
+    const oyentesDato = new Set();
+    function marcarDato(ms) {
+        ultimoDato = ms;
+        oyentesDato.forEach((fn) => fn(ms));
+    }
+
+    // Categoría del símbolo en pantalla (la fija el motor al cargar): metales tienen pausa diaria.
+    let categoria = '';
+    const fmtNY = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short', hour: 'numeric', hourCycle: 'h23' });
+    // Forex, metales e índices: cerrados del viernes 17:00 al domingo 17:00 de Nueva York (sigue el
+    // horario de verano de EE. UU.). Metales además pausan de 16:00 a 18:00 NY (MetaQuotes-Demo, 27/09).
+    function mercadoCerrado(ahora = new Date(), cat = categoria) {
+        const partes = Object.fromEntries(fmtNY.formatToParts(ahora).map((x) => [x.type, x.value]));
+        const d = partes.weekday, h = parseInt(partes.hour, 10);
+        if (d === 'Sat' || (d === 'Fri' && h >= 17) || (d === 'Sun' && h < 17)) return true;
+        return cat === 'metals' && h >= 16 && h < 18;
     }
     function calcularEstado(ultimaVela, durMs, fines) {
         if (ultimaVela == null) return 'retrasado';
-        const atraso = Date.now() - (ultimaVela + durMs);
-        if (atraso <= Math.max(2 * durMs, 3 * 60000)) return 'conectado';   // la vela en curso (o la anterior) está al día
-        return !fines && mercadoCerrado() ? 'cerrado' : 'retrasado';
+        const ahora = Date.now();
+        const atraso = ahora - (ultimaVela + durMs);
+        const fresco = ultimoDato == null || ahora - ultimoDato <= SIN_TICKS_MS;
+        if (atraso <= Math.max(2 * durMs, 3 * 60000) && fresco) return 'conectado';   // vela al día y datos que llegan
+        return !fines && mercadoCerrado(new Date(ahora)) ? 'cerrado' : 'retrasado';
     }
 
     // Refresca la vela en curso mientras la pestaña está visible. Pide desde
@@ -64,6 +85,8 @@
         let ultimo = null;
         let enCurso = false;
         let fallos = 0, okAt = Date.now();
+        let firmaUltima = null;
+        const firma = (v) => `${v.open}|${v.high}|${v.low}|${v.close}|${v.volume}`;
         async function tick() {
             clearTimeout(timer);
             if (!vivo || enCurso) return;
@@ -74,7 +97,11 @@
                 try {
                     const r = await velas(symbol, timeframe, { limit: Math.min(Math.max(faltan, 2), 1500) });
                     if (vivo) {
-                        r.velas.forEach((v) => { alRecibir(v); ultimo = v.timestamp; });
+                        // ¿llegó algo nuevo? (vela nueva, o la vela en curso cambió con un tick)
+                        const nuevo = r.velas.some((v) => (ultimo == null ? v.timestamp + durMs > Date.now() : v.timestamp > ultimo)
+                            || (v.timestamp === ultimo && firma(v) !== firmaUltima));
+                        r.velas.forEach((v) => { alRecibir(v); ultimo = v.timestamp; firmaUltima = firma(v); });
+                        if (nuevo) marcarDato(Date.now());
                         fallos = 0; okAt = Date.now();
                         fijarEstado(calcularEstado(ultimo, durMs, operaFinDeSemana));
                     }
@@ -116,5 +143,9 @@
         alCambiarEstado(fn) { oyentesEstado.add(fn); return () => oyentesEstado.delete(fn); },
         mercadoCerrado,
         calcularEstado,
+        marcarDato,
+        ultimoDato: () => ultimoDato,
+        alRecibirDato(fn) { oyentesDato.add(fn); return () => oyentesDato.delete(fn); },
+        fijarCategoria(c) { categoria = c || ''; },
     };
 })();

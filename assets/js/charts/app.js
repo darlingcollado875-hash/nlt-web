@@ -129,21 +129,24 @@
         const wl = NLTCharts.watchlist.montar({
             el: document.getElementById('chWatch'),
             catalogo: catalogo.symbols,
+            noDisponibles: catalogo.unavailable || [],
             getSymbol: () => symbol,
             onSeleccionar: (s) => cambiarSimbolo(s),
             onCambio: () => { toolbar.setFavorito(wl.esFavorito(symbol)); toolbar.setWatchlist(!document.getElementById('chWatch').hidden); motor.chart.resize(); },
         });
         toolbar.setFavorito(wl.esFavorito(symbol));
-        // Hora de la última vela; si no es de hoy, con el día (el domingo "datos 16:45" era del viernes).
-        const horaUltimaVela = () => {
-            const d = motor.chart.getDataList();
-            if (!d.length) return null;
-            const f = new Date(d[d.length - 1].timestamp);
-            const hora = f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        // Hora del último dato recibido (con segundos); si no es de hoy, con el día.
+        const horaDato = () => {
+            const ms = market.ultimoDato();
+            if (ms == null) return null;
+            const f = new Date(ms);
+            const hora = f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
             return f.toDateString() === new Date().toDateString() ? hora : `${f.toLocaleDateString([], { weekday: 'short', day: 'numeric' })} ${hora}`;
         };
+        let detalleConexion = null;
         toolbar.setConexion(market.estado());
-        market.alCambiarEstado((e, detalle) => toolbar.setConexion(e, detalle, horaUltimaVela()));
+        market.alCambiarEstado((e, detalle) => { detalleConexion = detalle; toolbar.setConexion(e, detalle, horaDato()); });
+        market.alRecibirDato(() => toolbar.setConexion(market.estado(), detalleConexion, horaDato()));
         toolbar.setWatchlist(!document.getElementById('chWatch').hidden);
 
         function cargar() {

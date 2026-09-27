@@ -132,13 +132,23 @@
     // ─────────────────────────────── contexto (símbolo, velas HTF) ───────────────────────────────
     let simbolo = null, precision = 5;
     const cacheHTF = new Map();
+    const htfEnVuelo = new Map();
+    // Un pedido por símbolo+temporalidad a la vez; un error se recuerda 30 s (antes cada recálculo,
+    // o sea cada tick, volvía a pedir: con TickerAll real eso era un bucle de pedidos fallidos).
     async function velasHTF(tfNLT) {
         const k = `${simbolo}|${tfNLT}`;
         const c0 = cacheHTF.get(k);
-        if (c0 && Date.now() - c0.t < 60000) return c0.v;
-        const r = await NLTCharts.market.velas(simbolo, tfNLT, { limit: 1500 });
-        cacheHTF.set(k, { t: Date.now(), v: r.velas });
-        return r.velas;
+        if (c0 && Date.now() - c0.t < (c0.error ? 30000 : 60000)) {
+            if (c0.error) throw c0.error;
+            return c0.v;
+        }
+        if (htfEnVuelo.has(k)) return htfEnVuelo.get(k);
+        const pedido = NLTCharts.market.velas(simbolo, tfNLT, { limit: 1500 })
+            .then((r) => { cacheHTF.set(k, { t: Date.now(), v: r.velas }); return r.velas; },
+                (err) => { cacheHTF.set(k, { t: Date.now(), error: err }); throw err; })
+            .finally(() => htfEnVuelo.delete(k));
+        htfEnVuelo.set(k, pedido);
+        return pedido;
     }
     // Igual, pero con la hora en que se trajeron (sirve de "versión" para las cachés).
     async function velasHTFconFecha(tfNLT) {
