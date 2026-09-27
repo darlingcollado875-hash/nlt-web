@@ -54,6 +54,12 @@
         },
     ];
     const FREE = GRUPOS.flatMap((g) => g.items);
+    // Indicadores PRO que se pueden marcar con ⭐ (se prenden desde su propio módulo).
+    const PRO_FAV = {
+        NLT_ZONE_ENGINE: { nombre: 'NLT Zone Engine PRO', desc: 'Order Blocks, FVG y estados del motor NLT', api: () => NLTCharts.app && NLTCharts.app.pro },
+        NLT_INDICATOR_AI: { nombre: 'NLT AI', desc: 'Análisis con IA de los eventos del Zone Engine', api: () => NLTCharts.app && NLTCharts.app.nltAi },
+    };
+    const FAV_DEF = ['NLT_ZONE_ENGINE', 'NLT_INDICATOR_AI', 'RSI', 'MACD', 'EMA'];
     const porId = Object.fromEntries(FREE.map((f) => [f.id, f]));
     const col = (hex, t = 0) => ({ hex, t });
     const css = (c) => NLTCharts.pine.css(c);
@@ -158,7 +164,8 @@
         const on = new Set();
         const visibleAhora = new Map();
         let ocultos = new Set(state.prefs().indicadoresOcultos || []);
-        let favs = (state.prefs().indicadoresFav || []).filter((id) => porId[id]);
+        // ⭐ Favoritos: indicadores gratis y PRO (Zone Engine, NLT AI). Por defecto los del pedido de Fase 3.
+        let favs = (state.prefs().indicadoresFav || FAV_DEF).filter((id) => porId[id] || PRO_FAV[id]);
         let filtro = '';
         let version = 0;
 
@@ -289,12 +296,25 @@
                 ${NLTCharts.settings.tiene(f.id) ? `<button type="button" class="ch-gear" data-gear="${esc(f.id)}" title="Configuración" aria-label="Configuración de ${esc(f.nombre)}"><i class="ph ph-gear-six"></i></button>` : ''}
             </div>`;
         }
+        // Fila de un favorito PRO: su casilla prende/apaga el indicador (el acceso lo decide el servidor).
+        function filaPro(id) {
+            const p = PRO_FAV[id], api = p.api();
+            if (!api) return '';
+            return `<div class="ch-ind-fila">
+                <label class="ch-ind">
+                    <input type="checkbox" data-pro-fav="${esc(id)}"${api.visible() ? ' checked' : ''}>
+                    <span><span class="ch-ind-name block">${esc(p.nombre)}</span><span class="ch-ind-desc">${esc(p.desc)}</span></span>
+                </label>
+                <button type="button" class="ch-gear ch-ind-star on" data-fav-ind="${esc(id)}" title="Quitar de favoritos" aria-label="Quitar ${esc(p.nombre)} de favoritos"><i class="ph-fill ph-star"></i></button>
+            </div>`;
+        }
         function listaHTML() {
             const q = filtro.trim().toLowerCase();
             const coincide = (f) => !q || [f.nombre, f.desc || '', f.id].some((t) => t.toLowerCase().includes(q));
             const bloques = [];
-            const favItems = favs.map((id) => porId[id]).filter(coincide);
-            if (favItems.length) bloques.push(`<p class="ch-grupo"><i class="ph-fill ph-star" style="color:#FACC15"></i> Favoritos</p>${favItems.map(fila).join('')}`);
+            // La búsqueda muestra primero los favoritos que coinciden (gratis y PRO).
+            const favHTML = favs.map((id) => (porId[id] ? (coincide(porId[id]) ? fila(porId[id]) : '') : PRO_FAV[id] && coincide({ id, ...PRO_FAV[id] }) ? filaPro(id) : '')).join('');
+            if (favHTML) bloques.push(`<p class="ch-grupo"><i class="ph-fill ph-star" style="color:#FACC15"></i> Favoritos</p>${favHTML}`);
             GRUPOS.forEach((g) => {
                 const items = g.items.filter(coincide);
                 if (items.length) bloques.push(`<p class="ch-grupo">${esc(g.titulo)}</p>${items.map(fila).join('')}`);
@@ -310,13 +330,15 @@
                 <input type="search" class="wl-buscar ch-ind-buscar" placeholder="Buscar indicador" value="${esc(filtro)}" aria-label="Buscar indicador">
                 <div data-ind-lista>${listaHTML()}</div>
                 <div id="chProSeccion"></div>`;
-            if (pro) pro.renderSeccion(panelEl.querySelector('#chProSeccion'));
+            if (pro) pro.renderSeccion(panelEl.querySelector('#chProSeccion'), filtro, favs);
         }
         function refrescarPanel() { if (!panelEl.hidden) render(); }
 
         function cerrar() { panelEl.hidden = true; panelBgEl.hidden = true; }
 
         panelEl.addEventListener('change', (ev) => {
+            const pf = ev.target.dataset && ev.target.dataset.proFav;
+            if (pf) { const api = PRO_FAV[pf] && PRO_FAV[pf].api(); if (api) api.alternar(ev.target.checked); return; }
             const id = ev.target.dataset && ev.target.dataset.ind;
             if (!id) return;
             ev.target.checked ? activar(id) : desactivar(id);
@@ -328,6 +350,7 @@
             if (!ev.target.classList.contains('ch-ind-buscar')) return;
             filtro = ev.target.value;
             panelEl.querySelector('[data-ind-lista]').innerHTML = listaHTML();
+            if (pro) pro.renderSeccion(panelEl.querySelector('#chProSeccion'), filtro, favs);
         });
         panelEl.addEventListener('click', (ev) => {
             if (ev.target.closest('[data-cerrar]')) { cerrar(); return; }
@@ -337,6 +360,7 @@
                 favs = favs.includes(id) ? favs.filter((x) => x !== id) : [...favs, id];
                 state.savePrefs({ indicadoresFav: favs });
                 panelEl.querySelector('[data-ind-lista]').innerHTML = listaHTML();
+                if (pro) pro.renderSeccion(panelEl.querySelector('#chProSeccion'), filtro, favs);
                 return;
             }
             const g = ev.target.closest('[data-gear]');

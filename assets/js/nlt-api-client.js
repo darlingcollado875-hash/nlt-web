@@ -935,6 +935,11 @@
         chartsZoneEngine: (symbol, timeframe, inputs = {}) => request('/charts/pro/zone-engine', {
             method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs }),
         }),
+        // NLT AI (otro indicador): eventos del Zone Engine y estado del análisis. El payload
+        // lo arma y lo manda el servidor; acá solo vuelven eventos y estado.
+        chartsNltAi: (symbol, timeframe, inputs = {}, mode = 'Zona manual', nonce = 0) => request('/charts/pro/nlt-ai', {
+            method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs, mode, nonce }),
+        }),
         // Trading desde el gráfico: interfaz preparada; el servidor responde
         // 403 "trading_disabled" mientras la ejecución real esté apagada.
         chartsTradingEstado: () => request('/charts/trading/status'),

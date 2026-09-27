@@ -75,6 +75,15 @@
             onCambio: () => ind && ind.refrescarPanel(),
         });
 
+        // NLT AI: indicador aparte que usa los eventos del Zone Engine (su propio panel).
+        const nltAi = NLTCharts.nltAi.crear({
+            getSymbol: () => symbol,
+            getTimeframe: () => timeframe,
+            pro,
+            onCambio: () => ind && ind.refrescarPanel(),
+        });
+        pro.conNltAi(nltAi);
+
         ind = indicators.montar({
             chart: motor.chart,
             panelEl: document.getElementById('chPanel'),
@@ -106,6 +115,7 @@
             wl.marcarActual();
             cargar();
             pro.cambioDeSimbolo();
+            nltAi.cambioDeSimbolo();
         }
 
         const wl = NLTCharts.watchlist.montar({
@@ -128,8 +138,9 @@
         }
         cargar();
         pro.iniciar();
+        nltAi.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
-        window.NLTCharts.app = { activarIndicador: (id) => ind.activar(id), pro, dibujos: dib };   // para depurar desde la consola
+        window.NLTCharts.app = { activarIndicador: (id) => ind.activar(id), pro, nltAi, dibujos: dib };   // favoritos PRO y consola
     }
 
     init();

@@ -321,6 +321,8 @@
         let rectId = null, rectVisto = false;
         let previa = null;            // valores mientras el diálogo está abierto
         let timer = null, timerCorto = null, seq = 0;
+        const oyentes = [];           // otros indicadores que usan los eventos del motor (NLT AI)
+        let nltAi = null;
 
         const zeAcceso = () => {
             const ze = catalogo && catalogo.indicators.find((i) => i.id === ZE);
@@ -434,7 +436,6 @@
                     if (el) el.innerHTML = `<div class="ud-dash ze-panel">${html}</div>`;
                 }
             } else { NLTCharts.ui.tablero.quitar('ze'); firmaPanel = ''; }
-            NLTCharts.ui.tablero.quitar('ze-nlt');   // NLT AI es otro indicador: no va en el Zone Engine
         }
 
         async function cargarCatalogo() {
@@ -479,6 +480,7 @@
                 mostrarEnGrafico(true);
                 if (dibujado) chart.setStyles({});
                 error = '';
+                oyentes.forEach((fn) => fn());
             } catch (err) {
                 if (n !== seq) return;
                 error = err.message;
@@ -585,7 +587,9 @@
             } else {
                 cuerpo = `<a href="indicator.html" class="ch-btn" style="margin-top:6px; display:inline-flex">Ver planes de NLT Indicator</a>`;
             }
-            return `<div class="ch-pro"><div class="ch-pro-head"><span class="ch-ind-name">${esc(ind.name)}</span>${acc.has_access ? '<button type="button" class="ch-gear" data-pro-gear title="Configuración" aria-label="Configuración del Zone Engine"><i class="ph ph-gear-six"></i></button>' : '<span class="ch-lock">PRO</span>'}</div>
+            const fav = favs.includes(ZE);
+            const estrella = `<button type="button" class="ch-gear ch-ind-star${fav ? ' on' : ''}" data-fav-ind="${ZE}" title="${fav ? 'Quitar de favoritos' : 'Agregar a favoritos'}" aria-label="Favorito NLT Zone Engine"><i class="${fav ? 'ph-fill' : 'ph'} ph-star"></i></button>`;
+            return `<div class="ch-pro" data-pro-card="${ZE}"><div class="ch-pro-head"><span class="ch-ind-name">${esc(ind.name)}</span><span style="display:flex; align-items:center; gap:4px">${estrella}${acc.has_access ? '<button type="button" class="ch-gear" data-pro-gear title="Configuración" aria-label="Configuración del Zone Engine"><i class="ph ph-gear-six"></i></button>' : '<span class="ch-lock">PRO</span>'}</span></div>
                     <p class="ch-ind-desc">${esc(ind.description)}</p>${cuerpo}</div>`;
         }
 
@@ -596,19 +600,28 @@
                     <p class="ch-ind-desc">${esc(ind.description)}${extra}</p></div>`;
         }
 
+        let favs = [];
         document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && ver) programar(200); });
 
         return {
             iniciar() { return cargarCatalogo().then(refrescar); },
             refrescar,
-            renderSeccion(el) {
+            // filtro: texto del buscador de indicadores; favoritos: ids marcados con ⭐ (también PRO).
+            renderSeccion(el, filtro = '', favoritos = []) {
+                favs = favoritos;
                 if (!catalogo) {
                     el.innerHTML = `<p class="ch-grupo">PRO</p><p class="ch-ind-desc" style="padding:0 8px">${error ? esc(error) : 'Cargando...'}</p>`;
                     return;
                 }
-                el.innerHTML = '<p class="ch-grupo">PRO</p>' + catalogo.indicators.map((ind) =>
-                    ind.id === ZE && ind.status === 'available' ? seccionZoneEngine(ind) : seccionProximamente(ind)).join('') +
+                const q = filtro.trim().toLowerCase();
+                const nombre = (ind) => (ind.id === 'NLT_INDICATOR_AI' ? 'NLT AI ' : '') + ind.name;
+                const lista = catalogo.indicators.filter((ind) => !q || [nombre(ind), ind.description || '', ind.id].some((t) => t.toLowerCase().includes(q)));
+                el.innerHTML = (lista.length ? '<p class="ch-grupo">PRO</p>' : '') + lista.map((ind) =>
+                    ind.id === ZE && ind.status === 'available' ? seccionZoneEngine(ind)
+                        : ind.id === 'NLT_INDICATOR_AI' && nltAi ? nltAi.htmlSeccion(ind, favs.includes(ind.id))
+                            : seccionProximamente(ind)).join('') +
                     (error ? `<p class="ch-ind-desc" style="color:rgb(248,113,113); padding:0 8px">${esc(error)}</p>` : '');
+                if (nltAi) nltAi.enlazar(el);
 
                 const cb = el.querySelector('[data-pro-ver]');
                 if (cb) cb.addEventListener('change', () => { ver = cb.checked; guardarPref(ver); refrescar(); });
@@ -631,6 +644,15 @@
             },
             tieneAcceso,
             abrirAjustes: () => abrirAjustes(),
+            // Para NLT AI (otro indicador que usa los eventos de este motor).
+            conNltAi(api) { nltAi = api; },
+            alRefrescar(fn) { oyentes.push(fn); },
+            entradasActuales: () => entradasCalculo(valores()),
+            zonaActual: () => zonaDe(getSymbol()),
+            // ⭐ Favoritos del panel de indicadores
+            visible: () => ver,
+            alternar(si) { ver = !!si; guardarPref(ver); refrescar(); onCambio && onCambio(); },
+            catalogoCargado: () => catalogo,
             // ojo de la leyenda: oculta todo lo del indicador (dibujos y tablas) sin quitarlo
             alternarVisible() {
                 oculto = !oculto;
