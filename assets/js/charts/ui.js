@@ -22,6 +22,7 @@
             </select>
             <button type="button" id="chFav" class="ch-btn ch-fav" title="Agregar a favoritos" aria-label="Agregar a favoritos"><i class="ph ph-star"></i></button>
             <span id="chDemo" class="ch-demo hidden" title="Precios simulados para probar el gráfico. No son precios reales de mercado.">DEMO<span class="ch-btn-label"> · precios simulados</span></span>
+            <span id="chConexion" class="ch-conn" data-estado="conectando" role="status" aria-live="polite" title="Conectando con los precios…"><i></i><span class="ch-btn-label">Conectando…</span></span>
             <div class="ch-tfs" role="group" aria-label="Timeframe">
                 ${o.timeframes.map((tf) => `<button type="button" class="ch-tf" data-tf="${esc(tf)}">${esc(tf)}</button>`).join('')}
             </div>
@@ -43,6 +44,19 @@
                 el.querySelectorAll('.ch-tf').forEach((b) => b.classList.toggle('on', b.dataset.tf === tf));
             },
             setDemo(demo) { el.querySelector('#chDemo').classList.toggle('hidden', !demo); },
+            // Estado de los precios: conectado / retrasado / desconectado / cerrado / conectando.
+            setConexion(estado, detalle) {
+                const TXT = { conectado: 'Conectado', retrasado: 'Retrasado', desconectado: 'Desconectado', cerrado: 'Mercado cerrado', conectando: 'Conectando…' };
+                const AYUDA = {
+                    conectado: 'Precios en vivo desde NLT.', retrasado: 'Los precios llegan con demora; se reintenta solo.',
+                    desconectado: 'Sin conexión con los precios. Se reconecta solo y completa las velas que falten.',
+                    cerrado: 'El mercado de este instrumento está cerrado (fin de semana).', conectando: 'Conectando con los precios…',
+                };
+                const b = el.querySelector('#chConexion');
+                b.dataset.estado = estado;
+                b.querySelector('.ch-btn-label').textContent = TXT[estado] || estado;
+                b.title = AYUDA[estado] + (detalle && estado !== 'conectado' ? ` (${detalle})` : '');
+            },
             setFavorito(fav) {
                 const b = el.querySelector('#chFav');
                 b.classList.toggle('on', fav);

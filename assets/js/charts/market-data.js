@@ -25,36 +25,81 @@
         return { demo: !!r.demo, provider: r.provider, precision: r.price_precision, velas: r.candles.map(aKline) };
     }
 
+    // Estado de la conexión con los precios (lo muestra la barra):
+    //   conectado    el último refresco llegó bien y la última vela está al día
+    //   retrasado    falló 1-2 refrescos, o el proveedor responde pero su última vela es vieja
+    //   desconectado 3 refrescos fallidos seguidos, o el navegador está sin red
+    //   cerrado      forex/metales/índices en fin de semana (no es un problema)
+    const FALLOS_DESCONECTADO = 3, SIN_DATOS_MS = 20000;
+    let estado = 'conectando';
+    const oyentesEstado = new Set();
+    function fijarEstado(e, detalle) {
+        if (e === estado && !detalle) return;
+        estado = e;
+        oyentesEstado.forEach((fn) => fn(e, detalle));
+    }
+    // Forex, metales e índices: cerrados del viernes 21:00 UTC al domingo 21:00 UTC (aprox., 17:00 NY).
+    function mercadoCerrado(ahora = new Date()) {
+        const d = ahora.getUTCDay(), h = ahora.getUTCHours();
+        return d === 6 || (d === 5 && h >= 21) || (d === 0 && h < 21);
+    }
+    function calcularEstado(ultimaVela, durMs, fines) {
+        if (ultimaVela == null) return 'retrasado';
+        const atraso = Date.now() - (ultimaVela + durMs);
+        if (atraso <= Math.max(2 * durMs, 3 * 60000)) return 'conectado';   // la vela en curso (o la anterior) está al día
+        return !fines && mercadoCerrado() ? 'cerrado' : 'retrasado';
+    }
+
     // Refresca la vela en curso mientras la pestaña está visible. Pide desde
     // la última vela recibida hasta ahora (normalmente 2): si la pestaña
-    // estuvo oculta un rato, llegan todas las velas que faltan y no queda un
-    // hueco. El motor distingue por timestamp si actualiza o agrega.
+    // estuvo oculta o sin red un rato, llegan todas las velas que faltan y no
+    // queda un hueco. El motor distingue por timestamp si actualiza o agrega.
     const DURACION_MS = { minute: 60000, hour: 3600000, day: 86400000 };
-    function suscribir(symbol, timeframe, alRecibir) {
+    function suscribir(symbol, timeframe, alRecibir, { operaFinDeSemana = true } = {}) {
         const p = PERIODOS[timeframe];
         const durMs = DURACION_MS[p.type] * p.span;
         let vivo = true;
         let timer = null;
         let ultimo = null;
         let enCurso = false;
+        let fallos = 0, okAt = Date.now();
         async function tick() {
             clearTimeout(timer);
             if (!vivo || enCurso) return;
-            if (document.visibilityState === 'visible') {
+            if (!navigator.onLine) { fijarEstado('desconectado'); }
+            else if (document.visibilityState === 'visible') {
                 enCurso = true;
                 const faltan = ultimo == null ? 2 : Math.ceil((Date.now() - ultimo) / durMs) + 1;
                 try {
                     const r = await velas(symbol, timeframe, { limit: Math.min(Math.max(faltan, 2), 1500) });
-                    if (vivo) r.velas.forEach((v) => { alRecibir(v); ultimo = v.timestamp; });
-                } catch (_) { /* un refresco fallido se reintenta en el próximo tick */ }
+                    if (vivo) {
+                        r.velas.forEach((v) => { alRecibir(v); ultimo = v.timestamp; });
+                        fallos = 0; okAt = Date.now();
+                        fijarEstado(calcularEstado(ultimo, durMs, operaFinDeSemana));
+                    }
+                } catch (err) {
+                    // un refresco fallido se reintenta en el próximo tick; los datos en pantalla se quedan
+                    fallos += 1;
+                    const caido = fallos >= FALLOS_DESCONECTADO || Date.now() - okAt > SIN_DATOS_MS;
+                    if (vivo) fijarEstado(caido ? 'desconectado' : 'retrasado', err && err.message);
+                }
                 enCurso = false;
             }
             if (vivo) timer = setTimeout(tick, REFRESCO_MS);
         }
         const alVolver = () => { if (document.visibilityState === 'visible') tick(); };
+        const alConectar = () => tick();
+        const alPerder = () => fijarEstado('desconectado');
         document.addEventListener('visibilitychange', alVolver);
+        window.addEventListener('online', alConectar);
+        window.addEventListener('offline', alPerder);
         timer = setTimeout(tick, REFRESCO_MS);
-        return () => { vivo = false; clearTimeout(timer); document.removeEventListener('visibilitychange', alVolver); };
+        return () => {
+            vivo = false; clearTimeout(timer);
+            document.removeEventListener('visibilitychange', alVolver);
+            window.removeEventListener('online', alConectar);
+            window.removeEventListener('offline', alPerder);
+        };
     }
 
     window.NLTCharts = window.NLTCharts || {};
@@ -65,5 +110,10 @@
         simbolos: () => NLT_API.chartsSimbolos(),
         velas,
         suscribir,
+        fijarEstado,
+        estado: () => estado,
+        alCambiarEstado(fn) { oyentesEstado.add(fn); return () => oyentesEstado.delete(fn); },
+        mercadoCerrado,
+        calcularEstado,
     };
 })();

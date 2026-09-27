@@ -108,6 +108,8 @@
         let cancelarSuscripcion = null;
         let timeframe = null;
         let pedidoInicial = null;   // AbortController de la carga en curso (símbolo/timeframe)
+        let operaFinDeSemana = true;
+        let reintento = null, espera = 5000;   // la carga inicial falló: se reintenta sola (5 s, 10 s... hasta 30 s)
 
         chart.setDataLoader({
             // En KLineChart 10, "forward" pide historia MÁS VIEJA (a la
@@ -135,11 +137,24 @@
                     if (tfPedido !== timeframe || !sym || sym.ticker !== symbol.ticker) return;
                     const hayMas = r.velas.length >= market.LOTE;
                     callback(r.velas, { forward: hayMas, backward: false });
+                    if (type === 'init') {
+                        espera = 5000;
+                        const u = r.velas.length ? r.velas[r.velas.length - 1].timestamp : null;
+                        const p = market.PERIODOS[tfPedido];
+                        market.fijarEstado(market.calcularEstado(u, ({ minute: 60000, hour: 3600000, day: 86400000 })[p.type] * p.span, operaFinDeSemana));
+                    }
                     onData && onData({ demo: r.demo, primera: type === 'init' });
                 } catch (err) {
                     if (err.name === 'AbortError') return;   // la reemplazó una carga más nueva
                     callback([], { forward: false, backward: false });
                     onError && onError(err.message);
+                    if (type === 'init') {
+                        // sin historia no hay suscripción que reintente: se vuelve a pedir sola
+                        market.fijarEstado('desconectado', err.message);
+                        clearTimeout(reintento);
+                        reintento = setTimeout(() => { if (!chart.getDataList().length) chart.resetData(); }, espera);
+                        espera = Math.min(espera * 2, 30000);
+                    }
                 }
             },
             subscribeBar: ({ symbol, callback }) => {
@@ -150,7 +165,7 @@
                     callback(vela);
                     if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
                     if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
-                });
+                }, { operaFinDeSemana });
             },
             unsubscribeBar: () => {
                 if (cancelarSuscripcion) cancelarSuscripcion();
@@ -182,6 +197,9 @@
                 const cambiaSimbolo = !actual || actual.ticker !== symbolInfo.symbol;
                 const cambiaPeriodo = timeframe !== tf;
                 timeframe = tf;
+                operaFinDeSemana = symbolInfo.trades_weekends !== false;
+                clearTimeout(reintento); espera = 5000;
+                if (cambiaSimbolo || cambiaPeriodo) market.fijarEstado('conectando');
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
                 if (cambiaPeriodo) chart.setPeriod(market.PERIODOS[tf]);
             },

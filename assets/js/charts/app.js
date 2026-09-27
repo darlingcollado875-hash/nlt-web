@@ -23,13 +23,21 @@
         // más de 2,5 s ni falla: sin cuenta disponible se sigue con las de este dispositivo.
         const pLayout = NLTCharts.layout.cargar({ timeoutMs: 2500 });
         NLTCharts.trading.cargar();   // estado de la ejecución (hoy apagada): habilita o no BUY/SELL en las posiciones
-        let catalogo;
-        try {
-            catalogo = await market.simbolos();
-        } catch (err) {
-            mostrarEstado('No se pudo cargar NLT Charts: ' + err.message, true);
-            return;
+        // Sin catálogo no hay gráfico: se reintenta solo (5 s, 10 s... hasta 30 s, o al volver la red).
+        let catalogo = null;
+        for (let espera = 5000; !catalogo; espera = Math.min(espera * 2, 30000)) {
+            try {
+                catalogo = await market.simbolos();
+            } catch (err) {
+                mostrarEstado(`No se pudo conectar con NLT Charts (${err.message}). Reintentando…`, true);
+                await new Promise((r) => {
+                    const t = setTimeout(listo, espera);
+                    function listo() { clearTimeout(t); window.removeEventListener('online', listo); r(); }
+                    window.addEventListener('online', listo);
+                });
+            }
         }
+        mostrarEstado('');
         await pLayout;
         const porSimbolo = Object.fromEntries(catalogo.symbols.map((s) => [s.symbol, s]));
         const prefs = state.prefs();
@@ -126,6 +134,8 @@
             onCambio: () => { toolbar.setFavorito(wl.esFavorito(symbol)); toolbar.setWatchlist(!document.getElementById('chWatch').hidden); motor.chart.resize(); },
         });
         toolbar.setFavorito(wl.esFavorito(symbol));
+        toolbar.setConexion(market.estado());
+        market.alCambiarEstado((e, detalle) => toolbar.setConexion(e, detalle));
         toolbar.setWatchlist(!document.getElementById('chWatch').hidden);
 
         function cargar() {
