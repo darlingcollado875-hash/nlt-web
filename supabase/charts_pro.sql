@@ -18,7 +18,13 @@
 --
 -- Todo ADITIVO. RLS activa sin policies de cliente: solo el backend
 -- (service_role) lee y escribe, igual que subscriptions_v2 e indicator_orders.
+-- Cupo de análisis gratis de NLT AI: UNA sola fuente de verdad (period_kind='all').
+-- Se RESERVA 1 antes de mandar el evento (consumir) y se DEVUELVE si al final
+-- no hubo análisis con IA (zona ya analizada, sin IA, error). Así un evento
+-- analizado = un débito; los usuarios con plan usan solo la cuota mensual del
+-- pipeline (period_kind='month'), nunca este contador.
 -- Reversible:
+--   drop function if exists public.charts_devolver_analisis_ai_gratis(uuid);
 --   drop function if exists public.charts_consumir_analisis_ai_gratis(uuid, integer);
 --   drop table if exists public.indicator_trials;
 -- ══════════════════════════════════════════════════════════════════
@@ -79,6 +85,29 @@ $$;
 
 revoke all on function public.charts_consumir_analisis_ai_gratis(uuid, integer) from public, anon, authenticated;
 grant execute on function public.charts_consumir_analisis_ai_gratis(uuid, integer) to service_role;
+
+-- Devuelve 1 análisis reservado que no llegó a usarse (nunca baja de 0).
+-- Devuelve cuántos quedan usados después.
+create or replace function public.charts_devolver_analisis_ai_gratis(p_user uuid)
+returns integer
+language plpgsql
+security definer
+set search_path = public, nlt_ai
+as $$
+declare
+  v_usados integer;
+begin
+  update nlt_ai.usage_counters
+     set analyses_used = analyses_used - 1
+   where nlt_user_id = p_user and period_kind = 'all' and period_start = date '1970-01-01'
+     and analyses_used > 0
+  returning analyses_used into v_usados;
+  return coalesce(v_usados, 0);
+end;
+$$;
+
+revoke all on function public.charts_devolver_analisis_ai_gratis(uuid) from public, anon, authenticated;
+grant execute on function public.charts_devolver_analisis_ai_gratis(uuid) to service_role;
 
 -- Solo lectura: cuántos análisis gratis usó (para mostrar "te quedan N").
 create or replace function public.charts_analisis_ai_gratis_usados(p_user uuid)
