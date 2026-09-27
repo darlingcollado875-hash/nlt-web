@@ -326,6 +326,7 @@
         let previa = null;            // valores mientras el diálogo está abierto
         let timer = null, timerCorto = null, seq = 0;
         const oyentes = [];           // otros indicadores que usan los eventos del motor (NLT AI)
+        let fuenteZE = null;          // NLT Bar Replay: el motor calculado en el cursor (servidor)
         let nltAi = null;
 
         const zeAcceso = () => {
@@ -494,7 +495,8 @@
             }
             const n = ++seq;
             try {
-                const r = await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), entradasCalculo(valores()));
+                const r = fuenteZE ? await fuenteZE(entradasCalculo(valores()))
+                    : await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), entradasCalculo(valores()));
                 if (n !== seq) return;
                 dibujo = r.drawing;
                 actualizarVisuales();
@@ -687,6 +689,8 @@
             // Rectángulo conectado movido/estirado: re-analizar (agrupado).
             zonaMovida(id) { if (!rectId || id === rectId) programar(400); },
             velaNueva() { if (ver && dibujado) programar(300); },
+            // NLT Bar Replay: fn(entradas) -> {drawing} en el cursor; null vuelve al vivo
+            fijarFuente(fn) { fuenteZE = fn || null; dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); if (ver) programar(100); },
             // Los dibujos del símbolo ya están en pantalla: buscar el rectángulo conectado.
             dibujosRestaurados() { if (ver) programar(150); },
             // Al cambiar de símbolo: cada símbolo tiene su zona y sus rectángulos.

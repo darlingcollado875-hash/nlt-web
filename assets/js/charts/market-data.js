@@ -20,7 +20,11 @@
 
     const aKline = (c) => ({ timestamp: c.t, open: c.o, high: c.h, low: c.l, close: c.c, volume: c.v });
 
+    // NLT Bar Replay: mientras está activo, las velas (de cualquier timeframe) salen de la sesión de
+    // replay, que nunca entrega nada posterior al cursor. Sin esto, Key Levels / Unified Suite verían el presente.
+    let fuenteHistorica = null;
     async function velas(symbol, timeframe, { limit = LOTE, end = null, signal } = {}) {
+        if (fuenteHistorica) return fuenteHistorica(symbol, timeframe, { limit, end });
         const r = await NLT_API.chartsVelas(symbol, timeframe, { limit, end, signal });
         return { demo: !!r.demo, provider: r.provider, precision: r.price_precision, velas: r.candles.map(aKline) };
     }
@@ -147,5 +151,7 @@
         ultimoDato: () => ultimoDato,
         alRecibirDato(fn) { oyentesDato.add(fn); return () => oyentesDato.delete(fn); },
         fijarCategoria(c) { categoria = c || ''; },
+        fijarFuenteHistorica(fn) { fuenteHistorica = fn || null; },
+        enReplay: () => !!fuenteHistorica,
     };
 })();

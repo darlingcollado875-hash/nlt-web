@@ -75,7 +75,9 @@
         async function pedirQuotes() {
             clearTimeout(timer);
             if (!abierta()) return;
-            if (document.visibilityState === 'visible' && favs.length) {
+            if (NLTCharts.market.enReplay && NLTCharts.market.enReplay()) {
+                el.querySelectorAll('[data-lista="favs"] .wl-num').forEach((n) => { n.innerHTML = '<b>—</b><small>replay</small>'; });
+            } else if (document.visibilityState === 'visible' && favs.length) {
                 const n = ++pedidoEnCurso;
                 try {
                     const r = await NLT_API.chartsQuotes(favs);

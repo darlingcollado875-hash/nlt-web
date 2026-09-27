@@ -133,6 +133,7 @@
     let simbolo = null, precision = 5;
     const cacheHTF = new Map();
     const htfEnVuelo = new Map();
+    let genHTF = 0;   // limpiarCache() la sube: una respuesta pedida antes (p. ej. del vivo, antes del replay) no se guarda
     // Un pedido por símbolo+temporalidad a la vez; un error se recuerda 30 s (antes cada recálculo,
     // o sea cada tick, volvía a pedir: con TickerAll real eso era un bucle de pedidos fallidos).
     async function velasHTF(tfNLT) {
@@ -143,9 +144,12 @@
             return c0.v;
         }
         if (htfEnVuelo.has(k)) return htfEnVuelo.get(k);
+        const gen = genHTF;
         const pedido = NLTCharts.market.velas(simbolo, tfNLT, { limit: 1500 })
-            .then((r) => { cacheHTF.set(k, { t: Date.now(), v: r.velas }); return r.velas; },
-                (err) => { cacheHTF.set(k, { t: Date.now(), error: err }); throw err; })
+            .then((r) => {
+                if (gen !== genHTF) return velasHTF(tfNLT);          // llegó tarde: se vuelve a pedir a la fuente actual
+                cacheHTF.set(k, { t: Date.now(), v: r.velas }); return r.velas;
+            }, (err) => { if (gen === genHTF) cacheHTF.set(k, { t: Date.now(), error: err }); throw err; })
             .finally(() => htfEnVuelo.delete(k));
         htfEnVuelo.set(k, pedido);
         return pedido;
@@ -823,6 +827,8 @@
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.unified = {
         ID, INPUTS, registrar, limpiar, calcular, calcularIncremental, stats,
+        // NLT Bar Replay: las velas HTF guardadas del vivo (o de la vela anterior del replay) no sirven
+        limpiarCache() { genHTF += 1; cacheHTF.clear(); htfEnVuelo.clear(); },
         setContexto({ symbol, pricePrecision }) {
             if (symbol !== simbolo) cacheHTF.clear();
             simbolo = symbol;

@@ -137,6 +137,7 @@
         // ───────────── modo histórico en el gráfico ─────────────
         const aKline = (c) => ({ timestamp: c[0], open: c[1], high: c[2], low: c[3], close: c[4], volume: c[5] });
         function entrarGrafico(klines) {
+            if (NLTCharts.replayApi && NLTCharts.replayApi.activo()) NLTCharts.replayApi.salir();
             const r = st.res;
             const mismo = app.simbolo() === r.symbol && app.timeframe() === r.timeframe;
             if (!st.enGrafico) {
@@ -442,27 +443,12 @@
             return { panel, trans, balance: r.metrics.initial_balance + cerradas.reduce((a, t) => a + t.pnl, 0), n: cerradas.length, abierta };
         }
         function htmlReplay() {
-            if (!st.res) return '<p class="lab-vacio">Corré un backtest para reproducirlo vela por vela.</p>';
-            if (st.cfg && !st.cfg.limits.replay) return '<p class="lab-vacio">El Bar Replay es parte del plan PRO.</p>';
-            const R = st.replay, total = st.velas.candles.length;
-            const ts = R.activo ? R.klines[R.cursor].timestamp : null;
-            const e = ts != null ? estadoEn(ts) : null;
+            if (!st.res) return '<p class="lab-vacio">Corré un backtest para reproducir su período vela por vela.</p>';
+            const m = st.res.meta;
             return `
             <div class="lab-replay">
-                <div class="lab-ctrl">
-                    <button type="button" data-a="${R.timer ? 'pause' : 'play'}" class="lab-run"><i class="ph-fill ${R.timer ? 'ph-pause' : 'ph-play'}"></i> ${R.timer ? 'PAUSE' : 'PLAY'}</button>
-                    <button type="button" data-a="step" class="lab-sec"><i class="ph ph-skip-forward"></i> STEP</button>
-                    <button type="button" data-a="reset" class="lab-sec"><i class="ph ph-arrow-counter-clockwise"></i> RESET</button>
-                    ${sel('vel', VELOCIDADES.map((v) => [v, `${v}x`]), R.vel, 'replay')}
-                    <span class="lab-nota">${R.activo ? `vela ${R.cursor + 1} / ${total} · ${fmtFecha(ts)}` : 'listo para empezar'}</span>
-                </div>
-                ${e ? `<div class="lab-rest">
-                    <div><span>Balance</span><b>${fmtDinero(e.balance)}</b></div><div><span>Operaciones cerradas</span><b>${e.n}</b></div>
-                    <div><span>Posición</span><b>${e.abierta ? `${e.abierta.lado} @ ${e.abierta.entrada.toFixed(st.precision)}` : '—'}</b></div>
-                    <div><span>Zone Engine</span><b>${esc(e.panel ? e.panel.entrada : '—')}</b></div>
-                </div>
-                <p class="lab-nota">Últimos cambios de estado: ${e.trans.map((x) => `${esc(x.zona)} ${esc(x.de)}→${esc(x.a)} (${fmtFecha(x.ts)})`).join(' · ') || '—'}</p>` : ''}
-                <p class="lab-nota">El futuro no está en el gráfico: cada vela se agrega cuando "pasa". Es el mismo backtest del servidor (mismo motor), revelado de a una vela.</p>
+                <p class="lab-nota">El replay usa NLT Bar Replay: el servidor entrega las velas de a una y el futuro nunca llega al navegador. Arranca en la primera vela del backtest (${esc(fmtFecha(m.dataset.first))}); el Zone Engine se calcula en cada vela con el mismo motor.</p>
+                <div class="lab-ctrl"><button type="button" class="lab-run" data-a="abrirReplay"><i class="ph ph-clock-counter-clockwise"></i> Reproducir en NLT Bar Replay</button></div>
             </div>`;
         }
         function pintarReplay() { if (st.tab === 'replay') pintar(); else chart.setStyles({}); }
@@ -505,6 +491,7 @@
             if (acc === 'step') { if (!st.replay.activo) iniciarReplay(); detenerReplay(); paso(); pintar(); }
             if (acc === 'reset') { detenerReplay(); iniciarReplay(); pintar(); }
             if (acc === 'guardarPreset') guardarPreset();
+            if (acc === 'abrirReplay' && NLTCharts.replayApi) { const m = st.res.meta; salirGrafico(); api.abrir(false); NLTCharts.replayApi.iniciar(m.symbol, m.timeframe, m.dataset.first); }
         });
         el.addEventListener('change', (ev) => {
             const x = ev.target, k = x.dataset.k, g = x.dataset.g;
@@ -560,6 +547,7 @@
                 pintar();
                 setTimeout(() => chart.resize(), 0);
             },
+            salirGrafico: () => { salirGrafico(); pintar(); },
             estado: () => ({ enGrafico: st.enGrafico, job: st.job, trades: st.res ? st.res.trades.length : 0, replay: { ...st.replay, klines: undefined } }),
         };
         boton.addEventListener('click', () => api.abrir());

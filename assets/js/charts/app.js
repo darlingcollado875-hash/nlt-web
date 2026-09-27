@@ -106,8 +106,9 @@
             simbolos: catalogo.symbols,
             timeframes: catalogo.timeframes,
             symbol, timeframe,
-            onSymbol: (s) => cambiarSimbolo(s),
-            onTimeframe: (tf) => { timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); cargar(); pro.cambioDeTimeframe(); nltAi.cambioDeSimbolo(); },
+            onSymbol: (s) => (NLTCharts.replayApi && NLTCharts.replayApi.activo() ? NLTCharts.replayApi.cambiar(s, timeframe) : cambiarSimbolo(s)),
+            onTimeframe: (tf) => {
+                if (NLTCharts.replayApi && NLTCharts.replayApi.activo()) { toolbar.setTimeframe(timeframe); NLTCharts.replayApi.cambiar(symbol, tf); return; } timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); cargar(); pro.cambioDeTimeframe(); nltAi.cambioDeSimbolo(); },
             onIndicadores: () => ind.abrir(),
             onConfig: () => NLTCharts.settings.abrir('GRAFICO', (v) => motor.aplicarApariencia(v)),
             onWatchlist: () => wl.alternar(),
@@ -173,6 +174,7 @@
             },
             simbolo: () => symbol, timeframe: () => timeframe,
         };   // favoritos PRO, consola y Backtest Lab
+        NLTCharts.replay && NLTCharts.replay.montar({ el: document.getElementById('chReplay'), boton: document.getElementById('chBtnReplay') });
         NLTCharts.backtest && NLTCharts.backtest.montar({
             el: document.getElementById('chLab'), boton: document.getElementById('chBtnLab'), simbolos: catalogo.symbols,
         });

@@ -80,10 +80,13 @@
     const cacheDiarias = new Map(); // symbol -> { t, velas }
     const DIARIAS_TTL_MS = 60000;
 
+    let genDiarias = 0;   // limpiarCache() la sube: una respuesta pedida antes no se guarda (Bar Replay)
     async function diarias(symbol) {
         const c = cacheDiarias.get(symbol);
         if (c && Date.now() - c.t < DIARIAS_TTL_MS) return c.velas;
+        const gen = genDiarias;
         const r = await NLTCharts.market.velas(symbol, '1D', { limit: 60 });
+        if (gen !== genDiarias) return diarias(symbol);
         cacheDiarias.set(symbol, { t: Date.now(), velas: r.velas });
         return r.velas;
     }
@@ -444,6 +447,7 @@
     window.NLTCharts.freeIndicators = {
         registrar,
         setSymbol(s) { simboloActual = s; },
+        limpiarCache() { genDiarias += 1; cacheDiarias.clear(); },   // NLT Bar Replay: nada guardado del vivo
         // expuestos para tests en el navegador
         SESIONES, horaNY, sesionDe, calcularFVG, calcularFreeZones, calcularFreeZonesInc, nivelesPorDiaria, claveSemana, diariaDe,
     };

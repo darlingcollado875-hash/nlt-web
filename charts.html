@@ -313,6 +313,26 @@
             .lab-head nav span { display: none; }
             .lab-tabla { max-height: 45vh; }
         }
+        /* NLT Bar Replay: barra flotante arriba del gráfico */
+        .rp { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
+              max-width: calc(100% - 24px); padding: 6px 8px; border-radius: 12px; background: rgba(13,16,22,.94); border: 1px solid rgba(var(--ch-accent),.35); box-shadow: 0 8px 30px rgba(0,0,0,.45); font-size: 12px; }
+        .rp[hidden] { display: none; }
+        .rp-t { font-size: 10.5px; letter-spacing: .1em; color: #fff; display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; padding: 0 4px; }
+        .rp-t i { color: rgb(var(--ch-accent)); font-size: 15px; }
+        .rp-b { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 9px; border: 1px solid var(--ch-line); background: rgba(255,255,255,.04); color: #E5E7EB; font-weight: 600; cursor: pointer; white-space: nowrap; }
+        .rp-b:hover { border-color: rgba(255,255,255,.2); color: #fff; }
+        .rp-b:disabled { opacity: .45; cursor: default; }
+        .rp-b.on { border-color: rgb(var(--ch-accent)); color: rgb(var(--ch-accent)); }
+        .rp-b i { font-size: 15px; }
+        .rp-play { background: rgb(var(--ch-accent)); color: #04121A; border-color: transparent; }
+        .rp-play:hover { color: #04121A; }
+        .rp-x { color: #9CA3AF; }
+        .rp select, .rp input { background: #1E222D; border: 1px solid #363A45; border-radius: 8px; color: #fff; padding: 5px 7px; font-size: 12px; color-scheme: dark; }
+        .rp-cur { font-variant-numeric: tabular-nums; color: #D1D5DB; white-space: nowrap; padding: 0 4px; }
+        .rp-err { color: #F87171; flex-basis: 100%; text-align: center; font-size: 11px; }
+        .ch-conn[data-estado="replay"] { color: rgb(var(--ch-accent)); border-color: rgba(var(--ch-accent),.4); }
+        .ch-conn[data-estado="replay"] i, .ch-conn[data-estado="backtest"] i { background: rgb(var(--ch-accent)); }
+        @media (max-width: 767px) { .rp { top: 6px; gap: 4px; } .rp-b span { display: none; } }
         @media (prefers-reduced-motion: reduce) { #sidebar { transition: none; } .lab-barra i { transition: none; } }
     </style>
 </head>
@@ -329,6 +349,7 @@
                 <div id="chEstado" class="ch-overlay">Cargando gráfico...</div>
                 <div id="chHint" class="ch-hint" hidden></div>
                 <div id="chBarraDibujo" class="dw-bar" role="toolbar" aria-label="Dibujo seleccionado" hidden></div>
+                <div id="chReplay" class="rp" role="toolbar" aria-label="NLT Bar Replay" hidden></div>
             </div>
             <aside id="chWatch" class="wl" aria-label="Watchlist" hidden></aside>
         </div>
@@ -341,24 +362,25 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=eeea109a"></script>
+    <script src="assets/js/nlt-api-client.js?v=d0b57359"></script>
     <script src="assets/js/charts/diag.js?v=658869be"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
-    <script src="assets/js/charts/market-data.js?v=5ef40ba3"></script>
+    <script src="assets/js/charts/market-data.js?v=0555e30c"></script>
     <script src="assets/js/charts/engine.js?v=4ca0a224"></script>
-    <script src="assets/js/charts/ui.js?v=bd8bfcfd"></script>
+    <script src="assets/js/charts/ui.js?v=07153f5c"></script>
     <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
     <script src="assets/js/charts/drawings.js?v=82170381"></script>
     <script src="assets/js/charts/trading.js?v=c5c388f9"></script>
-    <script src="assets/js/charts/watchlist.js?v=6284e91f"></script>
-    <script src="assets/js/charts/indicators-free.js?v=13adee37"></script>
-    <script src="assets/js/charts/unified-suite.js?v=1902aaf0"></script>
+    <script src="assets/js/charts/watchlist.js?v=7aa1a4ae"></script>
+    <script src="assets/js/charts/indicators-free.js?v=c3ae9a50"></script>
+    <script src="assets/js/charts/unified-suite.js?v=594a7f4e"></script>
     <script src="assets/js/charts/indicators.js?v=de9918a5"></script>
-    <script src="assets/js/charts/pro.js?v=ab0e27a1"></script>
-    <script src="assets/js/charts/nlt-ai.js?v=35dec72d"></script>
-    <script src="assets/js/charts/backtest.js?v=771b35ee"></script>
-    <script src="assets/js/charts/app.js?v=4fd953ef"></script>
+    <script src="assets/js/charts/pro.js?v=5c15247e"></script>
+    <script src="assets/js/charts/nlt-ai.js?v=7770be0d"></script>
+    <script src="assets/js/charts/replay.js?v=b2c700a8"></script>
+    <script src="assets/js/charts/backtest.js?v=c0cd4b2a"></script>
+    <script src="assets/js/charts/app.js?v=082a02b4"></script>
 </body>
 </html>
