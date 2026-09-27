@@ -2244,6 +2244,7 @@
     // NLT Charts -- producto principal propio (antes colgaba de NLT Indicator).
     const NAV_CHARTS = [
         { id: 'charts', href: 'charts.html', icono: 'ph-chart-line-up', label: 'Gráfico' },
+        { id: 'backtest-lab', href: 'charts.html#lab', icono: 'ph-flask', label: 'Backtest Lab' },
         { id: 'indicator-dashboard', href: 'indicator-dashboard.html', icono: 'ph-crosshair', label: 'NLT Indicator' },
     ];
 

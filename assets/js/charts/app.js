@@ -163,8 +163,19 @@
         window.NLTCharts.motor = motor; // para depurar desde la consola
         window.NLTCharts.app = {
             activarIndicador: (id) => ind.activar(id), desactivarIndicador: (id) => ind.desactivar(id), indicadoresActivos: () => ind.activos(),
-            pro, nltAi, dibujos: dib,
-        };   // favoritos PRO y consola
+            pro, nltAi, dibujos: dib, motor,
+            // NLT Backtest Lab: lleva el gráfico a un símbolo/timeframe por el mismo camino que la barra
+            irA(s, tf) {
+                if (tf && tf !== timeframe && catalogo.timeframes.includes(tf)) {
+                    timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); pro.cambioDeTimeframe();
+                }
+                if (s !== symbol) cambiarSimbolo(s); else cargar();
+            },
+            simbolo: () => symbol, timeframe: () => timeframe,
+        };   // favoritos PRO, consola y Backtest Lab
+        NLTCharts.backtest && NLTCharts.backtest.montar({
+            el: document.getElementById('chLab'), boton: document.getElementById('chBtnLab'), simbolos: catalogo.symbols,
+        });
     }
 
     init();

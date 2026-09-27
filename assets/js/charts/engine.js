@@ -113,6 +113,9 @@
         // ¿llegó la historia de este símbolo/timeframe? Si la carga inicial falló, el refresco en vivo
         // igual agrega las 2 últimas velas: el reintento no puede mirar solo "¿hay velas?".
         let historiaOk = false;
+        // NLT Backtest Lab: velas de un backtest en vez de las del mercado en vivo (sin suscripción).
+        // `empujarExterno` agrega/actualiza velas una por una (Bar Replay).
+        let externo = null, empujarExterno = null;
 
         chart.setDataLoader({
             // En KLineChart 10, "forward" pide historia MÁS VIEJA (a la
@@ -122,6 +125,7 @@
             // pegaba a la derecha. Las velas nuevas las trae subscribeBar,
             // así que "backward" nunca tiene nada.
             getBars: async ({ type, timestamp, symbol, callback }) => {
+                if (externo) { callback(type === 'init' ? externo.velas : [], { forward: false, backward: false }); if (type === 'init') onData && onData({ demo: false, primera: true }); return; }
                 if (type === 'backward') { callback([], { backward: false }); return; }
                 const tfPedido = timeframe;
                 // Cambio rápido de símbolo/timeframe: se cancela la carga anterior (no llega tarde ni gasta red).
@@ -167,6 +171,8 @@
             },
             subscribeBar: ({ symbol, callback }) => {
                 if (cancelarSuscripcion) cancelarSuscripcion();
+                cancelarSuscripcion = null;
+                if (externo) { empujarExterno = callback; return; }
                 const dl = chart.getDataList();
                 let ultimoTs = dl.length ? dl[dl.length - 1].timestamp : null;
                 cancelarSuscripcion = market.suscribir(symbol.ticker, timeframe, (vela) => {
@@ -212,6 +218,15 @@
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
                 if (cambiaPeriodo) chart.setPeriod(market.PERIODOS[tf]);
             },
+            // Backtest Lab: datos = { velas: KLineData[] } muestra esas velas (sin mercado en vivo); null vuelve al vivo.
+            modoExterno(datos, recargar = true) {
+                externo = datos;
+                empujarExterno = null;
+                historiaOk = !!datos;
+                if (recargar) chart.resetData();
+            },
+            enModoExterno: () => !!externo,
+            empujar(vela) { if (externo && empujarExterno) empujarExterno(vela); },
             destruir() {
                 ro.disconnect();
                 if (cancelarSuscripcion) cancelarSuscripcion();

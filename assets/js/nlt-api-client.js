@@ -944,6 +944,19 @@
         chartsNltAi: (symbol, timeframe, inputs = {}, mode = 'Zona manual', nonce = 0) => request('/charts/pro/nlt-ai', {
             method: 'POST', body: JSON.stringify({ symbol, timeframe, inputs, mode, nonce }), timeoutMs: 45000, intentos: 1,
         }),
+        // NLT Backtest Lab: el servidor decide acceso, límites y cuenta de precios; el navegador
+        // solo manda la configuración y lee progreso/resultados de SUS backtests.
+        chartsBacktestConfig: () => request('/charts/backtest/config'),
+        chartsBacktestCrear: (pedido) => request('/charts/backtest/runs', { method: 'POST', body: JSON.stringify(pedido), intentos: 1 }),
+        chartsBacktestEstado: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}`),
+        chartsBacktestResultado: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/result`, { timeoutMs: 30000 }),
+        chartsBacktestVelas: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/candles`, { timeoutMs: 30000 }),
+        chartsBacktestCancelar: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST', intentos: 1 }),
+        chartsBacktestPresets: () => request('/charts/backtest/presets'),
+        chartsBacktestGuardarPreset: (preset, id = null) => request(id ? `/charts/backtest/presets/${encodeURIComponent(id)}` : '/charts/backtest/presets', {
+            method: id ? 'PUT' : 'POST', body: JSON.stringify(preset), intentos: 1,
+        }),
+        chartsBacktestBorrarPreset: (id) => request(`/charts/backtest/presets/${encodeURIComponent(id)}`, { method: 'DELETE', intentos: 1 }),
         // Trading desde el gráfico: interfaz preparada; el servidor responde
         // 403 "trading_disabled" mientras la ejecución real esté apagada.
         chartsTradingEstado: () => request('/charts/trading/status'),
