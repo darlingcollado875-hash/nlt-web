@@ -222,7 +222,14 @@
                 if (externo) { callback(type === 'init' ? externo.velas : [], { forward: false, backward: false }); if (type === 'init') onData && onData({ demo: false, primera: true }); return; }
                 const tfPedido = timeframe;
                 const dur = DUR(tfPedido);
-                const vigente = () => { const sym = chart.getSymbol(); return tfPedido === timeframe && sym && sym.ticker === symbol.ticker; };
+                // Una respuesta que llega tarde solo se aplica si el gráfico sigue en el MISMO dataset: mismo símbolo y
+                // timeframe, misma generación y sin modo externo. Sin la generación (visto 28/09 con TickerAll real), la
+                // carga en vivo de EURUSD 15m que llegaba después de entrar al Bar Replay en EURUSD 15m pisaba las velas
+                // del replay con las del presente.
+                const genPedido = market.generacion ? market.generacion() : 0;
+                const vigente = () => { const sym = chart.getSymbol(); return !externo && tfPedido === timeframe && sym && sym.ticker === symbol.ticker; };
+                // carga inicial: además, la misma generación (un dataset nuevo reemplaza al que se estaba pidiendo)
+                const vigenteInit = () => vigente() && (!market.generacion || market.generacion() === genPedido);
                 const tope = () => Math.floor(Date.now() / dur) * dur;       // apertura de la vela en curso
                 if (type === 'backward') {
                     // velas MÁS NUEVAS: solo en una ventana del pasado (en vivo las trae la suscripción)
@@ -271,7 +278,7 @@
                         const desde = v.centro - antes * dur * calendario();
                         const hasta = Math.min(tope(), v.centro + despues * dur * calendario());
                         const r = await historia(symbol.ticker, tfPedido, desde, hasta, { onProgreso: v.onProgreso });
-                        if (!vigente() || ventana !== v) return;
+                        if (!vigenteInit() || ventana !== v) return;
                         fuenteSerie = r.source;
                         const llega = hasta >= tope();
                         callback(r.velas, { forward: r.velas.length > 0, backward: !llega });
@@ -300,8 +307,7 @@
                     const r = await market.velas(symbol.ticker, tfPedido, { end: null, signal });
                     // Si el usuario cambió de símbolo o timeframe mientras
                     // esperábamos, esta respuesta es de un gráfico que ya no está.
-                    const sym = chart.getSymbol();
-                    if (tfPedido !== timeframe || !sym || sym.ticker !== symbol.ticker) return;
+                    if (!vigenteInit()) return;       // de otro dataset (otro símbolo/timeframe, replay, backtest, otra fecha)
                     if (type === 'init') fuenteSerie = r.source;
                     else if (fuenteSerie && r.source && r.source !== fuenteSerie) {
                         // historia más vieja de OTRA fuente (PRIMARY/BACKUP): no se pega; se recarga todo de la actual
