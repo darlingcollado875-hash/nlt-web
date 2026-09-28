@@ -337,6 +337,9 @@
         .rp-x { color: #9CA3AF; }
         .rp select, .rp input { background: #1E222D; border: 1px solid #363A45; border-radius: 8px; color: #fff; padding: 5px 7px; font-size: 12px; color-scheme: dark; }
         .rp-cur { font-variant-numeric: tabular-nums; color: #D1D5DB; white-space: nowrap; padding: 0 4px; }
+        .rp-load { color: #FBBF24; display: inline-flex; align-items: center; gap: 4px; }
+        @media (hover: hover) and (prefers-reduced-motion: no-preference) { .rp-load i { animation: rpGiro 1s linear infinite; } }
+        @keyframes rpGiro { to { transform: rotate(360deg); } }
         .rp-err { color: #F87171; flex-basis: 100%; text-align: center; font-size: 11px; }
         .ch-conn[data-estado="replay"] { color: rgb(var(--ch-accent)); border-color: rgba(var(--ch-accent),.4); }
         .ch-conn[data-estado="replay"] i, .ch-conn[data-estado="backtest"] i { background: rgb(var(--ch-accent)); }
@@ -370,7 +373,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=d272d12c"></script>
+    <script src="assets/js/nlt-api-client.js?v=bd57d479"></script>
     <script src="assets/js/charts/diag.js?v=a548c4e2"></script>
     <script src="assets/js/charts/fluidez.js?v=350adc15"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
@@ -389,7 +392,7 @@
     <script src="assets/js/charts/indicators.js?v=de9918a5"></script>
     <script src="assets/js/charts/pro.js?v=bb1aef9c"></script>
     <script src="assets/js/charts/nlt-ai.js?v=7770be0d"></script>
-    <script src="assets/js/charts/replay.js?v=b5298373"></script>
+    <script src="assets/js/charts/replay.js?v=85f63c39"></script>
     <script src="assets/js/charts/backtest.js?v=38be954c"></script>
     <script src="assets/js/charts/app.js?v=ecf5de81"></script>
 </body>

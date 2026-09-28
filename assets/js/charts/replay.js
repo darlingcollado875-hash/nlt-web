@@ -32,6 +32,39 @@
         // (p. ej. un cambio de timeframe lento) volvía a meter al usuario en el replay al llegar la
         // respuesta, y un NEXT o un RESET en vuelo podía empujar velas de otra sesión al gráfico.
         let op = 0;
+        // Métricas de carga (desde "Ir a esa vela"): TTFV = primera vela en pantalla, TTIR = indicadores
+        // recalculados sobre el dataset del replay, TTZR = dibujo del NLT Zone Engine en el cursor.
+        st.met = null;
+        const precalentados = new Map();
+        function precalentar() {
+            const k = `${app.simbolo()}|${app.timeframe()}`;
+            if (Date.now() - (precalentados.get(k) || 0) < 300000) return;
+            precalentados.set(k, Date.now());
+            NLT_API.chartsReplayPrecalentar && NLT_API.chartsReplayPrecalentar(app.simbolo(), app.timeframe()).catch(() => {});
+        }
+        function indicadoresListos() {
+            const F = NLTCharts.fluidez, dl = chart.getDataList();
+            if (!F || !dl.length) return false;
+            return chart.getIndicators().every((ind) => {
+                if (ind.name === 'NLT_UNIFIED') { const s0 = NLTCharts.unified.salidaActual(ind.id); return !!s0 && F.firmaValida(s0.firma, dl); }
+                return !ind.result || F.firmaValida(F.firmaDeResultado(ind.result), dl);
+            });
+        }
+        function vigilar(mio) {
+            const m = st.met, t0 = m.inicio;
+            const tick = () => {
+                if (mio !== op || !st.activo) return;
+                const ahora = performance.now();
+                if (m.ttir == null && indicadoresListos()) m.ttir = Math.round(ahora - t0);
+                const conZE = app.pro.visible && app.pro.visible();
+                if (m.ttzr == null && (!conZE || app.pro.dibujoActual())) m.ttzr = conZE ? Math.round(ahora - t0) : 'sin Zone Engine';
+                const prep = conZE && m.ttzr == null;
+                if (prep !== st.preparandoZE) { st.preparandoZE = prep; pintar(); }
+                if ((m.ttir == null || m.ttzr == null) && ahora - t0 < 180000) setTimeout(tick, 100);
+                else if (window.NLT_DEBUG || /[?&]diag=1/.test(location.search)) console.info('[replay] métricas', JSON.stringify(m));
+            };
+            tick();
+        }
 
         function limpiarCaches() {
             NLTCharts.unified && NLTCharts.unified.limpiarCache && NLTCharts.unified.limpiarCache();
@@ -47,6 +80,7 @@
             detener();
             if (NLTCharts.backtestLab) NLTCharts.backtestLab.salirGrafico();
             const mio = ++op;
+            const t0 = performance.now();
             st.cargando = true; st.error = ''; pintar();
             let r;
             try {
@@ -55,7 +89,11 @@
             if (mio !== op) { NLT_API.chartsReplayCerrar(r.id).catch(() => {}); return; }   // ya no la quiere nadie
             if (st.ses && st.ses.id !== r.id) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             st.ses = r; st.cargando = false;
+            st.met = { inicio: t0, servidor_ms: r.timings_ms || null, respuesta: Math.round(performance.now() - t0), ttfv: null, ttir: null, ttzr: null };
+            st.preparandoZE = true;
             activar(r.candles.map(aK));
+            requestAnimationFrame(() => { if (mio === op && st.met) st.met.ttfv = Math.round(performance.now() - t0); });
+            vigilar(mio);
         }
         function activar(klines) {
             const r = st.ses;
@@ -122,7 +160,7 @@
         }
         function salir() {
             detener();
-            ++op; st.cargando = false; st.pidiendo = false;
+            ++op; st.cargando = false; st.pidiendo = false; st.preparandoZE = false;
             if (st.ses) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             const estaba = st.activo;
             st.activo = false; st.ses = null; st.error = ''; st.eligiendo = false;
@@ -162,7 +200,8 @@
                     <button type="button" class="rp-b" data-a="next" title="NEXT BAR: una vela" ${st.pidiendo && !corriendo ? 'disabled' : ''}><i class="ph ph-skip-forward"></i><span>Next bar</span></button>
                     <select data-k="vel" aria-label="Velocidad">${VELOCIDADES.map((v) => `<option value="${v}"${v === st.vel ? ' selected' : ''}>${v}x</option>`).join('')}</select>
                     <span class="rp-cur" title="Última vela visible (cerrada)">${esc(s.symbol)} ${esc(s.timeframe)} · ${esc(fmt(s.cursor_ts))}</span>
-                    ${st.cargando ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Cargando replay…</span>' : ''}
+                    ${st.cargando ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Cargando replay…</span>'
+                        : st.preparandoZE ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Preparando NLT Zone Engine…</span>' : ''}
                     <button type="button" class="rp-b" data-a="elegir" title="Elegir otra vela en el gráfico"><i class="ph ph-crosshair"></i></button>
                     <button type="button" class="rp-b rp-x" data-a="salir" title="Salir del replay (volver al vivo)"><i class="ph ph-x"></i><span>Salir</span></button>`
                 : `
@@ -199,11 +238,11 @@
             if (!st.activo || ev.key !== 'ArrowRight' || ev.shiftKey || /input|select|textarea/i.test(ev.target.tagName)) return;
             ev.preventDefault(); detener(); siguiente(1);
         });
-        boton.addEventListener('click', () => { if (st.activo) return; st.abierto = !st.abierto; pintar(); });
+        boton.addEventListener('click', () => { if (st.activo) return; st.abierto = !st.abierto; if (st.abierto) precalentar(); pintar(); });
 
         const api = {
             activo: () => st.activo, cambiar, salir,
-            estado: () => ({ activo: st.activo, cargando: st.cargando, op, sesion: st.ses && { id: st.ses.id, cursor_ts: st.ses.cursor_ts, symbol: st.ses.symbol, timeframe: st.ses.timeframe, has_more: st.ses.has_more } }),
+            estado: () => ({ activo: st.activo, cargando: st.cargando, op, metricas: st.met && { ...st.met, inicio: undefined }, sesion: st.ses && { id: st.ses.id, cursor_ts: st.ses.cursor_ts, symbol: st.ses.symbol, timeframe: st.ses.timeframe, has_more: st.ses.has_more } }),
             iniciar, siguiente, play, detener, reiniciar,
         };
         window.NLTCharts.replayApi = api;
