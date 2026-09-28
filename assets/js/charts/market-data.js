@@ -20,6 +20,11 @@
 
     const aKline = (c) => ({ timestamp: c.t, open: c.o, high: c.h, low: c.l, close: c.c, volume: c.v });
 
+    // Generación del dataset en pantalla: sube con cada cambio de contexto (vivo <-> replay <-> backtest,
+    // símbolo, timeframe, reset). Un resultado (indicador, Zone Engine) calculado en otra generación NUNCA
+    // se dibuja: sus objetos serían de otro dataset (desplazados) o del presente dentro de un replay.
+    let generacion = 0;
+    const nuevaGeneracion = () => ++generacion;
     // NLT Bar Replay: mientras está activo, las velas (de cualquier timeframe) salen de la sesión de
     // replay, que nunca entrega nada posterior al cursor. Sin esto, Key Levels / Unified Suite verían el presente.
     let fuenteHistorica = null;
@@ -155,7 +160,9 @@
         fijarCategoria(c, fines = true) { categoria = c || ''; operaFines = fines !== false; },
         // ¿el instrumento en pantalla está cerrado en `fecha` (fin de semana o pausa de metales)?
         cerradoAhora: (fecha = new Date()) => !operaFines && mercadoCerrado(fecha, categoria),
-        fijarFuenteHistorica(fn) { fuenteHistorica = fn || null; },
+        fijarFuenteHistorica(fn) { fuenteHistorica = fn || null; nuevaGeneracion(); },
+        generacion: () => generacion,
+        nuevaGeneracion,
         enReplay: () => !!fuenteHistorica,
     };
 })();

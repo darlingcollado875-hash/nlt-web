@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Tests · anclaje de objetos y races de NLT Bar Replay</title>
+<style>
+  body { font: 13px/1.5 system-ui, sans-serif; background: #0B0E14; color: #E5E7EB; margin: 0; padding: 16px; }
+  .ok { color: #22C55E; } .mal { color: #F87171; } pre { white-space: pre-wrap; }
+  #lienzo { width: 900px; height: 420px; }
+</style>
+</head>
+<body>
+<h1>NLT Charts — objetos anclados y races LIVE ↔ Replay</h1>
+<p>Página de tests (no se publica: <code>tests/</code> está en <code>.assetsignore</code>). Resultado en <code>window.__resultado</code>.
+El lado del servidor (Zone Engine anclado por timestamp y precio, vela por vela) está en <code>NLT_API/tests/test_charts_replay_anclaje.py</code>.</p>
+<pre id="resultado">corriendo…</pre>
+<div id="lienzo"></div>
+<div id="rp" hidden></div><button id="rpBtn" type="button" hidden></button>
+<script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js"></script>
+<script>
+  // market-data mínimo: la generación del dataset es la de verdad (misma lógica que market-data.js)
+  window.NLTCharts = window.NLTCharts || {};
+  let gen = 0;
+  NLTCharts.market = { generacion: () => gen, nuevaGeneracion: () => ++gen, estado: () => 'conectado',
+    fijarFuenteHistorica() { ++gen; }, fijarEstado() {} };
+  NLTCharts.ui = { esc: (t) => String(t) };
+</script>
+<script src="../assets/js/charts/fluidez.js"></script>
+<script src="../assets/js/charts/replay.js"></script>
+<script>
+(async function () {
+  const F = NLTCharts.fluidez;
+  const res = [];
+  const test = async (nombre, fn) => { try { await fn(); res.push({ nombre, ok: true }); } catch (e) { res.push({ nombre, ok: false, error: String(e && e.message || e) }); } };
+  const eq = (a, b, m) => { if (a !== b) throw new Error(`${m || ''} esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); };
+  const ok = (c, m) => { if (!c) throw new Error(m || 'falló'); };
+  const esperar = (ms) => new Promise((r) => setTimeout(r, ms));
+  const M15 = 900000, T0 = Date.parse('2026-09-25T00:00:00Z');
+  const serie = (n, desde = T0, base = 1.1) => Array.from({ length: n }, (_, i) => {
+    const o = +(base + Math.sin(i / 7) * 0.004 + i * 1e-5).toFixed(5), c = +(o + Math.cos(i / 3) * 0.0012).toFixed(5);
+    return { timestamp: desde + i * M15, open: o, close: c, high: +(Math.max(o, c) + 0.0006).toFixed(5), low: +(Math.min(o, c) - 0.0006).toFixed(5), volume: 1 };
+  });
+
+  // ── 1-3: firma del dataset ──
+  await test('1. firma: vale para el mismo dataset, con velas agregadas a la derecha o la última actualizada', () => {
+    const a = serie(100), f = F.firmaDe(a);
+    ok(F.firmaValida(f, a), 'mismo dataset');
+    ok(F.firmaValida(f, a.concat(serie(3, a[99].timestamp + M15))), 'velas nuevas a la derecha');
+    const b = a.slice(); b[99] = { ...b[99], close: b[99].close + 0.001 };
+    ok(F.firmaValida(f, b), 'última vela actualizada (misma vela)');
+  });
+  await test('2. firma: NO vale si cambia el dataset (otra generación, historia agregada a la izquierda, reset, otro timeframe)', () => {
+    const a = serie(100), f = F.firmaDe(a);
+    NLTCharts.market.nuevaGeneracion();
+    ok(!F.firmaValida(f, a), 'otra generación (vivo <-> replay, símbolo, timeframe)');
+    const g = F.firmaDe(a);
+    ok(!F.firmaValida(g, serie(20, T0 - 20 * M15).concat(a)), 'historia agregada a la izquierda: los índices se corren');
+    ok(!F.firmaValida(g, a.slice(0, 60)), 'RESET del replay: menos velas');
+    ok(!F.firmaValida(g, serie(100, T0 + 7 * M15)), 'misma cantidad de velas, otro tramo (otra fecha de replay)');
+    ok(!F.firmaValida(g, a.map((v, i) => ({ ...v, timestamp: T0 + i * 4 * M15 }))), 'misma cantidad y primera vela, otro timeframe');
+    ok(!F.firmaValida(g, []), 'dataset vacío');
+  });
+  await test('3. firma: el resultado de un calc envuelto (sincrónico o asíncrono) queda firmado', async () => {
+    const a = serie(30);
+    const s = F.envolverCalc((dl) => dl.map(() => ({})));
+    const r1 = s(a, {});
+    eq(F.firmaDeResultado(r1).n, 30); eq(F.firmaDeResultado(r1).ultima, a[29].timestamp);
+    const as = F.envolverCalc(async (dl) => { await esperar(5); return dl.map(() => ({})); });
+    const r2 = await as(a, {});
+    eq(F.firmaDeResultado(r2).gen, NLTCharts.market.generacion(), 'firma tomada al EMPEZAR el cálculo');
+  });
+
+  // ── 4-6: guardián de dibujo con KLineChart real y cálculo asíncrono ──
+  // Indicador que ancla cajas por ÍNDICE de vela (como la Unified Suite / Pine): FVG alcista en A..C.
+  const dibujos = [];
+  let demora = 0;
+  klinecharts.registerIndicator({
+    name: 'T_FVG', figures: [], calcParams: [],
+    calc: async (dl) => {
+      if (demora) await esperar(demora);
+      return dl.map((c, i) => (i >= 2 && c.low > dl[i - 2].high ? { a: i - 2, top: c.low, bot: dl[i - 2].high } : {}));
+    },
+    draw: ({ indicator, chart }) => {
+      const dl = chart.getDataList();
+      (indicator.result || []).forEach((r) => { if (r.a != null) dibujos.push({ a: r.a, top: r.top, bot: r.bot, velaA: dl[r.a], velaC: dl[r.a + 2] }); });
+      return false;
+    },
+  });
+  const chart = klinecharts.init('lienzo');
+  window.__chart = chart;
+  const fvgSerie = (n, desde) => {   // una serie con FVG alcistas claros
+    const out = []; let p = 1.1;
+    for (let i = 0; i < n; i++) { const salto = i % 9 === 4 ? 0.004 : 0.0002; const o = p, c = p + salto; out.push({ timestamp: desde + i * M15, open: o, close: c, high: c + 0.0001, low: o - 0.0001, volume: 1 }); p = c; }
+    return out;
+  };
+  const indT = () => chart.getIndicators().find((i) => i.name === 'T_FVG');
+  const hastaQue = async (cond, ms = 4000) => { const t = performance.now(); while (!cond()) { if (performance.now() - t > ms) throw new Error('timeout esperando el cálculo'); await esperar(30); } };
+  const listo = () => { const r = indT() && indT().result; return r && r.some((x) => x.a != null) && F.firmaValida(F.firmaDeResultado(r), chart.getDataList()); };
+  const redibujar = async () => { dibujos.length = 0; chart.resize(); await esperar(80); if (!dibujos.length) { chart.scrollByDistance(1, 0); await esperar(80); chart.scrollByDistance(-1, 0); await esperar(80); } };
+  const anclados = () => dibujos.every((d) => d.velaA && d.velaC && d.top === d.velaC.low && d.bot === d.velaA.high);
+
+  await test('4. el FVG se dibuja sobre SUS velas (A..C) con el dataset con que se calculó', async () => {
+    chart.setDataLoader({ getBars: ({ callback }) => callback(fvgSerie(120, T0), false) });
+    chart.setSymbol({ ticker: 'T', pricePrecision: 5 }); chart.setPeriod({ type: 'minute', span: 15 });
+    chart.createIndicator('T_FVG', true, { id: 'candle_pane' });
+    await hastaQue(listo);
+    await redibujar();
+    ok(dibujos.length > 0, 'sin FVG dibujados'); ok(anclados(), 'FVG fuera de sus velas');
+  });
+  await test('5. dataset reemplazado mientras el calc asíncrono corre (entrar al replay / RESET / timeframe): el resultado viejo NO se dibuja sobre las velas nuevas', async () => {
+    demora = 400;
+    const viejo = indT().result;
+    NLTCharts.market.nuevaGeneracion();                    // lo que hacen engine.modoExterno / cargar
+    chart.setDataLoader({ getBars: ({ callback }) => callback(fvgSerie(90, T0 + 37 * M15), false) });   // otras velas, otros índices
+    chart.resetData();
+    dibujos.length = 0;
+    let conViejo = 0;
+    for (let i = 0; i < 6; i++) { if (indT().result === viejo) conViejo++; chart.resize(); chart.scrollByDistance(i % 2 ? 2 : -2, 0); await esperar(40); }   // redibujos mientras el calc nuevo no terminó
+    ok(conViejo > 0, 'el escenario no reprodujo el resultado viejo en pantalla (demora insuficiente)');
+    ok(anclados(), `se dibujaron ${dibujos.filter((d) => !(d.velaA && d.velaC && d.top === d.velaC.low && d.bot === d.velaA.high)).length} FVG corridos`);
+    demora = 0;
+    await hastaQue(listo);
+    await redibujar();
+    ok(dibujos.length > 0 && anclados(), `tras recalcular vuelve a dibujar, anclado (${dibujos.length} dibujados)`);
+  });
+  await test('6. zoom, pan y resize no mueven los objetos (siguen sobre sus velas)', async () => {
+    for (const accion of [() => chart.zoomAtCoordinate(1.7, { x: 400, y: 200 }, 0), () => chart.zoomAtCoordinate(0.5, { x: 300, y: 200 }, 0),
+      () => chart.scrollByDistance(250, 0), () => chart.scrollByDistance(-400, 0), () => { document.getElementById('lienzo').style.width = '640px'; chart.resize(); },
+      () => { document.getElementById('lienzo').style.width = '900px'; chart.resize(); }]) {
+      accion(); await esperar(60); await redibujar();
+      ok(dibujos.length > 0 && anclados(), 'objeto corrido tras ' + accion.toString().slice(6, 60));
+    }
+  });
+
+  // ── 7-10: races de NLT Bar Replay (replay.js real con una API simulada controlable) ──
+  const pendientes = [];
+  const diferido = (tipo, args) => { let ok_, mal; const p = new Promise((a, b) => { ok_ = a; mal = b; }); pendientes.push({ tipo, args, ok: ok_, mal }); return p; };
+  const cerradas = [];
+  window.NLT_API = {
+    chartsReplayCrear: (s, tf, ini) => diferido('crear', [s, tf, ini]),
+    chartsReplayNext: (id, n) => diferido('next', [id, n]),
+    chartsReplayReset: (id) => diferido('reset', [id]),
+    chartsReplayCerrar: (id) => { cerradas.push(id); return Promise.resolve({}); },
+    chartsReplayVelas: () => Promise.resolve({ candles: [] }), chartsReplayZE: () => Promise.resolve({}),
+  };
+  const toma = (tipo) => { const i = pendientes.findIndex((p) => p.tipo === tipo); ok(i >= 0, 'no hay pedido ' + tipo); return pendientes.splice(i, 1)[0]; };
+  const k = (ts) => [ts, 1.1, 1.101, 1.099, 1.1005, 1];
+  const ses = (id, tf, n = 5) => ({ id, symbol: 'EURUSD', timeframe: tf, cursor_ts: T0 + (n - 1) * M15, has_more: true, price_precision: 5,
+    candles: Array.from({ length: n }, (_, i) => k(T0 + i * (tf === '1H' ? 4 : 1) * M15)) });
+  const g = { externo: null, empujadas: [], estado: 'conectado', fuenteZE: null, tf: '15m' };
+  NLTCharts.app = {
+    motor: { chart: { getDom: () => document.getElementById('lienzo'), resetData() {}, getDataList: () => [] },
+      modoExterno(d) { g.externo = d ? d.velas.map((v) => v.timestamp) : null; }, empujar(v) { g.empujadas.push(v.timestamp); } },
+    simbolo: () => 'EURUSD', timeframe: () => g.tf, irA(s, tf) { g.tf = tf; },
+    pro: { fijarFuente(fn) { g.fuenteZE = fn; }, velaNueva() {} },
+  };
+  NLTCharts.market.fijarEstado = (e) => { g.estado = e; };
+  const R = NLTCharts.replay.montar({ el: document.getElementById('rp'), boton: document.getElementById('rpBtn') });
+  const tick = () => esperar(0);
+
+  await test('7. salir mientras se crea la sesión: la respuesta tardía NO vuelve a meter al usuario en el replay (y la sesión huérfana se cierra)', async () => {
+    R.iniciar('EURUSD', '15m', T0); await tick();
+    const p = toma('crear');
+    R.salir();
+    p.ok(ses('huerfana', '15m')); await tick(); await tick();
+    ok(!R.activo(), 'quedó activo'); eq(g.externo, null, 'modo externo'); ok(g.estado !== 'replay', 'badge en replay');
+    ok(cerradas.includes('huerfana'), 'la sesión creada tarde no se cerró en el servidor');
+  });
+  await test('8. NEXT BAR en vuelo + cambio de timeframe: la vela vieja (15m) NO entra al dataset nuevo (1H)', async () => {
+    R.iniciar('EURUSD', '15m', T0); await tick(); toma('crear').ok(ses('s15', '15m')); await tick(); await tick();
+    ok(R.activo(), 'no entró');
+    const pn = R.siguiente(); await tick();
+    R.cambiar('EURUSD', '1H'); await tick();
+    toma('crear').ok(ses('s1h', '1H')); await tick(); await tick();
+    g.empujadas.length = 0;
+    toma('next').ok({ candles: [k(T0 + 5 * M15)], cursor_ts: T0 + 5 * M15, has_more: true }); eq(await pn, false, 'el NEXT viejo no se descartó');
+    eq(g.empujadas.length, 0, 'se empujó una vela de la sesión vieja'); eq(R.estado().sesion.id, 's1h'); eq(g.tf, '1H');
+  });
+  await test('9. RESET en vuelo + salir: el gráfico NO vuelve a las velas del replay', async () => {
+    R.reiniciar(); await tick();
+    const p = toma('reset');
+    R.salir();
+    p.ok(ses('s1h', '1H', 3)); await tick(); await tick();
+    ok(!R.activo()); eq(g.externo, null, 'volvió al modo externo con velas del replay');
+  });
+  await test('10. dos "Ir a esa vela" seguidos: gana el último (la respuesta anterior se descarta y se cierra)', async () => {
+    R.iniciar('EURUSD', '15m', T0); await tick(); const a = toma('crear');
+    R.iniciar('EURUSD', '15m', T0 + 10 * M15); await tick(); const b = toma('crear');
+    b.ok(ses('ultima', '15m')); await tick(); await tick();
+    a.ok(ses('vieja', '15m')); await tick(); await tick();
+    eq(R.estado().sesion.id, 'ultima'); ok(cerradas.includes('vieja'), 'la sesión vieja no se cerró');
+    R.salir();
+  });
+
+  const pasaron = res.filter((r) => r.ok).length;
+  window.__resultado = { pasaron, total: res.length, res };
+  document.getElementById('resultado').innerHTML = res.map((r) => `<span class="${r.ok ? 'ok' : 'mal'}">${r.ok ? '✔' : '✘'} ${r.nombre}${r.ok ? '' : ' — ' + r.error}</span>`).join('\n')
+    + `\n\n${pasaron}/${res.length}`;
+})();
+</script>
+</body>
+</html>

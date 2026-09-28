@@ -19,23 +19,56 @@
     const reducido = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
     const stats = { tweens: 0, frames: 0, directas: 0, nuevas: 0, scrollsSuaves: 0, viewportsPreservados: 0 };
 
+    // ── firma del dataset de cada resultado (anclaje) ──
+    // Los indicadores del navegador anclan sus objetos por índice de vela (como Pine). Un resultado solo
+    // vale para el dataset con el que se calculó: misma generación, misma primera vela, y las velas
+    // 0..n-1 intactas (solo se agregan velas o se actualiza la última). Si el cálculo es asíncrono
+    // (Unified Suite, Key Levels piden velas HTF), KLineChart seguiría dibujando el resultado VIEJO sobre
+    // el dataset NUEVO -> objetos desplazados (bug de NLT Bar Replay, 28/09). Ahora ese dibujo se omite.
+    const firmas = new WeakMap();
+    const generacion = () => (window.NLTCharts && NLTCharts.market && NLTCharts.market.generacion ? NLTCharts.market.generacion() : 0);
+    function firmaDe(dl) {
+        const n = dl.length;
+        return { gen: generacion(), n, primera: n ? dl[0].timestamp : null, ultima: n ? dl[n - 1].timestamp : null };
+    }
+    function firmaValida(f, dl) {
+        if (!f) return true;                                   // sin firma (resultado sincrónico heredado): se dibuja
+        if (f.gen !== generacion() || !dl.length) return false;
+        if (dl[0].timestamp !== f.primera || dl.length < f.n) return false;
+        return f.n === 0 || dl[f.n - 1].timestamp === f.ultima;
+    }
+    const firmar = (x, f) => { if (x && typeof x === 'object') firmas.set(x, f); return x; };
+
     // ── (2) calc protegido: en frames intermedios, el último resultado REAL ──
     function envolverCalc(calc) {
         if (!calc || calc.__nltProtegido) return calc;
         const f = function (dataList, indicator) {
             const c = indicator && indicator.__nltReal;
-            if (interpolando && c && c.n === dataList.length) return c.r;
+            if (interpolando && c && c.n === dataList.length && firmaValida(firmas.get(c.r), dataList)) return c.r;
+            const firma = firmaDe(dataList);
             const r = calc.call(this, dataList, indicator);
-            const guardar = (x) => { if (indicator && !interpolando) indicator.__nltReal = { n: dataList.length, r: x }; return x; };
+            const guardar = (x) => { firmar(x, firma); if (indicator && !interpolando) indicator.__nltReal = { n: dataList.length, r: x }; return x; };
             return r && typeof r.then === 'function' ? r.then(guardar) : guardar(r);
         };
         f.__nltProtegido = true;
         return f;
     }
+    function envolverDraw(draw) {
+        if (!draw || draw.__nltProtegido) return draw;
+        const f = function (p) {
+            const res = p && p.indicator && p.indicator.result;
+            if (res && !firmaValida(firmas.get(res), p.chart.getDataList())) { omitidos.n++; return false; }   // de otro dataset
+            return draw.call(this, p);
+        };
+        f.__nltProtegido = true;
+        return f;
+    }
+    const omitidos = { n: 0 };
     // indicadores propios: al registrarse
     const registrar = klinecharts.registerIndicator;
     klinecharts.registerIndicator = function (tpl) {
         if (tpl && typeof tpl.calc === 'function') tpl = { ...tpl, calc: envolverCalc(tpl.calc) };
+        if (tpl && typeof tpl.draw === 'function') tpl = { ...tpl, draw: envolverDraw(tpl.draw) };
         return registrar.call(this, tpl);
     };
     // incorporados (EMA, RSI, MACD, BOLL...): se envuelve la instancia ya creada
@@ -141,5 +174,6 @@
     }
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.fluidez = { crear, envolverCalc, protegerInstancias, interpolando: () => interpolando, TWEEN_MS };
+    window.NLTCharts.fluidez = { crear, envolverCalc, envolverDraw, firmaDe, firmaValida, firmaDeResultado: (r) => firmas.get(r),
+        dibujosOmitidos: () => omitidos.n, protegerInstancias, interpolando: () => interpolando, TWEEN_MS };
 })();

@@ -327,6 +327,7 @@
         let timer = null, timerCorto = null, seq = 0;
         const oyentes = [];           // otros indicadores que usan los eventos del motor (NLT AI)
         let fuenteZE = null;          // NLT Bar Replay: el motor calculado en el cursor (servidor)
+        let zeDescartados = 0;        // respuestas de otro contexto que no se dibujaron (diagnóstico / tests)
         let nltAi = null;
 
         const zeAcceso = () => {
@@ -494,10 +495,19 @@
                 }
             }
             const n = ++seq;
+            const gen = NLTCharts.market.generacion ? NLTCharts.market.generacion() : 0;
             try {
                 const r = fuenteZE ? await fuenteZE(entradasCalculo(valores()))
                     : await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), entradasCalculo(valores()));
                 if (n !== seq) return;
+                // Contexto: misma generación del dataset (vivo/replay/símbolo/timeframe) y calculado sobre una
+                // vela que el gráfico ya tiene (nunca después de la última visible). Si el gráfico avanzó, el
+                // dibujo es histórico y válido (anclado por timestamp) y se pide otro para la vela nueva.
+                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { zeDescartados++; return; }
+                const dl = chart.getDataList(), ultTs = dl.length ? dl[dl.length - 1].timestamp : null;
+                const calcTs = r.cursor_ts != null ? r.cursor_ts : r.last_candle;
+                if (calcTs != null && ultTs != null && calcTs > ultTs) { zeDescartados++; programar(200); return; }
+                if (calcTs != null && ultTs != null && calcTs < ultTs) programar(300);
                 dibujo = r.drawing;
                 actualizarVisuales();
                 if (rect && dibujo) dibujos.marcarZona(rect.id, undefined, dibujo.manual_zone || null);
@@ -677,7 +687,9 @@
             visible: () => ver,
             alternar(si) { ver = !!si; guardarPref(ver); refrescar(); onCambio && onCambio(); },
             catalogoCargado: () => catalogo,
-            vistaActual: () => vista,   // diagnóstico: lo que se está dibujando (ya filtrado y con estilos)
+            vistaActual: () => vista,
+            dibujoActual: () => dibujo,
+            descartados: () => zeDescartados,   // diagnóstico: lo que se está dibujando (ya filtrado y con estilos)
             // ojo de la leyenda: oculta todo lo del indicador (dibujos y tablas) sin quitarlo
             alternarVisible() {
                 oculto = !oculto;
@@ -690,13 +702,13 @@
             zonaMovida(id) { if (!rectId || id === rectId) programar(400); },
             velaNueva() { if (ver && dibujado) programar(300); },
             // NLT Bar Replay: fn(entradas) -> {drawing} en el cursor; null vuelve al vivo
-            fijarFuente(fn) { fuenteZE = fn || null; dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); if (ver) programar(100); },
+            fijarFuente(fn) { fuenteZE = fn || null; seq++; dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); if (ver) programar(100); },
             // Los dibujos del símbolo ya están en pantalla: buscar el rectángulo conectado.
             dibujosRestaurados() { if (ver) programar(150); },
             // Al cambiar de símbolo: cada símbolo tiene su zona y sus rectángulos.
-            cambioDeSimbolo() { rectId = null; rectVisto = false; dibujo = null; vista = null; pintarTablas(); programar(600); },
+            cambioDeSimbolo() { seq++; rectId = null; rectVisto = false; dibujo = null; vista = null; pintarTablas(); programar(600); },
             // Otra temporalidad: las zonas de la anterior no valen; un solo cálculo cuando llegan las velas nuevas.
-            cambioDeTimeframe() { dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); programar(600); },
+            cambioDeTimeframe() { seq++; dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); programar(600); },
         };
     }
 

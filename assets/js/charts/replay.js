@@ -27,6 +27,11 @@
         const ayer = Date.now() - 86400000;
         const st = { abierto: false, activo: false, ses: null, timer: null, vel: 1, cargando: false, pidiendo: false, error: '',
             fecha: fechaLocal(ayer), hora: '10:00', eligiendo: false, zeVisible: null };
+        // Token de operación (race LIVE <-> replay): iniciar / reset / salir lo incrementan y toda respuesta
+        // que llega con un token viejo se descarta. Sin esto, salir del replay mientras se creaba una sesión
+        // (p. ej. un cambio de timeframe lento) volvía a meter al usuario en el replay al llegar la
+        // respuesta, y un NEXT o un RESET en vuelo podía empujar velas de otra sesión al gráfico.
+        let op = 0;
 
         function limpiarCaches() {
             NLTCharts.unified && NLTCharts.unified.limpiarCache && NLTCharts.unified.limpiarCache();
@@ -41,11 +46,13 @@
         async function iniciar(symbol, tf, inicioMs) {
             detener();
             if (NLTCharts.backtestLab) NLTCharts.backtestLab.salirGrafico();
+            const mio = ++op;
             st.cargando = true; st.error = ''; pintar();
             let r;
             try {
                 r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs);
-            } catch (err) { st.error = err.message; st.cargando = false; pintar(); return; }
+            } catch (err) { if (mio === op) { st.error = err.message; st.cargando = false; pintar(); } return; }
+            if (mio !== op) { NLT_API.chartsReplayCerrar(r.id).catch(() => {}); return; }   // ya no la quiere nadie
             if (st.ses && st.ses.id !== r.id) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             st.ses = r; st.cargando = false;
             activar(r.candles.map(aK));
@@ -66,16 +73,18 @@
         async function siguiente(n = 1) {
             if (!st.activo || st.pidiendo) return false;
             st.pidiendo = true;
+            const mio = op;
             let mas = false;
             try {
                 const r = await NLT_API.chartsReplayNext(st.ses.id, n);
+                if (mio !== op) { st.pidiendo = false; return false; }   // otra sesión / reset / salida en el medio
                 st.ses = { ...st.ses, ...r, candles: undefined };
                 limpiarCaches();
                 r.candles.forEach((c) => motor.empujar(aK(c)));
                 if (r.candles.length) app.pro.velaNueva();
                 mas = r.has_more;
                 if (!mas) { detener(); st.error = 'Fin de los datos cargados para este replay.'; }
-            } catch (err) { st.error = err.message; detener(); }
+            } catch (err) { if (mio !== op) { st.pidiendo = false; return false; } st.error = err.message; detener(); }
             st.pidiendo = false;
             pintar();
             return mas;
@@ -91,13 +100,16 @@
         function detener() { clearTimeout(st.timer); st.timer = null; }
         async function reiniciar() {
             detener();
+            if (!st.ses) return;
+            const mio = ++op;
             try {
                 const r = await NLT_API.chartsReplayReset(st.ses.id);
+                if (mio !== op) return;
                 st.ses = { ...st.ses, ...r, candles: undefined }; st.error = '';
                 limpiarCaches();
                 motor.modoExterno({ velas: r.candles.map(aK) });
                 app.pro.velaNueva();
-            } catch (err) { st.error = err.message; }
+            } catch (err) { if (mio !== op) return; st.error = err.message; }
             pintar();
         }
         // Otro símbolo o timeframe durante el replay: nueva sesión en el MISMO momento. La última vela
@@ -110,6 +122,7 @@
         }
         function salir() {
             detener();
+            ++op; st.cargando = false; st.pidiendo = false;
             if (st.ses) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             const estaba = st.activo;
             st.activo = false; st.ses = null; st.error = ''; st.eligiendo = false;
@@ -149,6 +162,7 @@
                     <button type="button" class="rp-b" data-a="next" title="NEXT BAR: una vela" ${st.pidiendo && !corriendo ? 'disabled' : ''}><i class="ph ph-skip-forward"></i><span>Next bar</span></button>
                     <select data-k="vel" aria-label="Velocidad">${VELOCIDADES.map((v) => `<option value="${v}"${v === st.vel ? ' selected' : ''}>${v}x</option>`).join('')}</select>
                     <span class="rp-cur" title="Última vela visible (cerrada)">${esc(s.symbol)} ${esc(s.timeframe)} · ${esc(fmt(s.cursor_ts))}</span>
+                    ${st.cargando ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Cargando replay…</span>' : ''}
                     <button type="button" class="rp-b" data-a="elegir" title="Elegir otra vela en el gráfico"><i class="ph ph-crosshair"></i></button>
                     <button type="button" class="rp-b rp-x" data-a="salir" title="Salir del replay (volver al vivo)"><i class="ph ph-x"></i><span>Salir</span></button>`
                 : `
@@ -189,7 +203,7 @@
 
         const api = {
             activo: () => st.activo, cambiar, salir,
-            estado: () => ({ activo: st.activo, sesion: st.ses && { id: st.ses.id, cursor_ts: st.ses.cursor_ts, symbol: st.ses.symbol, timeframe: st.ses.timeframe, has_more: st.ses.has_more } }),
+            estado: () => ({ activo: st.activo, cargando: st.cargando, op, sesion: st.ses && { id: st.ses.id, cursor_ts: st.ses.cursor_ts, symbol: st.ses.symbol, timeframe: st.ses.timeframe, has_more: st.ses.has_more } }),
             iniciar, siguiente, play, detener, reiniciar,
         };
         window.NLTCharts.replayApi = api;

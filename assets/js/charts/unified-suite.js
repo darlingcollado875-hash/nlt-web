@@ -771,6 +771,7 @@
 
     // ─────────────────────────────── registro en el motor ───────────────────────────────
     const salidas = new Map();
+    let omitidasSuite = 0;   // dibujos omitidos por ser de otro dataset (diagnóstico / tests)
     let registrado = false;
     function registrar() {
         if (registrado) return;
@@ -782,8 +783,11 @@
             figures: [],
             calcParams: [0],
             calc: async (dataList, indicator) => {
+                // firma del dataset AL EMPEZAR: el cálculo es asíncrono (velas HTF) y mientras tanto el
+                // gráfico puede cambiar de dataset (replay, reset, timeframe, historia cargada a la izquierda)
+                const firma = NLTCharts.fluidez ? NLTCharts.fluidez.firmaDe(dataList) : null;
                 const salida = await calcularIncremental(indicator.id || ID, dataList, NLTCharts.settings.valores(ID));
-                salidas.set(indicator.id || ID, { salida, velas: dataList });
+                salidas.set(indicator.id || ID, { salida, velas: dataList, firma });
                 // No hace falta pedir redibujado: al terminar un calc async el motor ya
                 // llama a layout({ update: true }). (Forzarlo con overrideIndicator
                 // causaba un bucle de recálculos: medido con diag.js.)
@@ -793,6 +797,14 @@
             draw: ({ ctx, chart, indicator, bounding, xAxis, yAxis }) => {
                 const s0 = salidas.get(indicator.id || ID);
                 if (!s0) return false;
+                // Los objetos de la Suite están anclados por índice de vela del dataset con que se calcularon.
+                // Si el gráfico muestra OTRO dataset (bug de NLT Bar Replay, 28/09: se dibujaba la salida vieja
+                // sobre las velas nuevas -> FVG/OB/etiquetas corridos), no se dibuja nada hasta recalcular.
+                if (s0.firma && NLTCharts.fluidez && !NLTCharts.fluidez.firmaValida(s0.firma, chart.getDataList())) {
+                    omitidasSuite++;
+                    limpiar();
+                    return false;
+                }
                 const vUsuario = NLTCharts.settings.valores(ID);
                 paleta.v = vUsuario;
                 const nueva = salidaVisual(indicator.id || ID, s0.velas, vUsuario);
@@ -831,6 +843,8 @@
         ID, INPUTS, registrar, limpiar, calcular, calcularIncremental, stats,
         // NLT Bar Replay: las velas HTF guardadas del vivo (o de la vela anterior del replay) no sirven
         limpiarCache() { genHTF += 1; cacheHTF.clear(); htfEnVuelo.clear(); },
+        salidaActual: (id = ID) => salidas.get(id),
+        omitidas: () => omitidasSuite,
         setContexto({ symbol, pricePrecision }) {
             if (symbol !== simbolo) cacheHTF.clear();
             simbolo = symbol;

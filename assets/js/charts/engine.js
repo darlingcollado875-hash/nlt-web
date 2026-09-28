@@ -217,20 +217,27 @@
                 operaFinDeSemana = symbolInfo.trades_weekends !== false;
                 market.fijarCategoria(symbolInfo.category, symbolInfo.trades_weekends);
                 clearTimeout(reintento); espera = 5000;
-                if (cambiaSimbolo || cambiaPeriodo) { market.fijarEstado('conectando'); historiaOk = false; }
+                if (cambiaSimbolo || cambiaPeriodo) { market.fijarEstado('conectando'); historiaOk = false; market.nuevaGeneracion(); }
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
                 if (cambiaPeriodo) chart.setPeriod(market.PERIODOS[tf]);
             },
             // Backtest Lab: datos = { velas: KLineData[] } muestra esas velas (sin mercado en vivo); null vuelve al vivo.
             modoExterno(datos, recargar = true) {
                 if (fluidez) fluidez.cancelar();
-                externo = datos;
+                market.nuevaGeneracion();
+                externo = datos ? { velas: datos.velas.slice() } : null;
                 empujarExterno = null;
                 historiaOk = !!datos;
                 if (recargar) chart.resetData();
             },
             enModoExterno: () => !!externo,
-            empujar(vela) { if (externo && empujarExterno) aplicarVela(empujarExterno, vela); },
+            empujar(vela) {
+                if (!externo || !empujarExterno) return;
+                // el dataset externo refleja lo mostrado: un reset posterior no vuelve a un estado viejo
+                const vs = externo.velas, u = vs[vs.length - 1];
+                if (u && u.timestamp === vela.timestamp) vs[vs.length - 1] = vela; else if (!u || vela.timestamp > u.timestamp) vs.push(vela);
+                aplicarVela(empujarExterno, vela);
+            },
             fluidez: () => fluidez,
             destruir() {
                 ro.disconnect();
