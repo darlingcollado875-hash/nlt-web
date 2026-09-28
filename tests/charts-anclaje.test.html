@@ -193,6 +193,71 @@ El lado del servidor (Zone Engine anclado por timestamp y precio, vela por vela)
     R.salir();
   });
 
+  // ── 12-14: histórico profundo -- carga hacia la izquierda (prepend) en un gráfico real de KLineChart ──
+  const lienzo2 = document.createElement('div');
+  lienzo2.style.cssText = 'width:900px;height:420px';
+  document.body.appendChild(lienzo2);
+  const ch2 = klinecharts.init(lienzo2);
+  window.__chart2 = ch2;
+  const T1 = T0 + 400 * M15;
+  const reciente = fvgSerie(300, T1);                        // lo que carga al abrir
+  const vieja = fvgSerie(600, T1 - 600 * M15).map((v, i) => ({ ...v, open: v.open - 0.01, close: v.close - 0.01, high: v.high - 0.01, low: v.low - 0.01 }));
+  let forwards = 0, alForward = null;
+  ch2.setDataLoader({
+    getBars: ({ type, callback }) => {
+      if (type === 'init') return callback(reciente, { forward: true, backward: false });
+      if (type === 'forward') { forwards += 1; setTimeout(() => { callback(forwards === 1 ? vieja : [], { forward: false, backward: false }); if (alForward) alForward(); }, 120); return; }
+      callback([], { backward: false });
+    },
+  });
+  ch2.setSymbol({ ticker: 'H', pricePrecision: 5 }); ch2.setPeriod({ type: 'minute', span: 15 });
+  ch2.createIndicator('T_FVG', true, { id: 'candle_pane' });
+  const px = (ts) => { const p = ch2.convertToPixel({ timestamp: ts, value: 1.1 }, { paneId: 'candle_pane' }); return p && p.x; };
+  await esperar(500);
+  const ancla = reciente[40].timestamp;                       // una vela en pantalla antes del prepend
+  ch2.createOverlay({ name: 'segment', id: 'dib1', points: [{ timestamp: reciente[20].timestamp, value: reciente[20].high }, { timestamp: reciente[60].timestamp, value: reciente[60].low }] });
+  await esperar(200);
+  const antesX = px(ancla), antesDib = ch2.getOverlays({ id: 'dib1' })[0].points.map((p) => p.timestamp);
+  const primeraVisibleAntes = ch2.getDataList()[Math.max(0, ch2.getVisibleRange().from)].timestamp;
+
+  await test('12. prepend histórico: las velas viejas entran a la izquierda sin duplicar y en orden', async () => {
+    const llego = new Promise((r) => { alForward = r; });
+    ch2.scrollToDataIndex(0, 0);                              // el usuario llega al borde izquierdo
+    await esperar(40);                                        // la carga está en vuelo: lo que el usuario ve ahora
+    const dl0 = ch2.getDataList(), vr0 = ch2.getVisibleRange();
+    window.__vista = { ts: dl0[Math.max(0, vr0.from) + 3].timestamp };
+    window.__vista.x = px(window.__vista.ts);
+    await llego; await esperar(300);
+    const dl = ch2.getDataList(), ts = dl.map((v) => v.timestamp);
+    ok(forwards >= 1, 'no pidió historia hacia la izquierda');
+    eq(dl.length, 900, 'cantidad de velas después del prepend');
+    ok(ts.every((t, i) => i === 0 || t > ts[i - 1]), 'desordenadas o duplicadas');
+    eq(ts[0], vieja[0].timestamp);
+  });
+  await test('13. viewport y dibujos: el prepend no corre la vista ni los dibujos (anclados a timestamp + precio)', async () => {
+    const xDespues = px(window.__vista.ts);
+    ok(Math.abs(xDespues - window.__vista.x) <= 1, `la vista saltó con el prepend: ${window.__vista.x} -> ${xDespues} px`);
+    ch2.scrollToTimestamp(primeraVisibleAntes, 0); await esperar(150);
+    const dib = ch2.getOverlays({ id: 'dib1' })[0];
+    eq(JSON.stringify(dib.points.map((p) => p.timestamp)), JSON.stringify(antesDib), 'el dibujo cambió de velas');
+    const xs = dib.points.map((p) => px(p.timestamp));
+    ok(xs.every((x) => x != null && isFinite(x)), 'el dibujo no se puede ubicar');
+    ok(antesX != null, 'sin ancla');
+    // la vela ancla sigue a la misma distancia (en velas) de la primera visible
+    const dl = ch2.getDataList();
+    const iAncla = dl.findIndex((v) => v.timestamp === ancla), iPrim = dl.findIndex((v) => v.timestamp === primeraVisibleAntes);
+    eq(iAncla - iPrim, reciente.findIndex((v) => v.timestamp === ancla) - reciente.findIndex((v) => v.timestamp === primeraVisibleAntes), 'la vela ancla se corrió');
+  });
+  await test('14. FVG anclados a sus velas después del prepend (los índices cambiaron: +600)', async () => {
+    const dibujos2 = [];
+    const ind = ch2.getIndicators().find((i) => i.name === 'T_FVG');
+    await hastaQue(() => { const r = ind.result; return r && r.length === ch2.getDataList().length && F.firmaValida(F.firmaDeResultado(r), ch2.getDataList()); });
+    const dl = ch2.getDataList();
+    ind.result.forEach((r) => { if (r.a != null) dibujos2.push({ velaA: dl[r.a], velaC: dl[r.a + 2], top: r.top, bot: r.bot }); });
+    ok(dibujos2.length > 0, 'sin FVG');
+    ok(dibujos2.every((d) => d.velaA && d.velaC && d.top === d.velaC.low && d.bot === d.velaA.high), 'FVG corrido después del prepend');
+  });
+
   // ── 11: NLT AI -- un análisis del VIVO que llega después de entrar al replay no se muestra ──
   await test('11. NLT AI: la respuesta del vivo que llega ya dentro del replay se descarta (queda en pausa)', async () => {
     let enReplay = false;

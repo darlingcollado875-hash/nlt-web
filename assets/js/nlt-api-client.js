@@ -965,6 +965,10 @@
         // diarias/4H y Zone Engine esperan la 2.ª fase de la sesión (el servidor espera hasta 120 s)
         chartsReplayVelas: (id, timeframe, limit = 500) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/candles?timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`, { timeoutMs: 130000 }),
         chartsReplayZE: (id, inputs = {}) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/zone-engine`, { method: 'POST', body: JSON.stringify({ inputs }), timeoutMs: 130000, intentos: 1 }),
+        // Histórico profundo (capa histórica compartida con Replay y Backtest): velas cerradas de un rango
+        chartsHistoria: (symbol, timeframe, desde, hasta, { signal } = {}) => request(`/charts/history/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&from=${Math.floor(desde)}&to=${Math.floor(hasta)}`, { timeoutMs: 180000, intentos: 1, ...(signal ? { signal } : {}) }),
+        chartsHistoriaDisponibilidad: (symbol, timeframe) => request(`/charts/history/availability?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`),
+        chartsHistoriaZE: (symbol, timeframe, last, inputs = {}) => request('/charts/history/zone-engine', { method: 'POST', body: JSON.stringify({ symbol, timeframe, last, inputs }), timeoutMs: 180000, intentos: 1 }),
         // Watchdog / diagnóstico de NLT Charts (solo admin: el servidor lo exige)
         chartsDiagnostico: (probar = false) => request(`/charts/diagnostics${probar ? '?probar=true' : ''}`, { intentos: 1, timeoutMs: 60000 }),
         chartsReplayPrecalentar: (symbol, timeframe) => request('/charts/replay/prewarm', { method: 'POST', body: JSON.stringify({ symbol, timeframe }), intentos: 1 }),

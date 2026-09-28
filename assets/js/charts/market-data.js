@@ -28,6 +28,8 @@
     // NLT Bar Replay: mientras está activo, las velas (de cualquier timeframe) salen de la sesión de
     // replay, que nunca entrega nada posterior al cursor. Sin esto, Key Levels / Unified Suite verían el presente.
     let fuenteHistorica = null;
+    // 'replay' (Bar Replay: el futuro no existe) o 'historico' (Ir a fecha: el gráfico muestra un tramo del pasado)
+    let modoHistorico = null;
     async function velas(symbol, timeframe, { limit = LOTE, end = null, signal } = {}) {
         if (fuenteHistorica) return fuenteHistorica(symbol, timeframe, { limit, end });
         const t0 = Date.now();
@@ -168,9 +170,16 @@
         fijarCategoria(c, fines = true) { categoria = c || ''; operaFines = fines !== false; },
         // ¿el instrumento en pantalla está cerrado en `fecha` (fin de semana o pausa de metales)?
         cerradoAhora: (fecha = new Date()) => !operaFines && mercadoCerrado(fecha, categoria),
-        fijarFuenteHistorica(fn) { fuenteHistorica = fn || null; nuevaGeneracion(); },
+        fijarFuenteHistorica(fn, modo = 'replay') { fuenteHistorica = fn || null; modoHistorico = fn ? modo : null; nuevaGeneracion(); },
         generacion: () => generacion,
         nuevaGeneracion,
-        enReplay: () => !!fuenteHistorica,
+        enReplay: () => modoHistorico === 'replay',
+        // Ir a fecha / Ir a año: el gráfico muestra un tramo del pasado (los indicadores piden hasta ese tramo)
+        enHistorico: () => modoHistorico === 'historico',
+        // Histórico profundo (capa compartida del servidor): velas CERRADAS de [desde, hasta)
+        async historia(symbol, timeframe, desde, hasta, { signal } = {}) {
+            const r = await NLT_API.chartsHistoria(symbol, timeframe, desde, hasta, { signal });
+            return { source: r.source || 'primary', cache: r.cache || {}, covered: r.covered || [], velas: r.candles.map((c) => ({ timestamp: c[0], open: c[1], high: c[2], low: c[3], close: c[4], volume: c[5] })) };
+        },
     };
 })();

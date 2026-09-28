@@ -340,6 +340,7 @@
         .rp-load { color: #FBBF24; display: inline-flex; align-items: center; gap: 4px; }
         @media (hover: hover) and (prefers-reduced-motion: no-preference) { .rp-load i { animation: rpGiro 1s linear infinite; } }
         @keyframes rpGiro { to { transform: rotate(360deg); } }
+        .rp-hist { top: 52px; }
         .rp-err { color: #F87171; flex-basis: 100%; text-align: center; font-size: 11px; }
         .ch-conn[data-estado="replay"] { color: rgb(var(--ch-accent)); border-color: rgba(var(--ch-accent),.4); }
         .ch-conn[data-estado="replay"] i, .ch-conn[data-estado="backtest"] i { background: rgb(var(--ch-accent)); }
@@ -361,6 +362,7 @@
                 <div id="chHint" class="ch-hint" hidden></div>
                 <div id="chBarraDibujo" class="dw-bar" role="toolbar" aria-label="Dibujo seleccionado" hidden></div>
                 <div id="chReplay" class="rp" role="toolbar" aria-label="NLT Bar Replay" hidden></div>
+                <div id="chHistoria" class="rp rp-hist" role="toolbar" aria-label="Ir a fecha" hidden></div>
             </div>
             <aside id="chWatch" class="wl" aria-label="Watchlist" hidden></aside>
         </div>
@@ -373,14 +375,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=a9c74f03"></script>
+    <script src="assets/js/nlt-api-client.js?v=740bbbd4"></script>
     <script src="assets/js/charts/diag.js?v=a548c4e2"></script>
     <script src="assets/js/charts/fluidez.js?v=350adc15"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
-    <script src="assets/js/charts/market-data.js?v=d4b15c4e"></script>
-    <script src="assets/js/charts/countdown.js?v=6433f09a"></script>
-    <script src="assets/js/charts/engine.js?v=dfea435a"></script>
-    <script src="assets/js/charts/ui.js?v=07153f5c"></script>
+    <script src="assets/js/charts/market-data.js?v=876142a0"></script>
+    <script src="assets/js/charts/countdown.js?v=7674285f"></script>
+    <script src="assets/js/charts/engine.js?v=bbb0671c"></script>
+    <script src="assets/js/charts/ui.js?v=41909787"></script>
     <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
@@ -390,10 +392,11 @@
     <script src="assets/js/charts/indicators-free.js?v=c3ae9a50"></script>
     <script src="assets/js/charts/unified-suite.js?v=fcd881c9"></script>
     <script src="assets/js/charts/indicators.js?v=de9918a5"></script>
-    <script src="assets/js/charts/pro.js?v=bb1aef9c"></script>
-    <script src="assets/js/charts/nlt-ai.js?v=e31445d4"></script>
+    <script src="assets/js/charts/pro.js?v=36e79351"></script>
+    <script src="assets/js/charts/nlt-ai.js?v=abf12a4c"></script>
     <script src="assets/js/charts/replay.js?v=85f63c39"></script>
+    <script src="assets/js/charts/historia.js?v=cf46a5bd"></script>
     <script src="assets/js/charts/backtest.js?v=38be954c"></script>
-    <script src="assets/js/charts/app.js?v=ecf5de81"></script>
+    <script src="assets/js/charts/app.js?v=d3aaebfc"></script>
 </body>
 </html>

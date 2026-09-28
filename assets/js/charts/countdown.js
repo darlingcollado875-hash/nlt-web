@@ -57,7 +57,7 @@
      */
     function calcular({ ultimaTs, periodo, ahora, estado, cerrado }) {
         if (estado === 'replay') return { tipo: 'estado', texto: 'REPLAY' };
-        if (estado === 'backtest') return { tipo: 'estado', texto: 'HISTÓRICO' };
+        if (estado === 'backtest' || estado === 'historico') return { tipo: 'estado', texto: 'HISTÓRICO' };
         if (estado === 'desconectado') return { tipo: 'estado', texto: 'DISCONNECTED' };
         if (cerrado || estado === 'cerrado') return { tipo: 'estado', texto: 'MARKET CLOSED' };
         if (estado === 'retrasado') return { tipo: 'estado', texto: 'DELAYED' };

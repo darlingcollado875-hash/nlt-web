@@ -28,6 +28,7 @@
             </div>
             <button type="button" id="chBtnInd" class="ch-btn"><i class="ph ph-function"></i><span class="ch-btn-label">Indicadores</span></button>
             <button type="button" id="chBtnWatch" class="ch-btn" title="Watchlist" aria-label="Watchlist"><i class="ph ph-list-star"></i><span class="ch-btn-label">Watchlist</span></button>
+            <button type="button" id="chBtnHistoria" class="ch-btn" title="Ir a fecha / año (Alt+G)" aria-label="Ir a fecha"><i class="ph ph-calendar-blank"></i><span class="ch-btn-label">Ir a fecha</span></button>
             <button type="button" id="chBtnReplay" class="ch-btn ch-lab-btn" title="NLT Bar Replay" aria-label="NLT Bar Replay"><i class="ph ph-clock-counter-clockwise"></i><span class="ch-btn-label">Replay</span></button>
             <button type="button" id="chBtnLab" class="ch-btn ch-lab-btn" title="NLT Backtest Lab" aria-label="NLT Backtest Lab"><i class="ph ph-flask"></i><span class="ch-btn-label">Backtest Lab</span></button>
             <button type="button" id="chBtnConfig" class="ch-btn" title="Configuración del gráfico" aria-label="Configuración del gráfico"><i class="ph ph-gear-six"></i></button>`;
@@ -50,13 +51,14 @@
             // `desde`: hora del último dato recibido; se muestra siempre (salvo mercado cerrado) para
             // que nadie confunda las velas en pantalla con precios actuales.
             setConexion(estado, detalle, desde) {
-                const TXT = { conectado: 'Conectado', retrasado: 'Retrasado', desconectado: 'Desconectado', cerrado: 'Mercado cerrado', conectando: 'Conectando…', backtest: 'Histórico · Backtest', replay: 'Bar Replay' };
+                const TXT = { conectado: 'Conectado', retrasado: 'Retrasado', desconectado: 'Desconectado', cerrado: 'Mercado cerrado', conectando: 'Conectando…', backtest: 'Histórico · Backtest', replay: 'Bar Replay', historico: 'Histórico' };
                 const AYUDA = {
                     conectado: 'Precios en vivo desde NLT.', retrasado: 'Los precios llegan con demora; se reintenta solo.',
                     desconectado: 'Sin conexión con los precios. Se reconecta solo y completa las velas que falten.',
                     cerrado: 'El mercado de este instrumento está cerrado (fin de semana).', conectando: 'Conectando con los precios…',
                     backtest: 'El gráfico muestra las velas históricas de un backtest, no precios en vivo.',
                     replay: 'Bar Replay: el gráfico muestra el mercado histórico hasta la vela actual del replay; lo posterior no existe en el navegador.',
+                    historico: 'Histórico: el gráfico muestra un tramo del pasado (Ir a fecha). No son precios en vivo; "Volver al presente" retoma el vivo.',
                 };
                 const b = el.querySelector('#chConexion');
                 b.dataset.estado = estado;

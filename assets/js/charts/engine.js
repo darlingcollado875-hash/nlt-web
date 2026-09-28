@@ -130,6 +130,83 @@
             historiaOk = false;
             chart.resetData();
         }
+        // ── Histórico profundo (capa histórica compartida del servidor: /charts/history) ──
+        // Hacia la izquierda se pide SOLO el rango que falta (tamaño adaptativo: más grande si el usuario
+        // scrollea rápido), en tramos paralelos; cerca del borde se precarga el bloque siguiente. "Ir a fecha"
+        // lejos del presente abre una VENTANA alrededor de esa fecha (no carga todo lo intermedio); la ventana
+        // crece hacia la derecha al avanzar y, al llegar al presente, vuelve sola al vivo.
+        const DUR = (tf) => { const p = market.PERIODOS[tf]; return ({ minute: 60000, hour: 3600000, day: 86400000 })[p.type] * p.span; };
+        const PASO = { '1m': 3000, '5m': 3000, '15m': 2500, '30m': 2000, '1H': 1500, '4H': 1200, '1D': 1000 };
+        const calendario = () => (operaFinDeSemana ? 1.05 : 1.45);      // velas -> tiempo (fines de semana)
+        let ventana = null;           // { centro, fin } : el gráfico muestra un tramo del pasado (sin vivo)
+        let subPendiente = null;      // subscribeBar guardado mientras la ventana no llega al presente
+        let esperaForward = null;     // "Ir a fecha" contiguo: espera la próxima carga hacia la izquierda
+        const hist = { ultimaCarga: 0, factor: 1, pedidos: [], precargados: new Set() };
+        const oyentesVentana = new Set();
+        const avisarVentana = () => oyentesVentana.forEach((fn) => { try { fn(ventana ? { centro: ventana.centro, fin: ventana.fin } : null); } catch (_) { /* oyente */ } });
+        function pasoAdaptativo(tf) {
+            const ahora = Date.now();
+            if (ahora - hist.ultimaCarga < 4000) hist.factor = Math.min(4, hist.factor * 2);   // navegación rápida
+            else if (ahora - hist.ultimaCarga > 15000) hist.factor = 1;
+            hist.ultimaCarga = ahora;
+            return Math.round((PASO[tf] || 1500) * hist.factor);
+        }
+        // [desde, hasta) en tramos de ~PASO velas pedidos a la vez; progreso real = tramos terminados
+        async function historia(sym, tf, desde, hasta, { signal, onProgreso } = {}) {
+            const dur = DUR(tf), paso = (PASO[tf] || 1500) * dur * calendario();
+            const tramos = [];
+            for (let a = desde; a < hasta; a += paso) tramos.push([a, Math.min(hasta, a + paso)]);
+            let hechos = 0;
+            const t0 = performance.now();
+            if (onProgreso) onProgreso({ hechos, total: tramos.length, ms: 0 });
+            const partes = await Promise.all(tramos.map(async ([a, b]) => {
+                const t = performance.now();
+                const r = await market.historia(sym, tf, a, b, { signal });
+                hist.pedidos.push({ tf, desde: a, hasta: b, velas: r.velas.length, ms: Math.round(performance.now() - t), hit: !!r.cache.hit, prov: r.cache.provider_requests || 0 });
+                if (hist.pedidos.length > 300) hist.pedidos.shift();
+                hechos += 1;
+                if (onProgreso) onProgreso({ hechos, total: tramos.length, ms: Math.round(performance.now() - t0) });
+                return r;
+            }));
+            const fuentes = new Set(partes.map((r) => r.source));
+            const vistos = new Map();
+            partes.forEach((r) => r.velas.forEach((v) => vistos.set(v.timestamp, v)));
+            const velas = [...vistos.values()].sort((a, b) => a.timestamp - b.timestamp);
+            return { velas, source: fuentes.size === 1 ? [...fuentes][0] : 'mixta', hit: partes.every((r) => r.cache.hit) };
+        }
+        // Precarga silenciosa del bloque anterior cuando el usuario se acerca al borde izquierdo
+        function precargar() {
+            if (externo || !timeframe) return;
+            const dl = chart.getDataList(), sym = chart.getSymbol();
+            if (!dl.length || !sym) return;
+            const vr = chart.getVisibleRange();
+            const n = Math.round((PASO[timeframe] || 1500) * hist.factor);
+            if ((vr.realFrom ?? vr.from) > n * 0.25) return;
+            const hasta = dl[0].timestamp, desde = hasta - n * DUR(timeframe) * calendario();
+            const k = `${sym.ticker}|${timeframe}|${Math.round(desde / 3.6e6)}`;
+            if (hist.precargados.has(k)) return;
+            hist.precargados.add(k);
+            market.historia(sym.ticker, timeframe, desde, hasta).catch(() => hist.precargados.delete(k));
+        }
+        let tPrecarga = 0;
+        try { chart.subscribeAction('onScroll', () => { const t = Date.now(); if (t - tPrecarga > 400) { tPrecarga = t; precargar(); } }); } catch (_) { /* versión sin acciones */ }
+        function suscribirVivo(symbol, callback) {
+            const dl = chart.getDataList();
+            let ultimoTs = dl.length ? dl[dl.length - 1].timestamp : null;
+            cancelarSuscripcion = market.suscribir(symbol.ticker, timeframe, (vela) => {
+                aplicarVela(callback, vela);
+                if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
+                if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
+            }, { operaFinDeSemana, fuente: fuenteSerie, alCambiarFuente: recargarPorFuente });
+        }
+        function ventanaLlegoAlPresente() {
+            if (!ventana) return;
+            ventana = null;
+            market.fijarEstado('conectando');
+            avisarVentana();
+            if (subPendiente && !cancelarSuscripcion) suscribirVivo(subPendiente.symbol, subPendiente.callback);
+        }
+
         // Movimiento fluido (solo visual): tween de la vela en curso y entrada suave de la vela nueva
         const fluidez = NLTCharts.fluidez ? NLTCharts.fluidez.crear(chart) : null;
         const aplicarVela = (cb, vela) => (fluidez ? fluidez.aplicar(cb, vela) : cb(vela));
@@ -143,8 +220,75 @@
             // así que "backward" nunca tiene nada.
             getBars: async ({ type, timestamp, symbol, callback }) => {
                 if (externo) { callback(type === 'init' ? externo.velas : [], { forward: false, backward: false }); if (type === 'init') onData && onData({ demo: false, primera: true }); return; }
-                if (type === 'backward') { callback([], { backward: false }); return; }
                 const tfPedido = timeframe;
+                const dur = DUR(tfPedido);
+                const vigente = () => { const sym = chart.getSymbol(); return tfPedido === timeframe && sym && sym.ticker === symbol.ticker; };
+                const tope = () => Math.floor(Date.now() / dur) * dur;       // apertura de la vela en curso
+                if (type === 'backward') {
+                    // velas MÁS NUEVAS: solo en una ventana del pasado (en vivo las trae la suscripción)
+                    if (!ventana) { callback([], { backward: false }); return; }
+                    try {
+                        const desde = timestamp + dur, hasta = Math.min(tope(), desde + (PASO[tfPedido] || 1500) * dur * calendario());
+                        const r = desde < hasta ? await historia(symbol.ticker, tfPedido, desde, hasta) : { velas: [], source: fuenteSerie };
+                        if (!vigente() || !ventana) return;
+                        if (fuenteSerie && r.source !== fuenteSerie) { callback([], { backward: false }); recargarPorFuente(r.source); return; }
+                        const llega = hasta >= tope();
+                        callback(r.velas, { backward: !llega && r.velas.length > 0 });
+                        if (r.velas.length) { ventana.fin = r.velas[r.velas.length - 1].timestamp; avisarVentana(); }
+                        if (llega) ventanaLlegoAlPresente();
+                    } catch (err) {
+                        callback([], { backward: false });
+                        if (onError) onError(err.message);
+                    }
+                    return;
+                }
+                if (type === 'forward') {
+                    // historia MÁS VIEJA: solo el rango que falta, de la capa histórica (caché compartida)
+                    try {
+                        const n = pasoAdaptativo(tfPedido);
+                        const r = await historia(symbol.ticker, tfPedido, timestamp - n * dur * calendario(), timestamp);
+                        if (!vigente()) return;
+                        if (fuenteSerie && r.source !== fuenteSerie) {
+                            callback([], { forward: false, backward: false });
+                            recargarPorFuente(r.source);
+                            return;
+                        }
+                        callback(r.velas, { forward: r.velas.length > 0, backward: !!ventana });
+                        if (esperaForward) { const f = esperaForward; esperaForward = null; f(r.velas.length); }
+                        if (onData) onData({ demo: false, primera: false });
+                    } catch (err) {
+                        callback([], { forward: false, backward: !!ventana });
+                        if (onError) onError(err.message);
+                        if (esperaForward) { const f = esperaForward; esperaForward = null; f(-1); }
+                    }
+                    return;
+                }
+                if (ventana) {
+                    // "Ir a fecha": una ventana alrededor de la fecha (no todo lo intermedio)
+                    const v = ventana;
+                    try {
+                        const antes = (PASO[tfPedido] || 1500) * 0.6, despues = (PASO[tfPedido] || 1500) * 0.4;
+                        const desde = v.centro - antes * dur * calendario();
+                        const hasta = Math.min(tope(), v.centro + despues * dur * calendario());
+                        const r = await historia(symbol.ticker, tfPedido, desde, hasta, { onProgreso: v.onProgreso });
+                        if (!vigente() || ventana !== v) return;
+                        fuenteSerie = r.source;
+                        const llega = hasta >= tope();
+                        callback(r.velas, { forward: r.velas.length > 0, backward: !llega });
+                        historiaOk = true;
+                        v.fin = r.velas.length ? r.velas[r.velas.length - 1].timestamp : null;
+                        market.fijarEstado('historico');
+                        avisarVentana();
+                        if (onData) onData({ demo: false, primera: true });
+                        if (v.listo) v.listo.ok({ velas: r.velas.length, hit: r.hit });
+                        if (llega) ventanaLlegoAlPresente();
+                    } catch (err) {
+                        callback([], { forward: false, backward: false });
+                        if (onError) onError(err.message);
+                        if (v.listo) v.listo.mal(err);
+                    }
+                    return;
+                }
                 // Cambio rápido de símbolo/timeframe: se cancela la carga anterior (no llega tarde ni gasta red).
                 let signal;
                 if (type === 'init') {
@@ -153,8 +297,7 @@
                     signal = pedidoInicial.signal;
                 }
                 try {
-                    const end = type === 'forward' ? timestamp : null;
-                    const r = await market.velas(symbol.ticker, tfPedido, { end, signal });
+                    const r = await market.velas(symbol.ticker, tfPedido, { end: null, signal });
                     // Si el usuario cambió de símbolo o timeframe mientras
                     // esperábamos, esta respuesta es de un gráfico que ya no está.
                     const sym = chart.getSymbol();
@@ -166,14 +309,11 @@
                         recargarPorFuente(r.source);
                         return;
                     }
-                    const hayMas = r.velas.length >= market.LOTE;
-                    callback(r.velas, { forward: hayMas, backward: false });
+                    callback(r.velas, { forward: r.velas.length > 0, backward: false });
                     if (type === 'init') {
                         espera = 5000;
                         historiaOk = true;
                         const u = r.velas.length ? r.velas[r.velas.length - 1].timestamp : null;
-                        const p = market.PERIODOS[tfPedido];
-                        const dur = ({ minute: 60000, hour: 3600000, day: 86400000 })[p.type] * p.span;
                         // último dato de la historia: ahora si la última vela está en curso, si no su cierre
                         market.marcarDato(u == null ? null : Math.min(Date.now(), u + dur));
                         market.fijarEstado(market.calcularEstado(u, dur, operaFinDeSemana));
@@ -197,13 +337,9 @@
                 if (cancelarSuscripcion) cancelarSuscripcion();
                 cancelarSuscripcion = null;
                 if (externo) { empujarExterno = callback; return; }
-                const dl = chart.getDataList();
-                let ultimoTs = dl.length ? dl[dl.length - 1].timestamp : null;
-                cancelarSuscripcion = market.suscribir(symbol.ticker, timeframe, (vela) => {
-                    aplicarVela(callback, vela);
-                    if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
-                    if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
-                }, { operaFinDeSemana, fuente: fuenteSerie, alCambiarFuente: recargarPorFuente });
+                subPendiente = { symbol, callback };
+                if (ventana) return;                 // una ventana del pasado no tiene vivo (hasta llegar al presente)
+                suscribirVivo(symbol, callback);
             },
             unsubscribeBar: () => {
                 if (cancelarSuscripcion) cancelarSuscripcion();
@@ -238,7 +374,11 @@
                 operaFinDeSemana = symbolInfo.trades_weekends !== false;
                 market.fijarCategoria(symbolInfo.category, symbolInfo.trades_weekends);
                 clearTimeout(reintento); espera = 5000;
-                if (cambiaSimbolo || cambiaPeriodo) { market.fijarEstado('conectando'); historiaOk = false; market.nuevaGeneracion(); }
+                if (cambiaSimbolo || cambiaPeriodo) {
+                    market.fijarEstado('conectando'); historiaOk = false; market.nuevaGeneracion();
+                    if (ventana) { ventana = null; avisarVentana(); }       // otro símbolo/timeframe: vuelve al vivo
+                    hist.precargados.clear(); hist.factor = 1;
+                }
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
                 if (cambiaPeriodo) chart.setPeriod(market.PERIODOS[tf]);
             },
@@ -246,12 +386,69 @@
             modoExterno(datos, recargar = true) {
                 if (fluidez) fluidez.cancelar();
                 market.nuevaGeneracion();
+                if (ventana) { ventana = null; avisarVentana(); }
                 externo = datos ? { velas: datos.velas.slice() } : null;
                 empujarExterno = null;
                 historiaOk = !!datos;
                 if (recargar) chart.resetData();
             },
             enModoExterno: () => !!externo,
+            // ── histórico profundo ──
+            /** irAFecha(ms, { onProgreso }) -> { modo: 'cache' | 'contiguo' | 'ventana', ms } */
+            async irAFecha(ms, { onProgreso } = {}) {
+                if (externo) throw new Error('En Bar Replay / Backtest la fecha se elige desde su propio panel.');
+                const dur = DUR(timeframe), tope = Math.floor(Date.now() / dur) * dur;
+                const objetivo = Math.min(Math.floor(ms / dur) * dur, tope);
+                const t0 = performance.now();
+                let dl = chart.getDataList();
+                // 1) ya cargada: salto inmediato
+                if (dl.length && objetivo >= dl[0].timestamp && (!ventana || objetivo <= dl[dl.length - 1].timestamp)) {
+                    chart.scrollToTimestamp(objetivo, 0);
+                    return { modo: 'cache', ms: Math.round(performance.now() - t0) };
+                }
+                // 2) cerca de lo cargado: se completa hacia la izquierda (queda contiguo)
+                const bloques = dl.length ? (dl[0].timestamp - objetivo) / ((PASO[timeframe] || 1500) * dur * calendario()) : Infinity;
+                if (bloques > 0 && bloques <= 2) {
+                    for (let i = 0; i < 6 && dl.length && dl[0].timestamp > objetivo; i++) {
+                        const llego = new Promise((res) => { esperaForward = res; setTimeout(() => res(-2), 120000); });
+                        chart.scrollToDataIndex(0, 0);
+                        const n = await llego;
+                        if (onProgreso) onProgreso({ hechos: i + 1, total: Math.max(1, Math.ceil(bloques)), ms: Math.round(performance.now() - t0) });
+                        if (n <= 0) break;
+                        dl = chart.getDataList();
+                    }
+                    if (dl.length && dl[0].timestamp <= objetivo) {
+                        chart.scrollToTimestamp(objetivo, 0);
+                        return { modo: 'contiguo', ms: Math.round(performance.now() - t0) };
+                    }
+                }
+                // 3) lejos: ventana alrededor de la fecha (nueva generación: nada del vivo se dibuja sobre ella)
+                if (fluidez) fluidez.cancelar();
+                if (cancelarSuscripcion) { cancelarSuscripcion(); cancelarSuscripcion = null; }
+                market.nuevaGeneracion();
+                historiaOk = false;
+                hist.precargados.clear();
+                const v = { centro: objetivo, fin: null, onProgreso };
+                const listo = new Promise((ok, mal) => { v.listo = { ok, mal }; });
+                ventana = v;
+                avisarVentana();
+                chart.resetData();
+                const info = await listo;
+                chart.scrollToTimestamp(objetivo, 0);
+                return { modo: 'ventana', ms: Math.round(performance.now() - t0), ...info };
+            },
+            volverAlPresente() {
+                if (!ventana) return;
+                ventana = null;
+                market.nuevaGeneracion();
+                market.fijarEstado('conectando');
+                avisarVentana();
+                historiaOk = false;
+                chart.resetData();
+            },
+            enVentana: () => (ventana ? { centro: ventana.centro, fin: ventana.fin } : null),
+            alCambiarVentana(fn) { oyentesVentana.add(fn); return () => oyentesVentana.delete(fn); },
+            metricasHistorico: () => ({ factor: hist.factor, pedidos: hist.pedidos.slice() }),
             fuente: () => fuenteSerie,
             cambiosDeFuente: () => cambiosDeFuente.slice(),
             recargarPorFuente,

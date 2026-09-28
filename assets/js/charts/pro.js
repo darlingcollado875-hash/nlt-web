@@ -145,6 +145,13 @@
 
     // ---------------------------------------------------------------- dibujo del indicador
     let dibujo = null;            // última respuesta (lo que V13.3.3 dibuja)
+    // Generación del dataset con que se aceptó `dibujo`: si el gráfico pasó a OTRO dataset (vivo <-> histórico,
+    // otra fecha, replay), el dibujo viejo no se pinta mientras llega el nuevo (visto 28/09: al saltar de 2025
+    // a 2024 las zonas de 2025 quedaban sobre las velas de 2024 hasta que respondía el servidor).
+    let dibujoGen = null;
+    const dibujoVigente = () => !dibujo || dibujoGen === null || !NLTCharts.market || !NLTCharts.market.generacion
+        || dibujoGen === NLTCharts.market.generacion();
+    let zeOmitidos = 0;
     let vista = null;             // dibujo ya filtrado por toggles y pool (se rearma solo si cambia algo)
     let visuales = {};            // valores de las entradas visuales
     let registrado = false;
@@ -238,6 +245,7 @@
             createTooltipDataSource: ({ indicator }) => ({ name: '⚡ NLT ZONE ENGINE V13.3.3', calcParamsText: '', features: NLTCharts.leyenda.features(indicator), legends: [] }),
             draw: ({ ctx, chart, bounding, xAxis, yAxis }) => {
                 if (!vista || (tfVisible && !tfVisible())) return false;
+                if (!dibujoVigente()) { zeOmitidos++; return false; }     // de otro dataset: no se dibuja
                 const dl = chart.getDataList();
                 if (!dl.length) return false;
                 const p = chart.getPeriod();
@@ -424,7 +432,7 @@
         let firmaPanel = '';
         function pintarTablas() {
             const v = valores();
-            const activo = dibujado && !oculto && dibujo && visibleEnTf();
+            const activo = dibujado && !oculto && dibujo && visibleEnTf() && dibujoVigente();
             NLTCharts.ui.tablero.ajustar(chart);
             if (activo && v.showAIPanel !== false) {
                 const g = state.prefs().dashMin;
@@ -509,6 +517,7 @@
                 if (calcTs != null && ultTs != null && calcTs > ultTs) { zeDescartados++; programar(200); return; }
                 if (calcTs != null && ultTs != null && calcTs < ultTs) programar(300);
                 dibujo = r.drawing;
+                dibujoGen = gen;
                 actualizarVisuales();
                 if (rect && dibujo) dibujos.marcarZona(rect.id, undefined, dibujo.manual_zone || null);
                 mostrarEnGrafico(true);
@@ -688,7 +697,8 @@
             alternar(si) { ver = !!si; guardarPref(ver); refrescar(); onCambio && onCambio(); },
             catalogoCargado: () => catalogo,
             vistaActual: () => vista,
-            dibujoActual: () => dibujo,
+            dibujoActual: () => (dibujoVigente() ? dibujo : null),
+            dibujosOmitidos: () => zeOmitidos,
             descartados: () => zeDescartados,   // diagnóstico: lo que se está dibujando (ya filtrado y con estilos)
             // ojo de la leyenda: oculta todo lo del indicador (dibujos y tablas) sin quitarlo
             alternarVisible() {

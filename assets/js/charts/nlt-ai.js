@@ -54,6 +54,7 @@
             clearTimeout(timer);
             if (!ver) { pintar(); return; }
             if (NLTCharts.market.enReplay && NLTCharts.market.enReplay()) { datos = null; error = 'NLT AI está en pausa durante el Bar Replay.'; pintar(); return; }
+            if (NLTCharts.market.enHistorico && NLTCharts.market.enHistorico()) { datos = null; error = 'NLT AI analiza el mercado en vivo: en pausa mientras mirás el histórico.'; pintar(); return; }
             if (!pro.tieneAcceso()) { datos = null; error = 'NLT AI recibe los eventos del NLT Zone Engine: activalo primero.'; pintar(); return; }
             if (enCurso) { otraVez = true; return; }
             enCurso = true;
