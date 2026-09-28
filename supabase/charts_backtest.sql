@@ -46,9 +46,16 @@ create table if not exists public.charts_backtest_runs (
   dataset_hash      text not null,
   dataset           jsonb not null,                    -- velas, warm-up, primera/última, huecos
   metrics           jsonb,
+  trades            jsonb not null default '[]'::jsonb, -- operaciones (hasta 2000; trades_total dice cuántas hubo)
+  trades_total      integer not null default 0,
+  error             text,
   status            text not null check (status in ('done','error','cancelled')),
   created_at        timestamptz not null default now()
 );
+-- si la tabla ya existía de una versión anterior de este archivo (idempotente)
+alter table public.charts_backtest_runs add column if not exists trades jsonb not null default '[]'::jsonb;
+alter table public.charts_backtest_runs add column if not exists trades_total integer not null default 0;
+alter table public.charts_backtest_runs add column if not exists error text;
 create index if not exists charts_backtest_runs_user_idx on public.charts_backtest_runs (user_id, created_at desc);
 create index if not exists charts_backtest_runs_key_idx on public.charts_backtest_runs (run_key);
 
