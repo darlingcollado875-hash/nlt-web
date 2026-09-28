@@ -203,6 +203,41 @@
     klinecharts.dispose(document.getElementById('lienzo'));
   });
 
+  // ── 14-15: la vela que cierra queda con su valor REAL (bug 28/09: quedaba el precio interpolado del tween) ──
+  const graficoReal = async () => {
+    const chart = klinecharts.init(document.getElementById('lienzo'));
+    const datos = Array.from({ length: 50 }, (_, i) => ({ timestamp: 1_700_000_000_000 + i * 60000, open: 1.1, high: 1.1005, low: 1.0995, close: 1.1, volume: 10 }));
+    let empujar = null;
+    chart.setDataLoader({ getBars: ({ callback }) => callback(datos, { forward: false, backward: false }), subscribeBar: ({ callback }) => { empujar = callback; }, unsubscribeBar: () => {} });
+    chart.setSymbol({ ticker: 'T2', pricePrecision: 5 }); chart.setPeriod({ type: 'minute', span: 1 });
+    await esperar(400);
+    return { chart, empujar: (v) => empujar(v), datos };
+  };
+  await test('14. vela nueva en medio del tween: la vela anterior queda con su valor REAL, no el interpolado', async () => {
+    const g = await graficoReal(), a = F.crear(g.chart);
+    const u = g.datos.at(-1);
+    const final = { ...u, high: 1.1030, low: 1.0990, close: 1.1025, volume: 99 };
+    a.aplicar(g.empujar, final);                         // arranca el tween de la vela en curso...
+    await esperar(30);                                    // ...a mitad de camino
+    a.aplicar(g.empujar, { timestamp: u.timestamp + 60000, open: 1.1025, high: 1.1026, low: 1.1024, close: 1.1025, volume: 1 });   // vela nueva
+    await esperar(300);
+    const dl = g.chart.getDataList(), cerrada = dl[dl.length - 2];
+    eq(dl.length, 51, 'cantidad');
+    eq(JSON.stringify([cerrada.high, cerrada.low, cerrada.close, cerrada.volume]), JSON.stringify([final.high, final.low, final.close, final.volume]), 'la vela cerrada quedó con un valor interpolado');
+    klinecharts.dispose(document.getElementById('lienzo'));
+  });
+  await test('15. corrección tardía de una vela ya cerrada (el proveedor la corrige después): se aplica', async () => {
+    const g = await graficoReal(), a = F.crear(g.chart);
+    const vieja = g.datos[g.datos.length - 3];
+    a.aplicar(g.empujar, { ...vieja, high: 1.1050, close: 1.1040 });
+    await esperar(100);
+    const x = g.chart.getDataList().find((v) => v.timestamp === vieja.timestamp);
+    eq(JSON.stringify([x.high, x.close]), JSON.stringify([1.1050, 1.1040]), 'KLineChart ignoró la corrección');
+    ok(a.stats().correcciones >= 1, 'no se contó la corrección');
+    eq(g.chart.getDataList().length, 50, 'la corrección agregó o sacó velas');
+    klinecharts.dispose(document.getElementById('lienzo'));
+  });
+
   window.__resultado = { total: res.length, ok: res.filter((r) => r.ok).length, tests: res, perf: window.__perf };
   document.getElementById('resultado').innerHTML = res.map((r) => `<span class="${r.ok ? 'ok' : 'mal'}">${r.ok ? '✔' : '✘'} ${r.nombre}${r.ok ? '' : ' — ' + r.error}</span>`).join('\n') + `\n\n${window.__resultado.ok}/${res.length}\nperf: ${JSON.stringify(window.__perf)}`;
 })();

@@ -17,7 +17,7 @@
     const SCROLL_MS = 220;
     let interpolando = false;
     const reducido = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
-    const stats = { tweens: 0, frames: 0, directas: 0, nuevas: 0, scrollsSuaves: 0, viewportsPreservados: 0 };
+    const stats = { tweens: 0, frames: 0, directas: 0, nuevas: 0, scrollsSuaves: 0, viewportsPreservados: 0, correcciones: 0 };
 
     // ── firma del dataset de cada resultado (anclaje) ──
     // Los indicadores del navegador anclan sus objetos por índice de vela (como Pine). Un resultado solo
@@ -99,26 +99,53 @@
         // mueve el contenido `px` píxeles (positivo = a la derecha)
         const mover = (px) => { if (px) chart.scrollByDistance(px * (calibrar() || 1), 0); };
 
-        function cancelar() { if (anim) { cancelAnimationFrame(anim.raf); anim = null; } interpolando = false; }
+        // aplicarFinal: la vela animada recibe su valor REAL antes de cortar la animación. Sin esto (bug visto
+        // 28/09), al llegar la vela nueva el tween de la anterior se cortaba en un precio INTERPOLADO y esa vela
+        // quedaba así para siempre (KLineChart no acepta después actualizaciones de una vela que ya no es la
+        // última): OHLC de velas cerradas distinto del servidor y objetos del Zone Engine "mal anclados".
+        function cancelar(aplicarFinal = false) {
+            if (anim) {
+                cancelAnimationFrame(anim.raf);
+                const final = anim.final;
+                anim = null;
+                interpolando = false;
+                if (aplicarFinal && final) final();
+            }
+            interpolando = false;
+        }
+
+        // Una vela ANTERIOR a la última (el proveedor corrigió una vela ya cerrada): KLineChart ignora esa
+        // actualización por su callback, así que se corrige en su lugar (getDataList es la lista interna) y
+        // se redibuja; los indicadores la toman en su próximo cálculo.
+        function corregirAnterior(vela, dl) {
+            let i = dl.length - 1;
+            while (i >= 0 && dl[i].timestamp > vela.timestamp) i--;
+            if (i < 0 || dl[i].timestamp !== vela.timestamp) return;
+            const x = dl[i];
+            if (x.open === vela.open && x.high === vela.high && x.low === vela.low && x.close === vela.close && x.volume === vela.volume) return;
+            x.open = vela.open; x.high = vela.high; x.low = vela.low; x.close = vela.close; x.volume = vela.volume;
+            stats.correcciones = (stats.correcciones || 0) + 1;
+            try { chart.setStyles({}); } catch (_) { /* redibujo */ }
+        }
 
         /** aplicar(cb, vela): cb = callback real de KLineChart (subscribeBar / empujar). */
         function aplicar(cb, vela) {
             const dl = chart.getDataList();
             const u = dl[dl.length - 1];
             if (u && vela.timestamp === u.timestamp) return tween(cb, vela, u);
-            if (u && vela.timestamp < u.timestamp) { cancelar(); cb(vela); return; }   // corrección de una vela anterior
+            if (u && vela.timestamp < u.timestamp) { cancelar(true); corregirAnterior(vela, chart.getDataList()); return; }
             return nueva(cb, vela, dl);
         }
 
         function tween(cb, vela, u) {
             const desde = anim ? anim.actual : u.close;
-            cancelar();
+            cancelar(false);                                   // la animación nueva termina en el dato más nuevo
             if (reducido() || document.hidden || desde === vela.close) { stats.directas++; cb(vela); return; }
             protegerInstancias(chart);
             stats.tweens++;
             const t0 = performance.now();
             const lo = Math.min(vela.low, vela.high), hi = Math.max(vela.low, vela.high);
-            anim = { actual: desde, raf: 0 };
+            anim = { actual: desde, raf: 0, final: () => cb(vela) };
             const paso = (ahora) => {
                 // el timestamp de rAF es el INICIO del frame y puede ser anterior a t0: sin acotar, k < 0 y el
                 // primer frame quedaba fuera del rango real (visto en tests/charts-fluidez.test.html)
@@ -136,7 +163,7 @@
         }
 
         function nueva(cb, vela, dl) {
-            cancelar();
+            cancelar(true);                                    // la vela anterior queda con su valor REAL
             stats.nuevas++;
             const n = dl.length;
             if (!n) { cb(vela); return; }
