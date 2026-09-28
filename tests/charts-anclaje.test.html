@@ -27,6 +27,7 @@ El lado del servidor (Zone Engine anclado por timestamp y precio, vela por vela)
 </script>
 <script src="../assets/js/charts/fluidez.js"></script>
 <script src="../assets/js/charts/replay.js"></script>
+<script src="../assets/js/charts/nlt-ai.js"></script>
 <script>
 (async function () {
   const F = NLTCharts.fluidez;
@@ -190,6 +191,29 @@ El lado del servidor (Zone Engine anclado por timestamp y precio, vela por vela)
     a.ok(ses('vieja', '15m')); await tick(); await tick();
     eq(R.estado().sesion.id, 'ultima'); ok(cerradas.includes('vieja'), 'la sesión vieja no se cerró');
     R.salir();
+  });
+
+  // ── 11: NLT AI -- un análisis del VIVO que llega después de entrar al replay no se muestra ──
+  await test('11. NLT AI: la respuesta del vivo que llega ya dentro del replay se descarta (queda en pausa)', async () => {
+    let enReplay = false;
+    NLTCharts.market.enReplay = () => enReplay;
+    const slot = document.createElement('div');
+    NLTCharts.ui.tablero = { quitar() {}, slot: () => slot };
+    NLTCharts.settings = { valores: () => ({ modo: 'auto', posicion: 'Top Right' }), registrar() {} };
+    NLTCharts.state = { prefs: () => ({ nltAiVer: true, nltAiMin: false }), savePrefs() {} };
+    NLTCharts.drawings = { formatear: (x) => String(x) };
+    let responder;
+    window.NLT_API.chartsNltAi = () => new Promise((r) => { responder = r; });
+    const ai = NLTCharts.nltAi.crear({ getSymbol: () => 'EURUSD', getTimeframe: () => '15m', onCambio() {},
+      pro: { tieneAcceso: () => true, entradasActuales: () => ({}), zonaActual: () => null, alRefrescar() {} } });
+    ai.iniciar();
+    await esperar(900);                                     // el pedido del vivo salió
+    ok(typeof responder === 'function', 'NLT AI no pidió nada');
+    enReplay = true; NLTCharts.market.fijarFuenteHistorica(() => {});      // entra al replay (sube la generación)
+    responder({ status: 'sent', events: [], last_sent: null, analysis: { verdict: 'VIVO_NO_DEBE_VERSE', ai_called: true } });
+    await esperar(50);
+    ok(!slot.innerHTML.includes('VIVO_NO_DEBE_VERSE'), 'se pintó el análisis del vivo dentro del replay');
+    ok(/pausa durante el Bar Replay/.test(slot.innerHTML), 'no quedó en pausa');
   });
 
   const pasaron = res.filter((r) => r.ok).length;

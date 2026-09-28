@@ -58,12 +58,17 @@
             if (enCurso) { otraVez = true; return; }
             enCurso = true;
             const n = ++seq;
+            // Generación del dataset al pedir: si mientras tanto se entró al replay (o cambió símbolo/timeframe),
+            // la respuesta es del vivo / de otro gráfico y NO se muestra (antes quedaba pintada en el replay).
+            const gen = NLTCharts.market.generacion ? NLTCharts.market.generacion() : 0;
             try {
                 const r = await NLT_API.chartsNltAi(getSymbol(), getTimeframe(), pro.entradasActuales(), S.valores(ID).modo, nonce());
                 if (n !== seq) { enCurso = false; return; }
+                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { enCurso = false; programar(0); return; }
                 datos = r; error = '';
             } catch (err) {
                 if (n !== seq) { enCurso = false; return; }
+                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { enCurso = false; programar(0); return; }
                 error = err.message;
             }
             enCurso = false;
