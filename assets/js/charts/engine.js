@@ -116,6 +116,20 @@
         // NLT Backtest Lab: velas de un backtest en vez de las del mercado en vivo (sin suscripción).
         // `empujarExterno` agrega/actualiza velas una por una (Bar Replay).
         let externo = null, empujarExterno = null;
+        // PRIMARY / BACKUP: fuente de la serie en pantalla. Si el servidor pasa a la otra cuenta (o vuelve),
+        // el dataset se recarga ENTERO de la nueva (nueva generación: nada calculado con la vieja se dibuja).
+        let fuenteSerie = null;
+        const cambiosDeFuente = [];
+        function recargarPorFuente(nueva) {
+            if (externo) return;
+            cambiosDeFuente.push({ at: new Date().toISOString(), from: fuenteSerie, to: nueva });
+            console.warn('[NLT Charts] fuente de precios:', fuenteSerie, '->', nueva, '(se recarga el dataset completo)');
+            fuenteSerie = null;
+            market.nuevaGeneracion();
+            market.fijarEstado('conectando', `Fuente de precios: ${nueva === 'backup' ? 'respaldo' : 'principal'}`);
+            historiaOk = false;
+            chart.resetData();
+        }
         // Movimiento fluido (solo visual): tween de la vela en curso y entrada suave de la vela nueva
         const fluidez = NLTCharts.fluidez ? NLTCharts.fluidez.crear(chart) : null;
         const aplicarVela = (cb, vela) => (fluidez ? fluidez.aplicar(cb, vela) : cb(vela));
@@ -145,6 +159,13 @@
                     // esperábamos, esta respuesta es de un gráfico que ya no está.
                     const sym = chart.getSymbol();
                     if (tfPedido !== timeframe || !sym || sym.ticker !== symbol.ticker) return;
+                    if (type === 'init') fuenteSerie = r.source;
+                    else if (fuenteSerie && r.source && r.source !== fuenteSerie) {
+                        // historia más vieja de OTRA fuente (PRIMARY/BACKUP): no se pega; se recarga todo de la actual
+                        callback([], { forward: false, backward: false });
+                        recargarPorFuente(r.source);
+                        return;
+                    }
                     const hayMas = r.velas.length >= market.LOTE;
                     callback(r.velas, { forward: hayMas, backward: false });
                     if (type === 'init') {
@@ -182,7 +203,7 @@
                     aplicarVela(callback, vela);
                     if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
                     if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
-                }, { operaFinDeSemana });
+                }, { operaFinDeSemana, fuente: fuenteSerie, alCambiarFuente: recargarPorFuente });
             },
             unsubscribeBar: () => {
                 if (cancelarSuscripcion) cancelarSuscripcion();
@@ -231,6 +252,9 @@
                 if (recargar) chart.resetData();
             },
             enModoExterno: () => !!externo,
+            fuente: () => fuenteSerie,
+            cambiosDeFuente: () => cambiosDeFuente.slice(),
+            recargarPorFuente,
             empujar(vela) {
                 if (!externo || !empujarExterno) return;
                 // el dataset externo refleja lo mostrado: un reset posterior no vuelve a un estado viejo

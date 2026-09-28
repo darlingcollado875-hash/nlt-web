@@ -33,7 +33,9 @@
         const t0 = Date.now();
         const r = await NLT_API.chartsVelas(symbol, timeframe, { limit, end, signal });
         if (r.server_time && NLTCharts.countdown) NLTCharts.countdown.sincronizar(r.server_time, t0, Date.now());
-        return { demo: !!r.demo, provider: r.provider, precision: r.price_precision, velas: r.candles.map(aKline) };
+        // source: PRIMARY / BACKUP. Una serie nunca mezcla fuentes: si cambia, el motor recarga todo.
+        return { demo: !!r.demo, provider: r.provider, source: r.source || 'primary', sourceState: r.source_state || null,
+            precision: r.price_precision, velas: r.candles.map(aKline) };
     }
 
     // Estado de la conexión con los precios (lo muestra la barra):
@@ -88,7 +90,7 @@
     // estuvo oculta o sin red un rato, llegan todas las velas que faltan y no
     // queda un hueco. El motor distingue por timestamp si actualiza o agrega.
     const DURACION_MS = { minute: 60000, hour: 3600000, day: 86400000 };
-    function suscribir(symbol, timeframe, alRecibir, { operaFinDeSemana = true } = {}) {
+    function suscribir(symbol, timeframe, alRecibir, { operaFinDeSemana = true, fuente = null, alCambiarFuente = null } = {}) {
         const p = PERIODOS[timeframe];
         const durMs = DURACION_MS[p.type] * p.span;
         let vivo = true;
@@ -107,6 +109,12 @@
                 const faltan = ultimo == null ? 2 : Math.ceil((Date.now() - ultimo) / durMs) + 1;
                 try {
                     const r = await velas(symbol, timeframe, { limit: Math.min(Math.max(faltan, 2), 1500) });
+                    if (vivo && fuente && r.source && r.source !== fuente && alCambiarFuente) {
+                        // PRIMARY <-> BACKUP: estas velas son de otra cuenta; no se pegan a la serie en pantalla
+                        vivo = false; enCurso = false;
+                        alCambiarFuente(r.source);
+                        return;
+                    }
                     if (vivo) {
                         // ¿llegó algo nuevo? (vela nueva, o la vela en curso cambió con un tick)
                         const nuevo = r.velas.some((v) => (ultimo == null ? v.timestamp + durMs > Date.now() : v.timestamp > ultimo)

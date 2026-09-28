@@ -965,6 +965,8 @@
         // diarias/4H y Zone Engine esperan la 2.ª fase de la sesión (el servidor espera hasta 120 s)
         chartsReplayVelas: (id, timeframe, limit = 500) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/candles?timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`, { timeoutMs: 130000 }),
         chartsReplayZE: (id, inputs = {}) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/zone-engine`, { method: 'POST', body: JSON.stringify({ inputs }), timeoutMs: 130000, intentos: 1 }),
+        // Watchdog / diagnóstico de NLT Charts (solo admin: el servidor lo exige)
+        chartsDiagnostico: (probar = false) => request(`/charts/diagnostics${probar ? '?probar=true' : ''}`, { intentos: 1, timeoutMs: 60000 }),
         chartsReplayPrecalentar: (symbol, timeframe) => request('/charts/replay/prewarm', { method: 'POST', body: JSON.stringify({ symbol, timeframe }), intentos: 1 }),
         chartsReplayCerrar: (id) => request(`/charts/replay/sessions/${encodeURIComponent(id)}`, { method: 'DELETE', intentos: 1 }),
         // Trading desde el gráfico: interfaz preparada; el servidor responde

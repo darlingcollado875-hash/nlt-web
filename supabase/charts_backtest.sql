@@ -21,6 +21,10 @@ create table if not exists public.charts_backtest_presets (
 create index if not exists charts_backtest_presets_user_idx on public.charts_backtest_presets (user_id, updated_at desc);
 
 alter table public.charts_backtest_presets enable row level security;
+alter table public.charts_backtest_presets force row level security;
+-- escribe SOLO el backend (service_role); el usuario, a lo sumo, lee lo suyo (misma línea que charts_pro/charts_layout)
+revoke all on public.charts_backtest_presets from anon;
+revoke insert, update, delete, truncate on public.charts_backtest_presets from authenticated;
 drop policy if exists "presets propios (lectura)" on public.charts_backtest_presets;
 create policy "presets propios (lectura)" on public.charts_backtest_presets
   for select using (auth.uid() = user_id);
@@ -49,6 +53,10 @@ create index if not exists charts_backtest_runs_user_idx on public.charts_backte
 create index if not exists charts_backtest_runs_key_idx on public.charts_backtest_runs (run_key);
 
 alter table public.charts_backtest_runs enable row level security;
+alter table public.charts_backtest_runs force row level security;
+-- escribe SOLO el backend (service_role); el usuario, a lo sumo, lee lo suyo (misma línea que charts_pro/charts_layout)
+revoke all on public.charts_backtest_runs from anon;
+revoke insert, update, delete, truncate on public.charts_backtest_runs from authenticated;
 drop policy if exists "runs propios (lectura)" on public.charts_backtest_runs;
 create policy "runs propios (lectura)" on public.charts_backtest_runs
   for select using (auth.uid() = user_id);
