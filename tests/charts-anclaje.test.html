@@ -28,9 +28,13 @@ El lado del servidor (Zone Engine anclado por timestamp y precio, vela por vela)
 <script src="../assets/js/charts/fluidez.js"></script>
 <script src="../assets/js/charts/replay.js"></script>
 <script src="../assets/js/charts/nlt-ai.js"></script>
+<script src="../assets/js/charts/pine.js"></script>
+<script src="../assets/js/charts/settings.js"></script>
+<script src="../assets/js/charts/unified-suite.js"></script>
 <script>
 (async function () {
   const F = NLTCharts.fluidez;
+  const settingsReal = NLTCharts.settings;                  // el test 11 lo reemplaza por un stub de NLT AI
   const res = [];
   const test = async (nombre, fn) => { try { await fn(); res.push({ nombre, ok: true }); } catch (e) { res.push({ nombre, ok: false, error: String(e && e.message || e) }); } };
   const eq = (a, b, m) => { if (a !== b) throw new Error(`${m || ''} esperado ${JSON.stringify(b)}, obtenido ${JSON.stringify(a)}`); };
@@ -279,6 +283,61 @@ El lado del servidor (Zone Engine anclado por timestamp y precio, vela por vela)
     await esperar(50);
     ok(!slot.innerHTML.includes('VIVO_NO_DEBE_VERSE'), 'se pintó el análisis del vivo dentro del replay');
     ok(/pausa durante el Bar Replay/.test(slot.innerHTML), 'no quedó en pausa');
+  });
+
+  // ── 15: RESET del replay con las velas HTF de la Unified Suite todavía en vuelo (en frío) ──
+  // Unified Suite REAL + replay.js REAL + KLineChart real; la API simulada deja las velas HTF pendientes y
+  // se responden a mano: primero las pedidas ANTES del RESET (contexto viejo), después las nuevas.
+  await test('15. RESET con las velas HTF en vuelo: la Suite vuelve a calcularse sola sobre el dataset del RESET (sin salir y entrar)', async () => {
+    const lienzo3 = document.createElement('div');
+    lienzo3.style.cssText = 'width:900px;height:420px';
+    document.body.appendChild(lienzo3);
+    const ch3 = klinecharts.init(lienzo3);
+    NLTCharts.settings = settingsReal;                      // las entradas reales de la Suite (SMC Bias pide 3 HTF)
+    NLTCharts.ui.tablero = { ajustar() {}, quitar() {}, slot: () => document.createElement('div') };
+    NLTCharts.leyenda = { features: () => [] };
+    NLTCharts.state = NLTCharts.state || { prefs: () => ({}), savePrefs() {} };
+    const htf = [];                                         // pedidos HTF pendientes: {tf, gen, ok}
+    NLTCharts.market.velas = (sym, tf) => new Promise((ok_) => htf.push({ tf, gen: NLTCharts.market.generacion(), ok: ok_ }));
+    const DUR_TF = { '5m': 300000, '15m': M15, '30m': 1800000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
+    const responder = (filtro) => {                         // responde los pedidos que cumplen el filtro (velas de ESE tf)
+      const ya = htf.filter(filtro);
+      ya.forEach((p) => { htf.splice(htf.indexOf(p), 1); const d = DUR_TF[p.tf] || M15; p.ok({ velas: serie(300, T0 - 300 * d + 300 * M15, 1.1).map((v, i) => ({ ...v, timestamp: T0 - (300 - i) * d + 300 * M15 })) }); });
+      return ya.length;
+    };
+    // el motor del gráfico: modoExterno carga el dataset en un KLineChart real (como engine.modoExterno)
+    NLTCharts.app.motor.modoExterno = (d) => {
+      NLTCharts.market.nuevaGeneracion();
+      if (!d) return;
+      ch3.setDataLoader({ getBars: ({ callback }) => callback(d.velas, false) });
+      ch3.resetData();
+    };
+    NLTCharts.unified.registrar();
+    NLTCharts.unified.setContexto({ symbol: 'EURUSD', pricePrecision: 5 });
+    ch3.setSymbol({ ticker: 'EURUSD', pricePrecision: 5 }); ch3.setPeriod({ type: 'minute', span: 15 });
+    ch3.createIndicator('NLT_UNIFIED', true, { id: 'candle_pane' });
+    const velasSes = (n) => serie(n).map((v) => [v.timestamp, v.open, v.high, v.low, v.close, 1]);
+    const sesA = { id: 'sReset', symbol: 'EURUSD', timeframe: '15m', cursor_ts: T0 + 299 * M15, has_more: true, price_precision: 5, candles: velasSes(300) };
+    R.iniciar('EURUSD', '15m', T0 + 299 * M15); await tick(); toma('crear').ok(sesA);
+    await hastaQue(() => htf.length > 0, 8000).catch(() => {});
+    ok(htf.length > 0, 'la Suite no pidió velas HTF (el escenario no se reprodujo)');
+    // RESET con esas velas HTF todavía en vuelo
+    const pr = R.reiniciar(); await tick();
+    toma('reset').ok({ ...sesA, cursor_ts: T0 + 249 * M15, candles: velasSes(250) }); await pr;
+    await hastaQue(() => ch3.getDataList().length === 250, 8000).catch(() => {});
+    eq(ch3.getDataList().length, 250, 'el RESET no volvió al cursor de partida');
+    const genReset = NLTCharts.market.generacion();
+    await hastaQue(() => htf.some((p) => p.gen === genReset), 8000).catch(() => {});
+    ok(htf.some((p) => p.gen === genReset), 'después del RESET la Suite no volvió a pedir las velas HTF');
+    // llegan primero las respuestas del contexto viejo (se descartan y se re-piden) y después las nuevas
+    responder((p) => p.gen !== genReset); await esperar(50);
+    for (let i = 0; i < 40; i++) { responder(() => true); await esperar(60); }      // la Suite pide sus 3 HTF de a una
+    const idSuite = ch3.getIndicators().find((i) => i.name === 'NLT_UNIFIED').id;
+    const valida = () => { const s0 = NLTCharts.unified.salidaActual(idSuite); return !!s0 && F.firmaValida(s0.firma, ch3.getDataList()); };
+    await hastaQue(valida, 8000).catch(() => {});
+    ok(valida(), 'la Suite quedó con el resultado del contexto viejo (no se dibuja hasta salir y entrar al replay)');
+    eq(NLTCharts.unified.salidaActual(idSuite).velas.length, 250, 'la salida de la Suite no es la del dataset del RESET');
+    R.salir();
   });
 
   const pasaron = res.filter((r) => r.ok).length;

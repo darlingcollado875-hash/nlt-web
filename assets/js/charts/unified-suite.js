@@ -152,7 +152,7 @@
                 if (gen !== genHTF) return velasHTF(tfNLT);          // llegó tarde: se vuelve a pedir a la fuente actual
                 cacheHTF.set(k, { t: Date.now(), v: r.velas }); return r.velas;
             }, (err) => { if (gen === genHTF) cacheHTF.set(k, { t: Date.now(), error: err }); throw err; })
-            .finally(() => htfEnVuelo.delete(k));
+            .finally(() => { if (htfEnVuelo.get(k) === pedido) htfEnVuelo.delete(k); });   // no borra el pedido nuevo (tras un RESET)
         htfEnVuelo.set(k, pedido);
         return pedido;
     }
@@ -771,6 +771,7 @@
 
     // ─────────────────────────────── registro en el motor ───────────────────────────────
     const salidas = new Map();
+    const turnos = new Map();   // último cálculo EMPEZADO por indicador
     let omitidasSuite = 0;   // dibujos omitidos por ser de otro dataset (diagnóstico / tests)
     let registrado = false;
     function registrar() {
@@ -785,9 +786,15 @@
             calc: async (dataList, indicator) => {
                 // firma del dataset AL EMPEZAR: el cálculo es asíncrono (velas HTF) y mientras tanto el
                 // gráfico puede cambiar de dataset (replay, reset, timeframe, historia cargada a la izquierda)
+                const id = indicator.id || ID;
+                const turno = (turnos.get(id) || 0) + 1;
+                turnos.set(id, turno);
                 const firma = NLTCharts.fluidez ? NLTCharts.fluidez.firmaDe(dataList) : null;
-                const salida = await calcularIncremental(indicator.id || ID, dataList, NLTCharts.settings.valores(ID));
-                salidas.set(indicator.id || ID, { salida, velas: dataList, firma });
+                const salida = await calcularIncremental(id, dataList, NLTCharts.settings.valores(ID));
+                // Mientras este cálculo esperaba las velas HTF empezó otro más nuevo (RESET / NEXT / timeframe
+                // del replay): este es de un dataset viejo y no pisa al nuevo. Si terminaba último, la Suite
+                // quedaba sin dibujarse (firma vieja) hasta salir y volver a entrar al replay.
+                if (turno === turnos.get(id)) salidas.set(id, { salida, velas: dataList, firma });
                 // No hace falta pedir redibujado: al terminar un calc async el motor ya
                 // llama a layout({ update: true }). (Forzarlo con overrideIndicator
                 // causaba un bucle de recálculos: medido con diag.js.)
