@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>Coordina Desk · NLT</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/bold/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        /* Mismo chrome que admin.html (fondo, glass-card, sidebar mobile). El
+           tailwind.css del sitio está compilado y no incluye clases nuevas, así
+           que todo lo propio de esta página va en clases cd-* (aquí abajo). */
+        html { overflow-x: hidden; }
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) { #sidebar { transition: none; } }
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 24px; }
+        .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.03); border-radius: 16px; }
+        ::-webkit-scrollbar { width: 0px; height: 0px; background: transparent; }
+        .tab-admin { padding: 10px 16px; border-radius: 10px; font-size: 13px; font-weight: 600; color: #9CA3AF; white-space: nowrap; transition: all .2s; cursor: pointer; }
+        .tab-admin:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tab-admin.activo { color: #4378FF; background: rgba(67,120,255,0.1); }
+
+        /* --- Coordina Desk --- */
+        .cd-wrap { max-width: 1280px; margin: 0 auto; }
+        .cd-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 18px; }
+        .cd-grow { flex: 1 1 auto; }
+        .cd-input, .cd-select, .cd-textarea { background: #11151C; border: 1px solid rgba(255,255,255,0.08); color: #fff; border-radius: 12px; padding: 10px 12px; font-size: 13px; width: 100%; outline: none; transition: border-color .15s; font-family: inherit; }
+        .cd-input:focus, .cd-select:focus, .cd-textarea:focus { border-color: #4378FF; }
+        .cd-select option { background: #11151C; color: #fff; }
+        .cd-textarea { min-height: 84px; resize: vertical; }
+        .cd-bar .cd-input, .cd-bar .cd-select { width: auto; min-width: 150px; }
+        .cd-btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border-radius: 12px; font-size: 13px; font-weight: 600; cursor: pointer; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.05); color: #fff; transition: all .15s; white-space: nowrap; }
+        .cd-btn:hover { background: rgba(255,255,255,0.1); }
+        .cd-btn.primary { background: #4378FF; border-color: #4378FF; }
+        .cd-btn.primary:hover { background: #5a89ff; }
+        .cd-btn.danger { color: #f87171; }
+        .cd-btn.sm { padding: 6px 10px; font-size: 12px; border-radius: 9px; }
+        .cd-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 18px; }
+        .cd-kpi { padding: 16px 18px; }
+        .cd-kpi b { display: block; font-size: 24px; font-weight: 800; letter-spacing: -0.02em; margin-top: 4px; font-family: Geist, Inter, sans-serif; }
+        .cd-lbl { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6B7280; }
+        .cd-tone-ok { color: #22C55E; } .cd-tone-warn { color: #F59E0B; } .cd-tone-bad { color: #f87171; } .cd-tone-info { color: #4378FF; } .cd-tone-vio { color: #a78bfa; } .cd-tone-mute { color: #9CA3AF; }
+        .cd-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: 11px; font-weight: 600; background: rgba(255,255,255,0.06); white-space: nowrap; }
+        .cd-badge.cd-tone-ok { background: rgba(34,197,94,.12); } .cd-badge.cd-tone-warn { background: rgba(245,158,11,.12); } .cd-badge.cd-tone-bad { background: rgba(248,113,113,.12); } .cd-badge.cd-tone-info { background: rgba(67,120,255,.14); } .cd-badge.cd-tone-vio { background: rgba(167,139,250,.14); }
+        .cd-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+        .cd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .cd-table th { text-align: left; padding: 12px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6B7280; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+        .cd-table td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        .cd-table tr:last-child td { border-bottom: none; }
+        .cd-table tbody tr:hover { background: rgba(255,255,255,0.025); }
+        .cd-scroll { overflow-x: auto; }
+        .cd-sub { color: #6B7280; font-size: 12px; margin-top: 2px; }
+        .cd-empty { padding: 56px 20px; text-align: center; color: #6B7280; font-size: 13px; }
+        .cd-empty i { display: block; font-size: 34px; margin-bottom: 10px; color: #374151; }
+        .cd-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+        .cd-card { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
+        .cd-card h3 { font-size: 15px; font-weight: 700; line-height: 1.3; }
+        .cd-card p { font-size: 12.5px; color: #9CA3AF; line-height: 1.5; }
+        .cd-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+        .cd-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
+        .cd-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 6px; }
+        .cd-col { padding: 14px; min-height: 160px; }
+        .cd-col h4 { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 12px; }
+        .cd-col .glass-item { padding: 12px; margin-bottom: 10px; cursor: pointer; }
+        .cd-col .glass-item:hover { border-color: rgba(67,120,255,.4); }
+        .cd-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 18px; }
+        .cd-day { padding: 10px 6px; text-align: center; border-radius: 14px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); transition: all .15s; }
+        .cd-day:hover { background: rgba(255,255,255,0.06); }
+        .cd-day.sel { background: rgba(67,120,255,.14); border-color: #4378FF; }
+        .cd-day.hoy b { color: #4378FF; }
+        .cd-day small { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: #6B7280; font-weight: 700; }
+        .cd-day b { display: block; font-size: 18px; margin: 2px 0; font-family: Geist, Inter, sans-serif; }
+        .cd-day i { font-style: normal; font-size: 10px; color: #9CA3AF; }
+        .cd-item { display: flex; gap: 12px; padding: 14px 16px; align-items: flex-start; }
+        .cd-item + .cd-item { margin-top: 8px; }
+        .cd-time { width: 54px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: #9CA3AF; padding-top: 2px; font-variant-numeric: tabular-nums; }
+        .cd-check { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid rgba(255,255,255,0.25); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; color: transparent; }
+        .cd-check.on { background: #22C55E; border-color: #22C55E; color: #fff; }
+        .cd-done { opacity: .5; } .cd-done .cd-title { text-decoration: line-through; }
+        .cd-title { font-size: 14px; font-weight: 600; }
+        .cd-week { display: grid; grid-template-columns: repeat(7, minmax(150px, 1fr)); gap: 10px; overflow-x: auto; }
+        .cd-wcol { padding: 12px; min-height: 180px; }
+        .cd-chip { display: block; width: 100%; text-align: left; padding: 8px 10px; border-radius: 10px; background: rgba(255,255,255,0.04); margin-top: 6px; font-size: 12px; cursor: pointer; border: 1px solid transparent; border-left-width: 3px; color: #fff; }
+        .cd-chip:hover { background: rgba(255,255,255,0.08); }
+        .cd-seg { display: inline-flex; background: #11151C; border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 3px; }
+        .cd-seg button { padding: 7px 14px; font-size: 12px; font-weight: 600; border-radius: 9px; color: #9CA3AF; cursor: pointer; }
+        .cd-seg button.on { background: rgba(67,120,255,.18); color: #4378FF; }
+        /* modal */
+        .cd-overlay { position: fixed; inset: 0; background: rgba(4,6,10,.75); backdrop-filter: blur(6px); z-index: 80; display: flex; align-items: flex-start; justify-content: center; padding: 4vh 16px; overflow-y: auto; }
+        .cd-modal { width: 100%; max-width: 720px; padding: 26px; background: #0D1016; border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; }
+        .cd-modal h2 { font-size: 18px; font-weight: 800; font-family: Geist, Inter, sans-serif; }
+        .cd-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 18px 0; }
+        .cd-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .cd-field.full { grid-column: 1 / -1; }
+        .cd-field > label { font-size: 11px; font-weight: 700; color: #9CA3AF; }
+        .cd-field > label em { color: #f87171; font-style: normal; }
+        .cd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+        .cd-chips label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; cursor: pointer; }
+        .cd-chips input:checked + span { color: #4378FF; font-weight: 700; }
+        .cd-sub-rows { display: flex; flex-direction: column; gap: 8px; }
+        .cd-subrow { display: grid; gap: 8px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.04); }
+        .cd-checkrow { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding-top: 6px; }
+        .cd-foot { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+        .cd-toast { position: fixed; bottom: 24px; right: 24px; z-index: 90; padding: 12px 18px; border-radius: 14px; background: #11151C; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width: 360px; }
+        .cd-toast.err { border-color: rgba(248,113,113,.5); color: #fca5a5; }
+        .cd-toast.ok { border-color: rgba(34,197,94,.4); }
+        .cd-detail { white-space: pre-wrap; font-size: 13px; color: #D1D5DB; line-height: 1.55; }
+        @media (max-width: 767px) {
+            .cd-form { grid-template-columns: 1fr; }
+            .cd-modal { padding: 18px; }
+            .cd-bar .cd-input, .cd-bar .cd-select { flex: 1 1 130px; }
+            .cd-days { gap: 4px; }
+            .cd-day { padding: 8px 2px; }
+            .cd-time { width: 44px; }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden">
+
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="h-24 flex items-center justify-between pl-20 pr-10 md:px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <div>
+                <p class="text-[10px] font-bold text-yellow-400 uppercase tracking-widest mb-0.5">Espacio de administración</p>
+                <h1 class="text-2xl font-bold tracking-tight">Coordina Desk</h1>
+            </div>
+            <div class="flex items-center gap-3">
+                <span id="cdSync" class="cd-lbl hidden md:inline"></span>
+                <button id="cdRefresh" class="cd-btn sm" title="Actualizar datos"><i class="ph ph-arrows-clockwise"></i><span class="hidden md:inline">Actualizar</span></button>
+            </div>
+        </header>
+
+        <nav id="cdTabs" class="flex items-center flex-nowrap md:flex-wrap gap-x-1.5 md:gap-x-1 gap-y-2 overflow-x-auto md:overflow-visible px-4 md:px-10 py-3 border-b border-white/5 shrink-0"></nav>
+
+        <div class="flex-1 min-w-0 overflow-y-auto p-4 md:p-10">
+            <div id="cdContent" class="cd-wrap"></div>
+        </div>
+    </main>
+
+    <div id="cdModalRoot"></div>
+    <div id="cdToastRoot"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
+    <script src="assets/js/nlt-api-client.js?v=a90795b4"></script>
+    <script>
+    (function () {
+        'use strict';
+
+        // ------------------------------------------------------------------
+        // Utilidades
+        // ------------------------------------------------------------------
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const uid = (p) => p + '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+        const clone = (o) => JSON.parse(JSON.stringify(o));
+        const pad = (n) => String(n).padStart(2, '0');
+        const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+        const hoy = () => ymd(new Date());
+        const parseYmd = (s) => { const [y, m, d] = String(s).split('-').map(Number); return new Date(y, (m || 1) - 1, d || 1); };
+        const addDays = (s, n) => { const d = parseYmd(s); d.setDate(d.getDate() + n); return ymd(d); };
+        const fmtDate = (s) => { if (!s) return '—'; const [y, m, d] = String(s).slice(0, 10).split('-'); return d ? `${d}/${m}/${y}` : esc(s); };
+        const DIAS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+        const MESES = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        const money = (n) => new Intl.NumberFormat('es', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(Number(n) || 0);
+        const num = (v) => (v === '' || v == null || isNaN(Number(v)) ? undefined : Number(v));
+        const lower = (s) => String(s ?? '').toLowerCase();
+        const diasHasta = (s) => Math.round((parseYmd(s) - parseYmd(hoy())) / 86400000);
+
+        // ------------------------------------------------------------------
+        // Catálogos
+        // ------------------------------------------------------------------
+        const DEPTS = [
+            { id: 'dept-afiliados', name: 'Afiliados', color: '#0ea5e9' },
+            { id: 'dept-finanzas', name: 'Finanzas', color: '#22C55E' },
+            { id: 'dept-marketing', name: 'Marketing', color: '#F59E0B' },
+            { id: 'dept-programacion', name: 'Programación', color: '#6366f1' },
+            { id: 'dept-informes', name: 'Informes', color: '#06b6d4' },
+            { id: 'dept-academia', name: 'Academia', color: '#8b5cf6' },
+            { id: 'dept-reuniones', name: 'Reuniones', color: '#a78bfa' },
+        ];
+        const dept = (id) => DEPTS.find((d) => d.id === id);
+        const deptOpts = () => DEPTS.map((d) => ({ v: d.id, l: d.name }));
+        const O = (pairs) => pairs.map(([v, l, tone]) => ({ v, l, tone }));
+        const AVATAR_COLORS = ['#4378FF', '#22C55E', '#F59E0B', '#a78bfa', '#06b6d4', '#ef4444', '#ec4899'];
+
+        // ------------------------------------------------------------------
+        // Estado
+        // ------------------------------------------------------------------
+        const S = { team: [], items: [], affiliates: [], meetings: [], contracts: [], payments: [], publications: [], launches: [], devChanges: [], academyClasses: [], reports: [] };
+        const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7) };
+        let SESSION = null;
+        let pendingSaves = 0;
+        let modalOpen = false;
+
+        const member = (id) => S.team.find((m) => m.id === id);
+        const mname = (id) => (member(id) ? member(id).name : '—');
+        const memberOpts = () => S.team.filter((m) => m.active !== false).map((m) => ({ v: m.id, l: m.name }));
+        const affiliateOpts = () => S.affiliates.map((a) => ({ v: a.id, l: `${a.affiliateCode || ''} · ${a.fullName}` }));
+        const initials = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
+
+        // ------------------------------------------------------------------
+        // Definición de módulos (motor genérico)
+        //   t: text|textarea|date|time|number|money|select|dept|member|members|affiliate|tags|check|url|email|tel|rows
+        // ------------------------------------------------------------------
+        const ST_AFF = O([['active', 'Activo', 'ok'], ['pending', 'Pendiente', 'warn'], ['inactive', 'Inactivo', 'mute']]);
+        const ST_PAY = O([['paid', 'Pagado', 'ok'], ['processing', 'En proceso', 'info'], ['pending', 'Pendiente', 'warn']]);
+        const ST_CONTRACT = O([['vigente', 'Vigente', 'ok'], ['por_vencer', 'Por vencer', 'warn'], ['vencido', 'Vencido', 'bad'], ['rescindido', 'Rescindido', 'mute']]);
+        const ST_MKT = O([['borrador', 'Borrador', 'mute'], ['en_revision', 'En revisión', 'warn'], ['programado', 'Programado', 'info'], ['publicado', 'Publicado', 'ok']]);
+        const ST_LAUNCH = O([['planificado', 'Planificado', 'mute'], ['en_cuenta_regresiva', 'Cuenta regresiva', 'warn'], ['lanzado', 'Lanzado', 'ok'], ['pospuesto', 'Pospuesto', 'bad']]);
+        const ST_DEV = O([['pendiente', 'Pendiente', 'warn'], ['en_progreso', 'En progreso', 'info'], ['resuelto', 'Resuelto', 'ok'], ['desplegado', 'Desplegado', 'vio']]);
+        const ST_ACAD = O([['planificada', 'Planificada', 'mute'], ['grabada', 'Grabada', 'info'], ['en_edicion', 'En edición', 'warn'], ['lista_para_subir', 'Lista para subir', 'vio'], ['subida', 'Subida', 'ok'], ['cancelada', 'Cancelada', 'bad']]);
+        const ST_ITEM = O([['pending', 'Pendiente', 'warn'], ['in_progress', 'En curso', 'info'], ['completed', 'Completada', 'ok']]);
+        const PRIO_ITEM = O([['high', 'Alta', 'bad'], ['medium', 'Media', 'warn'], ['normal', 'Normal', 'mute']]);
+        const TYPE_ITEM = O([['task', 'Tarea'], ['meeting', 'Reunión'], ['reminder', 'Recordatorio']]);
+        const LEAD = O([['none', 'Sin recordatorio'], ['at_time', 'A la hora'], ['15_min', '15 min antes'], ['30_min', '30 min antes'], ['1_hour', '1 hora antes'], ['2_hours', '2 horas antes'], ['1_day', '1 día antes']]);
+        const LEAD_MIN = { at_time: 0, '15_min': 15, '30_min': 30, '1_hour': 60, '2_hours': 120, '1_day': 1440 };
+
+        // Estado efectivo de un contrato: rescindido manda; si no, se calcula por fechas.
+        function estadoContrato(c) {
+            if (c.status === 'rescindido') return 'rescindido';
+            if (c.isIndefinite || !c.endDate) return 'vigente';
+            const d = diasHasta(c.endDate);
+            return d < 0 ? 'vencido' : d <= 30 ? 'por_vencer' : 'vigente';
+        }
+
+        const MODS = {
+            daily: { label: 'Agenda', icon: 'ph-calendar-check', custom: true },
+
+            team: {
+                label: 'Mi Equipo', icon: 'ph-users-three', col: 'team', singular: 'miembro', view: 'cards', newLabel: 'Nuevo miembro', empty: 'Aún no hay miembros en el equipo.',
+                fields: [
+                    { k: 'name', l: 'Nombre completo', t: 'text', req: 1 }, { k: 'role', l: 'Cargo', t: 'text', req: 1 },
+                    { k: 'departmentId', l: 'Departamento', t: 'dept' }, { k: 'email', l: 'Correo', t: 'email' },
+                    { k: 'phone', l: 'Teléfono', t: 'tel' }, { k: 'active', l: 'Miembro activo', t: 'check', def: true },
+                    { k: 'bio', l: 'Notas / bio', t: 'textarea', full: 1 },
+                ],
+                search: ['name', 'role', 'email'],
+                kpis: (r) => [['Miembros', r.length], ['Activos', r.filter((m) => m.active !== false).length, 'ok'], ['Departamentos', new Set(r.map((m) => m.departmentId).filter(Boolean)).size]],
+                sort: (a, b) => lower(a.name).localeCompare(lower(b.name)),
+                card: (r, i) => ({ avatar: [r.name, AVATAR_COLORS[i % AVATAR_COLORS.length]], title: r.name, sub: r.role, lines: [r.email, r.phone].filter(Boolean), badge: r.active === false ? ['Inactivo', 'mute'] : (dept(r.departmentId) ? [dept(r.departmentId).name, 'info'] : null) }),
+                before: (r) => { r.avatarInitials = initials(r.name); },
+                report: { date: null, cols: [['Nombre', 'name'], ['Cargo', 'role'], ['Departamento', (r) => (dept(r.departmentId) || {}).name || ''], ['Correo', 'email'], ['Teléfono', 'phone'], ['Activo', (r) => (r.active === false ? 'No' : 'Sí')]] },
+            },
+
+            affiliates: {
+                label: 'Afiliados', icon: 'ph-share-network', col: 'affiliates', singular: 'afiliado', newLabel: 'Nuevo afiliado', empty: 'Aún no hay afiliados registrados.',
+                fields: [
+                    { k: 'fullName', l: 'Nombre completo', t: 'text', req: 1 }, { k: 'affiliateCode', l: 'Código de afiliado', t: 'text', req: 1 },
+                    { k: 'email', l: 'Correo', t: 'email' }, { k: 'phone', l: 'Teléfono', t: 'tel' },
+                    { k: 'joinDate', l: 'Fecha de ingreso', t: 'date', def: () => hoy() }, { k: 'status', l: 'Estado', t: 'select', opts: ST_AFF, def: 'active' },
+                    { k: 'communityGroup', l: 'Comunidad / grupo', t: 'text' }, { k: 'discountCode', l: 'Código de descuento', t: 'text' },
+                    { k: 'commissionRate', l: 'Comisión acordada', t: 'text', ph: 'Ej: 15% por venta neta' }, { k: 'paymentMethod', l: 'Método de cobro', t: 'text', ph: 'SPEI, PayPal, Stripe…' },
+                    { k: 'paidAmount', l: 'Pagado (USD)', t: 'number', def: 0 }, { k: 'pendingAmount', l: 'Pendiente (USD)', t: 'number', def: 0 },
+                    { k: 'plans', l: 'Planes contratados', t: 'rows', full: 1, add: 'Añadir plan', sub: [{ k: 'name', l: 'Plan', t: 'text' }, { k: 'price', l: 'Precio', t: 'number' }], grid: '1fr 110px' },
+                    { k: 'agreedConditions', l: 'Condiciones acordadas', t: 'textarea', full: 1 },
+                    { k: 'contractUrl', l: 'Enlace al contrato firmado (Drive)', t: 'url', full: 1 },
+                    { k: 'observations', l: 'Observaciones', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusOpts: ST_AFF, search: ['fullName', 'email', 'affiliateCode', 'communityGroup'],
+                cols: [['Afiliado', (r) => `<b>${esc(r.fullName)}</b><div class="cd-sub">${esc(r.affiliateCode || '')} · ${esc(r.email || '')}</div>`], ['Estado', 'badge:status'], ['Comisión', (r) => esc(r.commissionRate || '—')], ['Ingreso', (r) => fmtDate(r.joinDate)], ['Pagado', (r) => money(r.paidAmount)], ['Pendiente', (r) => `<span class="${r.pendingAmount > 0 ? 'cd-tone-warn' : ''}">${money(r.pendingAmount)}</span>`]],
+                kpis: (r) => [['Afiliados', r.length], ['Activos', r.filter((a) => a.status === 'active').length, 'ok'], ['Pagado', money(r.reduce((s, a) => s + (a.paidAmount || 0), 0)), 'ok'], ['Pendiente', money(r.reduce((s, a) => s + (a.pendingAmount || 0), 0)), 'warn']],
+                sort: (a, b) => lower(a.fullName).localeCompare(lower(b.fullName)),
+                before: (r) => { r.plans = (r.plans || []).filter((p) => p.name); r.totalPlansValue = r.plans.reduce((s, p) => s + (p.price || 0), 0); r.contractedPlans = r.plans.map((p) => p.name); },
+                detail: (r) => [['Código', r.affiliateCode], ['Correo', r.email], ['Teléfono', r.phone], ['Ingreso', fmtDate(r.joinDate)], ['Comunidad', r.communityGroup], ['Código descuento', r.discountCode], ['Comisión', r.commissionRate], ['Método de cobro', r.paymentMethod], ['Planes', (r.plans || []).map((p) => `${p.name} (${money(p.price)})`).join(', ')], ['Valor total planes', money(r.totalPlansValue)], ['Pagado', money(r.paidAmount)], ['Pendiente', money(r.pendingAmount)], ['Condiciones', r.agreedConditions], ['Contrato', r.contractUrl], ['Observaciones', r.observations]],
+                report: { date: 'joinDate', status: 'status', sums: [['Pagado', 'paidAmount'], ['Pendiente', 'pendingAmount']], cols: [['Código', 'affiliateCode'], ['Nombre', 'fullName'], ['Correo', 'email'], ['Estado', 'status'], ['Ingreso', 'joinDate'], ['Comisión', 'commissionRate'], ['Pagado', 'paidAmount'], ['Pendiente', 'pendingAmount']] },
+            },
+
+            finance: {
+                label: 'Finanzas', icon: 'ph-currency-dollar', col: 'payments', singular: 'pago', newLabel: 'Registrar pago', empty: 'Aún no hay pagos ni comisiones registrados.',
+                fields: [
+                    { k: 'affiliateId', l: 'Afiliado', t: 'affiliate', req: 1 }, { k: 'concept', l: 'Concepto', t: 'text', req: 1 },
+                    { k: 'paymentType', l: 'Tipo', t: 'select', opts: O([['commission', 'Comisión'], ['bonus', 'Bono'], ['plan_payment', 'Pago de plan'], ['adjustment', 'Ajuste']]), def: 'commission' },
+                    { k: 'status', l: 'Estado', t: 'select', opts: ST_PAY, def: 'pending' },
+                    { k: 'commissionRate', l: 'Tasa', t: 'text', ph: 'Ej: 18%' }, { k: 'paymentMethod', l: 'Método de pago', t: 'text' },
+                    { k: 'salesCount', l: 'Ventas referidas', t: 'number' }, { k: 'salesVolume', l: 'Volumen de ventas (USD)', t: 'number' },
+                    { k: 'commissionEarned', l: 'Comisión generada', t: 'number', def: 0 }, { k: 'amountPaid', l: 'Pagado', t: 'number', def: 0 },
+                    { k: 'amountPending', l: 'Pendiente', t: 'number', def: 0 }, { k: 'transactionRef', l: 'Referencia / comprobante', t: 'text' },
+                    { k: 'dueDate', l: 'Fecha de corte', t: 'date' }, { k: 'paymentDate', l: 'Fecha de pago', t: 'date' },
+                    { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusOpts: ST_PAY, search: ['affiliateName', 'affiliateCode', 'concept', 'transactionRef'],
+                cols: [['Afiliado', (r) => `<b>${esc(r.affiliateName || '—')}</b><div class="cd-sub">${esc(r.affiliateCode || '')}</div>`], ['Concepto', (r) => esc(r.concept)], ['Estado', 'badge:status'], ['Generada', (r) => money(r.commissionEarned)], ['Pagado', (r) => money(r.amountPaid)], ['Pendiente', (r) => `<span class="${r.amountPending > 0 ? 'cd-tone-warn' : ''}">${money(r.amountPending)}</span>`], ['Corte', (r) => fmtDate(r.dueDate)]],
+                kpis: (r) => [['Pagos', r.length], ['Generado', money(r.reduce((s, p) => s + (p.commissionEarned || 0), 0))], ['Pagado', money(r.reduce((s, p) => s + (p.amountPaid || 0), 0)), 'ok'], ['Pendiente', money(r.reduce((s, p) => s + (p.amountPending || 0), 0)), 'warn']],
+                sort: (a, b) => String(b.dueDate || b.createdAt || '').localeCompare(String(a.dueDate || a.createdAt || '')),
+                before: (r) => { const a = S.affiliates.find((x) => x.id === r.affiliateId); if (a) { r.affiliateName = a.fullName; r.affiliateCode = a.affiliateCode; r.joinDate = a.joinDate; } },
+                report: { date: 'dueDate', status: 'status', sums: [['Generado', 'commissionEarned'], ['Pagado', 'amountPaid'], ['Pendiente', 'amountPending']], cols: [['Afiliado', 'affiliateName'], ['Código', 'affiliateCode'], ['Concepto', 'concept'], ['Tipo', 'paymentType'], ['Estado', 'status'], ['Generada', 'commissionEarned'], ['Pagado', 'amountPaid'], ['Pendiente', 'amountPending'], ['Corte', 'dueDate'], ['Pago', 'paymentDate'], ['Referencia', 'transactionRef']] },
+            },
+
+            contracts: {
+                label: 'Contratos', icon: 'ph-file-text', col: 'contracts', singular: 'contrato', newLabel: 'Nuevo contrato', empty: 'Aún no hay contratos registrados.',
+                fields: [
+                    { k: 'contractCode', l: 'Código', t: 'text', req: 1, ph: 'CT-2026-001', def: () => 'CT-' + new Date().getFullYear() + '-' + pad(S.contracts.length + 1).padStart(3, '0') }, { k: 'title', l: 'Título', t: 'text', req: 1 },
+                    { k: 'contractType', l: 'Tipo de contrato', t: 'select', opts: O([['affiliate', 'Afiliado'], ['team_member', 'Miembro del equipo'], ['special', 'Especial'], ['provider', 'Proveedor'], ['nda', 'NDA']]), def: 'affiliate' },
+                    { k: 'holderType', l: 'Tipo de titular', t: 'select', opts: O([['affiliate', 'Afiliado'], ['team_member', 'Equipo'], ['external', 'Externo']]), def: 'external' },
+                    { k: 'holderName', l: 'Titular', t: 'text', req: 1 }, { k: 'holderRole', l: 'Cargo / actividad', t: 'text' },
+                    { k: 'startDate', l: 'Inicio de vigencia', t: 'date', def: () => hoy() }, { k: 'endDate', l: 'Vencimiento', t: 'date' },
+                    { k: 'isIndefinite', l: 'Vigencia indefinida', t: 'check' }, { k: 'status', l: 'Estado manual', t: 'select', opts: O([['vigente', 'Automático (por fechas)'], ['rescindido', 'Rescindido']]), def: 'vigente' },
+                    { k: 'isSpecial', l: 'Contrato especial a medida', t: 'check' }, { k: 'fileUrl', l: 'Enlace al PDF (Drive)', t: 'url' },
+                    { k: 'specialTerms', l: 'Cláusulas especiales', t: 'textarea', full: 1 },
+                    { k: 'modifications', l: 'Modificaciones / adendas', t: 'rows', full: 1, add: 'Añadir modificación', sub: [{ k: 'date', l: 'Fecha', t: 'date' }, { k: 'changedFields', l: 'Qué cambió', t: 'text' }, { k: 'reason', l: 'Motivo', t: 'text' }, { k: 'authorizedBy', l: 'Autorizó', t: 'text' }], grid: '130px 1fr 1fr 130px' },
+                    { k: 'notes', l: 'Observaciones', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusFn: estadoContrato, statusOpts: ST_CONTRACT, search: ['contractCode', 'title', 'holderName', 'holderRole'],
+                cols: [['Contrato', (r) => `<b>${esc(r.title)}</b><div class="cd-sub">${esc(r.contractCode || '')}</div>`], ['Titular', (r) => `${esc(r.holderName)}<div class="cd-sub">${esc(r.holderRole || '')}</div>`], ['Estado', 'badge:status'], ['Inicio', (r) => fmtDate(r.startDate)], ['Vence', (r) => (r.isIndefinite || !r.endDate ? 'Indefinido' : fmtDate(r.endDate))]],
+                kpis: (r) => [['Contratos', r.length], ['Vigentes', r.filter((c) => estadoContrato(c) === 'vigente').length, 'ok'], ['Por vencer', r.filter((c) => estadoContrato(c) === 'por_vencer').length, 'warn'], ['Vencidos', r.filter((c) => estadoContrato(c) === 'vencido').length, 'bad']],
+                sort: (a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')),
+                before: (r) => { r.modifications = (r.modifications || []).filter((m) => m.changedFields || m.reason); r.isModified = r.modifications.length > 0; if (r.isIndefinite) r.endDate = ''; },
+                detail: (r) => [['Código', r.contractCode], ['Tipo', r.contractType], ['Titular', `${r.holderName} ${r.holderRole ? '(' + r.holderRole + ')' : ''}`], ['Vigencia', `${fmtDate(r.startDate)} → ${r.isIndefinite || !r.endDate ? 'Indefinida' : fmtDate(r.endDate)}`], ['Cláusulas especiales', r.specialTerms], ['Modificaciones', (r.modifications || []).map((m) => `${fmtDate(m.date)}: ${m.changedFields}${m.reason ? ' — ' + m.reason : ''}`).join('\n')], ['PDF', r.fileUrl], ['Observaciones', r.notes]],
+                report: { date: 'startDate', status: (r) => estadoContrato(r), cols: [['Código', 'contractCode'], ['Título', 'title'], ['Titular', 'holderName'], ['Tipo', 'contractType'], ['Estado', (r) => estadoContrato(r)], ['Inicio', 'startDate'], ['Vence', (r) => (r.isIndefinite ? 'Indefinido' : r.endDate || '')]] },
+            },
+
+            meetings: {
+                label: 'Reuniones', icon: 'ph-notebook', col: 'meetings', singular: 'minuta', view: 'cards', newLabel: 'Nueva minuta', empty: 'Aún no hay minutas de reuniones.',
+                fields: [
+                    { k: 'topic', l: 'Tema de la reunión', t: 'text', req: 1, full: 1 }, { k: 'date', l: 'Fecha', t: 'date', req: 1, def: () => hoy() },
+                    { k: 'time', l: 'Hora', t: 'time' }, { k: 'durationMinutes', l: 'Duración (min)', t: 'number' },
+                    { k: 'attendees', l: 'Asistentes', t: 'members', full: 1 },
+                    { k: 'summary', l: 'Resumen', t: 'textarea', full: 1 }, { k: 'keyDecisions', l: 'Decisiones clave', t: 'textarea', full: 1 },
+                    { k: 'actionItems', l: 'Tareas y acuerdos', t: 'rows', full: 1, add: 'Añadir tarea', sub: [{ k: 'task', l: 'Tarea', t: 'text' }, { k: 'assigneeId', l: 'Responsable', t: 'member' }, { k: 'dueDate', l: 'Fecha límite', t: 'date' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 170px 140px 70px' },
+                    { k: 'nextScheduled', l: 'Programar próxima reunión', t: 'check' }, { k: 'nextDate', l: 'Fecha próxima', t: 'date' },
+                    { k: 'nextTime', l: 'Hora próxima', t: 'time' }, { k: 'nextObjective', l: 'Objetivo de la próxima', t: 'text' },
+                ],
+                search: ['topic', 'summary', 'keyDecisions'],
+                kpis: (r) => { const ai = r.flatMap((m) => m.actionItems || []); return [['Minutas', r.length], ['Tareas abiertas', ai.filter((a) => !a.completed).length, 'warn'], ['Tareas hechas', ai.filter((a) => a.completed).length, 'ok'], ['Próximas', r.filter((m) => m.nextScheduled && m.nextDate >= hoy()).length, 'info']]; },
+                sort: (a, b) => String(b.date || '').localeCompare(String(a.date || '')),
+                card: (r) => { const ai = r.actionItems || []; const hechas = ai.filter((a) => a.completed).length; return { title: r.topic, sub: `${fmtDate(r.date)}${r.time ? ' · ' + r.time : ''}${r.durationMinutes ? ' · ' + r.durationMinutes + ' min' : ''}`, lines: [(r.attendees || []).length ? 'Asistentes: ' + (r.attendees || []).map(mname).join(', ') : '', r.summary ? String(r.summary).slice(0, 140) + (r.summary.length > 140 ? '…' : '') : ''].filter(Boolean), badge: ai.length ? [`${hechas}/${ai.length} tareas`, hechas === ai.length ? 'ok' : 'warn'] : null }; },
+                detail: (r) => [['Fecha', `${fmtDate(r.date)} ${r.time || ''}`], ['Asistentes', (r.attendees || []).map(mname).join(', ')], ['Resumen', r.summary], ['Decisiones clave', r.keyDecisions], ['Tareas y acuerdos', (r.actionItems || []).map((a) => `${a.completed ? '☑' : '☐'} ${a.task} — ${mname(a.assigneeId)}${a.dueDate ? ' (' + fmtDate(a.dueDate) + ')' : ''}`).join('\n')], ['Próxima reunión', r.nextScheduled ? `${fmtDate(r.nextDate)} ${r.nextTime || ''} — ${r.nextObjective || ''}` : '']],
+                before: (r) => { r.actionItems = (r.actionItems || []).filter((a) => a.task); },
+                report: { date: 'date', cols: [['Tema', 'topic'], ['Fecha', 'date'], ['Hora', 'time'], ['Asistentes', (r) => (r.attendees || []).map(mname).join('; ')], ['Tareas', (r) => (r.actionItems || []).length], ['Tareas hechas', (r) => (r.actionItems || []).filter((a) => a.completed).length], ['Decisiones', 'keyDecisions']] },
+            },
+
+            marketing: {
+                label: 'Marketing', icon: 'ph-megaphone', col: 'publications', singular: 'publicación', newLabel: 'Nueva publicación', empty: 'Aún no hay publicaciones planificadas.',
+                fields: [
+                    { k: 'title', l: 'Título / tema', t: 'text', req: 1, full: 1 }, { k: 'scheduledDate', l: 'Fecha programada', t: 'date', req: 1, def: () => hoy() },
+                    { k: 'scheduledTime', l: 'Hora', t: 'time' },
+                    { k: 'channel', l: 'Canal', t: 'select', opts: O([['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook'], ['youtube', 'YouTube'], ['linkedin', 'LinkedIn'], ['twitter', 'X / Twitter'], ['newsletter', 'Newsletter'], ['blog', 'Blog'], ['otro', 'Otro']]), def: 'instagram' },
+                    { k: 'contentType', l: 'Formato', t: 'select', opts: O([['reel', 'Reel'], ['carrusel', 'Carrusel'], ['historia', 'Historia'], ['post_estatico', 'Post estático'], ['video_largo', 'Video largo'], ['newsletter', 'Newsletter'], ['articulo', 'Artículo'], ['otro', 'Otro']]), def: 'post_estatico' },
+                    { k: 'status', l: 'Estado', t: 'select', opts: ST_MKT, def: 'borrador' }, { k: 'assigneeId', l: 'Responsable', t: 'member' },
+                    { k: 'campaignName', l: 'Campaña / pilar', t: 'text' }, { k: 'assetUrl', l: 'Enlace a recursos (Drive, Canva)', t: 'url' },
+                    { k: 'contentDescription', l: 'Contenido (copy, guion)', t: 'textarea', full: 1 }, { k: 'targetAudience', l: 'CTA / audiencia', t: 'text', full: 1 },
+                    { k: 'publishedDate', l: 'Fecha de publicación real', t: 'date' }, { k: 'publishedUrl', l: 'URL publicada', t: 'url' },
+                    { k: 'observations', l: 'Observaciones', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusOpts: ST_MKT, search: ['title', 'campaignName', 'channel', 'contentDescription'],
+                cols: [['Publicación', (r) => `<b>${esc(r.title)}</b><div class="cd-sub">${esc(r.campaignName || '')}</div>`], ['Canal', (r) => `${esc(r.channel)}<div class="cd-sub">${esc(r.contentType || '')}</div>`], ['Estado', 'badge:status'], ['Fecha', (r) => `${fmtDate(r.scheduledDate)}${r.scheduledTime ? ' · ' + esc(r.scheduledTime) : ''}`], ['Responsable', (r) => esc(mname(r.assigneeId))]],
+                kpis: (r) => [['Publicaciones', r.length], ['Programadas', r.filter((p) => p.status === 'programado').length, 'info'], ['En revisión', r.filter((p) => p.status === 'en_revision').length, 'warn'], ['Publicadas', r.filter((p) => p.status === 'publicado').length, 'ok']],
+                sort: (a, b) => String(a.scheduledDate || '').localeCompare(String(b.scheduledDate || '')),
+                report: { date: 'scheduledDate', status: 'status', cols: [['Título', 'title'], ['Canal', 'channel'], ['Formato', 'contentType'], ['Estado', 'status'], ['Fecha', 'scheduledDate'], ['Campaña', 'campaignName'], ['Responsable', (r) => mname(r.assigneeId)]] },
+            },
+
+            academy: {
+                label: 'Academia', icon: 'ph-graduation-cap', col: 'academyClasses', singular: 'clase', view: 'board', newLabel: 'Nueva clase', empty: 'Aún no hay clases en el flujo de producción.',
+                fields: [
+                    { k: 'title', l: 'Título de la clase', t: 'text', req: 1, full: 1 }, { k: 'topic', l: 'Módulo / tema', t: 'text' },
+                    { k: 'status', l: 'Estado', t: 'select', opts: ST_ACAD, def: 'planificada' },
+                    { k: 'recordedById', l: 'Quién graba', t: 'member' }, { k: 'editedById', l: 'Quién edita', t: 'member' },
+                    { k: 'recordedDate', l: 'Fecha de grabación', t: 'date' }, { k: 'uploadDate', l: 'Fecha de subida', t: 'date' },
+                    { k: 'videoUrl', l: 'Enlace al video', t: 'url', full: 1 },
+                    { k: 'description', l: 'Descripción / temario', t: 'textarea', full: 1 }, { k: 'notes', l: 'Notas de coordinación', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusOpts: ST_ACAD, search: ['title', 'topic', 'description'],
+                kpis: (r) => [['Clases', r.length], ['En edición', r.filter((c) => c.status === 'en_edicion').length, 'warn'], ['Listas para subir', r.filter((c) => c.status === 'lista_para_subir').length, 'vio'], ['Subidas', r.filter((c) => c.status === 'subida').length, 'ok']],
+                sort: (a, b) => String(a.uploadDate || '9999').localeCompare(String(b.uploadDate || '9999')),
+                card: (r) => ({ title: r.title, sub: r.topic || '', lines: [`🎥 ${mname(r.recordedById)}  ✂️ ${mname(r.editedById)}`, r.uploadDate ? 'Subida: ' + fmtDate(r.uploadDate) : ''].filter(Boolean) }),
+                report: { date: 'uploadDate', status: 'status', cols: [['Título', 'title'], ['Tema', 'topic'], ['Estado', 'status'], ['Graba', (r) => mname(r.recordedById)], ['Edita', (r) => mname(r.editedById)], ['Grabada', 'recordedDate'], ['Subida', 'uploadDate']] },
+            },
+
+            development: {
+                label: 'Programación', icon: 'ph-code', col: 'devChanges', singular: 'cambio', newLabel: 'Registrar cambio', empty: 'La bitácora de programación está vacía.',
+                fields: [
+                    { k: 'title', l: 'Resumen del fallo o edición', t: 'text', req: 1, full: 1 },
+                    { k: 'type', l: 'Tipo', t: 'select', opts: O([['fallo_web', 'Fallo web'], ['edicion_web', 'Edición web'], ['mantenimiento', 'Mantenimiento'], ['mejora', 'Mejora']]), def: 'edicion_web' },
+                    { k: 'priority', l: 'Prioridad', t: 'select', opts: O([['critica', 'Crítica', 'bad'], ['alta', 'Alta', 'warn'], ['media', 'Media', 'info'], ['baja', 'Baja', 'mute']]), def: 'media' },
+                    { k: 'status', l: 'Estado', t: 'select', opts: ST_DEV, def: 'pendiente' }, { k: 'affectedArea', l: 'Área / URL afectada', t: 'text' },
+                    { k: 'changeDate', l: 'Fecha del cambio', t: 'date', req: 1, def: () => hoy() }, { k: 'changeTime', l: 'Hora', t: 'time' },
+                    { k: 'resolvedDate', l: 'Fecha de resolución', t: 'date' }, { k: 'responsibleDevId', l: 'Programador responsable', t: 'member' },
+                    { k: 'commitOrDeployRef', l: 'Commit / versión / ticket', t: 'text', full: 1 },
+                    { k: 'whyChanged', l: 'Por qué (causa / justificación)', t: 'textarea', full: 1 }, { k: 'changesMade', l: 'Qué se modificó', t: 'textarea', full: 1 },
+                    { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusOpts: ST_DEV, search: ['title', 'affectedArea', 'whyChanged', 'changesMade', 'commitOrDeployRef'],
+                cols: [['Cambio', (r) => `<b>${esc(r.title)}</b><div class="cd-sub">${esc(r.affectedArea || '')}</div>`], ['Tipo', (r) => esc(r.type)], ['Prioridad', (r) => { const o = [['critica', 'bad'], ['alta', 'warn'], ['media', 'info'], ['baja', 'mute']].find((x) => x[0] === r.priority); return `<span class="cd-badge cd-tone-${o ? o[1] : 'mute'}">${esc(r.priority)}</span>`; }], ['Estado', 'badge:status'], ['Fecha', (r) => fmtDate(r.changeDate)], ['Responsable', (r) => esc(mname(r.responsibleDevId))]],
+                kpis: (r) => [['Registros', r.length], ['Pendientes', r.filter((c) => c.status === 'pendiente' || c.status === 'en_progreso').length, 'warn'], ['Críticos abiertos', r.filter((c) => c.priority === 'critica' && c.status !== 'resuelto' && c.status !== 'desplegado').length, 'bad'], ['Resueltos', r.filter((c) => c.status === 'resuelto' || c.status === 'desplegado').length, 'ok']],
+                sort: (a, b) => String(b.changeDate || '').localeCompare(String(a.changeDate || '')),
+                detail: (r) => [['Área', r.affectedArea], ['Por qué', r.whyChanged], ['Qué se modificó', r.changesMade], ['Referencia', r.commitOrDeployRef], ['Notas', r.notes]],
+                report: { date: 'changeDate', status: 'status', cols: [['Título', 'title'], ['Tipo', 'type'], ['Prioridad', 'priority'], ['Estado', 'status'], ['Fecha', 'changeDate'], ['Resuelto', 'resolvedDate'], ['Área', 'affectedArea'], ['Responsable', (r) => mname(r.responsibleDevId)]] },
+            },
+
+            launches: {
+                label: 'Lanzamientos', icon: 'ph-rocket-launch', col: 'launches', singular: 'lanzamiento', view: 'cards', newLabel: 'Nuevo lanzamiento', empty: 'Aún no hay lanzamientos planificados.',
+                fields: [
+                    { k: 'title', l: 'Producto / servicio', t: 'text', req: 1, full: 1 }, { k: 'launchDate', l: 'Fecha de lanzamiento', t: 'date', req: 1, def: () => hoy() },
+                    { k: 'launchTime', l: 'Hora', t: 'time' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_LAUNCH, def: 'planificado' },
+                    { k: 'responsibleId', l: 'Responsable', t: 'member' }, { k: 'channels', l: 'Canales (separados por coma)', t: 'tags' },
+                    { k: 'targetAudience', l: 'Audiencia', t: 'text' }, { k: 'landingUrl', l: 'Enlace oficial / demo', t: 'url' },
+                    { k: 'whatWillLaunch', l: 'Qué se lanzará', t: 'textarea', full: 1 }, { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusOpts: ST_LAUNCH, search: ['title', 'whatWillLaunch', 'targetAudience'],
+                kpis: (r) => [['Lanzamientos', r.length], ['Próximos', r.filter((l) => l.status !== 'lanzado' && l.status !== 'pospuesto' && l.launchDate >= hoy()).length, 'info'], ['Lanzados', r.filter((l) => l.status === 'lanzado').length, 'ok'], ['Pospuestos', r.filter((l) => l.status === 'pospuesto').length, 'bad']],
+                sort: (a, b) => String(a.launchDate || '').localeCompare(String(b.launchDate || '')),
+                card: (r) => { const d = diasHasta(r.launchDate); const cuenta = r.status === 'lanzado' ? 'Lanzado' : d < 0 ? `Hace ${-d} d` : d === 0 ? 'Hoy' : `Faltan ${d} d`; const st = ST_LAUNCH.find((o) => o.v === r.status); return { title: r.title, sub: `${fmtDate(r.launchDate)}${r.launchTime ? ' · ' + r.launchTime : ''} · ${cuenta}`, lines: [r.whatWillLaunch ? String(r.whatWillLaunch).slice(0, 140) : '', (r.channels || []).length ? 'Canales: ' + r.channels.join(', ') : ''].filter(Boolean), badge: st ? [st.l, st.tone] : null }; },
+                report: { date: 'launchDate', status: 'status', cols: [['Lanzamiento', 'title'], ['Fecha', 'launchDate'], ['Estado', 'status'], ['Responsable', (r) => mname(r.responsibleId)], ['Canales', (r) => (r.channels || []).join('; ')]] },
+            },
+
+            reports: { label: 'Informes', icon: 'ph-chart-bar', col: 'reports', custom: true },
+            settings: { label: 'Ajustes', icon: 'ph-gear', custom: true },
+        };
+        const ORDER = ['daily', 'team', 'affiliates', 'finance', 'contracts', 'meetings', 'marketing', 'academy', 'development', 'launches', 'reports', 'settings'];
+
+        // Estado efectivo (con statusFn si el módulo calcula el estado)
+        const statusOf = (m, r) => (m.statusFn ? m.statusFn(r) : r[m.statusKey]);
+        const optOf = (opts, v) => (opts || []).find((o) => o.v === v);
+        const badge = (opts, v) => { const o = optOf(opts, v); return `<span class="cd-badge cd-tone-${o && o.tone ? o.tone : 'mute'}">${esc(o ? o.l : v || '—')}</span>`; };
+
+        // ------------------------------------------------------------------
+        // Capa de datos (NLT_API) -- guardado optimista por registro
+        // ------------------------------------------------------------------
+        function toast(msg, kind) {
+            const root = document.getElementById('cdToastRoot');
+            const el = document.createElement('div');
+            el.className = 'cd-toast ' + (kind || '');
+            el.textContent = msg;
+            root.appendChild(el);
+            setTimeout(() => el.remove(), kind === 'err' ? 6000 : 2800);
+        }
+
+        async function cargar(silencioso) {
+            try {
+                const snap = await NLT_API.coordinaSnapshot();
+                for (const k of Object.keys(S)) S[k] = (snap.collections && snap.collections[k]) || [];
+                document.getElementById('cdSync').textContent = 'Sincronizado ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
+                return true;
+            } catch (e) {
+                if (!silencioso) toast('No se pudieron cargar los datos: ' + e.message, 'err');
+                return false;
+            }
+        }
+
+        async function guardar(col, rec) {
+            const lista = S[col];
+            const i = lista.findIndex((x) => x.id === rec.id);
+            const previo = i >= 0 ? lista[i] : null;
+            if (i >= 0) lista[i] = rec; else lista.push(rec);
+            pendingSaves++;
+            try {
+                const { _updated_at, ...limpio } = rec;
+                await NLT_API.coordinaGuardar(col, rec.id, limpio);
+                return true;
+            } catch (e) {
+                if (previo) lista[i] = previo; else lista.splice(lista.findIndex((x) => x.id === rec.id), 1);
+                toast('No se pudo guardar: ' + e.message, 'err');
+                return false;
+            } finally { pendingSaves--; }
+        }
+
+        async function borrar(col, id) {
+            const lista = S[col];
+            const i = lista.findIndex((x) => x.id === id);
+            if (i < 0) return;
+            const previo = lista.splice(i, 1)[0];
+            pendingSaves++;
+            try { await NLT_API.coordinaBorrar(col, id); return true; }
+            catch (e) { lista.splice(i, 0, previo); toast('No se pudo borrar: ' + e.message, 'err'); return false; }
+            finally { pendingSaves--; }
+        }
+
+        // ------------------------------------------------------------------
+        // Formulario genérico (modal)
+        // ------------------------------------------------------------------
+        function closeModal() { document.getElementById('cdModalRoot').innerHTML = ''; modalOpen = false; }
+        function openModal(html) {
+            const root = document.getElementById('cdModalRoot');
+            root.innerHTML = `<div class="cd-overlay" data-act="overlay"><div class="cd-modal" role="dialog" aria-modal="true">${html}</div></div>`;
+            modalOpen = true;
+            const first = root.querySelector('input:not([type=checkbox]),select,textarea');
+            if (first) first.focus();
+        }
+
+        function fieldInput(f, val, name) {
+            const v = val == null ? '' : val;
+            const n = `name="${esc(name)}"`;
+            switch (f.t) {
+                case 'textarea': return `<textarea class="cd-textarea" ${n}>${esc(v)}</textarea>`;
+                case 'date': case 'time': return `<input class="cd-input" type="${f.t}" ${n} value="${esc(v)}">`;
+                case 'number': case 'money': return `<input class="cd-input" type="number" step="any" ${n} value="${esc(v)}">`;
+                case 'email': case 'tel': case 'url': return `<input class="cd-input" type="${f.t}" ${n} value="${esc(v)}" ${f.ph ? `placeholder="${esc(f.ph)}"` : ''}>`;
+                case 'tags': return `<input class="cd-input" type="text" ${n} value="${esc(Array.isArray(val) ? val.join(', ') : v)}">`;
+                case 'check': return `<label class="cd-checkrow"><input type="checkbox" ${n} ${val ? 'checked' : ''}> ${esc(f.l)}</label>`;
+                case 'select': case 'dept': case 'member': case 'affiliate': {
+                    const opts = f.t === 'dept' ? deptOpts() : f.t === 'member' ? memberOpts() : f.t === 'affiliate' ? affiliateOpts() : f.opts;
+                    const lista = opts.slice();
+                    if (v && !lista.some((o) => o.v === v)) lista.push({ v, l: v + ' (actual)' });
+                    return `<select class="cd-select" ${n}>${f.t === 'select' ? '' : '<option value="">— Sin asignar —</option>'}${lista.map((o) => `<option value="${esc(o.v)}" ${o.v === v ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select>`;
+                }
+                case 'members': {
+                    const sel = Array.isArray(val) ? val : [];
+                    const lista = S.team.map((m) => ({ v: m.id, l: m.name }));
+                    return lista.length ? `<div class="cd-chips">${lista.map((o) => `<label><input type="checkbox" name="${esc(name)}" value="${esc(o.v)}" ${sel.includes(o.v) ? 'checked' : ''} hidden><span>${esc(o.l)}</span></label>`).join('')}</div>` : '<span class="cd-sub">Añade miembros en “Mi Equipo” primero.</span>';
+                }
+                default: return `<input class="cd-input" type="text" ${n} value="${esc(v)}" ${f.ph ? `placeholder="${esc(f.ph)}"` : ''}>`;
+            }
+        }
+
+        function rowHTML(f, row) {
+            const cells = f.sub.map((s) => `<div>${fieldInput(s, row[s.k], '__sub_' + s.k)}</div>`).join('');
+            return `<div class="cd-subrow" style="grid-template-columns:${f.grid} auto">${cells}<button type="button" class="cd-btn sm danger" data-act="row-del" title="Quitar">✕</button></div>`;
+        }
+
+        function formHTML(m, rec) {
+            return m.fields.map((f) => {
+                const val = rec[f.k];
+                const full = f.full || f.t === 'rows' || f.t === 'textarea' || f.t === 'members' ? ' full' : '';
+                if (f.t === 'check') return `<div class="cd-field${full}">${fieldInput(f, val, f.k)}</div>`;
+                if (f.t === 'rows') {
+                    const rows = (val && val.length ? val : []).map((r) => rowHTML(f, r)).join('');
+                    return `<div class="cd-field full"><label>${esc(f.l)}</label><div class="cd-sub-rows" data-rows="${esc(f.k)}">${rows}</div><div><button type="button" class="cd-btn sm" data-act="row-add" data-k="${esc(f.k)}">＋ ${esc(f.add || 'Añadir')}</button></div></div>`;
+                }
+                return `<div class="cd-field${full}"><label>${esc(f.l)}${f.req ? ' <em>*</em>' : ''}</label>${fieldInput(f, val, f.k)}</div>`;
+            }).join('');
+        }
+
+        function readValue(f, root, name) {
+            const els = root.querySelectorAll(`[name="${name}"]`);
+            if (f.t === 'check') return !!(els[0] && els[0].checked);
+            if (f.t === 'members') return Array.from(els).filter((e) => e.checked).map((e) => e.value);
+            const el = els[0];
+            if (!el) return undefined;
+            if (f.t === 'number' || f.t === 'money') return num(el.value);
+            if (f.t === 'tags') return el.value.split(',').map((s) => s.trim()).filter(Boolean);
+            return el.value.trim();
+        }
+
+        function collect(m, form, base) {
+            const rec = { ...base };
+            for (const f of m.fields) {
+                if (f.t === 'rows') {
+                    rec[f.k] = Array.from(form.querySelectorAll(`[data-rows="${f.k}"] .cd-subrow`)).map((row) => {
+                        const o = {};
+                        for (const s of f.sub) o[s.k] = readValue(s, row, '__sub_' + s.k);
+                        return o;
+                    });
+                } else rec[f.k] = readValue(f, form, f.k);
+            }
+            return rec;
+        }
+
+        function openForm(modId, rec) {
+            const m = MODS[modId];
+            const nuevo = !rec;
+            const base = rec ? clone(rec) : { id: uid(m.col.slice(0, 3)), createdAt: new Date().toISOString() };
+            if (nuevo) for (const f of m.fields) if (f.def !== undefined) base[f.k] = typeof f.def === 'function' ? f.def() : f.def;
+            openModal(`
+                <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>
+                <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base)}</div>
+                    <div class="cd-foot"><button type="button" class="cd-btn" data-act="close">Cancelar</button><button type="submit" class="cd-btn primary"><i class="ph-bold ph-check"></i> Guardar</button></div>
+                </form>`);
+            const form = document.getElementById('cdForm');
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                let out = collect(m, form, base);
+                for (const f of m.fields) {
+                    if (f.req && (out[f.k] == null || out[f.k] === '')) { toast(`Falta: ${f.l}`, 'err'); form.querySelector(`[name="${f.k}"]`)?.focus(); return; }
+                }
+                if (m.before) m.before(out);
+                const btn = form.querySelector('button[type=submit]'); btn.disabled = true;
+                const ok = await guardar(m.col, out);
+                if (ok) { closeModal(); toast(nuevo ? 'Creado' : 'Guardado', 'ok'); render(); } else btn.disabled = false;
+            });
+        }
+
+        // ------------------------------------------------------------------
+        // Vistas
+        // ------------------------------------------------------------------
+        function filtrar(m, lista) {
+            const q = lower(UI.q).trim();
+            return lista.filter((r) => {
+                if (UI.status !== 'all' && m.statusKey && statusOf(m, r) !== UI.status) return false;
+                if (q && !(m.search || []).some((k) => lower(r[k]).includes(q))) return false;
+                return true;
+            }).sort(m.sort || (() => 0));
+        }
+
+        function kpisHTML(m, lista) {
+            if (!m.kpis) return '';
+            return `<div class="cd-kpis">${m.kpis(lista).map(([l, v, tone]) => `<div class="glass-card cd-kpi"><span class="cd-lbl">${esc(l)}</span><b class="${tone ? 'cd-tone-' + tone : ''}">${esc(v)}</b></div>`).join('')}</div>`;
+        }
+
+        function toolbarHTML(modId, m) {
+            const statusSel = m.statusOpts ? `<select class="cd-select" id="cdStatus"><option value="all">Todos los estados</option>${m.statusOpts.map((o) => `<option value="${esc(o.v)}" ${UI.status === o.v ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select>` : '';
+            return `<div class="cd-bar"><input class="cd-input cd-grow" id="cdSearch" type="search" placeholder="Buscar en ${esc(m.label)}…" value="${esc(UI.q)}">${statusSel}<button class="cd-btn primary" data-act="new" data-mod="${modId}"><i class="ph-bold ph-plus"></i> ${esc(m.newLabel)}</button></div>`;
+        }
+
+        function actionsHTML(modId, r, m) {
+            return `<div class="cd-row-actions">${m.detail ? `<button class="cd-btn sm" data-act="view" data-mod="${modId}" data-id="${esc(r.id)}" title="Ver detalle"><i class="ph ph-eye"></i></button>` : ''}<button class="cd-btn sm" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}" title="Editar"><i class="ph ph-pencil-simple"></i></button><button class="cd-btn sm danger" data-act="del" data-mod="${modId}" data-id="${esc(r.id)}" title="Eliminar"><i class="ph ph-trash"></i></button></div>`;
+        }
+
+        function listHTML(modId) {
+            const m = MODS[modId];
+            const lista = filtrar(m, S[m.col]);
+            if (!lista.length) return `<div class="glass-card cd-empty"><i class="ph ph-tray"></i>${S[m.col].length ? 'Nada coincide con el filtro.' : esc(m.empty)}</div>`;
+            if (m.view === 'cards') {
+                return `<div class="cd-cards">${lista.map((r, i) => {
+                    const c = m.card(r, i);
+                    return `<div class="glass-card cd-card">
+                        <div style="display:flex;gap:12px;align-items:center">${c.avatar ? `<div class="cd-avatar" style="background:${c.avatar[1]}">${esc(initials(c.avatar[0]))}</div>` : ''}<div style="min-width:0;flex:1"><h3>${esc(c.title)}</h3><div class="cd-sub">${esc(c.sub)}</div></div>${c.badge ? `<span class="cd-badge cd-tone-${c.badge[1]}">${esc(c.badge[0])}</span>` : ''}</div>
+                        ${(c.lines || []).map((l) => `<p>${esc(l)}</p>`).join('')}
+                        ${actionsHTML(modId, r, m)}</div>`;
+                }).join('')}</div>`;
+            }
+            if (m.view === 'board') {
+                return `<div class="cd-board">${m.statusOpts.map((o) => {
+                    const col = lista.filter((r) => r[m.statusKey] === o.v);
+                    return `<div class="glass-card cd-col"><h4><span class="cd-tone-${o.tone}">${esc(o.l)}</span><span class="cd-badge">${col.length}</span></h4>${col.map((r) => { const c = m.card(r); return `<div class="glass-item" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}"><div class="cd-title">${esc(c.title)}</div><div class="cd-sub">${esc(c.sub || '')}</div>${(c.lines || []).map((l) => `<div class="cd-sub">${esc(l)}</div>`).join('')}</div>`; }).join('')}</div>`;
+                }).join('')}</div>`;
+            }
+            const head = m.cols.map((c) => `<th>${esc(c[0])}</th>`).join('') + '<th></th>';
+            const body = lista.map((r) => '<tr>' + m.cols.map((c) => {
+                const f = c[1];
+                const cell = typeof f === 'function' ? f(r) : (f.startsWith('badge:') ? badge(m.statusOpts, statusOf(m, r)) : esc(r[f]));
+                return `<td>${cell}</td>`;
+            }).join('') + `<td>${actionsHTML(modId, r, m)}</td></tr>`).join('');
+            return `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+        }
+
+        function viewModule(modId) {
+            const m = MODS[modId];
+            return kpisHTML(m, S[m.col]) + toolbarHTML(modId, m) + `<div id="cdList">${listHTML(modId)}</div>`;
+        }
+
+        // --- Agenda diaria / semanal ---
+        function agendaItemsDe(fecha) {
+            return S.items.filter((i) => i.date === fecha).filter((i) => {
+                if (UI.dept !== 'all' && i.departmentId !== UI.dept) return false;
+                if (UI.type !== 'all' && i.type !== UI.type) return false;
+                if (UI.status !== 'all' && i.status !== UI.status) return false;
+                const q = lower(UI.q).trim();
+                return !q || ['title', 'description', 'notes'].some((k) => lower(i[k]).includes(q));
+            }).sort((a, b) => String(a.time || '99:99').localeCompare(String(b.time || '99:99')));
+        }
+
+        function agendaItemHTML(i) {
+            const d = dept(i.departmentId);
+            const done = i.status === 'completed';
+            const subs = i.subtasks || [];
+            const pr = optOf(PRIO_ITEM, i.priority);
+            const ty = optOf(TYPE_ITEM, i.type);
+            return `<div class="glass-card cd-item ${done ? 'cd-done' : ''}" style="border-left:3px solid ${d ? d.color : '#374151'}">
+                <button class="cd-check ${done ? 'on' : ''}" data-act="toggle" data-id="${esc(i.id)}" title="Marcar como ${done ? 'pendiente' : 'completada'}"><i class="ph-bold ph-check"></i></button>
+                <div class="cd-time">${esc(i.time || '—')}</div>
+                <div style="flex:1;min-width:0">
+                    <div class="cd-title">${esc(i.title)}</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                        ${ty ? `<span class="cd-badge">${esc(ty.l)}</span>` : ''}${d ? `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>` : ''}
+                        ${i.priority === 'high' ? `<span class="cd-badge cd-tone-bad">Alta prioridad</span>` : pr && i.priority === 'medium' ? `<span class="cd-badge cd-tone-warn">Media</span>` : ''}
+                        ${i.assigneeId ? `<span class="cd-badge">👤 ${esc(mname(i.assigneeId))}</span>` : ''}${i.status === 'in_progress' ? '<span class="cd-badge cd-tone-info">En curso</span>' : ''}
+                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
+                    </div>
+                    ${i.description ? `<p class="cd-sub" style="margin-top:6px">${esc(i.description)}</p>` : ''}${i.locationOrLink ? `<p class="cd-sub">📍 ${esc(i.locationOrLink)}</p>` : ''}
+                </div>
+                ${actionsHTML('daily', i, { detail: false })}
+            </div>`;
+        }
+
+        function agendaBody() {
+            if (UI.agendaView === 'week') {
+                const lunes = addDays(UI.date, -((parseYmd(UI.date).getDay() + 6) % 7));
+                return `<div class="cd-week">${Array.from({ length: 7 }, (_, n) => addDays(lunes, n)).map((f) => {
+                    const its = agendaItemsDe(f);
+                    return `<div class="glass-card cd-wcol"><div class="cd-lbl ${f === hoy() ? 'cd-tone-info' : ''}">${DIAS[parseYmd(f).getDay()]} ${parseYmd(f).getDate()}</div>${its.map((i) => `<button class="cd-chip" data-act="edit" data-mod="daily" data-id="${esc(i.id)}" style="border-left-color:${(dept(i.departmentId) || {}).color || '#374151'}"><b>${esc(i.time || '')}</b> ${esc(i.title)}</button>`).join('') || '<div class="cd-sub" style="margin-top:8px">Libre</div>'}</div>`;
+                }).join('')}</div>`;
+            }
+            const its = agendaItemsDe(UI.date);
+            return its.length ? its.map(agendaItemHTML).join('') : `<div class="glass-card cd-empty"><i class="ph ph-calendar-blank"></i>No hay actividades para este día.</div>`;
+        }
+
+        function viewDaily() {
+            const lunes = addDays(UI.date, -((parseYmd(UI.date).getDay() + 6) % 7));
+            const dia = S.items.filter((i) => i.date === UI.date);
+            const k = [['Actividades', dia.length], ['Completadas', dia.filter((i) => i.status === 'completed').length, 'ok'], ['Pendientes', dia.filter((i) => i.status !== 'completed').length, 'warn'], ['Urgentes', dia.filter((i) => i.priority === 'high' && i.status !== 'completed').length, 'bad'], ['Reuniones', dia.filter((i) => i.type === 'meeting').length, 'info']];
+            const d = parseYmd(UI.date);
+            return `
+                <div class="cd-bar">
+                    <button class="cd-btn sm" data-act="date-prev" title="Anterior"><i class="ph-bold ph-caret-left"></i></button>
+                    <div style="font-weight:800;font-size:16px;font-family:Geist,Inter,sans-serif">${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]} ${d.getFullYear()}</div>
+                    <button class="cd-btn sm" data-act="date-next" title="Siguiente"><i class="ph-bold ph-caret-right"></i></button>
+                    <button class="cd-btn sm" data-act="date-today">Hoy</button>
+                    <div class="cd-grow"></div>
+                    <div class="cd-seg"><button data-act="aview" data-v="day" class="${UI.agendaView === 'day' ? 'on' : ''}">Día</button><button data-act="aview" data-v="week" class="${UI.agendaView === 'week' ? 'on' : ''}">Semana</button></div>
+                    <button class="cd-btn primary" data-act="new" data-mod="daily"><i class="ph-bold ph-plus"></i> Nueva actividad</button>
+                </div>
+                <div class="cd-kpis">${k.map(([l, v, tone]) => `<div class="glass-card cd-kpi"><span class="cd-lbl">${l}</span><b class="${tone ? 'cd-tone-' + tone : ''}">${v}</b></div>`).join('')}</div>
+                <div class="cd-days">${Array.from({ length: 7 }, (_, n) => addDays(lunes, n)).map((f) => { const c = S.items.filter((i) => i.date === f).length; const dd = parseYmd(f); return `<div class="cd-day ${f === UI.date ? 'sel' : ''} ${f === hoy() ? 'hoy' : ''}" data-act="date-set" data-d="${f}"><small>${DIAS[dd.getDay()]}</small><b>${dd.getDate()}</b><i>${c ? c + ' act.' : '·'}</i></div>`; }).join('')}</div>
+                <div class="cd-bar">
+                    <input class="cd-input cd-grow" id="cdSearch" type="search" placeholder="Buscar actividad…" value="${esc(UI.q)}">
+                    <select class="cd-select" id="cdDept"><option value="all">Todos los departamentos</option>${DEPTS.map((x) => `<option value="${x.id}" ${UI.dept === x.id ? 'selected' : ''}>${esc(x.name)}</option>`).join('')}</select>
+                    <select class="cd-select" id="cdType"><option value="all">Todos los tipos</option>${TYPE_ITEM.map((x) => `<option value="${x.v}" ${UI.type === x.v ? 'selected' : ''}>${x.l}</option>`).join('')}</select>
+                    <select class="cd-select" id="cdStatus"><option value="all">Todos los estados</option>${ST_ITEM.map((x) => `<option value="${x.v}" ${UI.status === x.v ? 'selected' : ''}>${x.l}</option>`).join('')}</select>
+                </div>
+                <div id="cdList">${agendaBody()}</div>`;
+        }
+        MODS.daily.col = 'items';
+        MODS.daily.singular = 'actividad';
+        MODS.daily.newLabel = 'Nueva actividad';
+        MODS.daily.fields = [
+            { k: 'title', l: 'Título', t: 'text', req: 1, full: 1 },
+            { k: 'type', l: 'Tipo', t: 'select', opts: TYPE_ITEM, def: 'task' }, { k: 'departmentId', l: 'Departamento', t: 'dept' },
+            { k: 'date', l: 'Fecha', t: 'date', req: 1, def: () => UI.date }, { k: 'time', l: 'Hora', t: 'time' },
+            { k: 'assigneeId', l: 'Responsable', t: 'member' }, { k: 'durationMinutes', l: 'Duración (min)', t: 'number' },
+            { k: 'priority', l: 'Prioridad', t: 'select', opts: PRIO_ITEM, def: 'normal' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_ITEM, def: 'pending' },
+            { k: 'locationOrLink', l: 'Lugar o enlace (Meet/Teams)', t: 'text', full: 1 },
+            { k: 'automaticReminder', l: 'Recordatorio automático', t: 'check' }, { k: 'reminderLeadTime', l: 'Avisar', t: 'select', opts: LEAD, def: '15_min' },
+            { k: 'description', l: 'Descripción', t: 'textarea', full: 1 },
+            { k: 'subtasks', l: 'Subtareas', t: 'rows', full: 1, add: 'Añadir subtarea', sub: [{ k: 'title', l: 'Subtarea', t: 'text' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 80px' },
+            { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
+        ];
+        MODS.daily.before = (r) => {
+            r.subtasks = (r.subtasks || []).filter((s) => s.title).map((s) => ({ id: s.id || uid('st'), ...s }));
+            r.coordinatorName = r.coordinatorName || (SESSION && SESSION.user.email) || '';
+            if (r.status === 'completed' && !r.completedAt) r.completedAt = new Date().toISOString();
+            if (r.status !== 'completed') delete r.completedAt;
+        };
+
+        // --- Informes ---
+        function reportRecords(modId, period) {
+            const m = MODS[modId];
+            const lista = S[m.col];
+            if (period === 'all' || !m.report.date) return lista;
+            return lista.filter((r) => String(r[m.report.date] || '').slice(0, 7) === period);
+        }
+        const cellValue = (c, r) => { const v = typeof c[1] === 'function' ? c[1](r) : r[c[1]]; return v == null ? '' : v; };
+        const csvCell = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+
+        function generarInforme(modId, period) {
+            const m = MODS[modId];
+            const rows = reportRecords(modId, period);
+            const R = m.report;
+            const header = R.cols.map((c) => csvCell(c[0])).join(',');
+            const body = rows.map((r) => R.cols.map((c) => csvCell(cellValue(c, r))).join(','));
+            const periodo = period === 'all' ? 'Histórico total' : `${MESES[Number(period.slice(5, 7)) - 1]} ${period.slice(0, 4)}`;
+            const lineas = [`Informe de ${m.label} — ${periodo}`, `Registros: ${rows.length}`];
+            if (R.status) {
+                const cnt = {};
+                rows.forEach((r) => { const s = typeof R.status === 'function' ? R.status(r) : r[R.status]; cnt[s] = (cnt[s] || 0) + 1; });
+                const opts = m.statusOpts || [];
+                lineas.push('Por estado: ' + (Object.keys(cnt).map((s) => `${(optOf(opts, s) || { l: s }).l} ${cnt[s]}`).join(' · ') || '—'));
+            }
+            (R.sums || []).forEach(([label, k]) => lineas.push(`${label}: ${money(rows.reduce((s, r) => s + (Number(r[k]) || 0), 0))}`));
+            const quien = (SESSION && SESSION.user.email) || '';
+            return {
+                id: uid('rep'), title: `${m.label} — ${periodo}`, department: m.label, format: 'csv',
+                fileName: `coordina-${modId}-${period}.csv`, generatedAt: new Date().toISOString(), generatedBy: quien, period: periodo,
+                summary: lineas.join('\n'), content: '﻿' + [header, ...body].join('\n'),
+            };
+        }
+
+        function descargar(nombre, contenido, tipo) {
+            const url = URL.createObjectURL(new Blob([contenido], { type: tipo || 'text/plain;charset=utf-8' }));
+            const a = document.createElement('a');
+            a.href = url; a.download = nombre; document.body.appendChild(a); a.click(); a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+
+        function viewReports() {
+            const mods = ORDER.filter((id) => MODS[id].report);
+            const meses = [];
+            for (let i = 0; i < 12; i++) { const d = new Date(); d.setMonth(d.getMonth() - i, 1); meses.push(ymd(d).slice(0, 7)); }
+            const reps = S.reports.slice().sort((a, b) => String(b.generatedAt).localeCompare(String(a.generatedAt)));
+            return `
+                <div class="glass-card" style="padding:22px;margin-bottom:18px">
+                    <h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Generar informe</h3>
+                    <p class="cd-sub" style="margin-bottom:14px">Se guarda en el historial y se descarga como CSV (compatible con Excel).</p>
+                    <div class="cd-bar" style="margin-bottom:0">
+                        <select class="cd-select" id="repMod">${mods.map((id) => `<option value="${id}">${esc(MODS[id].label)}</option>`).join('')}<option value="__global">Operaciones global</option></select>
+                        <select class="cd-select" id="repPeriod"><option value="all">Histórico total</option>${meses.map((p) => `<option value="${p}" ${p === UI.month ? 'selected' : ''}>${MESES[Number(p.slice(5)) - 1]} ${p.slice(0, 4)}</option>`).join('')}</select>
+                        <button class="cd-btn primary" data-act="rep-gen"><i class="ph-bold ph-file-arrow-down"></i> Generar y guardar</button>
+                    </div>
+                </div>
+                ${reps.length ? `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr><th>Informe</th><th>Generado</th><th>Resumen</th><th></th></tr></thead><tbody>${reps.map((r) => `<tr><td><b>${esc(r.title)}</b><div class="cd-sub">${esc(r.generatedBy || '')}</div></td><td>${new Date(r.generatedAt).toLocaleString('es')}</td><td class="cd-sub" style="white-space:pre-line;max-width:380px">${esc(r.summary)}</td><td><div class="cd-row-actions"><button class="cd-btn sm" data-act="rep-dl" data-id="${esc(r.id)}"><i class="ph ph-download-simple"></i></button><button class="cd-btn sm danger" data-act="rep-del" data-id="${esc(r.id)}"><i class="ph ph-trash"></i></button></div></td></tr>`).join('')}</tbody></table></div>` : '<div class="glass-card cd-empty"><i class="ph ph-chart-bar"></i>Aún no has generado informes.</div>'}`;
+        }
+
+        function informeGlobal(period) {
+            const periodo = period === 'all' ? 'Histórico total' : `${MESES[Number(period.slice(5, 7)) - 1]} ${period.slice(0, 4)}`;
+            const filas = ORDER.filter((id) => MODS[id].report).map((id) => [MODS[id].label, reportRecords(id, period).length]);
+            return {
+                id: uid('rep'), title: `Operaciones global — ${periodo}`, department: 'Operaciones Global', format: 'csv',
+                fileName: `coordina-global-${period}.csv`, generatedAt: new Date().toISOString(), generatedBy: (SESSION && SESSION.user.email) || '', period: periodo,
+                summary: filas.map(([l, n]) => `${l}: ${n}`).join('\n'), content: '﻿' + ['"Módulo","Registros"', ...filas.map(([l, n]) => `${csvCell(l)},${n}`)].join('\n'),
+            };
+        }
+
+        // --- Ajustes: respaldo, importación, avisos ---
+        function viewSettings() {
+            const totales = Object.entries(S).map(([k, v]) => `${k}: ${v.length}`).join(' · ');
+            const perm = ('Notification' in window) ? Notification.permission : 'no disponible';
+            return `
+                <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Respaldo de datos</h3>
+                    <p class="cd-sub" style="margin-bottom:14px">${esc(totales)}</p>
+                    <div class="cd-bar" style="margin-bottom:0"><button class="cd-btn" data-act="export"><i class="ph ph-download-simple"></i> Exportar JSON</button>
+                    <button class="cd-btn" data-act="import-pick"><i class="ph ph-upload-simple"></i> Importar JSON</button><input type="file" id="cdImportFile" accept="application/json,.json" hidden></div>
+                    <p class="cd-sub" style="margin-top:12px">La importación <b>combina</b> por id: añade y actualiza registros, nunca borra los existentes. Acepta el respaldo de este espacio y el formato del Coordina Desk original (se ignoran los archivos adjuntos incrustados; usa enlaces de Drive).</p></div>
+                <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Avisos de recordatorios</h3>
+                    <p class="cd-sub" style="margin-bottom:14px">Permiso de notificaciones del navegador en este dispositivo: <b>${esc(perm)}</b>. Los recordatorios de la agenda avisan mientras esta página esté abierta.</p>
+                    ${perm === 'default' ? '<button class="cd-btn" data-act="notif">Activar notificaciones</button>' : ''}</div>
+                <div class="glass-card" style="padding:22px"><h3 style="font-weight:800;font-size:16px;margin-bottom:10px">Departamentos</h3>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px">${DEPTS.map((d) => `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>`).join('')}</div>
+                    <p class="cd-sub" style="margin-top:12px">Acceso: solo el Global Admin y los administradores con el permiso “Coordina Desk” (se otorga en Admin Center → Administración Global).</p></div>`;
+        }
+
+        // Normaliza el formato del Coordina Desk original (React) al de este espacio.
+        function normalizarImport(obj) {
+            const src = obj.collections || obj;
+            const alias = { teamMembers: 'team' };
+            const out = {};
+            for (const [kRaw, v] of Object.entries(src)) {
+                const k = alias[kRaw] || kRaw;
+                if (!Array.isArray(v) || !(k in S)) continue;
+                out[k] = v.map((r) => {
+                    const o = { ...r };
+                    if (!o.id) o.id = uid(k.slice(0, 3));
+                    delete o._updated_at;
+                    if (k === 'meetings' && o.nextMeeting) { o.nextScheduled = !!o.nextMeeting.scheduled; o.nextDate = o.nextMeeting.date; o.nextTime = o.nextMeeting.time; o.nextObjective = o.nextMeeting.objective; delete o.nextMeeting; }
+                    if (k === 'contracts' && o.pdfFile) { delete o.pdfFile; }
+                    if (k === 'affiliates' && o.contractFile) { delete o.contractFile; }
+                    return o;
+                });
+            }
+            return out;
+        }
+
+        // ------------------------------------------------------------------
+        // Render + eventos
+        // ------------------------------------------------------------------
+        function renderTabs() {
+            document.getElementById('cdTabs').innerHTML = ORDER.map((id) => `<button class="tab-admin ${UI.tab === id ? 'activo' : ''}" data-act="tab" data-tab="${id}"><i class="ph-fill ${MODS[id].icon} mr-1.5"></i>${esc(MODS[id].label)}</button>`).join('');
+        }
+
+        function render() {
+            renderTabs();
+            const root = document.getElementById('cdContent');
+            root.innerHTML = UI.tab === 'daily' ? viewDaily() : UI.tab === 'reports' ? viewReports() : UI.tab === 'settings' ? viewSettings() : viewModule(UI.tab);
+            const f = document.getElementById('cdImportFile');
+            if (f) f.addEventListener('change', onImportFile);
+        }
+
+        function refreshList() {
+            const el = document.getElementById('cdList');
+            if (!el) return;
+            el.innerHTML = UI.tab === 'daily' ? agendaBody() : listHTML(UI.tab);
+        }
+
+        function openDetail(modId, r) {
+            const m = MODS[modId];
+            const filas = m.detail(r).filter(([, v]) => v != null && String(v).trim() !== '' && v !== '—');
+            openModal(`<h2>${esc(r.title || r.fullName || r.topic || 'Detalle')}</h2><div class="cd-form" style="margin-bottom:8px">${filas.map(([l, v]) => `<div class="cd-field ${String(v).length > 60 || String(v).includes('\n') ? 'full' : ''}"><label>${esc(l)}</label><div class="cd-detail">${esc(v)}</div></div>`).join('')}</div>
+                <div class="cd-foot"><button class="cd-btn" data-act="close">Cerrar</button><button class="cd-btn primary" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}"><i class="ph ph-pencil-simple"></i> Editar</button></div>`);
+        }
+
+        async function onImportFile(e) {
+            const file = e.target.files[0];
+            e.target.value = '';
+            if (!file) return;
+            try {
+                const obj = JSON.parse(await file.text());
+                const cols = normalizarImport(obj);
+                const total = Object.values(cols).reduce((s, a) => s + a.length, 0);
+                if (!total) { toast('El archivo no contiene registros reconocibles.', 'err'); return; }
+                if (!confirm(`Importar ${total} registros (se combinan por id con los existentes)?`)) return;
+                const r = await NLT_API.coordinaImportar(cols);
+                await cargar(true);
+                toast(`Importados ${r.importados} registros`, 'ok');
+                render();
+            } catch (err) { toast('Importación fallida: ' + err.message, 'err'); }
+        }
+
+        document.addEventListener('click', async (e) => {
+            const t = e.target.closest('[data-act]');
+            if (!t) return;
+            const act = t.dataset.act;
+            if (act === 'overlay') { if (e.target === t) closeModal(); return; }
+            if (act === 'close') return closeModal();
+            if (act === 'tab') { UI.tab = t.dataset.tab; UI.q = ''; UI.status = 'all'; return render(); }
+            if (act === 'new') return openForm(t.dataset.mod);
+            const modId = t.dataset.mod;
+            if (act === 'edit') { closeModal(); const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openForm(modId, rec); }
+            if (act === 'view') { const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openDetail(modId, rec); }
+            if (act === 'del') {
+                if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+                if (await borrar(MODS[modId].col, t.dataset.id)) { toast('Eliminado', 'ok'); render(); }
+                return;
+            }
+            if (act === 'toggle') {
+                const i = S.items.find((x) => x.id === t.dataset.id); if (!i) return;
+                const nuevo = { ...i, status: i.status === 'completed' ? 'pending' : 'completed' };
+                if (nuevo.status === 'completed') nuevo.completedAt = new Date().toISOString(); else delete nuevo.completedAt;
+                if (await guardar('items', nuevo)) render();
+                return;
+            }
+            if (act === 'date-prev') { UI.date = addDays(UI.date, UI.agendaView === 'week' ? -7 : -1); return render(); }
+            if (act === 'date-next') { UI.date = addDays(UI.date, UI.agendaView === 'week' ? 7 : 1); return render(); }
+            if (act === 'date-today') { UI.date = hoy(); return render(); }
+            if (act === 'date-set') { UI.date = t.dataset.d; UI.agendaView = 'day'; return render(); }
+            if (act === 'aview') { UI.agendaView = t.dataset.v; return render(); }
+            if (act === 'row-add') {
+                const m = MODS[UI.tab]; const f = m.fields.find((x) => x.k === t.dataset.k);
+                const box = document.querySelector(`[data-rows="${t.dataset.k}"]`);
+                box.insertAdjacentHTML('beforeend', rowHTML(f, {})); return;
+            }
+            if (act === 'row-del') { t.closest('.cd-subrow').remove(); return; }
+            if (act === 'rep-gen') {
+                const modSel = document.getElementById('repMod').value, period = document.getElementById('repPeriod').value;
+                const rep = modSel === '__global' ? informeGlobal(period) : generarInforme(modSel, period);
+                if (await guardar('reports', rep)) { descargar(rep.fileName, rep.content, 'text/csv;charset=utf-8'); toast('Informe generado', 'ok'); render(); }
+                return;
+            }
+            if (act === 'rep-dl') { const r = S.reports.find((x) => x.id === t.dataset.id); if (r) descargar(r.fileName, r.content, 'text/csv;charset=utf-8'); return; }
+            if (act === 'rep-del') { if (confirm('¿Eliminar este informe?') && await borrar('reports', t.dataset.id)) render(); return; }
+            if (act === 'export') { descargar(`coordina-desk-respaldo-${hoy()}.json`, JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), source: 'Coordina Desk NLT', collections: S }, null, 2), 'application/json'); return; }
+            if (act === 'import-pick') { document.getElementById('cdImportFile').click(); return; }
+            if (act === 'notif') { if ('Notification' in window) await Notification.requestPermission(); return render(); }
+        });
+
+        document.addEventListener('input', (e) => {
+            if (e.target.id === 'cdSearch') { UI.q = e.target.value; refreshList(); }
+        });
+        document.addEventListener('change', (e) => {
+            const id = e.target.id;
+            if (id === 'cdStatus') { UI.status = e.target.value; refreshList(); }
+            else if (id === 'cdDept') { UI.dept = e.target.value; refreshList(); }
+            else if (id === 'cdType') { UI.type = e.target.value; refreshList(); }
+        });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOpen) closeModal(); });
+
+        // ------------------------------------------------------------------
+        // Recordatorios de la agenda (mientras la página está abierta)
+        // ------------------------------------------------------------------
+        function avisados() { try { return JSON.parse(localStorage.getItem('cd_avisados') || '[]'); } catch (_) { return []; } }
+        function revisarRecordatorios() {
+            const ya = avisados();
+            const ahora = new Date();
+            let cambio = false;
+            for (const i of S.items) {
+                if (!i.automaticReminder || i.status === 'completed' || !i.time || !i.date || !(i.reminderLeadTime in LEAD_MIN)) continue;
+                const [h, mi] = i.time.split(':').map(Number);
+                const inicio = parseYmd(i.date); inicio.setHours(h, mi, 0, 0);
+                const aviso = new Date(inicio.getTime() - LEAD_MIN[i.reminderLeadTime] * 60000);
+                const clave = i.id + '|' + i.date + '|' + i.time + '|' + i.reminderLeadTime;
+                if (ahora >= aviso && ahora <= new Date(inicio.getTime() + 15 * 60000) && !ya.includes(clave)) {
+                    ya.push(clave); cambio = true;
+                    toast(`🔔 ${i.title} · ${i.time}`, 'ok');
+                    if ('Notification' in window && Notification.permission === 'granted') { try { new Notification('Coordina Desk', { body: `${i.title} · ${i.time}` }); } catch (_) {} }
+                }
+            }
+            if (cambio) { try { localStorage.setItem('cd_avisados', JSON.stringify(ya.slice(-300))); } catch (_) {} }
+        }
+
+        // ------------------------------------------------------------------
+        // Init: sesión + permiso "coordina" (la protección real está en cada endpoint)
+        // ------------------------------------------------------------------
+        async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            SESSION = session;
+            if (!NLT.isGlobalAdmin(session)) {
+                let ok = false;
+                try { const mp = await NLT_API.adminMisPermisos(); ok = !!(mp.permissions && mp.permissions.coordina); } catch (_) { ok = false; }
+                if (!ok) { window.location.href = 'dashboard.html'; return; }
+            }
+            await NLT.mountSidebar(session, { activo: 'admin', seccion: 'cfd', planLabel: 'Admin' });
+            const hash = (location.hash || '').replace('#', '');
+            if (MODS[hash]) UI.tab = hash;
+            render();
+            document.getElementById('cdContent').innerHTML = '<div class="cd-empty"><i class="ph ph-circle-notch"></i>Cargando…</div>';
+            const ok = await cargar();
+            render();
+            if (!ok) return;
+            revisarRecordatorios();
+            NLT.pollWhileVisible(async () => {
+                if (modalOpen || pendingSaves > 0) return;
+                if (await cargar(true)) { revisarRecordatorios(); if (!document.activeElement || !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) render(); }
+            }, 60000);
+            document.getElementById('cdRefresh').addEventListener('click', async () => { if (await cargar()) { render(); toast('Actualizado', 'ok'); } });
+        }
+        init();
+    })();
+    </script>
+</body>
+</html>

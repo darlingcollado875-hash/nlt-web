@@ -122,6 +122,7 @@
             <button data-seccion="soporte" class="tab-admin"><i class="ph-fill ph-lifebuoy mr-1.5"></i>Soporte</button>
             <button data-seccion="nlt_bot" class="tab-admin"><i class="ph-fill ph-robot mr-1.5"></i>NLT Bot Supreme</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
+            <a href="coordinadesk.html" id="tabCoordina" class="tab-admin hidden"><i class="ph-fill ph-squares-four mr-1.5"></i>Coordina Desk</a>
         </nav>
 
         <div class="flex-1 min-w-0 overflow-y-auto p-10 space-y-6">
@@ -1761,7 +1762,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=740bbbd4"></script>
+    <script src="assets/js/nlt-api-client.js?v=a90795b4"></script>
     <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -5541,6 +5542,11 @@
                     document.getElementById('seccion-' + seccion)?.classList.add('hidden');
                 }
             });
+
+            // Coordina Desk es una página aparte (coordinadesk.html), no una
+            // sección de esta página: el link solo se muestra con el permiso
+            // "coordina" (la protección real está en cada endpoint /admin/coordina).
+            if (puede('coordina')) document.getElementById('tabCoordina')?.classList.remove('hidden');
 
             // Sidebar/perfil son chrome global, siempre. Los datos de cada
             // pestaña se piden recién cuando esa pestaña se abre (ver
