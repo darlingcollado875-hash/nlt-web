@@ -5530,6 +5530,13 @@
                     window.location.href = 'dashboard.html';
                     return;
                 }
+                // Quien solo tiene el permiso del Workspace NLT no tiene nada que ver
+                // aquí: entra directo a su espacio (sin pasar por un Admin Center vacío).
+                const _activos = Object.entries(_misPermisos.permissions).filter(([, v]) => v).map(([k]) => k);
+                if (_activos.length === 1 && _activos[0] === 'coordina') {
+                    window.location.href = 'coordinadesk.html';
+                    return;
+                }
             }
 
             let primerPermitido = null;

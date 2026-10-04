@@ -125,7 +125,8 @@
         .cd-subrow { display: grid; gap: 8px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.04); }
         .cd-checkrow { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding-top: 6px; }
         .cd-foot { display: flex; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
-        .cd-toast { position: fixed; bottom: 24px; right: 24px; z-index: 90; padding: 12px 18px; border-radius: 14px; background: #11151C; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width: 360px; }
+        #cdToastRoot { position: fixed; bottom: 24px; right: 24px; z-index: 90; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
+        .cd-toast { padding: 12px 18px; border-radius: 14px; background: #11151C; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width: 360px; }
         .cd-toast.err { border-color: rgba(248,113,113,.5); color: #fca5a5; }
         .cd-toast.ok { border-color: rgba(34,197,94,.4); }
         .cd-detail { white-space: pre-wrap; font-size: 13px; color: #D1D5DB; line-height: 1.55; }
@@ -214,6 +215,7 @@
         const S = { team: [], items: [], affiliates: [], meetings: [], contracts: [], payments: [], publications: [], launches: [], devChanges: [], academyClasses: [], reports: [] };
         const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7) };
         let SESSION = null;
+        let IS_GLOBAL = false;
         let pendingSaves = 0;
         let modalOpen = false;
 
@@ -819,6 +821,12 @@
             const totales = Object.entries(S).map(([k, v]) => `${k}: ${v.length}`).join(' · ');
             const perm = ('Notification' in window) ? Notification.permission : 'no disponible';
             return `
+                ${IS_GLOBAL ? `<div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Acceso del equipo</h3>
+                    <p class="cd-sub" style="margin-bottom:14px">Elige quién puede entrar al Workspace con acceso completo (ver, crear, editar y borrar todo). Solo se activa este permiso: la persona <b>no</b> recibe acceso al resto del Admin Center. Solo tú, como Global Admin, puedes gestionar esto.</p>
+                    <div id="cdAccessList" style="margin-bottom:16px"><p class="cd-sub">Cargando…</p></div>
+                    <div class="cd-lbl" style="margin-bottom:8px">Dar acceso a otra persona</div>
+                    <div class="cd-bar" style="margin-bottom:10px"><input class="cd-input cd-grow" id="cdAccessQ" type="search" placeholder="Buscar por correo (la persona debe tener cuenta en NLT)…"><button class="cd-btn" data-act="acc-search"><i class="ph ph-magnifying-glass"></i> Buscar</button></div>
+                    <div id="cdAccessResults"></div></div>` : ''}
                 <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Respaldo de datos</h3>
                     <p class="cd-sub" style="margin-bottom:14px">${esc(totales)}</p>
                     <div class="cd-bar" style="margin-bottom:0"><button class="cd-btn" data-act="export"><i class="ph ph-download-simple"></i> Exportar JSON</button>
@@ -829,7 +837,65 @@
                     ${perm === 'default' ? '<button class="cd-btn" data-act="notif">Activar notificaciones</button>' : ''}</div>
                 <div class="glass-card" style="padding:22px"><h3 style="font-weight:800;font-size:16px;margin-bottom:10px">Departamentos</h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px">${DEPTS.map((d) => `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>`).join('')}</div>
-                    <p class="cd-sub" style="margin-top:12px">Acceso: solo el Global Admin y los administradores con el permiso “Workspace NLT” (se otorga en Admin Center → Administración Global).</p></div>`;
+                    <p class="cd-sub" style="margin-top:12px">Acceso: solo el Global Admin y las personas a las que él da acceso${IS_GLOBAL ? ' (arriba, en “Acceso del equipo”)' : ''}.</p></div>`;
+        }
+
+        // --- Acceso del equipo (solo Global Admin). Usa los endpoints existentes de
+        //     Administración Global; PUT /permissions REEMPLAZA el set completo, así que
+        //     siempre se parte de los permisos actuales para no pisar los de otro módulo. ---
+        let ACCESS = { admins: [] };
+        const conAcceso = (a) => a.activo && a.permissions && a.permissions.coordina;
+
+        async function cargarAcceso() {
+            const box = document.getElementById('cdAccessList');
+            if (!box) return;
+            try {
+                ACCESS.admins = await NLT_API.adminGlobalAdmins();
+                const lista = ACCESS.admins.filter(conAcceso);
+                box.innerHTML = lista.length ? lista.map((a) => {
+                    const otros = Object.entries(a.permissions).filter(([k, v]) => v && k !== 'coordina').length;
+                    return `<div class="glass-item" style="padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><div style="flex:1;min-width:180px"><b style="font-size:13px">${esc(a.email || a.user_id)}</b><div class="cd-sub">${otros ? `También es admin de ${otros} módulo(s) más` : 'Solo Workspace NLT'}</div></div><button class="cd-btn sm danger" data-act="acc-revoke" data-id="${esc(a.user_id)}" data-email="${esc(a.email || '')}">Quitar acceso</button></div>`;
+                }).join('') : '<p class="cd-sub">Nadie más tiene acceso todavía.</p>';
+            } catch (e) { box.innerHTML = `<p class="cd-sub cd-tone-bad">No se pudo cargar: ${esc(e.message)}</p>`; }
+        }
+
+        async function buscarAcceso() {
+            const q = document.getElementById('cdAccessQ').value.trim();
+            const box = document.getElementById('cdAccessResults');
+            if (!q) { box.innerHTML = '<p class="cd-sub">Escribe un correo o parte de él.</p>'; return; }
+            box.innerHTML = '<p class="cd-sub">Buscando…</p>';
+            try {
+                const us = await NLT_API.adminGlobalUsuarios(q);
+                const mios = new Set(ACCESS.admins.filter(conAcceso).map((a) => a.user_id));
+                box.innerHTML = us.length ? us.slice(0, 15).map((u) => `<div class="glass-item" style="padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="flex:1;min-width:180px;font-size:13px">${esc(u.email)}</span>${u.email === SESSION.user.email ? '<span class="cd-badge cd-tone-warn">Global Admin (tú)</span>' : mios.has(u.user_id) ? '<span class="cd-badge cd-tone-ok">Ya tiene acceso</span>' : `<button class="cd-btn sm primary" data-act="acc-grant" data-id="${esc(u.user_id)}" data-email="${esc(u.email)}">Dar acceso completo</button>`}</div>`).join('') : '<p class="cd-sub">Sin resultados. La persona debe haber iniciado sesión en NLT al menos una vez.</p>';
+            } catch (e) { box.innerHTML = `<p class="cd-sub cd-tone-bad">Error: ${esc(e.message)}</p>`; }
+        }
+
+        async function darAcceso(userId, email) {
+            if (!confirm(`¿Dar acceso completo al Workspace NLT a ${email}?`)) return;
+            try {
+                const lista = await NLT_API.adminGlobalAdmins();
+                const ex = lista.find((a) => a.user_id === userId);
+                // Si estaba revocado, no reactivamos permisos viejos de otros módulos.
+                const base = ex && ex.activo ? ex.permissions : {};
+                await NLT_API.adminGlobalGuardarPermisos(userId, { ...base, coordina: true });
+                toast('Acceso concedido a ' + email, 'ok');
+                await cargarAcceso(); await buscarAcceso();
+            } catch (e) { toast('No se pudo dar acceso: ' + e.message, 'err'); }
+        }
+
+        async function quitarAcceso(userId, email) {
+            if (!confirm(`¿Quitar el acceso al Workspace NLT a ${email || 'esta persona'}?`)) return;
+            try {
+                const lista = await NLT_API.adminGlobalAdmins();
+                const ex = lista.find((a) => a.user_id === userId);
+                if (!ex) return;
+                const resto = { ...ex.permissions, coordina: false };
+                if (Object.values(resto).some(Boolean)) await NLT_API.adminGlobalGuardarPermisos(userId, resto);
+                else await NLT_API.adminGlobalRevocar(userId, true);   // no le queda ningún permiso: se borra la fila
+                toast('Acceso retirado', 'ok');
+                await cargarAcceso();
+            } catch (e) { toast('No se pudo quitar el acceso: ' + e.message, 'err'); }
         }
 
         // Normaliza el formato del Coordina Desk original (React) al de este espacio.
@@ -866,6 +932,7 @@
             root.innerHTML = UI.tab === 'daily' ? viewDaily() : UI.tab === 'reports' ? viewReports() : UI.tab === 'settings' ? viewSettings() : viewModule(UI.tab);
             const f = document.getElementById('cdImportFile');
             if (f) f.addEventListener('change', onImportFile);
+            if (UI.tab === 'settings' && IS_GLOBAL) { cargarAcceso(); const q = document.getElementById('cdAccessQ'); if (q) q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') buscarAcceso(); }); }
         }
 
         function refreshList() {
@@ -942,6 +1009,9 @@
             if (act === 'rep-del') { if (confirm('¿Eliminar este informe?') && await borrar('reports', t.dataset.id)) render(); return; }
             if (act === 'export') { descargar(`workspace-nlt-respaldo-${hoy()}.json`, JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), source: 'Workspace NLT', collections: S }, null, 2), 'application/json'); return; }
             if (act === 'import-pick') { document.getElementById('cdImportFile').click(); return; }
+            if (act === 'acc-search') return buscarAcceso();
+            if (act === 'acc-grant') return darAcceso(t.dataset.id, t.dataset.email);
+            if (act === 'acc-revoke') return quitarAcceso(t.dataset.id, t.dataset.email);
             if (act === 'notif') { if ('Notification' in window) await Notification.requestPermission(); return render(); }
         });
 
@@ -986,6 +1056,7 @@
             const session = await NLT.requireSession();
             if (!session) return;
             SESSION = session;
+            IS_GLOBAL = NLT.isGlobalAdmin(session);
             if (!NLT.isGlobalAdmin(session)) {
                 let ok = false;
                 try { const mp = await NLT_API.adminMisPermisos(); ok = !!(mp.permissions && mp.permissions.coordina); } catch (_) { ok = false; }
