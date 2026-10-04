@@ -665,6 +665,12 @@
 
         // --- Administración jerárquica (Global Admin) ---
         adminMisPermisos: () => request('/admin/me/permissions'),
+
+        // --- Coordina Desk (espacio interno, solo admins con el módulo "coordina") ---
+        coordinaSnapshot: () => request('/admin/coordina/snapshot', { timeoutMs: 20000 }),
+        coordinaGuardar: (coleccion, id, data) => request(`/admin/coordina/${encodeURIComponent(coleccion)}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ data }) }),
+        coordinaBorrar: (coleccion, id) => request(`/admin/coordina/${encodeURIComponent(coleccion)}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+        coordinaImportar: (collections) => request('/admin/coordina/import', { method: 'POST', body: JSON.stringify({ collections }), timeoutMs: 60000, intentos: 1 }),
         adminGlobalUsuarios: (q) => request(`/admin/global/users${q ? '?q=' + encodeURIComponent(q) : ''}`),
         adminGlobalAdmins: () => request('/admin/global/admins'),
         adminGlobalGuardarPermisos: (userId, permissions) => request(`/admin/global/admins/${userId}/permissions`, { method: 'PUT', body: JSON.stringify({ permissions }) }),
