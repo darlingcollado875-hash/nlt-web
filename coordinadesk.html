@@ -168,7 +168,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=f4f5b03f"></script>
+    <script src="assets/js/nlt-api-client.js?v=90d44bff"></script>
     <script>
     (function () {
         'use strict';
@@ -213,12 +213,17 @@
         // Estado
         // ------------------------------------------------------------------
         const S = { team: [], items: [], affiliates: [], meetings: [], contracts: [], payments: [], publications: [], launches: [], devChanges: [], academyClasses: [], reports: [] };
-        const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7) };
+        const PAGE = 100;   // filas visibles por lista: con miles de registros, pintarlas todas congelaba la página
+        const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7), limit: PAGE };
         let SESSION = null;
         let IS_GLOBAL = false;
         let renderActividadCargando = false;
         let pendingSaves = 0;
         let modalOpen = false;
+        let formDirty = false;
+        let LASTSIG = '';
+        let DATA_CHANGED = true;
+        let LOAD_ERR = '';
 
         const member = (id) => S.team.find((m) => m.id === id);
         const mname = (id) => (member(id) ? member(id).name : '—');
@@ -457,11 +462,15 @@
         async function cargar(silencioso) {
             try {
                 const snap = await NLT_API.coordinaSnapshot();
-                for (const k of Object.keys(S)) S[k] = (snap.collections && snap.collections[k]) || [];
+                const sig = JSON.stringify(snap.collections || {});
+                DATA_CHANGED = sig !== LASTSIG;   // si el sondeo no trae nada nuevo, no se vuelve a pintar todo
+                if (DATA_CHANGED) { LASTSIG = sig; for (const k of Object.keys(S)) S[k] = (snap.collections && snap.collections[k]) || []; }
+                LOAD_ERR = '';
                 document.getElementById('cdSync').textContent = 'Sincronizado ' + new Date().toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' });
                 return true;
             } catch (e) {
-                if (!silencioso) toast('No se pudieron cargar los datos: ' + e.message, 'err');
+                LOAD_ERR = e.message || 'Error de red';
+                if (!silencioso) toast('No se pudieron cargar los datos: ' + LOAD_ERR, 'err');
                 return false;
             }
         }
@@ -474,11 +483,14 @@
             pendingSaves++;
             try {
                 const { _updated_at, ...limpio } = rec;
-                await NLT_API.coordinaGuardar(col, rec.id, limpio);
+                const r = await NLT_API.coordinaGuardar(col, rec.id, limpio, _updated_at);
+                if (r && r.updated_at) rec._updated_at = r.updated_at;   // la siguiente edición parte de esta versión
+                LASTSIG = '';
                 return true;
             } catch (e) {
                 if (previo) lista[i] = previo; else lista.splice(lista.findIndex((x) => x.id === rec.id), 1);
-                toast('No se pudo guardar: ' + e.message, 'err');
+                if (e.status === 409) { toast(e.message, 'err'); closeModal(); cargar(true).then(render); }   // alguien más lo editó: se recargan los datos
+                else toast('No se pudo guardar: ' + e.message, 'err');
                 return false;
             } finally { pendingSaves--; }
         }
@@ -489,7 +501,7 @@
             if (i < 0) return;
             const previo = lista.splice(i, 1)[0];
             pendingSaves++;
-            try { await NLT_API.coordinaBorrar(col, id); return true; }
+            try { await NLT_API.coordinaBorrar(col, id); LASTSIG = ''; return true; }
             catch (e) { lista.splice(i, 0, previo); toast('No se pudo borrar: ' + e.message, 'err'); return false; }
             finally { pendingSaves--; }
         }
@@ -497,10 +509,13 @@
         // ------------------------------------------------------------------
         // Formulario genérico (modal)
         // ------------------------------------------------------------------
-        function closeModal() { document.getElementById('cdModalRoot').innerHTML = ''; modalOpen = false; }
-        function openModal(html) {
+        function closeModal() { document.getElementById('cdModalRoot').innerHTML = ''; modalOpen = false; formDirty = false; }
+        function pedirCerrar() { if (formDirty && !confirm('¿Descartar los cambios sin guardar?')) return; closeModal(); }
+        function openModal(html, sticky) {
             const root = document.getElementById('cdModalRoot');
-            root.innerHTML = `<div class="cd-overlay" data-act="overlay"><div class="cd-modal" role="dialog" aria-modal="true">${html}</div></div>`;
+            formDirty = false;
+            // En formularios (sticky) un clic fuera NO cierra: un toque accidental borraba todo lo escrito.
+            root.innerHTML = `<div class="cd-overlay" ${sticky ? '' : 'data-act="overlay"'}><div class="cd-modal" role="dialog" aria-modal="true">${html}</div></div>`;
             modalOpen = true;
             const first = root.querySelector('input:not([type=checkbox]),select,textarea');
             if (first) first.focus();
@@ -508,7 +523,7 @@
 
         function fieldInput(f, val, name) {
             const v = val == null ? '' : val;
-            const n = `name="${esc(name)}"`;
+            const n = `name="${esc(name)}"${name.startsWith('__sub_') ? '' : ` id="f_${esc(name)}"`}`;
             switch (f.t) {
                 case 'textarea': return `<textarea class="cd-textarea" ${n}>${esc(v)}</textarea>`;
                 case 'date': case 'time': return `<input class="cd-input" type="${f.t}" ${n} value="${esc(v)}">`;
@@ -545,7 +560,7 @@
                     const rows = (val && val.length ? val : []).map((r) => rowHTML(f, r)).join('');
                     return `<div class="cd-field full"><label>${esc(f.l)}</label><div class="cd-sub-rows" data-rows="${esc(f.k)}">${rows}</div><div><button type="button" class="cd-btn sm" data-act="row-add" data-k="${esc(f.k)}">＋ ${esc(f.add || 'Añadir')}</button></div></div>`;
                 }
-                return `<div class="cd-field${full}"><label>${esc(f.l)}${f.req ? ' <em>*</em>' : ''}</label>${fieldInput(f, val, f.k)}</div>`;
+                return `<div class="cd-field${full}"><label for="f_${esc(f.k)}">${esc(f.l)}${f.req ? ' <em>*</em>' : ''}</label>${fieldInput(f, val, f.k)}</div>`;
             }).join('');
         }
 
@@ -583,8 +598,10 @@
                 <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>
                 <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base)}</div>
                     <div class="cd-foot"><button type="button" class="cd-btn" data-act="close">Cancelar</button><button type="submit" class="cd-btn primary"><i class="ph-bold ph-check"></i> Guardar</button></div>
-                </form>`);
+                </form>`, true);
             const form = document.getElementById('cdForm');
+            form.addEventListener('input', () => { formDirty = true; });
+            form.addEventListener('change', () => { formDirty = true; });
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 let out = collect(m, form, base);
@@ -628,6 +645,9 @@
             const m = MODS[modId];
             const lista = filtrar(m, S[m.col]);
             if (!lista.length) return `<div class="glass-card cd-empty"><i class="ph ph-tray"></i>${S[m.col].length ? 'Nada coincide con el filtro.' : esc(m.empty)}</div>`;
+            const total = lista.length;
+            if (m.view !== 'board' && total > UI.limit) lista.length = UI.limit;
+            const mas = lista.length < total ? `<div style="text-align:center;margin-top:14px"><button class="cd-btn" data-act="more">Mostrar más (${total - lista.length} restantes)</button></div>` : '';
             if (m.view === 'cards') {
                 return `<div class="cd-cards">${lista.map((r, i) => {
                     const c = m.card(r, i);
@@ -635,7 +655,7 @@
                         <div style="display:flex;gap:12px;align-items:center">${c.avatar ? `<div class="cd-avatar" style="background:${c.avatar[1]}">${esc(initials(c.avatar[0]))}</div>` : ''}<div style="min-width:0;flex:1"><h3>${esc(c.title)}</h3><div class="cd-sub">${esc(c.sub)}</div></div>${c.badge ? `<span class="cd-badge cd-tone-${c.badge[1]}">${esc(c.badge[0])}</span>` : ''}</div>
                         ${(c.lines || []).map((l) => `<p>${esc(l)}</p>`).join('')}
                         ${actionsHTML(modId, r, m)}</div>`;
-                }).join('')}</div>`;
+                }).join('')}</div>${mas}`;
             }
             if (m.view === 'board') {
                 return `<div class="cd-board">${m.statusOpts.map((o) => {
@@ -649,7 +669,7 @@
                 const cell = typeof f === 'function' ? f(r) : (f.startsWith('badge:') ? badge(m.statusOpts, statusOf(m, r)) : esc(r[f]));
                 return `<td>${cell}</td>`;
             }).join('') + `<td>${actionsHTML(modId, r, m)}</td></tr>`).join('');
-            return `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
+            return `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${mas}`;
         }
 
         function viewModule(modId) {
@@ -699,8 +719,10 @@
                     return `<div class="glass-card cd-wcol"><div class="cd-lbl ${f === hoy() ? 'cd-tone-info' : ''}">${DIAS[parseYmd(f).getDay()]} ${parseYmd(f).getDate()}</div>${its.map((i) => `<button class="cd-chip" data-act="edit" data-mod="daily" data-id="${esc(i.id)}" style="border-left-color:${(dept(i.departmentId) || {}).color || '#374151'}"><b>${esc(i.time || '')}</b> ${esc(i.title)}</button>`).join('') || '<div class="cd-sub" style="margin-top:8px">Libre</div>'}</div>`;
                 }).join('')}</div>`;
             }
-            const its = agendaItemsDe(UI.date);
-            return its.length ? its.map(agendaItemHTML).join('') : `<div class="glass-card cd-empty"><i class="ph ph-calendar-blank"></i>No hay actividades para este día.</div>`;
+            const todas = agendaItemsDe(UI.date);
+            const its = todas.slice(0, UI.limit);
+            const mas = todas.length > its.length ? `<div style="text-align:center;margin-top:14px"><button class="cd-btn" data-act="more">Mostrar más (${todas.length - its.length} restantes)</button></div>` : '';
+            return its.length ? its.map(agendaItemHTML).join('') + mas : `<div class="glass-card cd-empty"><i class="ph ph-calendar-blank"></i>No hay actividades para este día.</div>`;
         }
 
         function viewDaily() {
@@ -758,7 +780,8 @@
             return lista.filter((r) => String(r[m.report.date] || '').slice(0, 7) === period);
         }
         const cellValue = (c, r) => { const v = typeof c[1] === 'function' ? c[1](r) : r[c[1]]; return v == null ? '' : v; };
-        const csvCell = (v) => '"' + String(v).replace(/"/g, '""') + '"';
+        // Un texto que empieza por = + - @ se ejecuta como fórmula al abrir el CSV en Excel/Sheets: se neutraliza con una comilla.
+        const csvCell = (v) => { let t = String(v); if (typeof v === 'string' && /^[=+\-@\t\r]/.test(t)) t = "'" + t; return '"' + t.replace(/"/g, '""') + '"'; };
 
         function generarInforme(modId, period) {
             const m = MODS[modId];
@@ -1036,8 +1059,10 @@
             if (!t) return;
             const act = t.dataset.act;
             if (act === 'overlay') { if (e.target === t) closeModal(); return; }
-            if (act === 'close') return closeModal();
-            if (act === 'tab') { UI.tab = t.dataset.tab; UI.q = ''; UI.status = 'all'; return render(); }
+            if (act === 'close') return pedirCerrar();
+            if (act === 'tab') { UI.tab = t.dataset.tab; UI.q = ''; UI.status = 'all'; UI.limit = PAGE; return render(); }
+            if (act === 'more') { UI.limit += PAGE; return refreshList(); }
+            if (act === 'retry') { location.reload(); return; }
             if (act === 'new') return openForm(t.dataset.mod);
             const modId = t.dataset.mod;
             if (act === 'edit') { closeModal(); const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openForm(modId, rec); }
@@ -1054,10 +1079,10 @@
                 if (await guardar('items', nuevo)) render();
                 return;
             }
-            if (act === 'date-prev') { UI.date = addDays(UI.date, UI.agendaView === 'week' ? -7 : -1); return render(); }
-            if (act === 'date-next') { UI.date = addDays(UI.date, UI.agendaView === 'week' ? 7 : 1); return render(); }
-            if (act === 'date-today') { UI.date = hoy(); return render(); }
-            if (act === 'date-set') { UI.date = t.dataset.d; UI.agendaView = 'day'; return render(); }
+            if (act === 'date-prev') { UI.limit = PAGE; UI.date = addDays(UI.date, UI.agendaView === 'week' ? -7 : -1); return render(); }
+            if (act === 'date-next') { UI.limit = PAGE; UI.date = addDays(UI.date, UI.agendaView === 'week' ? 7 : 1); return render(); }
+            if (act === 'date-today') { UI.limit = PAGE; UI.date = hoy(); return render(); }
+            if (act === 'date-set') { UI.limit = PAGE; UI.date = t.dataset.d; UI.agendaView = 'day'; return render(); }
             if (act === 'aview') { UI.agendaView = t.dataset.v; return render(); }
             if (act === 'row-add') {
                 const m = MODS[UI.tab]; const f = m.fields.find((x) => x.k === t.dataset.k);
@@ -1082,17 +1107,22 @@
             if (act === 'notif') { if ('Notification' in window) await Notification.requestPermission(); return render(); }
         });
 
+        let searchTimer = 0;
         document.addEventListener('input', (e) => {
-            if (e.target.id === 'cdSearch') { UI.q = e.target.value; refreshList(); }
+            if (e.target.id === 'cdSearch') {
+                clearTimeout(searchTimer);
+                const v = e.target.value;
+                searchTimer = setTimeout(() => { UI.q = v; UI.limit = PAGE; refreshList(); }, 150);   // sin esto, cada tecla repintaba toda la lista
+            }
         });
         document.addEventListener('change', (e) => {
             const id = e.target.id;
-            if (id === 'cdStatus') { UI.status = e.target.value; refreshList(); }
-            else if (id === 'cdDept') { UI.dept = e.target.value; refreshList(); }
-            else if (id === 'cdType') { UI.type = e.target.value; refreshList(); }
+            if (id === 'cdStatus') { UI.status = e.target.value; UI.limit = PAGE; refreshList(); }
+            else if (id === 'cdDept') { UI.dept = e.target.value; UI.limit = PAGE; refreshList(); }
+            else if (id === 'cdType') { UI.type = e.target.value; UI.limit = PAGE; refreshList(); }
             else if (id === 'cdActWho') { ACT.who = e.target.value; document.getElementById('cdActList').innerHTML = actividadListHTML(); }
         });
-        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOpen) closeModal(); });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOpen) pedirCerrar(); });
 
         // ------------------------------------------------------------------
         // Recordatorios de la agenda (mientras la página está abierta)
@@ -1136,14 +1166,22 @@
             render();
             document.getElementById('cdContent').innerHTML = '<div class="cd-empty"><i class="ph ph-circle-notch"></i>Cargando…</div>';
             const ok = await cargar();
+            if (!ok) {
+                const sinPermiso = /permiso|403|401/i.test(LOAD_ERR);
+                document.getElementById('cdContent').innerHTML = `<div class="glass-card cd-empty"><i class="ph ph-warning"></i><b style="color:#fff">${sinPermiso ? 'No tienes permiso para este espacio' : 'No se pudieron cargar los datos'}</b><div class="cd-sub" style="margin:8px 0 16px">${esc(LOAD_ERR)}</div><button class="cd-btn primary" data-act="retry">Reintentar</button></div>`;
+                return;
+            }
             render();
-            if (!ok) return;
             revisarRecordatorios();
             NLT.pollWhileVisible(async () => {
                 if (modalOpen || pendingSaves > 0) return;
-                if (await cargar(true)) { revisarRecordatorios(); if (!document.activeElement || !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)) render(); }
+                if (await cargar(true)) {
+                    revisarRecordatorios();
+                    // Solo se repinta si llegaron datos distintos y la persona no está escribiendo.
+                    if (DATA_CHANGED && (!document.activeElement || !/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))) render();
+                }
             }, 60000);
-            document.getElementById('cdRefresh').addEventListener('click', async () => { if (await cargar()) { render(); toast('Actualizado', 'ok'); } });
+            document.getElementById('cdRefresh').addEventListener('click', async () => { if (await cargar()) { if (DATA_CHANGED) render(); toast('Actualizado', 'ok'); } });
         }
         init();
     })();
