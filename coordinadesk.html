@@ -905,6 +905,40 @@
         const COL_LABEL = { team: 'Mi Equipo', items: 'Agenda', affiliates: 'Afiliados', payments: 'Finanzas', contracts: 'Contratos', meetings: 'Reuniones', publications: 'Marketing', academyClasses: 'Academia', devChanges: 'Programación', launches: 'Lanzamientos', reports: 'Informes' };
         const ACT_LABEL = { 'coordina.crear': ['Creó', 'ok'], 'coordina.editar': ['Editó', 'info'], 'coordina.borrar': ['Eliminó', 'bad'], 'coordina.importar': ['Importó datos', 'vio'] };
 
+        // Valor "antes/después" legible: personas, estados y departamentos por su nombre (no por id).
+        function campoDef(col, k) {
+            const m = Object.values(MODS).find((x) => x.col === col);
+            return m && m.fields ? m.fields.find((f) => f.k === k) : null;
+        }
+        function fmtValor(f, v) {
+            if (v === '' || v == null) return '—';
+            if (typeof v === 'boolean') return v ? 'Sí' : 'No';
+            const t = f && f.t;
+            if (t === 'check') return v ? 'Sí' : 'No';
+            if (t === 'member') return mname(v);
+            if (t === 'members') return (Array.isArray(v) ? v : []).map(mname).join(', ') || '—';
+            if (t === 'dept') return (dept(v) || { name: v }).name;
+            if (t === 'affiliate') { const a = S.affiliates.find((x) => x.id === v); return a ? `${a.affiliateCode || ''} ${a.fullName}`.trim() : String(v); }
+            if (t === 'select') { const o = optOf(f.opts, v); return o ? o.l : String(v); }
+            if (t === 'date') return fmtDate(v).replace(/&[a-z#0-9]+;/g, '');
+            if (t === 'money') return money(v);
+            if (Array.isArray(v)) {
+                if (!v.length) return '—';
+                return v.map((o) => (o && typeof o === 'object' ? (o.title || o.name || o.task || o.changedFields || Object.values(o).find((x) => typeof x === 'string' && x) || '·') : String(o))).join(' · ');
+            }
+            if (typeof v === 'object') return JSON.stringify(v);
+            return String(v);
+        }
+        function cambiosHTML(d) {
+            const lista = (d.cambios || []);
+            if (!lista.length) return '';
+            const filas = lista.slice(0, 12).map((c) => {
+                const f = campoDef(d.coleccion, c.campo);
+                return `<div class="cd-sub" style="margin-top:4px"><b style="color:#D1D5DB">${esc(f ? f.l : c.campo)}:</b> <span style="text-decoration:line-through;opacity:.7">${esc(fmtValor(f, c.antes))}</span> → <span class="cd-tone-ok">${esc(fmtValor(f, c.despues))}</span></div>`;
+            }).join('');
+            return filas + (lista.length > 12 ? `<div class="cd-sub">+${lista.length - 12} cambios más</div>` : '');
+        }
+
         function actividadListHTML() {
             if (ACT.error) return `<div class="glass-card cd-empty"><i class="ph ph-warning"></i>${esc(ACT.error)}</div>`;
             if (!ACT.loaded) return '<div class="glass-card cd-empty"><i class="ph ph-circle-notch"></i>Cargando…</div>';
@@ -913,7 +947,7 @@
             return `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr><th>Cuándo</th><th>Quién</th><th>Qué hizo</th><th>Dónde</th></tr></thead><tbody>${rows.map((r) => {
                 const [l, tone] = ACT_LABEL[r.accion] || [r.accion, 'mute'];
                 const d = r.detalle || {};
-                return `<tr><td style="white-space:nowrap">${new Date(r.fecha).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(r.actor)}</td><td><span class="cd-badge cd-tone-${tone}">${esc(l)}</span></td><td>${d.coleccion ? `<b>${esc(COL_LABEL[d.coleccion] || d.coleccion)}</b>` : ''}${d.titulo ? `<div class="cd-sub">${esc(d.titulo)}</div>` : ''}${d.registros ? `<div class="cd-sub">${esc(d.registros)} registros</div>` : ''}</td></tr>`;
+                return `<tr><td style="white-space:nowrap">${new Date(r.fecha).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(r.actor)}</td><td><span class="cd-badge cd-tone-${tone}">${esc(l)}</span></td><td>${d.coleccion ? `<b>${esc(COL_LABEL[d.coleccion] || d.coleccion)}</b>` : ''}${d.titulo ? `<div class="cd-sub">${esc(d.titulo)}</div>` : ''}${cambiosHTML(d)}${d.registros ? `<div class="cd-sub">${esc(d.registros)} registros</div>` : ''}</td></tr>`;
             }).join('')}</tbody></table></div>`;
         }
 
