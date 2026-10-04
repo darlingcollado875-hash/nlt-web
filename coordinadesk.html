@@ -9,7 +9,7 @@
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
-    <title>Coordina Desk · NLT</title>
+    <title>Workspace NLT</title>
     <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
     <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
     <link rel="manifest" href="/manifest.webmanifest">
@@ -147,7 +147,7 @@
         <header class="h-24 flex items-center justify-between pl-20 pr-10 md:px-10 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
             <div>
                 <p class="text-[10px] font-bold text-yellow-400 uppercase tracking-widest mb-0.5">Espacio de administración</p>
-                <h1 class="text-2xl font-bold tracking-tight">Coordina Desk</h1>
+                <h1 class="text-2xl font-bold tracking-tight">Workspace NLT</h1>
             </div>
             <div class="flex items-center gap-3">
                 <span id="cdSync" class="cd-lbl hidden md:inline"></span>
@@ -829,7 +829,7 @@
                     ${perm === 'default' ? '<button class="cd-btn" data-act="notif">Activar notificaciones</button>' : ''}</div>
                 <div class="glass-card" style="padding:22px"><h3 style="font-weight:800;font-size:16px;margin-bottom:10px">Departamentos</h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px">${DEPTS.map((d) => `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>`).join('')}</div>
-                    <p class="cd-sub" style="margin-top:12px">Acceso: solo el Global Admin y los administradores con el permiso “Coordina Desk” (se otorga en Admin Center → Administración Global).</p></div>`;
+                    <p class="cd-sub" style="margin-top:12px">Acceso: solo el Global Admin y los administradores con el permiso “Workspace NLT” (se otorga en Admin Center → Administración Global).</p></div>`;
         }
 
         // Normaliza el formato del Coordina Desk original (React) al de este espacio.
@@ -940,7 +940,7 @@
             }
             if (act === 'rep-dl') { const r = S.reports.find((x) => x.id === t.dataset.id); if (r) descargar(r.fileName, r.content, 'text/csv;charset=utf-8'); return; }
             if (act === 'rep-del') { if (confirm('¿Eliminar este informe?') && await borrar('reports', t.dataset.id)) render(); return; }
-            if (act === 'export') { descargar(`coordina-desk-respaldo-${hoy()}.json`, JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), source: 'Coordina Desk NLT', collections: S }, null, 2), 'application/json'); return; }
+            if (act === 'export') { descargar(`workspace-nlt-respaldo-${hoy()}.json`, JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), source: 'Workspace NLT', collections: S }, null, 2), 'application/json'); return; }
             if (act === 'import-pick') { document.getElementById('cdImportFile').click(); return; }
             if (act === 'notif') { if ('Notification' in window) await Notification.requestPermission(); return render(); }
         });
@@ -973,7 +973,7 @@
                 if (ahora >= aviso && ahora <= new Date(inicio.getTime() + 15 * 60000) && !ya.includes(clave)) {
                     ya.push(clave); cambio = true;
                     toast(`🔔 ${i.title} · ${i.time}`, 'ok');
-                    if ('Notification' in window && Notification.permission === 'granted') { try { new Notification('Coordina Desk', { body: `${i.title} · ${i.time}` }); } catch (_) {} }
+                    if ('Notification' in window && Notification.permission === 'granted') { try { new Notification('Workspace NLT', { body: `${i.title} · ${i.time}` }); } catch (_) {} }
                 }
             }
             if (cambio) { try { localStorage.setItem('cd_avisados', JSON.stringify(ya.slice(-300))); } catch (_) {} }
