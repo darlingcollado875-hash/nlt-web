@@ -9,6 +9,27 @@
      * montarToolbar(el, { simbolos, timeframes, symbol, timeframe, onSymbol, onTimeframe, onIndicadores })
      * -> { setDemo(bool), setSymbol(s), setTimeframe(tf) }
      */
+    // Recarga COMPLETA (el equivalente a Ctrl+Shift+R, para el celular, donde no existe ese atajo): vuelve a pedir
+    // al servidor la página y todos sus scripts y estilos propios sin usar la copia guardada (cache:'reload' también
+    // actualiza esa copia), borra la caché del navegador y recarga. NO desregistra el service worker: eso borraría
+    // la suscripción a las notificaciones push. Pase lo que pase (sin red, lento), la página termina recargándose.
+    async function recargaCompleta(boton) {
+        const replay = window.NLTCharts && NLTCharts.replayApi && NLTCharts.replayApi.activo && NLTCharts.replayApi.activo();
+        if (replay && !window.confirm('Estás en NLT Bar Replay. Al refrescar se sale del replay. ¿Continuar?')) return;
+        if (boton) { boton.disabled = true; boton.classList.add('girando'); }
+        const tarea = (async () => {
+            if (window.caches && caches.keys) { const claves = await caches.keys(); await Promise.all(claves.map((k) => caches.delete(k))); }
+            const propias = new Set([location.href]);
+            document.querySelectorAll('script[src], link[rel="stylesheet"][href]').forEach((n) => {
+                try { const u = new URL(n.src || n.href, location.href); if (u.origin === location.origin) propias.add(u.href); } catch (_) { /* url rara: se ignora */ }
+            });
+            await Promise.all([...propias].map((u) => fetch(u, { cache: 'reload' }).catch(() => null)));
+            try { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration('/sw.js'); if (reg) await reg.update(); } catch (_) { /* sin service worker */ }
+        })();
+        try { await Promise.race([tarea, new Promise((r) => setTimeout(r, 8000))]); } catch (_) { /* aun así se recarga */ }
+        location.reload();
+    }
+
     function montarToolbar(el, o) {
         const porCategoria = {};
         o.simbolos.forEach((s) => { (porCategoria[s.category] ||= []).push(s); });
@@ -21,6 +42,7 @@
                     `<option value="${esc(s.symbol)}">${esc(s.symbol)}</option>`).join('')}</optgroup>`).join('')}
             </select>
             <button type="button" id="chFav" class="ch-btn ch-fav" title="Agregar a favoritos" aria-label="Agregar a favoritos"><i class="ph ph-star"></i></button>
+            <button type="button" id="chBtnRefresh" class="ch-btn" title="Refrescar la página por completo (como Ctrl+Shift+R)" aria-label="Refrescar la página por completo"><i class="ph ph-arrow-clockwise"></i></button>
             <span id="chDemo" class="ch-demo hidden" title="Precios simulados para probar el gráfico. No son precios reales de mercado.">DEMO<span class="ch-btn-label"> · precios simulados</span></span>
             <span id="chConexion" class="ch-conn" data-estado="conectando" role="status" aria-live="polite" title="Conectando con los precios…"><i></i><span class="ch-btn-label">Conectando…</span></span>
             <div class="ch-tfs" role="group" aria-label="Timeframe">
@@ -40,6 +62,7 @@
         el.querySelector('#chBtnConfig').addEventListener('click', () => o.onConfig && o.onConfig());
         el.querySelector('#chBtnWatch').addEventListener('click', () => o.onWatchlist && o.onWatchlist());
         el.querySelector('#chFav').addEventListener('click', () => o.onFavorito && o.onFavorito());
+        el.querySelector('#chBtnRefresh').addEventListener('click', (e) => recargaCompleta(e.currentTarget));
 
         const api = {
             setSymbol(s) { sel.value = s; },
