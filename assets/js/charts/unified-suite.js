@@ -8,7 +8,8 @@
  * Diferencias conocidas con el .pine (limitaciones de NLT Charts V1, no de
  * lógica): las alertas no están disponibles todavía; los timeframes HTF se
  * limitan a los que tiene el proveedor de precios (sin 2H ni semanal); la
- * historia disponible es la que carga el gráfico, no la de TradingView. */
+ * historia disponible es la que carga el gráfico, no la de TradingView.
+ * Agregado en NLT Charts (no está en el .pine): sesión de Asia en ③ ICT Pro — Sesiones. */
 (function () {
     const P = NLTCharts.pine;
     const ID = 'NLT_UNIFIED';
@@ -69,6 +70,10 @@
 
         b('i_showSOD', true, 'Start of Day', G3S, 's1'), { id: 'i_sodTime', tipo: 'session', def: '0000-0001', titulo: '', grupo: G3S, inline: 's1' },
         c('i_sodCol', '#2962FF', 88, '', G3S, 's1'),
+        // Asia: agregado en NLT Charts (el .pine original no la trae). Misma ventana que NLT Sessions y el Zone Engine:
+        // 20:00-02:00 hora NY (cruza la medianoche; P.enSesion lo resuelve). Editable como las demás sesiones.
+        b('i_showAsia', true, 'Asia', G3S, 'sA'), { id: 'i_asiaTime', tipo: 'session', def: '2000-0200', titulo: '', grupo: G3S, inline: 'sA' },
+        c('i_asiaCol', '#A855F7', 88, '', G3S, 'sA'),
         b('i_showLon', true, 'London', G3S, 's2'), { id: 'i_lonTime', tipo: 'session', def: '0300-0500', titulo: '', grupo: G3S, inline: 's2' },
         c('i_lonCol', '#4CAF50', 88, '', G3S, 's2'),
         b('i_showNYC', true, 'New York', G3S, 's3'), { id: 'i_nycTime', tipo: 'session', def: '0800-1100', titulo: '', grupo: G3S, inline: 's3' },
@@ -246,6 +251,7 @@
             smcPH: P.pivots(high, v.smc_swingLen, v.smc_swingLen, true),
             smcPL: P.pivots(low, v.smc_swingLen, v.smc_swingLen, false),
             inSOD: d.map((x) => P.enSesion(x.timestamp, v.i_sodTime, TZ)),
+            inAsia: d.map((x) => P.enSesion(x.timestamp, v.i_asiaTime, TZ)),
             inLon: d.map((x) => P.enSesion(x.timestamp, v.i_lonTime, TZ)),
             inNYC: d.map((x) => P.enSesion(x.timestamp, v.i_nycTime, TZ)),
             htf: [], htfVersion: '',
@@ -287,6 +293,7 @@
             se.smcPH[i] = P.pivotEn(se.high, i, v.smc_swingLen, v.smc_swingLen, true);
             se.smcPL[i] = P.pivotEn(se.low, i, v.smc_swingLen, v.smc_swingLen, false);
             se.inSOD[i] = P.enSesion(d[i].timestamp, v.i_sodTime, TZ);
+            se.inAsia[i] = P.enSesion(d[i].timestamp, v.i_asiaTime, TZ);
             se.inLon[i] = P.enSesion(d[i].timestamp, v.i_lonTime, TZ);
             se.inNYC[i] = P.enSesion(d[i].timestamp, v.i_nycTime, TZ);
             se.htf.forEach((h) => {
@@ -412,11 +419,13 @@
         // ===== ③ ICT Pro =====
         const capas = [];
         if (v.m3_on && v.i_showSOD && se.inSOD[i]) capas.push(v.i_sodCol);
+        if (v.m3_on && v.i_showAsia && se.inAsia[i]) capas.push(v.i_asiaCol);
         if (v.m3_on && v.i_showLon && se.inLon[i]) capas.push(v.i_lonCol);
         if (v.m3_on && v.i_showNYC && se.inNYC[i]) capas.push(v.i_nycCol);
         S.bg[i] = capas;
         [
             [v.i_showSOD && se.inSOD[i] && !(i > 0 && se.inSOD[i - 1]), '#2962FF'],
+            [v.i_showAsia && se.inAsia[i] && !(i > 0 && se.inAsia[i - 1]), '#A855F7'],
             [v.i_showLon && se.inLon[i] && !(i > 0 && se.inLon[i - 1]), '#4CAF50'],
             [v.i_showNYC && se.inNYC[i] && !(i > 0 && se.inNYC[i - 1]), '#FF6D00'],
         ].forEach(([abre, hex]) => {
@@ -580,7 +589,7 @@
         for (let i = 0; i < N; i++) o.barColor[i] = S.barc[2][i] || S.barc[1][i] || S.barc[0][i] || null;
 
         if (v.m3_on && v.i_showDash) {
-            const sesion = se.inSOD[ultima] ? 'Start of Day 🔵' : se.inLon[ultima] ? 'London 🟢' : se.inNYC[ultima] ? 'New York 🟠' : 'Off-Hours ⚫';
+            const sesion = se.inSOD[ultima] ? 'Start of Day 🔵' : se.inLon[ultima] ? 'London 🟢' : se.inNYC[ultima] ? 'New York 🟠' : se.inAsia[ultima] ? 'Asia 🟣' : 'Off-Hours ⚫';
             const hb = se.htf.map((h) => (h ? !!h.bull[ultima] : false)), hr = se.htf.map((h) => (h ? !!h.bear[ultima] : false));
             const anyB = hb[0] || hb[1], anyR = hr[0] || hr[1];
             const sesgo = anyB && !anyR ? 'Bullish 🟢' : anyR && !anyB ? 'Bearish 🔴' : 'Neutral ⚪';
