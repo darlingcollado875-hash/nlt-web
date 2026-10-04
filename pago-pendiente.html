@@ -96,7 +96,15 @@
                         return true;
                     }
                     if (tipo === 'indicator' && orden.status !== 'awaiting_payment') {
-                        render(orden, 'Pago recibido -- activando tu acceso en TradingView', 'text-nlt-success');
+                        // Compra solo para NLT Charts: se activa sola al verificarse el pago (sin invitación de TradingView).
+                        if (orden.tradingview_username === '(NLT Charts)' && orden.status === 'active') {
+                            render(orden, 'Pago confirmado -- tu Zone Engine PRO ya está activo', 'text-nlt-success');
+                            box.insertAdjacentHTML('beforeend', '<a href="charts.html" class="inline-block mt-5 px-6 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-sm">Abrir NLT Charts</a>');
+                        } else if (orden.tradingview_username === '(NLT Charts)') {
+                            render(orden, 'Pago recibido -- activando tu acceso', 'text-nlt-success');
+                        } else {
+                            render(orden, 'Pago recibido -- activando tu acceso en TradingView', 'text-nlt-success');
+                        }
                         return true;
                     }
                     render(orden, 'Esperando confirmación del pago...', 'text-yellow-400');
