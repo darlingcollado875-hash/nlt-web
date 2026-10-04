@@ -172,7 +172,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=90d44bff"></script>
+    <script src="assets/js/nlt-api-client.js?v=935c7fa6"></script>
     <script>
     (function () {
         'use strict';
@@ -221,6 +221,7 @@
         const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7), limit: PAGE };
         let SESSION = null;
         let IS_GLOBAL = false;
+        let PUSH_ON = false;   // este dispositivo ya recibe los avisos por push (con la página cerrada)
         let renderActividadCargando = false;
         let pendingSaves = 0;
         let modalOpen = false;
@@ -777,7 +778,7 @@
             { k: 'assigneeId', l: 'Responsable', t: 'member' }, { k: 'durationMinutes', l: 'Duración (min)', t: 'number' },
             { k: 'priority', l: 'Prioridad', t: 'select', opts: PRIO_ITEM, def: 'normal' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_ITEM, def: 'pending' },
             { k: 'locationOrLink', l: 'Lugar o enlace (Meet/Teams)', t: 'text', full: 1 },
-            { k: 'automaticReminder', l: 'Recordatorio automático', t: 'check' }, { k: 'reminderLeadTime', l: 'Avisar', t: 'select', opts: LEAD, def: '15_min' },
+            { k: 'automaticReminder', l: 'Recordatorio automático (requiere hora)', t: 'check', def: true }, { k: 'reminderLeadTime', l: 'Avisar', t: 'select', opts: LEAD, def: '15_min' },
             { k: 'description', l: 'Descripción', t: 'textarea', full: 1 },
             { k: 'subtasks', l: 'Subtareas', t: 'rows', full: 1, add: 'Añadir subtarea', sub: [{ k: 'title', l: 'Subtarea', t: 'text' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 80px' },
             { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
@@ -785,6 +786,7 @@
         MODS.daily.before = (r) => {
             r.subtasks = (r.subtasks || []).filter((s) => s.title).map((s) => ({ id: s.id || uid('st'), ...s }));
             r.coordinatorName = r.coordinatorName || (SESSION && SESSION.user.email) || '';
+            try { r.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) {}   // el servidor la usa para avisar a la hora correcta
             if (r.status === 'completed' && !r.completedAt) r.completedAt = new Date().toISOString();
             if (r.status !== 'completed') delete r.completedAt;
         };
@@ -861,7 +863,6 @@
         // --- Ajustes: respaldo, importación, avisos ---
         function viewSettings() {
             const totales = Object.entries(S).map(([k, v]) => `${k}: ${v.length}`).join(' · ');
-            const perm = ('Notification' in window) ? Notification.permission : 'no disponible';
             return `
                 ${IS_GLOBAL ? `<div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Acceso del equipo</h3>
                     <p class="cd-sub" style="margin-bottom:14px">Elige quién puede entrar al Workspace con acceso completo (ver, crear, editar y borrar todo). Solo se activa este permiso: la persona <b>no</b> recibe acceso al resto del Admin Center. Solo tú, como Global Admin, puedes gestionar esto.</p>
@@ -874,9 +875,10 @@
                     <div class="cd-bar" style="margin-bottom:0"><button class="cd-btn" data-act="export"><i class="ph ph-download-simple"></i> Exportar JSON</button>
                     <button class="cd-btn" data-act="import-pick"><i class="ph ph-upload-simple"></i> Importar JSON</button><input type="file" id="cdImportFile" accept="application/json,.json" hidden></div>
                     <p class="cd-sub" style="margin-top:12px">La importación <b>combina</b> por id: añade y actualiza registros, nunca borra los existentes. Acepta el respaldo de este espacio y el formato del Coordina Desk original (se ignoran los archivos adjuntos incrustados; usa enlaces de Drive).</p></div>
-                <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Avisos de recordatorios</h3>
-                    <p class="cd-sub" style="margin-bottom:14px">Permiso de notificaciones del navegador en este dispositivo: <b>${esc(perm)}</b>. Los recordatorios de la agenda avisan mientras esta página esté abierta.</p>
-                    ${perm === 'default' ? '<button class="cd-btn" data-act="notif">Activar notificaciones</button>' : ''}</div>
+                <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Recordatorios con la página cerrada</h3>
+                    <p class="cd-sub" style="margin-bottom:14px">Activa las notificaciones en este dispositivo y recibirás los recordatorios de la Agenda <b>aunque Workspace NLT esté cerrado</b> (celular o computador). El aviso le llega al <b>responsable</b> de la actividad (su correo en «Mi Equipo» debe ser el de su cuenta NLT); si no hay responsable, a quien la creó. Solo lo reciben personas con acceso al Workspace.</p>
+                    <div class="cd-bar" style="margin-bottom:0"><button class="cd-btn primary" id="cdPushBtn" disabled>Comprobando…</button><button class="cd-btn" data-act="push-test" id="cdPushTest" disabled><i class="ph ph-bell-ringing"></i> Enviarme una prueba</button></div>
+                    <p class="cd-sub" id="cdPushMsg" style="margin-top:12px">En iPhone/iPad hay que instalar NLT en la pantalla de inicio (Compartir → Añadir a pantalla de inicio) para recibir avisos.</p></div>
                 <div class="glass-card" style="padding:22px"><h3 style="font-weight:800;font-size:16px;margin-bottom:10px">Departamentos</h3>
                     <div style="display:flex;flex-wrap:wrap;gap:8px">${DEPTS.map((d) => `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>`).join('')}</div>
                     <p class="cd-sub" style="margin-top:12px">Acceso: solo el Global Admin y las personas a las que él da acceso${IS_GLOBAL ? ' (arriba, en “Acceso del equipo”)' : ''}.</p></div>`;
@@ -1003,6 +1005,31 @@
             if (UI.tab === 'activity') { const el = document.getElementById('cdContent'); if (el && !modalOpen) el.innerHTML = viewActivity(); }
         }
 
+        // --- Recordatorios con la página cerrada (Web Push; reutiliza el push del ecosistema) ---
+        async function montarPush() {
+            const btn = document.getElementById('cdPushBtn'), test = document.getElementById('cdPushTest');
+            if (!btn || !window.NLT || !NLT.pushEstado) return;
+            const pintar = async () => {
+                const e = await NLT.pushEstado();
+                PUSH_ON = e === 'suscrito';
+                btn.dataset.estado = e;
+                btn.disabled = e === 'sin-soporte' || e === 'denegado';
+                btn.textContent = { suscrito: 'Desactivar en este dispositivo', 'no-suscrito': 'Activar en este dispositivo', denegado: 'Bloqueadas en el navegador', 'sin-soporte': 'Este navegador no soporta notificaciones' }[e] || 'Activar en este dispositivo';
+                btn.classList.toggle('primary', e !== 'suscrito');
+                test.disabled = e !== 'suscrito';
+                const msg = document.getElementById('cdPushMsg');
+                if (msg && e === 'denegado') msg.innerHTML = 'Bloqueaste las notificaciones de este sitio: actívalas desde el candado de la barra de direcciones y vuelve a intentarlo.';
+            };
+            await pintar();
+            btn.addEventListener('click', async () => {
+                btn.disabled = true;
+                const ya = btn.dataset.estado === 'suscrito';
+                const ok = ya ? await NLT.pushDesactivar() : await NLT.pushActivar();
+                if (!ya && !ok) toast('No se pudieron activar las notificaciones (permiso denegado o avisos aún no configurados en el servidor).', 'err');
+                await pintar();
+            });
+        }
+
         // Normaliza el formato del Coordina Desk original (React) al de este espacio.
         function normalizarImport(obj) {
             const src = obj.collections || obj;
@@ -1038,6 +1065,7 @@
             const f = document.getElementById('cdImportFile');
             if (f) f.addEventListener('change', onImportFile);
             if (UI.tab === 'activity' && IS_GLOBAL && !renderActividadCargando) { renderActividadCargando = true; cargarActividad().finally(() => { renderActividadCargando = false; }); }
+            if (UI.tab === 'settings') montarPush();
             if (UI.tab === 'settings' && IS_GLOBAL) { cargarAcceso(); const q = document.getElementById('cdAccessQ'); if (q) q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') buscarAcceso(); }); }
         }
 
@@ -1123,10 +1151,17 @@
             if (act === 'export') { descargar(`workspace-nlt-respaldo-${hoy()}.json`, JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), source: 'Workspace NLT', collections: S }, null, 2), 'application/json'); return; }
             if (act === 'import-pick') { document.getElementById('cdImportFile').click(); return; }
             if (act === 'act-reload') { ACT.loaded = false; render(); return; }
+            if (act === 'push-test') {
+                t.disabled = true;
+                try {
+                    const r = await NLT_API.coordinaPushTest();
+                    toast(!r.configurado ? 'Los avisos push aún no están configurados en el servidor.' : r.enviados ? 'Prueba enviada: debería llegarte en unos segundos.' : 'No hay dispositivos suscritos para tu cuenta.', r.enviados ? 'ok' : 'err');
+                } catch (e) { toast('No se pudo enviar la prueba: ' + e.message, 'err'); }
+                t.disabled = false; return;
+            }
             if (act === 'acc-search') return buscarAcceso();
             if (act === 'acc-grant') return darAcceso(t.dataset.id, t.dataset.email);
             if (act === 'acc-revoke') return quitarAcceso(t.dataset.id, t.dataset.email);
-            if (act === 'notif') { if ('Notification' in window) await Notification.requestPermission(); return render(); }
         });
 
         let searchTimer = 0;
@@ -1173,7 +1208,7 @@
                 if (ahora >= aviso && ahora <= new Date(inicio.getTime() + 15 * 60000) && !ya.includes(clave)) {
                     ya.push(clave); cambio = true;
                     toast(`🔔 ${i.title} · ${i.time}`, 'ok');
-                    if ('Notification' in window && Notification.permission === 'granted') { try { new Notification('Workspace NLT', { body: `${i.title} · ${i.time}` }); } catch (_) {} }
+                    if (!PUSH_ON && 'Notification' in window && Notification.permission === 'granted') { try { new Notification('Workspace NLT', { body: `${i.title} · ${i.time}` }); } catch (_) {} }
                 }
             }
             if (cambio) { try { localStorage.setItem('cd_avisados', JSON.stringify(ya.slice(-300))); } catch (_) {} }
@@ -1187,6 +1222,7 @@
             if (!session) return;
             SESSION = session;
             IS_GLOBAL = NLT.isGlobalAdmin(session);
+            if (NLT.pushEstado) NLT.pushEstado().then((e) => { PUSH_ON = e === 'suscrito'; }).catch(() => {});
             if (!NLT.isGlobalAdmin(session)) {
                 let ok = false;
                 try { const mp = await NLT_API.adminMisPermisos(); ok = !!(mp.permissions && mp.permissions.coordina); } catch (_) { ok = false; }
