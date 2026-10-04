@@ -669,6 +669,7 @@
         // --- Coordina Desk (espacio interno, solo admins con el módulo "coordina") ---
         coordinaSnapshot: () => request('/admin/coordina/snapshot', { timeoutMs: 20000 }),
         coordinaGuardar: (coleccion, id, data) => request(`/admin/coordina/${encodeURIComponent(coleccion)}/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ data }) }),
+        coordinaActividad: (limite = 300) => request(`/admin/coordina/activity?limite=${limite}`, { timeoutMs: 20000 }),
         coordinaBorrar: (coleccion, id) => request(`/admin/coordina/${encodeURIComponent(coleccion)}/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         coordinaImportar: (collections) => request('/admin/coordina/import', { method: 'POST', body: JSON.stringify({ collections }), timeoutMs: 60000, intentos: 1 }),
         adminGlobalUsuarios: (q) => request(`/admin/global/users${q ? '?q=' + encodeURIComponent(q) : ''}`),

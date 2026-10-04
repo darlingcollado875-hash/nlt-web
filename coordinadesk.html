@@ -168,7 +168,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=a90795b4"></script>
+    <script src="assets/js/nlt-api-client.js?v=f4f5b03f"></script>
     <script>
     (function () {
         'use strict';
@@ -216,6 +216,7 @@
         const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7) };
         let SESSION = null;
         let IS_GLOBAL = false;
+        let renderActividadCargando = false;
         let pendingSaves = 0;
         let modalOpen = false;
 
@@ -431,9 +432,10 @@
             },
 
             reports: { label: 'Informes', icon: 'ph-chart-bar', col: 'reports', custom: true },
+            activity: { label: 'Actividad', icon: 'ph-clock-counter-clockwise', custom: true },
             settings: { label: 'Ajustes', icon: 'ph-gear', custom: true },
         };
-        const ORDER = ['daily', 'team', 'affiliates', 'finance', 'contracts', 'meetings', 'marketing', 'academy', 'development', 'launches', 'reports', 'settings'];
+        const ORDER = ['daily', 'team', 'affiliates', 'finance', 'contracts', 'meetings', 'marketing', 'academy', 'development', 'launches', 'reports', 'activity', 'settings'];
 
         // Estado efectivo (con statusFn si el módulo calcula el estado)
         const statusOf = (m, r) => (m.statusFn ? m.statusFn(r) : r[m.statusKey]);
@@ -898,6 +900,35 @@
             } catch (e) { toast('No se pudo quitar el acceso: ' + e.message, 'err'); }
         }
 
+        // --- Actividad: quién hizo qué (solo Global Admin; el servidor también lo exige) ---
+        const ACT = { rows: [], who: 'all', loaded: false, error: '' };
+        const COL_LABEL = { team: 'Mi Equipo', items: 'Agenda', affiliates: 'Afiliados', payments: 'Finanzas', contracts: 'Contratos', meetings: 'Reuniones', publications: 'Marketing', academyClasses: 'Academia', devChanges: 'Programación', launches: 'Lanzamientos', reports: 'Informes' };
+        const ACT_LABEL = { 'coordina.crear': ['Creó', 'ok'], 'coordina.editar': ['Editó', 'info'], 'coordina.borrar': ['Eliminó', 'bad'], 'coordina.importar': ['Importó datos', 'vio'] };
+
+        function actividadListHTML() {
+            if (ACT.error) return `<div class="glass-card cd-empty"><i class="ph ph-warning"></i>${esc(ACT.error)}</div>`;
+            if (!ACT.loaded) return '<div class="glass-card cd-empty"><i class="ph ph-circle-notch"></i>Cargando…</div>';
+            const rows = ACT.rows.filter((r) => ACT.who === 'all' || r.actor === ACT.who);
+            if (!rows.length) return '<div class="glass-card cd-empty"><i class="ph ph-clock-counter-clockwise"></i>Todavía no hay actividad registrada.</div>';
+            return `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr><th>Cuándo</th><th>Quién</th><th>Qué hizo</th><th>Dónde</th></tr></thead><tbody>${rows.map((r) => {
+                const [l, tone] = ACT_LABEL[r.accion] || [r.accion, 'mute'];
+                const d = r.detalle || {};
+                return `<tr><td style="white-space:nowrap">${new Date(r.fecha).toLocaleString('es', { dateStyle: 'short', timeStyle: 'short' })}</td><td>${esc(r.actor)}</td><td><span class="cd-badge cd-tone-${tone}">${esc(l)}</span></td><td>${d.coleccion ? `<b>${esc(COL_LABEL[d.coleccion] || d.coleccion)}</b>` : ''}${d.titulo ? `<div class="cd-sub">${esc(d.titulo)}</div>` : ''}${d.registros ? `<div class="cd-sub">${esc(d.registros)} registros</div>` : ''}</td></tr>`;
+            }).join('')}</tbody></table></div>`;
+        }
+
+        function viewActivity() {
+            const quienes = Array.from(new Set(ACT.rows.map((r) => r.actor))).sort();
+            return `<div class="cd-bar"><select class="cd-select" id="cdActWho"><option value="all">Todas las personas</option>${quienes.map((q) => `<option value="${esc(q)}" ${ACT.who === q ? 'selected' : ''}>${esc(q)}</option>`).join('')}</select><span class="cd-sub cd-grow">Últimos movimientos del Workspace: quién creó, editó o eliminó cada registro.</span><button class="cd-btn" data-act="act-reload"><i class="ph ph-arrows-clockwise"></i> Actualizar</button></div><div id="cdActList">${actividadListHTML()}</div>`;
+        }
+
+        async function cargarActividad() {
+            try { ACT.rows = await NLT_API.coordinaActividad(); ACT.error = ''; }
+            catch (e) { ACT.error = 'No se pudo cargar la actividad: ' + e.message; }
+            ACT.loaded = true;
+            if (UI.tab === 'activity') { const el = document.getElementById('cdContent'); if (el && !modalOpen) el.innerHTML = viewActivity(); }
+        }
+
         // Normaliza el formato del Coordina Desk original (React) al de este espacio.
         function normalizarImport(obj) {
             const src = obj.collections || obj;
@@ -923,15 +954,16 @@
         // Render + eventos
         // ------------------------------------------------------------------
         function renderTabs() {
-            document.getElementById('cdTabs').innerHTML = ORDER.map((id) => `<button class="tab-admin ${UI.tab === id ? 'activo' : ''}" data-act="tab" data-tab="${id}"><i class="ph-fill ${MODS[id].icon} mr-1.5"></i>${esc(MODS[id].label)}</button>`).join('');
+            document.getElementById('cdTabs').innerHTML = ORDER.filter((id) => id !== 'activity' || IS_GLOBAL).map((id) => `<button class="tab-admin ${UI.tab === id ? 'activo' : ''}" data-act="tab" data-tab="${id}"><i class="ph-fill ${MODS[id].icon} mr-1.5"></i>${esc(MODS[id].label)}</button>`).join('');
         }
 
         function render() {
             renderTabs();
             const root = document.getElementById('cdContent');
-            root.innerHTML = UI.tab === 'daily' ? viewDaily() : UI.tab === 'reports' ? viewReports() : UI.tab === 'settings' ? viewSettings() : viewModule(UI.tab);
+            root.innerHTML = UI.tab === 'daily' ? viewDaily() : UI.tab === 'reports' ? viewReports() : UI.tab === 'settings' ? viewSettings() : UI.tab === 'activity' ? viewActivity() : viewModule(UI.tab);
             const f = document.getElementById('cdImportFile');
             if (f) f.addEventListener('change', onImportFile);
+            if (UI.tab === 'activity' && IS_GLOBAL && !renderActividadCargando) { renderActividadCargando = true; cargarActividad().finally(() => { renderActividadCargando = false; }); }
             if (UI.tab === 'settings' && IS_GLOBAL) { cargarAcceso(); const q = document.getElementById('cdAccessQ'); if (q) q.addEventListener('keydown', (ev) => { if (ev.key === 'Enter') buscarAcceso(); }); }
         }
 
@@ -1009,6 +1041,7 @@
             if (act === 'rep-del') { if (confirm('¿Eliminar este informe?') && await borrar('reports', t.dataset.id)) render(); return; }
             if (act === 'export') { descargar(`workspace-nlt-respaldo-${hoy()}.json`, JSON.stringify({ version: '1.0.0', exportedAt: new Date().toISOString(), source: 'Workspace NLT', collections: S }, null, 2), 'application/json'); return; }
             if (act === 'import-pick') { document.getElementById('cdImportFile').click(); return; }
+            if (act === 'act-reload') { ACT.loaded = false; render(); return; }
             if (act === 'acc-search') return buscarAcceso();
             if (act === 'acc-grant') return darAcceso(t.dataset.id, t.dataset.email);
             if (act === 'acc-revoke') return quitarAcceso(t.dataset.id, t.dataset.email);
@@ -1023,6 +1056,7 @@
             if (id === 'cdStatus') { UI.status = e.target.value; refreshList(); }
             else if (id === 'cdDept') { UI.dept = e.target.value; refreshList(); }
             else if (id === 'cdType') { UI.type = e.target.value; refreshList(); }
+            else if (id === 'cdActWho') { ACT.who = e.target.value; document.getElementById('cdActList').innerHTML = actividadListHTML(); }
         });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modalOpen) closeModal(); });
 
