@@ -253,6 +253,28 @@
                     <span class="flex items-center gap-3 text-sm font-semibold text-white"><i class="ph-fill ph-brain text-nlt-accent text-lg"></i> NLT Indicator AI · Consola de ops <span class="text-[11px] font-normal text-gray-500">— webhooks, análisis, uso de IA, logs, acceso beta</span></span>
                     <span class="text-nlt-accent text-xs font-semibold group-hover:translate-x-0.5 transition-transform">Abrir →</span>
                 </a>
+                <div class="glass-card p-6 mb-6">
+                    <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-key text-nlt-accent"></i> Acceso manual · NLT Zone Engine PRO</h2>
+                    <p class="text-xs text-gray-500 mb-4">Da acceso al Zone Engine PRO de NLT Charts a quien tú elijas (por ejemplo, quienes lo compraron antes). Funciona igual que una compra, sin cobro ni comisión. Cada persona debe tener cuenta en NLT: si aún no entró, pídele que inicie sesión una vez con Google.</p>
+                    <div class="grid md:grid-cols-2 gap-3 mb-3">
+                        <textarea id="accManualEmails" rows="5" placeholder="Correos de las cuentas NLT, uno por línea (o separados por coma)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm w-full md:row-span-2"></textarea>
+                        <div class="grid grid-cols-2 gap-3">
+                            <select id="accManualPlan" class="plan-select bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                                <option value="INDICATOR_LIFETIME">Vitalicio</option>
+                                <option value="INDICATOR_MONTHLY">Mensual (sigue activo hasta que lo revoques)</option>
+                            </select>
+                            <input id="accManualTv" placeholder="Usuario de TradingView (opcional)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        </div>
+                        <input id="accManualNota" placeholder="Nota interna (ej. compró en 2025)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <button id="btn-acc-manual" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Dar acceso</button>
+                        <span id="accManualMsg" class="text-xs text-gray-400"></span>
+                    </div>
+                    <div id="accManualResultados" class="mt-4 space-y-1.5"></div>
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mt-6 mb-2">Accesos manuales otorgados</h3>
+                    <div id="accManualLista" class="space-y-2"><p class="text-xs text-gray-500">Cargando...</p></div>
+                </div>
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-sm font-semibold text-white flex items-center gap-2"><i class="ph-fill ph-chart-bar text-nlt-accent"></i> NLT Indicator -- Órdenes</h2>
                     <div class="flex gap-2">
@@ -1762,7 +1784,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=935c7fa6"></script>
+    <script src="assets/js/nlt-api-client.js?v=a4cb4a36"></script>
     <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -2142,7 +2164,48 @@
         };
         let filtroIndActual = '';
 
+        // --- Acceso manual al Zone Engine PRO ---
+        const ACC_RESULTADO = {
+            otorgado: ['Acceso otorgado', 'text-green-400'], ya_tenia: ['Ya tenía acceso', 'text-gray-400'],
+            sin_cuenta: ['No tiene cuenta en NLT: pídele que inicie sesión una vez y vuelve a intentarlo', 'text-yellow-400'], email_invalido: ['Correo no válido', 'text-nlt-danger'],
+        };
+        async function cargarAccesosManuales() {
+            const box = document.getElementById('accManualLista');
+            if (!box) return;
+            try {
+                const lista = await NLT_API.adminIndicadorAccesosManuales();
+                box.innerHTML = lista.length ? lista.map(a => `
+                    <div class="glass-item p-3 flex items-center gap-3 flex-wrap ${a.status === 'active' ? '' : 'opacity-50'}">
+                        <div class="flex-1 min-w-[180px]"><p class="text-sm text-white font-semibold">${esc(a.email || '—')}</p>
+                            <p class="text-xs text-gray-500">${a.plan_id === 'INDICATOR_LIFETIME' ? 'Vitalicio' : 'Mensual'} · ${a.status === 'active' ? 'Activo' : 'Revocado'} · ${esc(a.otorgado_por || '')} · ${a.fecha ? new Date(a.fecha).toLocaleDateString('es') : ''}${a.nota ? ' · ' + esc(a.nota) : ''}</p></div>
+                        ${a.status === 'active' ? `<button data-revocar-acc="${esc(a.order_id)}" data-email="${esc(a.email || '')}" class="px-3 py-1.5 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer">Revocar</button>` : ''}
+                    </div>`).join('') : '<p class="text-xs text-gray-500">Todavía no has dado accesos manuales.</p>';
+                box.querySelectorAll('[data-revocar-acc]').forEach(btn => btn.addEventListener('click', async () => {
+                    if (!confirm(`¿Revocar el acceso de ${btn.dataset.email || 'esta persona'} al Zone Engine PRO?`)) return;
+                    btn.disabled = true;
+                    try { await NLT_API.adminIndicadorRevocarAccesoManual(btn.dataset.revocarAcc); await cargarAccesosManuales(); }
+                    catch (err) { alert('No se pudo revocar: ' + err.message); btn.disabled = false; }
+                }));
+            } catch (err) { box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`; }
+        }
+        document.getElementById('btn-acc-manual').addEventListener('click', async () => {
+            const btn = document.getElementById('btn-acc-manual'), msg = document.getElementById('accManualMsg'), out = document.getElementById('accManualResultados');
+            const emails = document.getElementById('accManualEmails').value.trim();
+            if (!emails) { msg.textContent = 'Escribe al menos un correo.'; return; }
+            btn.disabled = true; msg.textContent = 'Procesando...'; out.innerHTML = '';
+            try {
+                const r = await NLT_API.adminIndicadorDarAccesoManual({ emails, plan_id: document.getElementById('accManualPlan').value, nota: document.getElementById('accManualNota').value.trim() || null, tradingview_username: document.getElementById('accManualTv').value.trim() || null });
+                const ok = r.resultados.filter(x => x.resultado === 'otorgado').length;
+                msg.textContent = `${ok} de ${r.resultados.length} con acceso otorgado.`;
+                out.innerHTML = r.resultados.map(x => { const [t, c] = ACC_RESULTADO[x.resultado] || [x.resultado, 'text-gray-400']; return `<p class="text-xs"><span class="text-white">${esc(x.email)}</span> — <span class="${c}">${esc(t)}</span></p>`; }).join('');
+                if (ok) document.getElementById('accManualEmails').value = r.resultados.filter(x => x.resultado !== 'otorgado' && x.resultado !== 'ya_tenia').map(x => x.email).join('\n');   // deja solo los que faltan por resolver
+                await cargarAccesosManuales();
+            } catch (err) { msg.textContent = 'Error: ' + err.message; }
+            btn.disabled = false;
+        });
+
         async function cargarIndicador() {
+            cargarAccesosManuales();
             const tbody = document.getElementById('tablaIndicador');
             try {
                 const ordenes = await NLT_API.adminListarOrdenesIndicador(filtroIndActual);

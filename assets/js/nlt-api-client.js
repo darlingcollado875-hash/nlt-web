@@ -311,6 +311,9 @@
         indicadorPagarOrden: (orderId, payment_method_id) => request(`/indicator/orders/${orderId}/pay`, { method: 'POST', body: JSON.stringify({ payment_method_id }) }),
 
         // --- admin: NLT Indicator ---
+        adminIndicadorAccesosManuales: () => request('/admin/indicator/manual-grants'),
+        adminIndicadorDarAccesoManual: (datos) => request('/admin/indicator/manual-grants', { method: 'POST', body: JSON.stringify(datos), timeoutMs: 60000, intentos: 1 }),
+        adminIndicadorRevocarAccesoManual: (orderId) => request(`/admin/indicator/manual-grants/${encodeURIComponent(orderId)}/revoke`, { method: 'POST', intentos: 1 }),
         adminListarOrdenesIndicador: (status) => request(`/admin/indicator/orders${status ? '?status=' + status : ''}`),
         adminAprobarIndicador: (orderId, nota) => request(`/admin/indicator/orders/${orderId}/approve`, { method: 'POST', body: JSON.stringify({ nota: nota || null }) }),
         adminRechazarIndicador: (orderId, nota) => request(`/admin/indicator/orders/${orderId}/reject`, { method: 'POST', body: JSON.stringify({ nota: nota || null }) }),
