@@ -69,7 +69,7 @@
         .cd-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
         .cd-table { width: 100%; border-collapse: collapse; font-size: 13px; }
         .cd-table th { text-align: left; padding: 12px 16px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #6B7280; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
-        .cd-table td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; }
+        .cd-table td { padding: 12px 16px; border-bottom: 1px solid rgba(255,255,255,0.04); vertical-align: middle; overflow-wrap: anywhere; min-width: 90px; }
         .cd-table tr:last-child td { border-bottom: none; }
         .cd-table tbody tr:hover { background: rgba(255,255,255,0.025); }
         .cd-scroll { overflow-x: auto; }
@@ -78,14 +78,18 @@
         .cd-empty i { display: block; font-size: 34px; margin-bottom: 10px; color: #374151; }
         .cd-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
         .cd-card { padding: 18px; display: flex; flex-direction: column; gap: 10px; }
-        .cd-card h3 { font-size: 15px; font-weight: 700; line-height: 1.3; }
+        .cd-card h3 { font-size: 15px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+        .cd-card { min-width: 0; }
+        .cd-card p, .cd-sub { overflow-wrap: anywhere; }
         .cd-card p { font-size: 12.5px; color: #9CA3AF; line-height: 1.5; }
         .cd-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
         .cd-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: #fff; flex-shrink: 0; }
-        .cd-board { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(250px, 1fr); gap: 14px; overflow-x: auto; padding-bottom: 6px; }
+        .cd-board { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; align-items: start; }
         .cd-col { padding: 14px; min-height: 160px; }
         .cd-col h4 { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 700; margin-bottom: 12px; }
-        .cd-col .glass-item { padding: 12px; margin-bottom: 10px; cursor: pointer; }
+        .cd-col { min-width: 0; }
+        .cd-col .glass-item { padding: 12px; margin-bottom: 10px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
+        .cd-col .cd-title { line-height: 1.35; }
         .cd-col .glass-item:hover { border-color: rgba(67,120,255,.4); }
         .cd-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 18px; }
         .cd-day { padding: 10px 6px; text-align: center; border-radius: 14px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); transition: all .15s; }
@@ -395,7 +399,7 @@
                 statusKey: 'status', statusOpts: ST_ACAD, search: ['title', 'topic', 'description'],
                 kpis: (r) => [['Clases', r.length], ['En edición', r.filter((c) => c.status === 'en_edicion').length, 'warn'], ['Listas para subir', r.filter((c) => c.status === 'lista_para_subir').length, 'vio'], ['Subidas', r.filter((c) => c.status === 'subida').length, 'ok']],
                 sort: (a, b) => String(a.uploadDate || '9999').localeCompare(String(b.uploadDate || '9999')),
-                card: (r) => ({ title: r.title, sub: r.topic || '', lines: [`🎥 ${mname(r.recordedById)}  ✂️ ${mname(r.editedById)}`, r.uploadDate ? 'Subida: ' + fmtDate(r.uploadDate) : ''].filter(Boolean) }),
+                card: (r) => ({ title: r.title, sub: r.topic || '', lines: [`Graba: ${r.recordedById ? mname(r.recordedById) : 'sin asignar'}`, `Edita: ${r.editedById ? mname(r.editedById) : 'sin asignar'}`, r.recordedDate ? 'Grabada: ' + fmtDate(r.recordedDate) : '', r.uploadDate ? 'Subida: ' + fmtDate(r.uploadDate) : ''].filter(Boolean) }),
                 report: { date: 'uploadDate', status: 'status', cols: [['Título', 'title'], ['Tema', 'topic'], ['Estado', 'status'], ['Graba', (r) => mname(r.recordedById)], ['Edita', (r) => mname(r.editedById)], ['Grabada', 'recordedDate'], ['Subida', 'uploadDate']] },
             },
 
@@ -660,7 +664,7 @@
             if (m.view === 'board') {
                 return `<div class="cd-board">${m.statusOpts.map((o) => {
                     const col = lista.filter((r) => r[m.statusKey] === o.v);
-                    return `<div class="glass-card cd-col"><h4><span class="cd-tone-${o.tone}">${esc(o.l)}</span><span class="cd-badge">${col.length}</span></h4>${col.map((r) => { const c = m.card(r); return `<div class="glass-item" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}"><div class="cd-title">${esc(c.title)}</div><div class="cd-sub">${esc(c.sub || '')}</div>${(c.lines || []).map((l) => `<div class="cd-sub">${esc(l)}</div>`).join('')}</div>`; }).join('')}</div>`;
+                    return `<div class="glass-card cd-col"><h4><span class="cd-tone-${o.tone}">${esc(o.l)}</span><span class="cd-badge">${col.length}</span></h4>${col.map((r) => { const c = m.card(r); return `<div class="glass-item" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}" tabindex="0" role="button"><div class="cd-title">${esc(c.title)}</div><div class="cd-sub">${esc(c.sub || '')}</div>${(c.lines || []).map((l) => `<div class="cd-sub">${esc(l)}</div>`).join('')}</div>`; }).join('')}</div>`;
                 }).join('')}</div>`;
             }
             const head = m.cols.map((c) => `<th>${esc(c[0])}</th>`).join('') + '<th></th>';
@@ -675,6 +679,19 @@
         function viewModule(modId) {
             const m = MODS[modId];
             return kpisHTML(m, S[m.col]) + toolbarHTML(modId, m) + `<div id="cdList">${listHTML(modId)}</div>`;
+        }
+
+        // Cuántas cosas apuntan a un miembro del equipo (para avisar antes de borrarlo).
+        function referenciasDe(id) {
+            const cuentas = [
+                ['tareas de la agenda', S.items.filter((x) => x.assigneeId === id).length],
+                ['publicaciones', S.publications.filter((x) => x.assigneeId === id).length],
+                ['clases (graba/edita)', S.academyClasses.filter((x) => x.recordedById === id || x.editedById === id).length],
+                ['cambios de programación', S.devChanges.filter((x) => x.responsibleDevId === id).length],
+                ['lanzamientos', S.launches.filter((x) => x.responsibleId === id).length],
+                ['minutas (asistente o tarea)', S.meetings.filter((x) => (x.attendees || []).includes(id) || (x.actionItems || []).some((a) => a.assigneeId === id)).length],
+            ].filter(([, n]) => n);
+            return { total: cuentas.reduce((s, [, n]) => s + n, 0), detalle: cuentas.map(([l, n]) => `${n} ${l}`).join(', ') };
         }
 
         // --- Agenda diaria / semanal ---
@@ -1068,7 +1085,12 @@
             if (act === 'edit') { closeModal(); const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openForm(modId, rec); }
             if (act === 'view') { const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openDetail(modId, rec); }
             if (act === 'del') {
-                if (!confirm('¿Eliminar este registro? Esta acción no se puede deshacer.')) return;
+                let aviso = '¿Eliminar este registro? Esta acción no se puede deshacer.';
+                if (MODS[modId].col === 'team') {
+                    const n = referenciasDe(t.dataset.id);
+                    if (n.total) aviso = `Esta persona tiene ${n.total} elemento(s) asignado(s) (${n.detalle}).\nSi la eliminas quedarán sin responsable.\n\n¿Eliminar de todos modos?`;
+                }
+                if (!confirm(aviso)) return;
                 if (await borrar(MODS[modId].col, t.dataset.id)) { toast('Eliminado', 'ok'); render(); }
                 return;
             }
@@ -1108,6 +1130,16 @@
         });
 
         let searchTimer = 0;
+        let HOY_ACTUAL = hoy();
+        function revisarCambioDeDia() {
+            const h = hoy();
+            if (h === HOY_ACTUAL) return;
+            if (UI.date === HOY_ACTUAL) UI.date = h;   // si estaba mirando "hoy", pasa al nuevo día
+            HOY_ACTUAL = h;
+            if (!modalOpen) render();
+        }
+        setInterval(revisarCambioDeDia, 60000);
+        document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarCambioDeDia(); });
         document.addEventListener('input', (e) => {
             if (e.target.id === 'cdSearch') {
                 clearTimeout(searchTimer);
