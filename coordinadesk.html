@@ -101,6 +101,7 @@
         .cd-day i { font-style: normal; font-size: 10px; color: #9CA3AF; }
         .cd-item { display: flex; gap: 12px; padding: 14px 16px; align-items: flex-start; }
         .cd-item + .cd-item { margin-top: 8px; }
+        .cd-time.wide { width: 70px; }
         .cd-time { width: 54px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: #9CA3AF; padding-top: 2px; font-variant-numeric: tabular-nums; }
         .cd-check { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid rgba(255,255,255,0.25); background: transparent; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 1px; color: transparent; }
         .cd-check.on { background: #22C55E; border-color: #22C55E; color: #fff; }
@@ -353,6 +354,7 @@
                     { k: 'topic', l: 'Tema de la reunión', t: 'text', req: 1, full: 1 }, { k: 'date', l: 'Fecha', t: 'date', req: 1, def: () => hoy() },
                     { k: 'time', l: 'Hora', t: 'time' }, { k: 'durationMinutes', l: 'Duración (min)', t: 'number' },
                     { k: 'attendees', l: 'Asistentes', t: 'members', full: 1 },
+                    { k: 'recordatorioAgenda', l: 'Crear recordatorio en la agenda', t: 'check', def: true, dflt: true },
                     { k: 'summary', l: 'Resumen', t: 'textarea', full: 1 }, { k: 'keyDecisions', l: 'Decisiones clave', t: 'textarea', full: 1 },
                     { k: 'actionItems', l: 'Tareas y acuerdos', t: 'rows', full: 1, add: 'Añadir tarea', sub: [{ k: 'task', l: 'Tarea', t: 'text' }, { k: 'assigneeId', l: 'Responsable', t: 'member' }, { k: 'dueDate', l: 'Fecha límite', t: 'date' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 170px 140px 70px' },
                     { k: 'nextScheduled', l: 'Programar próxima reunión', t: 'check' }, { k: 'nextDate', l: 'Fecha próxima', t: 'date' },
@@ -375,6 +377,7 @@
                     { k: 'channel', l: 'Canal', t: 'select', opts: O([['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook'], ['youtube', 'YouTube'], ['linkedin', 'LinkedIn'], ['twitter', 'X / Twitter'], ['newsletter', 'Newsletter'], ['blog', 'Blog'], ['otro', 'Otro']]), def: 'instagram' },
                     { k: 'contentType', l: 'Formato', t: 'select', opts: O([['reel', 'Reel'], ['carrusel', 'Carrusel'], ['historia', 'Historia'], ['post_estatico', 'Post estático'], ['video_largo', 'Video largo'], ['newsletter', 'Newsletter'], ['articulo', 'Artículo'], ['otro', 'Otro']]), def: 'post_estatico' },
                     { k: 'status', l: 'Estado', t: 'select', opts: ST_MKT, def: 'borrador' }, { k: 'assigneeId', l: 'Responsable', t: 'member' },
+                    { k: 'recordatorioAgenda', l: 'Crear recordatorio en la agenda', t: 'check', def: true, dflt: true },
                     { k: 'campaignName', l: 'Campaña / pilar', t: 'text' }, { k: 'assetUrl', l: 'Enlace a recursos (Drive, Canva)', t: 'url' },
                     { k: 'contentDescription', l: 'Contenido (copy, guion)', t: 'textarea', full: 1 }, { k: 'targetAudience', l: 'CTA / audiencia', t: 'text', full: 1 },
                     { k: 'publishedDate', l: 'Fecha de publicación real', t: 'date' }, { k: 'publishedUrl', l: 'URL publicada', t: 'url' },
@@ -431,6 +434,8 @@
                     { k: 'title', l: 'Producto / servicio', t: 'text', req: 1, full: 1 }, { k: 'launchDate', l: 'Fecha de lanzamiento', t: 'date', req: 1, def: () => hoy() },
                     { k: 'launchTime', l: 'Hora', t: 'time' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_LAUNCH, def: 'planificado' },
                     { k: 'responsibleId', l: 'Responsable', t: 'member' }, { k: 'channels', l: 'Canales (separados por coma)', t: 'tags' },
+                    { k: 'departmentId', l: 'Departamento (para el recordatorio)', t: 'dept', def: 'dept-marketing' },
+                    { k: 'recordatorioAgenda', l: 'Crear recordatorio en la agenda', t: 'check', def: true, dflt: true },
                     { k: 'targetAudience', l: 'Audiencia', t: 'text' }, { k: 'landingUrl', l: 'Enlace oficial / demo', t: 'url' },
                     { k: 'whatWillLaunch', l: 'Qué se lanzará', t: 'textarea', full: 1 }, { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
                 ],
@@ -560,7 +565,7 @@
             return m.fields.map((f) => {
                 const val = rec[f.k];
                 const full = f.full || f.t === 'rows' || f.t === 'textarea' || f.t === 'members' ? ' full' : '';
-                if (f.t === 'check') return `<div class="cd-field${full}">${fieldInput(f, val, f.k)}</div>`;
+                if (f.t === 'check') return `<div class="cd-field${full}">${fieldInput(f, f.dflt ? val !== false : val, f.k)}</div>`;
                 if (f.t === 'rows') {
                     const rows = (val && val.length ? val : []).map((r) => rowHTML(f, r)).join('');
                     return `<div class="cd-field full"><label>${esc(f.l)}</label><div class="cd-sub-rows" data-rows="${esc(f.k)}">${rows}</div><div><button type="button" class="cd-btn sm" data-act="row-add" data-k="${esc(f.k)}">＋ ${esc(f.add || 'Añadir')}</button></div></div>`;
@@ -594,11 +599,12 @@
             return rec;
         }
 
-        function openForm(modId, rec) {
+        function openForm(modId, rec, presets) {
             const m = MODS[modId];
             const nuevo = !rec;
             const base = rec ? clone(rec) : { id: uid(m.col.slice(0, 3)), createdAt: new Date().toISOString() };
             if (nuevo) for (const f of m.fields) if (f.def !== undefined) base[f.k] = typeof f.def === 'function' ? f.def() : f.def;
+            if (nuevo && presets) Object.assign(base, presets);
             openModal(`
                 <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>
                 <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base)}</div>
@@ -616,6 +622,7 @@
                 if (m.before) m.before(out);
                 const btn = form.querySelector('button[type=submit]'); btn.disabled = true;
                 const ok = await guardar(m.col, out);
+                if (ok && AUTO[m.col]) await sincronizarRecordatorio(m.col, out);   // publicación / reunión / lanzamiento -> recordatorio en la agenda
                 if (ok) { closeModal(); toast(nuevo ? 'Creado' : 'Guardado', 'ok'); render(); } else btn.disabled = false;
             });
         }
@@ -679,7 +686,7 @@
 
         function viewModule(modId) {
             const m = MODS[modId];
-            return kpisHTML(m, S[m.col]) + toolbarHTML(modId, m) + `<div id="cdList">${listHTML(modId)}</div>`;
+            return kpisHTML(m, S[m.col]) + (DEPT_DE_MODULO[modId] ? agendaDeDeptoHTML(DEPT_DE_MODULO[modId]) : '') + toolbarHTML(modId, m) + `<div id="cdList">${listHTML(modId)}</div>`;
         }
 
         // Cuántas cosas apuntan a un miembro del equipo (para avisar antes de borrarlo).
@@ -695,6 +702,88 @@
             return { total: cuentas.reduce((s, [, n]) => s + n, 0), detalle: cuentas.map(([l, n]) => `${n} ${l}`).join(', ') };
         }
 
+        // --- Recordatorios automáticos: publicación / reunión / lanzamiento -> Agenda ---
+        // Cada entrada crea (y mantiene al día) un recordatorio enlazado con `autoSource`. Así, al cambiar la
+        // fecha del origen se mueve el recordatorio; al borrarlo desaparece; y si se marca como publicado /
+        // lanzado, el recordatorio se completa solo (y el aviso push no vuelve a sonar).
+        const HORA_POR_DEFECTO = '09:00';   // si la entrada no tiene hora, el recordatorio sale a esta hora del día
+        const AUTO = {
+            publications: { etiqueta: 'publicación', prefijo: 'Publicar', fecha: 'scheduledDate', hora: 'scheduledTime', titulo: 'title', resp: 'assigneeId', dept: () => 'dept-marketing', hecho: (r) => r.status === 'publicado', desc: (r) => [r.channel, r.campaignName].filter(Boolean).join(' · ') },
+            meetings: { etiqueta: 'reunión', prefijo: 'Reunión', fecha: 'date', hora: 'time', titulo: 'topic', resp: null, dept: () => 'dept-reuniones', hecho: () => false, desc: (r) => (r.durationMinutes ? r.durationMinutes + ' min' : '') },
+            launches: { etiqueta: 'lanzamiento', prefijo: 'Lanzamiento', fecha: 'launchDate', hora: 'launchTime', titulo: 'title', resp: 'responsibleId', dept: (r) => r.departmentId || 'dept-marketing', hecho: (r) => r.status === 'lanzado', desc: (r) => r.targetAudience || '' },
+        };
+        const zonaHoraria = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return undefined; } };
+        const itemDeOrigen = (col, id) => S.items.find((i) => i.autoSource && i.autoSource.col === col && i.autoSource.id === id);
+
+        function recordatorioDeseado(col, r) {
+            const a = AUTO[col];
+            if (!r[a.fecha]) return null;
+            return {
+                title: `${a.prefijo}: ${r[a.titulo] || ''}`.trim(), date: r[a.fecha], time: r[a.hora] || HORA_POR_DEFECTO,
+                departmentId: a.dept(r), assigneeId: (a.resp && r[a.resp]) || '', description: a.desc(r), hecho: a.hecho(r),
+            };
+        }
+
+        // Devuelve 1 si CREÓ un recordatorio nuevo (para contar en "sincronizar todo"), 0 en cualquier otro caso.
+        async function sincronizarRecordatorio(col, r) {
+            const ex = itemDeOrigen(col, r.id);
+            if (r.recordatorioAgenda === false) { if (ex) await borrar('items', ex.id); return 0; }
+            const d = recordatorioDeseado(col, r);
+            if (!d) return 0;
+            const ahora = new Date().toISOString();
+            if (!ex) {
+                if (d.date < hoy()) return 0;   // una entrada ya pasada no genera un recordatorio nuevo
+                const item = {
+                    id: uid('ite'), title: d.title, description: d.description, type: 'reminder', departmentId: d.departmentId, assigneeId: d.assigneeId,
+                    coordinatorName: (SESSION && SESSION.user.email) || '', date: d.date, time: d.time, priority: 'normal', status: d.hecho ? 'completed' : 'pending',
+                    automaticReminder: true, reminderLeadTime: '15_min', subtasks: [], createdAt: ahora, tz: zonaHoraria(), autoSource: { col, id: r.id },
+                };
+                if (d.hecho) { item.completedAt = ahora; item.autoDone = true; }
+                return (await guardar('items', item)) ? 1 : 0;
+            }
+            const n = { ...ex, title: d.title, description: d.description, departmentId: d.departmentId, assigneeId: d.assigneeId, date: d.date, time: d.time };
+            const reprogramado = ex.date !== d.date || ex.time !== d.time;
+            if (reprogramado) n.tz = zonaHoraria();
+            if (d.hecho) { if (n.status !== 'completed') { n.status = 'completed'; n.completedAt = ahora; } n.autoDone = true; }
+            else if (n.autoDone) { n.status = 'pending'; delete n.completedAt; n.autoDone = false; }   // se des-marcó como publicado/lanzado
+            else if (reprogramado && n.status === 'completed') { n.status = 'pending'; delete n.completedAt; }
+            if (JSON.stringify(n) !== JSON.stringify(ex)) await guardar('items', n);
+            return 0;
+        }
+
+        async function quitarRecordatoriosDe(col, id) {
+            for (const it of S.items.filter((i) => i.autoSource && i.autoSource.col === col && i.autoSource.id === id)) await borrar('items', it.id);
+        }
+
+        // Para lo que ya existía antes de esta función (o se importó): crea los que falten y actualiza los demás.
+        async function sincronizarTodo() {
+            let creados = 0;
+            for (const col of Object.keys(AUTO)) for (const r of S[col].slice()) creados += await sincronizarRecordatorio(col, r);
+            return creados;
+        }
+
+        // --- Agenda por departamento: cada módulo de departamento muestra las actividades de la Agenda que le pertenecen ---
+        const DEPT_DE_MODULO = { affiliates: 'dept-afiliados', finance: 'dept-finanzas', marketing: 'dept-marketing', meetings: 'dept-reuniones', academy: 'dept-academia', development: 'dept-programacion', reports: 'dept-informes' };
+        function agendaDeDeptoHTML(deptId) {
+            const d = dept(deptId);
+            if (!d) return '';
+            const pend = S.items.filter((i) => i.departmentId === deptId && i.status !== 'completed')
+                .sort((a, b) => (String(a.date) + (a.time || '99:99')).localeCompare(String(b.date) + (b.time || '99:99')));
+            const vencidas = pend.filter((i) => i.date < hoy()).length;
+            const lista = pend.slice(0, 5);
+            return `<div class="glass-card" style="padding:18px;margin-bottom:18px;border-left:3px solid ${d.color}">
+                <div class="cd-bar" style="margin-bottom:${lista.length ? 12 : 0}px">
+                    <div style="font-weight:800;font-size:14px;font-family:Geist,Inter,sans-serif"><span class="cd-dot" style="background:${d.color};margin-right:8px"></span>Agenda de ${esc(d.name)}</div>
+                    <span class="cd-badge">${pend.length} pendiente${pend.length === 1 ? '' : 's'}</span>${vencidas ? `<span class="cd-badge cd-tone-bad">${vencidas} vencida${vencidas === 1 ? '' : 's'}</span>` : ''}
+                    <div class="cd-grow"></div>
+                    ${pend.length ? `<button class="cd-btn sm" data-act="ver-agenda-dept" data-dept="${esc(deptId)}">Ver en la Agenda</button>` : ''}
+                    <button class="cd-btn sm primary" data-act="new" data-mod="daily" data-dept="${esc(deptId)}"><i class="ph-bold ph-plus"></i> Actividad</button>
+                </div>
+                ${lista.length ? lista.map((i) => agendaItemHTML(i, { fecha: true })).join('') : '<p class="cd-sub" style="margin-top:8px">Sin actividades pendientes de este departamento.</p>'}
+                ${pend.length > lista.length ? `<p class="cd-sub" style="margin-top:8px">+${pend.length - lista.length} más en la Agenda.</p>` : ''}
+            </div>`;
+        }
+
         // --- Agenda diaria / semanal ---
         function agendaItemsDe(fecha) {
             return S.items.filter((i) => i.date === fecha).filter((i) => {
@@ -706,7 +795,8 @@
             }).sort((a, b) => String(a.time || '99:99').localeCompare(String(b.time || '99:99')));
         }
 
-        function agendaItemHTML(i) {
+        function agendaItemHTML(i, opts) {
+            opts = opts || {};
             const d = dept(i.departmentId);
             const done = i.status === 'completed';
             const subs = i.subtasks || [];
@@ -714,14 +804,14 @@
             const ty = optOf(TYPE_ITEM, i.type);
             return `<div class="glass-card cd-item ${done ? 'cd-done' : ''}" style="border-left:3px solid ${d ? d.color : '#374151'}">
                 <button class="cd-check ${done ? 'on' : ''}" data-act="toggle" data-id="${esc(i.id)}" title="Marcar como ${done ? 'pendiente' : 'completada'}"><i class="ph-bold ph-check"></i></button>
-                <div class="cd-time">${esc(i.time || '—')}</div>
+                <div class="cd-time${opts.fecha ? ' wide' : ''}">${opts.fecha ? `<span class="${i.date < hoy() ? 'cd-tone-bad' : ''}">${fmtDate(i.date).slice(0, 5)}</span><br>` : ''}${esc(i.time || '—')}</div>
                 <div style="flex:1;min-width:0">
                     <div class="cd-title">${esc(i.title)}</div>
                     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
                         ${ty ? `<span class="cd-badge">${esc(ty.l)}</span>` : ''}${d ? `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>` : ''}
                         ${i.priority === 'high' ? `<span class="cd-badge cd-tone-bad">Alta prioridad</span>` : pr && i.priority === 'medium' ? `<span class="cd-badge cd-tone-warn">Media</span>` : ''}
                         ${i.assigneeId ? `<span class="cd-badge">👤 ${esc(mname(i.assigneeId))}</span>` : ''}${i.status === 'in_progress' ? '<span class="cd-badge cd-tone-info">En curso</span>' : ''}
-                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
+                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${i.autoSource ? `<span class="cd-badge" title="Se actualiza solo con su ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}">🔗 desde ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}</span>` : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
                     </div>
                     ${i.description ? `<p class="cd-sub" style="margin-top:6px">${esc(i.description)}</p>` : ''}${i.locationOrLink ? `<p class="cd-sub">📍 ${esc(i.locationOrLink)}</p>` : ''}
                 </div>
@@ -773,7 +863,7 @@
         MODS.daily.newLabel = 'Nueva actividad';
         MODS.daily.fields = [
             { k: 'title', l: 'Título', t: 'text', req: 1, full: 1 },
-            { k: 'type', l: 'Tipo', t: 'select', opts: TYPE_ITEM, def: 'task' }, { k: 'departmentId', l: 'Departamento', t: 'dept' },
+            { k: 'type', l: 'Tipo', t: 'select', opts: TYPE_ITEM, def: 'task' }, { k: 'departmentId', l: 'Departamento', t: 'dept', req: 1 },
             { k: 'date', l: 'Fecha', t: 'date', req: 1, def: () => UI.date }, { k: 'time', l: 'Hora', t: 'time' },
             { k: 'assigneeId', l: 'Responsable', t: 'member' }, { k: 'durationMinutes', l: 'Duración (min)', t: 'number' },
             { k: 'priority', l: 'Prioridad', t: 'select', opts: PRIO_ITEM, def: 'normal' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_ITEM, def: 'pending' },
@@ -837,7 +927,7 @@
             const meses = [];
             for (let i = 0; i < 12; i++) { const d = new Date(); d.setMonth(d.getMonth() - i, 1); meses.push(ymd(d).slice(0, 7)); }
             const reps = S.reports.slice().sort((a, b) => String(b.generatedAt).localeCompare(String(a.generatedAt)));
-            return `
+            return agendaDeDeptoHTML(DEPT_DE_MODULO.reports) + `
                 <div class="glass-card" style="padding:22px;margin-bottom:18px">
                     <h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Generar informe</h3>
                     <p class="cd-sub" style="margin-bottom:14px">Se guarda en el historial y se descarga como CSV (compatible con Excel).</p>
@@ -875,6 +965,9 @@
                     <div class="cd-bar" style="margin-bottom:0"><button class="cd-btn" data-act="export"><i class="ph ph-download-simple"></i> Exportar JSON</button>
                     <button class="cd-btn" data-act="import-pick"><i class="ph ph-upload-simple"></i> Importar JSON</button><input type="file" id="cdImportFile" accept="application/json,.json" hidden></div>
                     <p class="cd-sub" style="margin-top:12px">La importación <b>combina</b> por id: añade y actualiza registros, nunca borra los existentes. Acepta el respaldo de este espacio y el formato del Coordina Desk original (se ignoran los archivos adjuntos incrustados; usa enlaces de Drive).</p></div>
+                <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Recordatorios de la agenda</h3>
+                    <p class="cd-sub" style="margin-bottom:14px">Cada publicación, reunión y lanzamiento nuevo crea solo su recordatorio en la agenda. Si ya tenías entradas de antes, este botón crea los recordatorios que falten (solo de fechas de hoy en adelante) y actualiza los existentes. Si una entrada no tiene hora, el recordatorio sale a las 09:00.</p>
+                    <button class="cd-btn" data-act="sync-agenda"><i class="ph ph-arrows-clockwise"></i> Crear recordatorios que falten</button></div>
                 <div class="glass-card" style="padding:22px;margin-bottom:16px"><h3 style="font-weight:800;font-size:16px;margin-bottom:4px">Recordatorios con la página cerrada</h3>
                     <p class="cd-sub" style="margin-bottom:14px">Activa las notificaciones en este dispositivo y recibirás los recordatorios de la Agenda <b>aunque Workspace NLT esté cerrado</b> (celular o computador). El aviso le llega al <b>responsable</b> de la actividad (su correo en «Mi Equipo» debe ser el de su cuenta NLT); si no hay responsable, a quien la creó. Solo lo reciben personas con acceso al Workspace.</p>
                     <div class="cd-bar" style="margin-bottom:0"><button class="cd-btn primary" id="cdPushBtn" disabled>Comprobando…</button><button class="cd-btn" data-act="push-test" id="cdPushTest" disabled><i class="ph ph-bell-ringing"></i> Enviarme una prueba</button></div>
@@ -1108,7 +1201,13 @@
             if (act === 'tab') { UI.tab = t.dataset.tab; UI.q = ''; UI.status = 'all'; UI.limit = PAGE; return render(); }
             if (act === 'more') { UI.limit += PAGE; return refreshList(); }
             if (act === 'retry') { location.reload(); return; }
-            if (act === 'new') return openForm(t.dataset.mod);
+            if (act === 'new') return openForm(t.dataset.mod, null, t.dataset.dept ? { departmentId: t.dataset.dept } : null);
+            if (act === 'ver-agenda-dept') {
+                const sig = S.items.filter((i) => i.departmentId === t.dataset.dept && i.status !== 'completed').sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
+                UI.tab = 'daily'; UI.dept = t.dataset.dept; UI.q = ''; UI.status = 'all'; UI.type = 'all'; UI.agendaView = 'week'; UI.limit = PAGE; if (sig) UI.date = sig.date;
+                return render();
+            }
+            if (act === 'sync-agenda') { t.disabled = true; const n = await sincronizarTodo(); t.disabled = false; toast(n ? `Se crearon ${n} recordatorio(s) en la agenda` : 'La agenda ya tiene todos los recordatorios', 'ok'); return render(); }
             const modId = t.dataset.mod;
             if (act === 'edit') { closeModal(); const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openForm(modId, rec); }
             if (act === 'view') { const rec = S[MODS[modId].col].find((x) => x.id === t.dataset.id); return rec && openDetail(modId, rec); }
@@ -1118,8 +1217,19 @@
                     const n = referenciasDe(t.dataset.id);
                     if (n.total) aviso = `Esta persona tiene ${n.total} elemento(s) asignado(s) (${n.detalle}).\nSi la eliminas quedarán sin responsable.\n\n¿Eliminar de todos modos?`;
                 }
+                const colDel = MODS[modId].col;
+                const previo = S[colDel].find((x) => x.id === t.dataset.id);
+                if (AUTO[colDel] && itemDeOrigen(colDel, t.dataset.id)) aviso += '\n\nTambién se eliminará su recordatorio de la agenda.';
+                if (colDel === 'items' && previo && previo.autoSource) aviso = `Este recordatorio se creó automáticamente desde una ${(AUTO[previo.autoSource.col] || {}).etiqueta || 'entrada'}.\nSi lo eliminas, esa entrada dejará de crear recordatorio en la agenda.\n\n¿Eliminar?`;
                 if (!confirm(aviso)) return;
-                if (await borrar(MODS[modId].col, t.dataset.id)) { toast('Eliminado', 'ok'); render(); }
+                if (await borrar(colDel, t.dataset.id)) {
+                    if (AUTO[colDel]) await quitarRecordatoriosDe(colDel, t.dataset.id);
+                    if (colDel === 'items' && previo && previo.autoSource) {   // la persona lo borró a propósito: no se vuelve a crear
+                        const origen = (S[previo.autoSource.col] || []).find((x) => x.id === previo.autoSource.id);
+                        if (origen && origen.recordatorioAgenda !== false) await guardar(previo.autoSource.col, { ...origen, recordatorioAgenda: false });
+                    }
+                    toast('Eliminado', 'ok'); render();
+                }
                 return;
             }
             if (act === 'toggle') {
