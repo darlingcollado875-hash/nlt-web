@@ -2645,7 +2645,9 @@
         }
 
         function _irAlRecurso(n) {
-            const href = _NOTIF_HREFS[n.type] || 'dashboard.html';
+            // Anuncios del panel de admin: traen la página a abrir en metadata.url (solo páginas de NLT, nunca enlaces externos).
+            const urlAnuncio = n.metadata && typeof n.metadata.url === 'string' && /^[A-Za-z0-9_\-]+\.html(\?[A-Za-z0-9_=&%.\-]*)?(#[A-Za-z0-9_\-]*)?$/.test(n.metadata.url) ? n.metadata.url : null;
+            const href = urlAnuncio || _NOTIF_HREFS[n.type] || 'dashboard.html';
             const [ruta] = href.split('?');
             // Ya estamos en Community y la notificación es de DM -- cambia de
             // pestaña en la misma página en vez de recargarla (mejor UX, sin

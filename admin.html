@@ -120,6 +120,7 @@
             <button data-seccion="elite_signals" class="tab-admin"><i class="ph-fill ph-broadcast mr-1.5"></i>Elite Signals</button>
             <button data-seccion="partners" class="tab-admin"><i class="ph-fill ph-handshake mr-1.5"></i>Partners</button>
             <button data-seccion="soporte" class="tab-admin"><i class="ph-fill ph-lifebuoy mr-1.5"></i>Soporte</button>
+            <button data-seccion="notificaciones" class="tab-admin"><i class="ph-fill ph-bell-ringing mr-1.5"></i>Notificaciones</button>
             <button data-seccion="nlt_bot" class="tab-admin"><i class="ph-fill ph-robot mr-1.5"></i>NLT Bot Supreme</button>
             <button data-seccion="admin-global" class="tab-admin"><i class="ph-fill ph-shield-star mr-1.5"></i>Administración Global</button>
             <a href="coordinadesk.html" id="tabCoordina" class="tab-admin hidden"><i class="ph-fill ph-squares-four mr-1.5"></i>Workspace NLT</a>
@@ -301,6 +302,64 @@
                             <tr><td colspan="7" class="px-5 py-6 text-center text-nlt-accent animate-pulse">Cargando órdenes...</td></tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- NOTIFICACIONES (envíos masivos) -->
+            <div id="seccion-notificaciones" class="seccion-admin hidden space-y-6">
+                <div>
+                    <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-bell-ringing text-nlt-accent"></i> Notificaciones a todos los usuarios</h2>
+                    <p class="text-xs text-gray-500">Manda un anuncio por correo, notificación dentro de NLT y/o push a todas las cuentas. <b class="text-gray-300">Un envío no se puede deshacer</b>: usa siempre «Enviarme una prueba» antes.</p>
+                </div>
+                <div class="glass-card p-4 flex flex-wrap items-center gap-x-6 gap-y-2 text-xs" id="notifAudiencia"><span class="text-gray-500 animate-pulse">Calculando audiencia...</span></div>
+                <div class="glass-card p-6">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                        <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Mensaje</h3>
+                        <button id="btn-notif-plantilla" type="button" class="px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold cursor-pointer"><i class="ph-fill ph-sparkle"></i> Usar plantilla: Franja de Asia</button>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-3 mb-3">
+                        <input id="notifTitulo" maxlength="120" placeholder="Título (se ve en el correo, la notificación y el push)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="notifAsunto" maxlength="150" placeholder="Asunto del correo (opcional: si lo dejas vacío usa el título)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <textarea id="notifMensaje" rows="6" maxlength="1500" placeholder="Mensaje. Los saltos de línea se respetan; el texto se envía tal cual (sin formato)." class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm w-full mb-1"></textarea>
+                    <p class="text-[11px] text-gray-600 mb-3"><span id="notifContador">0</span> / 1500</p>
+                    <div class="grid md:grid-cols-2 gap-3 mb-4">
+                        <input id="notifCtaTexto" maxlength="40" placeholder="Texto del botón (opcional, ej. Abrir NLT Charts)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                        <input id="notifCtaUrl" placeholder="Página a abrir (ej. charts.html) — solo páginas de NLT" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
+                    </div>
+                    <div class="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs text-gray-300 mb-5">
+                        <span class="text-gray-500 font-semibold uppercase tracking-wider text-[10px]">Enviar por</span>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="notifCanalEmail" checked> Correo</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="notifCanalApp" checked> Notificación en NLT (campana)</label>
+                        <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="notifCanalPush" checked> Push al celular / PC</label>
+                    </div>
+                    <div class="grid md:grid-cols-2 gap-3 mb-5">
+                        <div class="glass-item p-4"><p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Así se ve el correo</p>
+                            <p class="text-xs text-gray-500 mb-1" id="notifPrevAsunto"></p><p class="text-sm font-bold text-nlt-accent mb-2" id="notifPrevTitulo"></p>
+                            <p class="text-xs text-gray-300 whitespace-pre-line mb-3" id="notifPrevMensaje"></p><span id="notifPrevBoton" class="hidden inline-block px-3 py-1.5 rounded-lg bg-nlt-accent text-white text-xs font-semibold"></span></div>
+                        <div class="glass-item p-4"><p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Así se ve la notificación / el push</p>
+                            <p class="text-sm font-bold text-white mb-1" id="notifPrevPushTitulo"></p><p class="text-xs text-gray-400" id="notifPrevPushMensaje"></p></div>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-3">
+                        <button id="btn-notif-prueba" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold hover:bg-white/20 cursor-pointer"><i class="ph ph-paper-plane-tilt"></i> Enviarme una prueba</button>
+                        <button id="btn-notif-enviar" type="button" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold cursor-pointer"><i class="ph-bold ph-megaphone"></i> Enviar a todos…</button>
+                        <span id="notifMsg" class="text-xs text-gray-400"></span>
+                    </div>
+                    <div id="notifConfirmar" class="hidden mt-5 rounded-xl border border-nlt-danger/30 bg-nlt-danger/5 p-5">
+                        <p class="text-sm font-bold text-white mb-1">Confirma el envío</p>
+                        <p class="text-xs text-gray-300 mb-3" id="notifConfirmarResumen"></p>
+                        <div class="flex flex-wrap items-center gap-3">
+                            <input id="notifConfirmarTexto" placeholder="Escribe ENVIAR" autocomplete="off" class="bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-sm w-40">
+                            <button id="btn-notif-confirmar" type="button" disabled class="px-4 py-2 rounded-lg bg-nlt-danger text-white text-xs font-semibold cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">Enviar ahora</button>
+                            <button id="btn-notif-cancelar" type="button" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer">Cancelar</button>
+                        </div>
+                    </div>
+                    <div id="notifProgreso" class="hidden mt-5 glass-item p-4 text-xs text-gray-300"></div>
+                </div>
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-3"><h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Historial de envíos</h3>
+                        <button id="btn-notif-recargar" type="button" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer"><i class="ph ph-arrows-clockwise"></i> Actualizar</button></div>
+                    <div id="notifHistorial" class="space-y-2"><p class="text-xs text-gray-500">Cargando...</p></div>
                 </div>
             </div>
 
@@ -1783,8 +1842,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
-    <script src="assets/js/nlt-api-client.js?v=a4cb4a36"></script>
+    <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
+    <script src="assets/js/nlt-api-client.js?v=b16dbfcb"></script>
     <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -2163,6 +2222,127 @@
             cancelled: { texto: 'Cancelada', clase: 'text-gray-500' },
         };
         let filtroIndActual = '';
+
+        // --- Notificaciones (envíos masivos) ---
+        const NOTIF_PLANTILLA_ASIA = {
+            titulo: 'Nueva franja de Asia en NLT Charts',
+            asunto: 'Ya está disponible la franja de Asia en NLT Charts',
+            mensaje: 'Ya está disponible la sesión de Asia en el indicador NLT Unified Suite de NLT Charts: la franja va de 20:00 a 02:00 (hora de Nueva York) y aparece junto a Londres y Nueva York.\n\nPuedes activarla, cambiar su horario o su color en los ajustes del indicador → ③ ICT Pro — Sesiones.\n\nSi ya tenías el gráfico abierto, pulsa el nuevo botón ↻ de la barra para refrescar la página y verla.',
+            ctaTexto: 'Abrir NLT Charts', ctaUrl: 'charts.html',
+        };
+        let notifEnvioId = null, notifAudiencia = null, notifTimer = null;
+        const $n = (id) => document.getElementById(id);
+        function notifNuevoId() { notifEnvioId = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); }); }
+        function notifDatos() {
+            return { titulo: $n('notifTitulo').value.trim(), asunto: $n('notifAsunto').value.trim() || null, mensaje: $n('notifMensaje').value.trim(),
+                cta_texto: $n('notifCtaTexto').value.trim() || null, cta_url: $n('notifCtaUrl').value.trim() || null,
+                canales: { email: $n('notifCanalEmail').checked, notificacion: $n('notifCanalApp').checked, push: $n('notifCanalPush').checked } };
+        }
+        function notifPreview() {
+            const d = notifDatos();
+            $n('notifContador').textContent = d.mensaje.length;
+            $n('notifPrevAsunto').textContent = 'Asunto: ' + (d.asunto || d.titulo || '—');
+            $n('notifPrevTitulo').textContent = d.titulo || 'Título';
+            $n('notifPrevMensaje').textContent = d.mensaje || 'Tu mensaje aparecerá aquí.';
+            const b = $n('notifPrevBoton'); b.textContent = d.cta_texto || 'Abrir NLT'; b.classList.toggle('hidden', !d.cta_url);
+            $n('notifPrevPushTitulo').textContent = d.titulo || 'Título';
+            $n('notifPrevPushMensaje').textContent = d.mensaje.slice(0, 180) || '—';
+        }
+        function notifAplicarPlantilla(p) {
+            $n('notifTitulo').value = p.titulo; $n('notifAsunto').value = p.asunto; $n('notifMensaje').value = p.mensaje;
+            $n('notifCtaTexto').value = p.ctaTexto; $n('notifCtaUrl').value = p.ctaUrl;
+            ['notifCanalEmail', 'notifCanalApp', 'notifCanalPush'].forEach((id) => { $n(id).checked = true; });
+            notifPreview();
+        }
+        const ESTADO_ENVIO = { enviando: ['Enviando…', 'text-nlt-accent'], completado: ['Completado', 'text-green-400'], con_errores: ['Completado con errores', 'text-yellow-400'], fallido: ['Falló', 'text-nlt-danger'] };
+        function notifResumenEnvio(h) {
+            const c = h.canales || {}; const partes = [];
+            if (c.email) partes.push(`correo: ${h.email_enviados} enviados${h.email_fallidos ? `, <span class="text-nlt-danger">${h.email_fallidos} fallidos</span>` : ''}`);
+            if (c.notificacion) partes.push(`notificaciones: ${h.notificaciones}`);
+            if (c.push) partes.push(`push: ${h.push_dispositivos} dispositivos`);
+            return partes.join(' · ');
+        }
+        async function cargarAudienciaNotif() {
+            const box = $n('notifAudiencia');
+            try {
+                notifAudiencia = await NLT_API.adminNotifAudiencia();
+                const ok = (v, t) => `<span class="${v ? 'text-green-400' : 'text-nlt-danger'}">${v ? '✓' : '✗'} ${t}</span>`;
+                box.innerHTML = `<span class="text-white font-semibold">${notifAudiencia.usuarios} usuarios recibirán el anuncio</span><span class="text-gray-400">${notifAudiencia.con_push} con push activado</span>${ok(notifAudiencia.correo_configurado, 'Correo configurado')}${ok(notifAudiencia.push_configurado, 'Push configurado')}`;
+                if (!notifAudiencia.correo_configurado) $n('notifCanalEmail').checked = false;
+            } catch (err) { box.innerHTML = `<span class="text-nlt-danger">No se pudo calcular la audiencia: ${esc(err.message)}</span>`; }
+        }
+        async function cargarHistorialNotif() {
+            const box = $n('notifHistorial');
+            try {
+                const lista = await NLT_API.adminNotifHistorial();
+                box.innerHTML = lista.length ? lista.map((h) => { const [t, c] = ESTADO_ENVIO[h.estado] || [h.estado, 'text-gray-400'];
+                    return `<div class="glass-item p-3"><div class="flex flex-wrap items-center gap-x-3 gap-y-1"><p class="text-sm text-white font-semibold flex-1 min-w-[180px]">${esc(h.titulo)}</p><span class="text-xs font-semibold ${c}">${t}</span></div>
+                        <p class="text-xs text-gray-500 mt-1">${new Date(h.created_at).toLocaleString('es')} · ${esc(h.created_by)} · ${h.destinatarios} destinatarios</p><p class="text-xs text-gray-400 mt-1">${notifResumenEnvio(h)}</p></div>`; }).join('') : '<p class="text-xs text-gray-500">Todavía no se ha enviado ningún anuncio desde aquí.</p>';
+                return lista;
+            } catch (err) { box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${esc(err.message)}</p>`; return []; }
+        }
+        function notifSeguirProgreso(envioId) {
+            const box = $n('notifProgreso'); box.classList.remove('hidden');
+            clearInterval(notifTimer);
+            const tick = async () => {
+                const h = (await cargarHistorialNotif()).find((x) => x.id === envioId);
+                if (!h) return;
+                const [t, c] = ESTADO_ENVIO[h.estado] || [h.estado, 'text-gray-400'];
+                box.innerHTML = `<p class="font-semibold ${c} mb-1">${t}</p><p>${notifResumenEnvio(h)} · de ${h.destinatarios} destinatarios</p>`;
+                if (h.estado !== 'enviando') clearInterval(notifTimer);
+            };
+            tick(); notifTimer = setInterval(tick, 4000);
+        }
+        async function cargarNotificaciones() {
+            if (!notifEnvioId) notifNuevoId();
+            notifPreview();
+            await Promise.all([cargarAudienciaNotif(), cargarHistorialNotif()]);
+        }
+        ['notifTitulo', 'notifAsunto', 'notifMensaje', 'notifCtaTexto', 'notifCtaUrl'].forEach((id) => $n(id).addEventListener('input', notifPreview));
+        $n('btn-notif-plantilla').addEventListener('click', () => { if (!$n('notifMensaje').value.trim() || confirm('Esto reemplaza lo que has escrito. ¿Continuar?')) notifAplicarPlantilla(NOTIF_PLANTILLA_ASIA); });
+        $n('btn-notif-recargar').addEventListener('click', () => { cargarAudienciaNotif(); cargarHistorialNotif(); });
+        $n('btn-notif-prueba').addEventListener('click', async () => {
+            const msg = $n('notifMsg'), btn = $n('btn-notif-prueba');
+            btn.disabled = true; msg.className = 'text-xs text-nlt-accent'; msg.textContent = 'Enviando prueba...';
+            try {
+                const r = await NLT_API.adminNotifPrueba(notifDatos());
+                const partes = [];
+                if (r.correo !== null) partes.push(r.correo ? 'correo enviado a tu email' : 'el correo NO se pudo enviar');
+                if (r.notificacion) partes.push('notificación en tu campana');
+                if (r.push) partes.push(`push a ${r.push} dispositivo(s)`);
+                msg.className = 'text-xs text-green-400'; msg.textContent = 'Prueba enviada solo a ti: ' + (partes.join(', ') || 'sin canales activos') + '.';
+            } catch (err) { msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message; }
+            btn.disabled = false;
+        });
+        $n('btn-notif-enviar').addEventListener('click', () => {
+            const msg = $n('notifMsg'), d = notifDatos();
+            if (!d.titulo || !d.mensaje) { msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'Escribe el título y el mensaje.'; return; }
+            if (!d.canales.email && !d.canales.notificacion && !d.canales.push) { msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'Elige al menos un canal.'; return; }
+            if (!notifAudiencia) { msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'Aún no se calculó la audiencia: espera un momento o pulsa Actualizar.'; return; }
+            msg.textContent = '';
+            const c = [d.canales.email ? `<b>correo</b> a ${notifAudiencia.usuarios} personas` : '', d.canales.notificacion ? `<b>notificación</b> en la campana de ${notifAudiencia.usuarios}` : '', d.canales.push ? `<b>push</b> a los ${notifAudiencia.con_push} con push activado` : ''].filter(Boolean).join('; ');
+            $n('notifConfirmarResumen').innerHTML = `Vas a enviar «${esc(d.titulo)}»: ${c}. <b>No se puede deshacer.</b>`;
+            $n('notifConfirmarTexto').value = ''; $n('btn-notif-confirmar').disabled = true;
+            $n('notifConfirmar').classList.remove('hidden');
+            $n('notifConfirmarTexto').focus();
+        });
+        $n('notifConfirmarTexto').addEventListener('input', (e) => { $n('btn-notif-confirmar').disabled = e.target.value.trim().toUpperCase() !== 'ENVIAR'; });
+        $n('btn-notif-cancelar').addEventListener('click', () => $n('notifConfirmar').classList.add('hidden'));
+        $n('btn-notif-confirmar').addEventListener('click', async () => {
+            const msg = $n('notifMsg'), btn = $n('btn-notif-confirmar');
+            btn.disabled = true; msg.className = 'text-xs text-nlt-accent'; msg.textContent = 'Iniciando envío...';
+            try {
+                const r = await NLT_API.adminNotifEnviar({ ...notifDatos(), envio_id: notifEnvioId, confirmar_destinatarios: notifAudiencia.usuarios });
+                $n('notifConfirmar').classList.add('hidden');
+                msg.className = 'text-xs text-green-400'; msg.textContent = `Envío iniciado a ${r.destinatarios} destinatarios. Puedes seguir usando el panel.`;
+                const enviado = notifEnvioId; notifNuevoId();           // el siguiente anuncio es un envío nuevo
+                notifSeguirProgreso(enviado);
+            } catch (err) {
+                msg.className = 'text-xs text-nlt-danger'; msg.textContent = 'No se envió: ' + err.message;
+                if (/audiencia cambi/i.test(err.message)) { await cargarAudienciaNotif(); $n('notifConfirmar').classList.add('hidden'); }
+                btn.disabled = false;
+            }
+        });
 
         // --- Acceso manual al Zone Engine PRO ---
         const ACC_RESULTADO = {
@@ -5514,6 +5694,7 @@
             planes: [cargarPlanes],
             pagos: [cargarPagos],
             indicador: [cargarIndicador],
+            notificaciones: [cargarNotificaciones],
             contenido: [cargarContenido],
             media: [cargarMedia],
             calendario: [cargarCalendarSettings],
