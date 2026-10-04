@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT Zone Engine PRO | Compra para NLT Charts</title>
+    <meta name="description" content="Desbloquea el NLT Zone Engine PRO dentro de NLT Charts: Order Blocks y FVG con estado en vivo. Mensual o vitalicio.">
+    <link rel="canonical" href="https://nltnextlevel.uk/charts-plans">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
+        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+    </noscript>
+    <style>
+        /* Mobile Sweep (Fase A) -- overflow horizontal real confirmado en 24 paginas:
+           los divs decorativos de fondo (fixed, w-[900px]/w-[700px], blur) escapan
+           al overflow-x:hidden de <body> porque position:fixed no queda contenido
+           por el overflow de un ancestro -- solo <html> (documentElement) controla
+           si la pagina puede scrollear horizontal. Verificado real: sin esto,
+           scrollWidth 417px en un viewport de 375px. */
+        html { overflow-x: hidden; }
+        body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; }
+        .nav-blur { backdrop-filter: blur(16px); background: rgba(8, 10, 15, 0.55); }
+        .glow-button { box-shadow: 0 0 24px rgba(67, 120, 255, 0.4); }
+        ::-webkit-scrollbar { width: 0px; background: transparent; }
+        .plan-option { transition: all 0.3s ease; cursor: pointer; }
+        .plan-option.selected { border-color: rgba(67,120,255,0.5); background: rgba(67,120,255,0.06); }
+
+        /* --- Tarjeta animada NLT Indicator AI --- */
+        .ia-hero {
+            background: linear-gradient(135deg, rgba(17,21,28,0.92) 0%, rgba(13,16,22,0.96) 100%);
+            border: 1px solid rgba(67,120,255,0.18);
+            box-shadow: 0 0 0 1px rgba(67,120,255,0.04), 0 30px 80px -40px rgba(67,120,255,0.35);
+        }
+        .ia-hero-glow {
+            position: absolute; inset: -40%;
+            background: conic-gradient(from 0deg at 50% 50%,
+                rgba(67,120,255,0.00), rgba(67,120,255,0.18), rgba(34,197,94,0.10),
+                rgba(67,120,255,0.18), rgba(67,120,255,0.00));
+            filter: blur(60px);
+            animation: iaSpin 14s linear infinite;
+            pointer-events: none; opacity: .55;
+        }
+        @keyframes iaSpin { to { transform: rotate(360deg); } }
+        .ia-gradient-text {
+            background: linear-gradient(90deg, #8fb0ff 0%, #4378FF 40%, #7de3a8 75%, #8fb0ff 100%);
+            background-size: 220% auto;
+            -webkit-background-clip: text; background-clip: text; color: transparent;
+            animation: iaShimmer 6s linear infinite;
+        }
+        @keyframes iaShimmer { to { background-position: 220% center; } }
+        .ia-pill { background: rgba(67,120,255,0.10); animation: iaPulse 3.2s ease-in-out infinite; }
+        @keyframes iaPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(67,120,255,0.30); } 50% { box-shadow: 0 0 0 8px rgba(67,120,255,0); } }
+        .ia-mini { transition: transform .25s ease, border-color .25s ease; }
+        .ia-mini:hover { transform: translateY(-3px); border-color: rgba(67,120,255,0.30); }
+        .ia-plan-card { transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease; }
+        .ia-plan-card.is-ai { border-color: rgba(67,120,255,0.28); box-shadow: 0 20px 60px -40px rgba(67,120,255,0.5); }
+        .ia-plan-card:hover { transform: translateY(-4px); }
+        .ia-save-badge { background: rgba(34,197,94,0.12); color: #7de3a8; border: 1px solid rgba(34,197,94,0.25); }
+        @media (prefers-reduced-motion: reduce) {
+            .ia-hero-glow, .ia-gradient-text, .ia-pill { animation: none; }
+            .ia-gradient-text { color: #8fb0ff; }
+        }
+    </style>
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="NLT">
+    <meta property="og:title" content="NLT Zone Engine PRO | Compra para NLT Charts">
+    <meta property="og:description" content="Desbloquea el NLT Zone Engine PRO dentro de NLT Charts: Order Blocks y FVG con estado en vivo. Mensual o vitalicio.">
+    <meta property="og:url" content="https://nltnextlevel.uk/charts-plans">
+    <meta property="og:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="NLT Zone Engine PRO | Compra para NLT Charts">
+    <meta name="twitter:description" content="Desbloquea el NLT Zone Engine PRO dentro de NLT Charts: Order Blocks y FVG con estado en vivo. Mensual o vitalicio.">
+    <meta name="twitter:image" content="https://nltnextlevel.uk/assets/img/og-nlt.jpg">
+</head>
+<body class="min-h-screen relative">
+
+    <div class="fixed top-[-15%] left-1/2 -translate-x-1/2 w-[900px] h-[600px] bg-blue-600/10 blur-[140px] rounded-full pointer-events-none z-0"></div>
+
+    <header class="fixed top-0 inset-x-0 z-40 nav-blur border-b border-white/5">
+        <div class="max-w-7xl mx-auto px-6 md:px-10 h-20 flex items-center justify-between">
+            <a id="logoNLT" href="index.html" class="flex items-center gap-3"><img src="assets/img/nlt-icon.png" alt="" class="w-8 h-8"><span class="font-semibold text-base tracking-tight">NLT</span></a>
+            <nav class="hidden md:flex items-center gap-8 text-sm text-gray-400 font-medium">
+                <a href="ecosystem.html" class="hover:text-white transition-colors">Ecosistema</a>
+                <a href="plans.html" class="hover:text-white transition-colors">Planes</a>
+                <a href="#faq" class="hover:text-white transition-colors">FAQ</a>
+            </nav>
+            <div id="headerCTA"></div>
+        </div>
+    </header>
+
+    <!-- HERO -->
+    <section class="relative z-10 pt-40 pb-10 px-6 max-w-4xl mx-auto text-center">
+        <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-6" data-reveal>NLT Charts</p>
+        <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6" data-reveal>NLT Zone Engine PRO</h1>
+        <p class="text-gray-400 text-lg md:text-xl max-w-2xl mx-auto leading-relaxed mb-8" data-reveal>Order Blocks y FVG del motor NLT con su estado en vivo, directo en tu gráfico de NLT Charts. Sin instalar nada y sin cuentas de terceros.</p>
+        <div class="flex flex-wrap items-center justify-center gap-3" data-reveal>
+            <a href="#planes" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button">Elegir plan</a>
+            <a href="charts.html" class="px-8 py-3.5 rounded-full bg-white/5 text-gray-200 font-semibold text-sm hover:bg-white/10 transition-all">Probar 3 días gratis en el gráfico</a>
+        </div>
+    </section>
+
+    <!-- CÓMO FUNCIONA -->
+    <section class="relative z-10 max-w-5xl mx-auto px-6 py-12">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">1</div>
+                <h3 class="font-bold text-white mb-2">Eliges tu plan</h3>
+                <p class="text-sm text-gray-400">Mensual o vitalicio. Solo necesitas tu cuenta NLT.</p>
+            </div>
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">2</div>
+                <h3 class="font-bold text-white mb-2">Pagas con tarjeta o cripto</h3>
+                <p class="text-sm text-gray-400">El pago se verifica automáticamente.</p>
+            </div>
+            <div class="glass-card p-7" data-reveal>
+                <div class="w-10 h-10 rounded-xl bg-nlt-accent/10 border border-nlt-accent/20 flex items-center justify-center text-nlt-accent font-bold mb-5">3</div>
+                <h3 class="font-bold text-white mb-2">Se activa solo</h3>
+                <p class="text-sm text-gray-400">En cuanto se confirma, el Zone Engine PRO queda desbloqueado en NLT Charts.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- PLANES + CHECKOUT -->
+    <section id="planes" class="relative z-10 max-w-4xl mx-auto px-6 py-14">
+        <div class="text-center mb-10" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Precios</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">Elige tu plan</h2>
+        </div>
+
+        <div id="yaTienes" class="glass-card p-6 max-w-lg mx-auto mb-6 text-center hidden">
+            <p class="text-sm text-gray-300 mb-3">Ya tienes el Zone Engine PRO activo en tu cuenta.</p>
+            <a href="charts.html" class="inline-block px-6 py-2.5 rounded-full bg-nlt-accent text-white font-semibold text-sm">Abrir NLT Charts</a>
+        </div>
+
+        <div id="loginPrompt" class="glass-card p-10 text-center hidden" data-reveal>
+            <p class="text-gray-400 mb-6">Inicia sesión con tu cuenta NLT para comprar el Zone Engine PRO.</p>
+            <button id="btn-login-checkout" class="px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm transition-all glow-button cursor-pointer">Iniciar sesión</button>
+        </div>
+
+        <form id="checkoutForm" class="hidden" data-reveal>
+            <div id="planesOpciones" class="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8">
+                <p class="text-sm text-gray-500 col-span-full text-center animate-pulse">Cargando planes...</p>
+            </div>
+            <div class="glass-card p-8 max-w-lg mx-auto">
+                <details class="mb-5 group">
+                    <summary class="text-xs text-gray-400 cursor-pointer select-none">¿También usas el indicador en TradingView? (opcional)</summary>
+                    <label class="block text-xs font-medium text-gray-400 mt-4 mb-2" for="tvUsername">Tu usuario de TradingView</label>
+                    <input type="text" id="tvUsername" placeholder="ej. juan_trader" class="w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-nlt-accent/50">
+                    <p class="text-[11px] text-gray-500 mt-2">Si lo pones, nuestro equipo revisa tu orden y te invita en TradingView. Si lo dejas vacío, el acceso en NLT Charts se activa solo al confirmarse el pago.</p>
+                </details>
+                <button type="submit" class="w-full py-3.5 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Continuar</button>
+                <p id="checkoutMsg" class="mt-4 text-xs text-center hidden"></p>
+            </div>
+        </form>
+
+        <div id="ordenCreada" class="glass-card p-10 max-w-lg mx-auto text-center hidden" data-reveal>
+            <i class="ph-fill ph-check-circle text-4xl text-nlt-success mb-4"></i>
+            <h3 class="text-lg font-bold text-white mb-2">Orden creada</h3>
+            <p class="text-sm text-gray-400 mb-6" id="ordenCreadaDetalle"></p>
+            <div id="metodosPagoBox" class="text-left"></div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="relative z-10 max-w-3xl mx-auto px-6 py-16">
+        <div class="text-center mb-12" data-reveal>
+            <p class="text-xs font-bold text-nlt-accent uppercase tracking-[0.2em] mb-4">Preguntas frecuentes</p>
+            <h2 class="text-3xl md:text-5xl font-extrabold tracking-tight">FAQ</h2>
+        </div>
+        <div class="space-y-3">
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white cursor-pointer" style="list-style:none"><span>¿Necesito TradingView?</span><i class="ph ph-plus"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">No. El Zone Engine PRO funciona dentro de NLT Charts con tu cuenta NLT. El usuario de TradingView es solo para quien también quiera el indicador allí.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white cursor-pointer" style="list-style:none"><span>¿Cuándo se activa?</span><i class="ph ph-plus"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">En cuanto se confirma el pago: tarjeta, en segundos; cripto, cuando la red confirma la transacción. Recibes un email y el acceso aparece en NLT Charts.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white cursor-pointer" style="list-style:none"><span>¿Mensual o vitalicio?</span><i class="ph ph-plus"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">El mensual se renueva cada mes y puedes cancelarlo cuando quieras. El vitalicio es un único pago y no vence.</p>
+            </details>
+            <details class="glass-card p-6" data-reveal>
+                <summary class="flex items-center justify-between font-semibold text-white cursor-pointer" style="list-style:none"><span>¿Puedo probarlo antes?</span><i class="ph ph-plus"></i></summary>
+                <p class="text-sm text-gray-400 mt-4 leading-relaxed">Sí: abre NLT Charts y activa la prueba gratis de 3 días del Zone Engine PRO (una por usuario).</p>
+            </details>
+        </div>
+    </section>
+
+    <footer class="relative z-10 border-t border-white/5 py-10 px-6 md:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+            <div class="flex items-center gap-2"><img src="assets/img/nlt-icon.png" alt="NLT" class="w-5 h-5 opacity-70"><span>NLT Trading Ecosystem © 2026</span></div>
+            <a href="ecosystem.html" class="hover:text-gray-300 transition-colors">Volver al ecosistema</a>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/js/nlt-shared.js?v=4ee7c395"></script>
+    <script src="assets/js/nlt-api-client.js?v=a4cb4a36"></script>
+    <script>
+        // Planes que desbloquean el Zone Engine PRO en NLT Charts (el catálogo real viene de la API).
+        const PLANES_ZONE_ENGINE = ['INDICATOR_MONTHLY', 'INDICATOR_LIFETIME'];
+        let sesionActual = null, planesCache = [], planSeleccionado = null, ordenActual = null;
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+        document.getElementById('btn-login-checkout').addEventListener('click', () => {
+            const urlDestino = new URL('charts-plans.html', window.location.href).toString();
+            window.NLT.supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
+        });
+
+        function precioTexto(p) {
+            if (p.billing_period === 'one_time') return `$${p.precio_mensual} <span class="text-sm font-semibold text-gray-500">pago único</span>`;
+            return `$${p.precio_mensual}<span class="text-sm font-semibold text-gray-500">/mes</span>`;
+        }
+
+        function renderPlanes() {
+            const box = document.getElementById('planesOpciones');
+            box.innerHTML = planesCache.map((p) => `
+                <div class="plan-option glass-card p-6 border ${p.popular ? 'border-nlt-accent/20' : 'border-transparent'}" data-plan-id="${esc(p.id)}" tabindex="0" role="button">
+                    ${p.popular ? '<span class="text-[9px] font-bold uppercase tracking-widest text-nlt-accent">Más elegido</span>' : ''}
+                    <h3 class="font-bold text-white text-lg mt-1">${esc(p.nombre)}</h3>
+                    <p class="text-2xl font-extrabold text-white my-2">${precioTexto(p)}</p>
+                    <ul class="text-xs text-gray-400 space-y-1.5">${(p.features || []).map(f => `<li class="flex items-start gap-2"><i class="ph-fill ph-check text-nlt-success mt-0.5"></i>${esc(f)}</li>`).join('')}</ul>
+                </div>`).join('');
+            const elegir = (el) => { box.querySelectorAll('.plan-option').forEach((o) => o.classList.remove('selected')); el.classList.add('selected'); planSeleccionado = el.getAttribute('data-plan-id'); };
+            box.querySelectorAll('.plan-option').forEach((el) => {
+                el.addEventListener('click', () => elegir(el));
+                el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); elegir(el); } });
+            });
+            const popular = box.querySelector('.plan-option[data-plan-id="INDICATOR_LIFETIME"]') || box.querySelector('.plan-option');
+            if (popular) elegir(popular);
+        }
+
+        async function init() {
+            try {
+                const todos = await NLT_API.planesPorProducto('indicator');
+                planesCache = todos.filter((p) => PLANES_ZONE_ENGINE.includes(p.id)).sort((a, b) => PLANES_ZONE_ENGINE.indexOf(a.id) - PLANES_ZONE_ENGINE.indexOf(b.id));
+                renderPlanes();
+            } catch (err) {
+                document.getElementById('planesOpciones').innerHTML = `<p class="text-sm text-nlt-danger col-span-full text-center">No se pudieron cargar los planes: ${esc(err.message)}</p>`;
+            }
+            sesionActual = await NLT.mountPublicHeader({ ctaBoxId: 'headerCTA', logoId: 'logoNLT' });
+            if (!sesionActual) { document.getElementById('loginPrompt').classList.remove('hidden'); return; }
+            document.getElementById('checkoutForm').classList.remove('hidden');
+            // Si ya tiene el Zone Engine (plan o acceso manual), se lo decimos en vez de dejarle pagar dos veces.
+            try {
+                const cat = await NLT_API.chartsProCatalogo();
+                const ze = (cat.indicators || cat || []).find((i) => i.id === 'NLT_ZONE_ENGINE');
+                if (ze && ze.access && ze.access.has_access && ze.access.reason !== 'trial') document.getElementById('yaTienes').classList.remove('hidden');
+            } catch (_) { /* sin esa info, la compra sigue funcionando igual */ }
+        }
+
+        NLT.mountReveal();
+
+        document.getElementById('checkoutForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const msg = document.getElementById('checkoutMsg');
+            const fallo = (t) => { msg.classList.remove('hidden'); msg.className = 'mt-4 text-xs text-center text-nlt-danger'; msg.textContent = t; };
+            if (!planSeleccionado) return fallo('Elige un plan primero.');
+            msg.classList.remove('hidden'); msg.className = 'mt-4 text-xs text-center text-nlt-accent'; msg.textContent = 'Creando orden...';
+            try {
+                // Sin usuario de TradingView = compra solo para NLT Charts (se activa sola al confirmarse el pago).
+                ordenActual = await NLT_API.indicadorCrearOrden(planSeleccionado, document.getElementById('tvUsername').value.trim() || null);
+                document.getElementById('checkoutForm').classList.add('hidden');
+                document.getElementById('ordenCreada').classList.remove('hidden');
+                document.getElementById('ordenCreadaDetalle').textContent = `Orden ${ordenActual.order_id} -- $${ordenActual.final_amount}`;
+                await NLT.mountMetodosPago(document.getElementById('metodosPagoBox'), ordenActual);
+            } catch (err) { fallo('Error: ' + err.message); }
+        });
+
+        init();
+    </script>
+</body>
+</html>

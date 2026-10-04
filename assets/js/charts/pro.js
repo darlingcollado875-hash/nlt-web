@@ -626,9 +626,9 @@
                 cuerpo = `<button type="button" data-pro-trial class="ch-btn" style="margin-top:6px">Probar ${esc(ind.trial.days)} días gratis</button>`;
             } else if (acc.trial_status === 'EXPIRED') {
                 cuerpo = `<p class="ch-ind-desc" style="margin-top:4px">Tu prueba gratis terminó.</p>
-                          <a href="indicator.html" class="ch-btn" style="margin-top:6px; display:inline-flex">Ver planes de NLT Indicator</a>`;
+                          <a href="charts-plans.html" class="ch-btn" style="margin-top:6px; display:inline-flex">Ver planes del Zone Engine PRO</a>`;
             } else {
-                cuerpo = `<a href="indicator.html" class="ch-btn" style="margin-top:6px; display:inline-flex">Ver planes de NLT Indicator</a>`;
+                cuerpo = `<a href="charts-plans.html" class="ch-btn" style="margin-top:6px; display:inline-flex">Ver planes del Zone Engine PRO</a>`;
             }
             const fav = favs.includes(ZE);
             const estrella = `<button type="button" class="ch-gear ch-ind-star${fav ? ' on' : ''}" data-fav-ind="${ZE}" title="${fav ? 'Quitar de favoritos' : 'Agregar a favoritos'}" aria-label="Favorito NLT Zone Engine"><i class="${fav ? 'ph-fill' : 'ph'} ph-star"></i></button>`;
