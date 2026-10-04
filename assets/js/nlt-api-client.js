@@ -314,6 +314,11 @@
         adminIndicadorAccesosManuales: () => request('/admin/indicator/manual-grants'),
         adminIndicadorDarAccesoManual: (datos) => request('/admin/indicator/manual-grants', { method: 'POST', body: JSON.stringify(datos), timeoutMs: 60000, intentos: 1 }),
         adminIndicadorRevocarAccesoManual: (orderId) => request(`/admin/indicator/manual-grants/${encodeURIComponent(orderId)}/revoke`, { method: 'POST', intentos: 1 }),
+        // --- Admin Center -> Notificaciones (envíos masivos) ---
+        adminNotifAudiencia: () => request('/admin/notifications/audience', { timeoutMs: 30000 }),
+        adminNotifPrueba: (datos) => request('/admin/notifications/test', { method: 'POST', body: JSON.stringify(datos), timeoutMs: 30000, intentos: 1 }),
+        adminNotifEnviar: (datos) => request('/admin/notifications/send', { method: 'POST', body: JSON.stringify(datos), timeoutMs: 60000, intentos: 1 }),
+        adminNotifHistorial: () => request('/admin/notifications/history'),
         adminListarOrdenesIndicador: (status) => request(`/admin/indicator/orders${status ? '?status=' + status : ''}`),
         adminAprobarIndicador: (orderId, nota) => request(`/admin/indicator/orders/${orderId}/approve`, { method: 'POST', body: JSON.stringify({ nota: nota || null }) }),
         adminRechazarIndicador: (orderId, nota) => request(`/admin/indicator/orders/${orderId}/reject`, { method: 'POST', body: JSON.stringify({ nota: nota || null }) }),
