@@ -42,6 +42,9 @@
         .ch-btn:hover { color: #fff; border-color: rgba(255,255,255,0.14); }
         .ch-btn i { font-size: 16px; }
         .ch-btn-label { display: none; }
+        @keyframes chGiro { to { transform: rotate(360deg); } }
+        .ch-btn.girando i { animation: chGiro .8s linear infinite; }
+        @media (prefers-reduced-motion: reduce) { .ch-btn.girando i { animation: none; } }
         .ch-conn { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; color: #9CA3AF; padding: 4px 8px; border-radius: 999px; border: 1px solid var(--ch-line); white-space: nowrap; flex-shrink: 0; cursor: help; }
         .ch-conn i { width: 7px; height: 7px; border-radius: 50%; background: #6B7280; }
         .ch-conn[data-estado="conectado"] i { background: #22C55E; box-shadow: 0 0 0 3px rgba(34,197,94,.18); }
@@ -382,7 +385,7 @@
     <script src="assets/js/charts/market-data.js?v=876142a0"></script>
     <script src="assets/js/charts/countdown.js?v=7674285f"></script>
     <script src="assets/js/charts/engine.js?v=f81ee63a"></script>
-    <script src="assets/js/charts/ui.js?v=41909787"></script>
+    <script src="assets/js/charts/ui.js?v=9c4690f3"></script>
     <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
