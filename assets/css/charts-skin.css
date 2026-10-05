@@ -174,3 +174,5 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 @media (hover: none) { .nsel-list { -webkit-backdrop-filter: none; backdrop-filter: none; background: linear-gradient(180deg, rgba(20, 25, 34, .985), rgba(11, 14, 20, .995)); } }
 @media (max-width: 720px) { .nsel-it { padding: 12px 14px; font-size: 15px; } }
 @media (prefers-reduced-motion: reduce) { .nsel-list { animation: none; } .nsel-btn i, .nsel-it i { transition: none; } }
+
+.sc-aviso { background: rgba(var(--nlt-b), .07); border-color: rgba(var(--nlt-b), .25); color: #b9c8ee; font-size: 12px; line-height: 1.5; }

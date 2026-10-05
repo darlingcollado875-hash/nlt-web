@@ -127,5 +127,87 @@ plotshape(ta.crossover(close, ta.ema(close, 9)), style=shape.triangleup, text="x
     afirmar(({}).polluted === undefined && Object.prototype.toString.call({}) === '[object Object]', 'sin contaminación de prototipos');
 }
 
+// ── compatibilidad con Pine v5 real: varias temporalidades, tipos, switch, listas, dibujos ──
+{
+    const nB = 1500, base = { t: [], o: [], h: [], l: [], c: [], v: [] }, t0 = Date.UTC(2026, 0, 5, 0, 0);
+    for (let i = 0; i < nB; i++) { const o = 2000 + Math.sin(i / 120) * 20 + i * 0.01, c = o + Math.cos(i / 7) * 0.8; base.t.push(t0 + i * 60000); base.o.push(o); base.c.push(c); base.h.push(Math.max(o, c) + 0.4); base.l.push(Math.min(o, c) - 0.4); base.v.push(100 + (i % 9)); }
+    const agrega = (d, k) => { const r = { t: [], o: [], h: [], l: [], c: [], v: [] }; for (let i = 0; i < d.t.length; i += k) { const j = Math.min(d.t.length, i + k); r.t.push(d.t[i]); r.o.push(d.o[i]); r.c.push(d.c[j - 1]); r.h.push(Math.max(...d.h.slice(i, j))); r.l.push(Math.min(...d.l.slice(i, j))); r.v.push(d.v.slice(i, j).reduce((a, b) => a + b, 0)); } return r; };
+    const mtf = { 'XAUUSD|5m': agrega(base, 5), 'XAUUSD|15m': agrega(base, 15), 'XAUUSD|1H': agrega(base, 60) };
+    const chart = { symbol: 'XAUUSD', tf: '1m', tfMs: 60000, precision: 2 };
+    const emaRef = (a, k) => { const al = 2 / (k + 1); let prev = null, sum = 0; return a.map((x, i) => { if (i < k - 1) { sum += x; return null; } if (i === k - 1) { sum += x; prev = sum / k; return prev; } prev = al * x + (1 - al) * prev; return prev; }); };
+    const mt = `//@version=5
+indicator("Tendencia MTF", overlay=true)
+f_datos() =>
+    e10 = ta.ema(close, 10)
+    e55 = ta.ema(close, 55)
+    [e10, e55, close, close > e55]
+[a10, a55, ac, aup] = request.security(syminfo.tickerid, "5", f_datos())
+[b10, b55, bc, bup] = request.security(syminfo.tickerid, "60", f_datos())
+f_t(float p, float e1, float e2) =>
+    t = "Neutral"
+    if p > e1 and e1 > e2
+        t := "Alcista"
+    else if p < e1 and e1 < e2
+        t := "Bajista"
+    t
+tA = f_t(ac, a10, a55)
+var table tb = table.new(position.top_right, 2, 2)
+if barstate.islast
+    table.cell(tb, 0, 0, "5m", text_color=color.white)
+    table.cell(tb, 1, 0, tA, text_color=color.white, bgcolor=color.green)
+plot(a10, "e10 5m")
+plot(b55, "e55 1h")`;
+    let r1 = N.ejecutar(mt, base, { chart });
+    afirmar(r1.ok && r1.necesita.length === 2 && r1.necesita.some((x) => x.tf === '5m') && r1.necesita.some((x) => x.tf === '1H'), 'request.security: primero avisa qué temporalidades necesita');
+    const r2 = N.ejecutar(mt, base, { chart, mtf });
+    afirmar(r2.ok && r2.necesita.length === 0 && r2.usaMtf.length === 2, 'request.security: con los datos corre completo');
+    const h5 = mtf['XAUUSD|5m'], h60 = mtf['XAUUSD|1H'];
+    afirmar(cerca(r2.plots[0].valores[nB - 1], emaRef(h5.c, 10)[h5.c.length - 1], 1e-9), 'EMA10 de 5m desde un gráfico de 1m: igual a la referencia independiente');
+    afirmar(cerca(r2.plots[1].valores[nB - 1], emaRef(h60.c, 55)[h60.c.length - 1], 1e-9) || r2.plots[1].valores[nB - 1] == null, 'EMA55 de 1H desde 1m: igual a la referencia (o aún sin historia)');
+    const j = Math.floor((700 + 1) / 5) - 1;
+    afirmar(cerca(r2.plots[0].valores[700], emaRef(h5.c, 10)[j], 1e-9), 'en una vela del medio usa la vela de 5m YA CERRADA (sin mirar el futuro)');
+    const base2 = JSON.parse(JSON.stringify(base)); for (let k = 1200; k < nB; k++) { base2.c[k] += 50; base2.h[k] += 50; base2.o[k] += 50; }
+    const r3 = N.ejecutar(mt, base2, { chart, mtf: { 'XAUUSD|5m': agrega(base2, 5), 'XAUUSD|1H': agrega(base2, 60) } });
+    let difs = 0; for (let k = 0; k < 1190; k++) if (r2.plots[0].valores[k] !== r3.plots[0].valores[k]) difs++;
+    afirmar(difs === 0, 'cambiar el futuro no cambia el pasado (sin repintado)');
+    afirmar(r2.tablas.length === 1 && Object.keys(r2.tablas[0].celdas).length === 2 && r2.tablas[0].pos === 'top_right', 'tabla creada en la última vela');
+    afirmar(!N.ejecutar(mt.replace('"5"', '"3"'), base, { chart, mtf }).ok, 'una temporalidad que no existe da un error claro');
+    // mismo resultado corriendo el script compilado (protegido)
+    const ast = JSON.parse(JSON.stringify(N.compilar(mt)));
+    const r4 = N.ejecutar('', base, { chart, mtf, ast });
+    afirmar(r4.ok && JSON.stringify(r4.plots[0].valores) === JSON.stringify(r2.plots[0].valores), 'el script protegido con request.security da lo mismo que el abierto');
+
+    const ok1 = (codigo, nombre, f) => { const r = N.ejecutar(`//@version=5\n${codigo}`, velas, { chart: { symbol: 'EURUSD', tf: '15m', tfMs: 900000, precision: 5 } }); afirmar(r.ok, `${nombre}: corre${r.ok ? '' : ' → ' + JSON.stringify(r.errores)}`); if (r.ok && f) afirmar(f(r), `${nombre}: resultado`); return r; };
+    ok1('indicator("t")\nfloat a = 1.5\nint b = 3\nbool o = true\nstring s = "x"\nseries float c = close\nsimple int len = 14\nvar float acum = 0.0\nacum += 1\nplot(ta.sma(c, len) + a * b + acum)', 'declaraciones con tipo', (r) => r.plots[0].valores[20] != null);
+    ok1('indicator("s")\nm = input.string("a", "Modo", options=["a","b"])\nv = switch m\n    "a" => 1\n    "b" => 2\n    => 3\nplot(v)', 'switch con valor', (r) => r.plots[0].valores[5] === 1);
+    ok1('indicator("s")\nx = switch\n    close > open => 10\n    close < open => -10\n    => 0\nplot(x)', 'switch sin valor', (r) => [10, -10, 0].includes(r.plots[0].valores[5]));
+    ok1('indicator("f")\narr = array.from(1, 2, 3)\ntotal = 0.0\nfor x in arr\n    total += x\nfor [i, y] in arr\n    total += i * y\nplot(total)', 'for ... in', (r) => r.plots[0].valores[3] === 14);
+    ok1('indicator("m")\nvar a = array.new_float(0)\na.push(close)\nif a.size() > 5\n    a.shift()\nplot(a.avg())', 'métodos de lista (a.push, a.size)', (r) => r.plots[0].valores[100] != null);
+    ok1('indicator("d")\nf(x, int k = 2, float j = 0.5) =>\n    x * k + j\nplot(f(1))\nplot(f(1, 3))\nplot(f(1, j = 1))', 'parámetros con valor por defecto', (r) => r.plots[0].valores[1] === 2.5 && r.plots[1].valores[1] === 3.5 && r.plots[2].valores[1] === 3);
+    ok1('indicator("h")\nd = ta.ema(close, 9)[1]\nplot(d)', 'historia sobre una expresión (ta.ema(...)[1])', (r) => r.plots[0].valores[30] != null);
+    ok1('indicator("c")\nlargo = close > open and\n     close > close[1] ? 1 : 0\nplot(largo)', 'línea continuada con sangría de 5');
+    ok1('indicator("n")\np1 = plot(ta.ema(close, 9))\np2 = plot(ta.ema(close, 21))\nfill(p1, p2, color=color.new(color.green, 80))', 'fill entre dos plots', (r) => r.fills.length === 1 && r.fills[0].a.k === 'plot');
+    ok1('indicator("v")\nplotcandle(open, high, low, close, color=color.green)', 'plotcandle', (r) => r.velasPropias.length === 1);
+    ok1('strategy("e", overlay=true)\nif ta.crossover(ta.sma(close, 5), ta.sma(close, 20))\n    strategy.entry("L", strategy.long)\nplot(ta.sma(close, 5))', 'una estrategia se acepta como indicador y avisa', (r) => r.avisos.length === 1);
+    ok1('indicator("d", overlay=true)\nif barstate.islast\n    line.new(bar_index - 10, low, bar_index, high, extend=extend.right)\n    box.new(bar_index - 20, high, bar_index, low, bgcolor=color.new(color.blue, 85))\n    label.new(bar_index, close, str.format("{0} / {1,number,#.##}", "P", close), style=label.style_label_left)', 'línea, caja y etiqueta', (r) => r.lineas.length === 1 && r.cajas.length === 1 && r.etiquetas.length === 1 && /P \/ \d+\.\d\d?$/.test(r.etiquetas[0].texto));
+    ok1('indicator("a", max_labels_count=5)\nlabel.new(bar_index, high, "x")\nplot(1)', 'límite de etiquetas', (r) => r.etiquetas.length === 5);
+    ok1('indicator("t")\nplot(timeframe.in_seconds("60"), "s")\nplot(timeframe.multiplier, "m")\nplot(syminfo.mintick, "mt")', 'timeframe y syminfo', (r) => r.plots[0].valores[0] === 3600 && r.plots[1].valores[0] === 15 && r.plots[2].valores[0] === 0.00001);
+    ok1('//@version=4\nstudy("v4")\nplot(sma(close, 10))\nplot(crossover(close, sma(close, 20)) ? 1 : 0)', 'alias estilo Pine v4');
+    const d1 = N.ejecutar('indicator("u")\ny = ta.noexiste(close, 3)\nplot(zzz(2))', velas, { chart });
+    afirmar(!d1.ok && d1.errores.length === 2 && d1.errores[0].linea === 2 && d1.errores[1].linea === 3, 'las funciones que no existen se avisan TODAS juntas, con su línea');
+    afirmar(!N.ejecutar('indicator("t")\ntype Punto\n    float x', velas, { chart }).ok, 'type (tipos propios) da un error claro');
+}
+
+// historia de parámetros y variables locales dentro de funciones propias
+{
+    const nn = 80, vv = { t: [], o: [], h: [], l: [], c: [], v: [] };
+    for (let i = 0; i < nn; i++) { vv.t.push(i * 60000); vv.o.push(100 + Math.sin(i / 3)); vv.c.push(100 + Math.cos(i / 3)); vv.h.push(103); vv.l.push(97); vv.v.push(5); }
+    const r = N.ejecutar('indicator("h")\nf_cruce(a, b) =>\n    a[1] < b[1] and a > b\nx = ta.sma(close, 3)\ny = ta.sma(close, 8)\nplot(f_cruce(x, y) ? 1 : 0, "c")\ng(src) =>\n    prev = src[1]\n    suavizado = nz(prev) + (src - nz(prev)) / 2\n    suavizado\nplot(g(close), "g")\nh2(src) =>\n    s = src\n    s[2]\nplot(h2(close), "h")', vv, {});
+    afirmar(r.ok, 'x[1] sobre parámetros y variables locales de una función' + (r.ok ? '' : JSON.stringify(r.errores)));
+    afirmar(r.ok && r.plots[2].valores[10] === vv.c[8] && r.plots[0].valores.reduce((a, b) => a + b, 0) > 0, 'la historia dentro de funciones da los valores correctos');
+    const k = N.ejecutar('indicator("k")\nplot(series=ta.sma(source=close, length=5), title="a")\nplot(ta.highest(length=3), "hh")\nplotshape(series=close>open, title="s", location=location.belowbar)\nhline(price=105)\nalertcondition(condition=close>open, title="t", message="m")\nplot(nz(source=na, replacement=7), "nz")', vv, {});
+    afirmar(k.ok && k.plots[2].valores[5] === 7 && k.hlines.length === 1 && k.alerts.length === 1 && k.shapes.length > 0, 'argumentos con nombre (series=, source=, length=, price=, condition=…)');
+}
+
 console.log(`${ok} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);
