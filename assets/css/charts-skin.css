@@ -271,3 +271,11 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .sc-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border: 1px solid rgba(255,255,255,.12); color: #9ca3af; white-space: nowrap; }
 .sc-chip.pend { color: #fbbf24; background: rgba(251,191,36,.10); border-color: rgba(251,191,36,.3); } .sc-chip.rev { color: #8fb1ff; background: rgba(67,120,255,.14); border-color: rgba(67,120,255,.4); }
 .sc-chip.ok { color: #22c55e; background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.3); } .sc-chip.mal { color: #f87171; background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.3); }
+
+/* Pantalla completa del gráfico: botón abajo a la izquierda y barra lateral de NLT oculta */
+.ch-pc { position: absolute; z-index: 7; left: 8px; bottom: 3px; width: 26px; height: 26px; display: grid; place-items: center; border-radius: 999px; font-size: 14px; color: #9ca3af;
+  background: rgba(14, 16, 22, .72); border: 1px solid rgba(255, 255, 255, .10); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); cursor: pointer; transition: color .18s ease, border-color .18s ease, background .18s ease, transform .18s ease; }
+.ch-pc:hover { color: #fff; border-color: rgba(67, 120, 255, .55); background: rgba(67, 120, 255, .16); transform: scale(1.06); }
+.ch-pc[aria-pressed="true"] { color: #fff; border-color: rgba(67, 120, 255, .6); background: rgba(67, 120, 255, .22); }
+body.ch-full #sidebar, body.ch-full #mobileSidebarToggle, body.ch-full #mobileSidebarBackdrop { display: none !important; }
+body.ch-full .ch-toolbar { padding-left: 16px; }
