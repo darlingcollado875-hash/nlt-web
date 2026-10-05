@@ -276,6 +276,15 @@
 
     <main class="relative z-10 pt-28 md:pt-32 pb-24 px-5 md:px-0">
 
+        <!-- Buscar personas del ecosistema (solo con sesión: el servidor lo exige) -->
+        <div id="buscadorPersonas" class="hidden vista-angosta mb-6 relative">
+            <div class="relative">
+                <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
+                <input id="buscarPersonasInput" type="search" autocomplete="off" maxlength="40" placeholder="Buscar personas por nombre o @usuario" aria-label="Buscar personas" class="post-input pl-11 w-full">
+            </div>
+            <div id="buscarPersonasRes" class="hidden glass-card mt-2 p-2 space-y-1 absolute left-0 right-0 z-30 max-h-80 overflow-y-auto" role="listbox"></div>
+        </div>
+
         <!-- Perfil view -->
         <div id="vistaPerfil" class="hidden vista-angosta"></div>
 
@@ -444,7 +453,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=b16dbfcb"></script>
+    <script src="assets/js/nlt-api-client.js?v=899c0de1"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -1085,6 +1094,24 @@
         }
 
         // --- Perfil ---
+        // Indicadores que esta persona publicó en la tienda de NLT Charts (si no hay, la sección no aparece)
+        async function cargarIndicadoresDePerfil(perfil) {
+            const box = document.getElementById('perfilIndicadores');
+            if (!box || !sesionActual) return;
+            try {
+                const r = await NLT_API.chartsScriptsTienda({ creator: perfil.username });
+                const lista = r.scripts || [];
+                if (!lista.length) return;
+                const precio = (t) => t.price_usd ? `US$${Number(t.price_usd).toFixed(2)}${t.billing === 'one_time' ? ' · pago único' : ' / mes'}` : 'Gratis';
+                box.innerHTML = `<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3"><i class="ph ph-code"></i> Indicadores de ${esc(perfil.display_name)} (${lista.length})</p>
+                    <div class="space-y-2">${lista.map(t => `<a href="charts.html?tienda=${encodeURIComponent('@' + perfil.username)}" class="block rounded-xl bg-white/5 hover:bg-white/10 p-3 transition-colors">
+                        <p class="text-sm font-semibold text-white">${esc(t.name)} <span class="text-[11px] font-normal text-gray-400">· ${esc(precio(t))}</span></p>
+                        <p class="text-xs text-gray-400 mt-0.5">${esc(t.description || '')}</p></a>`).join('')}</div>
+                    <p class="text-[11px] text-gray-600 mt-3">Se abren en NLT Charts → Scripts → Tienda.</p>`;
+                box.classList.remove('hidden');
+            } catch (_) { /* sin sesión, sin acceso o sin tienda: la sección simplemente no aparece */ }
+        }
+
         async function mostrarPerfil(username, origen = 'feed') {
             document.getElementById('vistaFeed').classList.add('hidden');
             document.getElementById('vistaChat').classList.add('hidden');
@@ -1129,8 +1156,10 @@
                         }
                     </div>
                     <div id="perfilEditBox" class="hidden glass-card p-6 mb-6"></div>
+                    <div id="perfilIndicadores" class="hidden glass-card p-5 mb-6"></div>
                     <div id="perfilPostsBox" class="space-y-4"></div>
                 `;
+                cargarIndicadoresDePerfil(perfil);
                 document.getElementById('btn-volver-feed').addEventListener('click', async () => {
                     window.history.pushState({}, '', 'community.html');
                     box.classList.add('hidden');
@@ -2128,6 +2157,32 @@
                 dmCargado = true;
             }
         }
+        // Buscador de personas
+        (function () {
+            const input = document.getElementById('buscarPersonasInput'), res = document.getElementById('buscarPersonasRes');
+            let timer = null, ultima = 0;
+            const cerrar = () => { res.classList.add('hidden'); res.innerHTML = ''; };
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                const q = input.value.trim();
+                if (q.replace(/^@/, '').length < 2) { cerrar(); return; }
+                timer = setTimeout(async () => {
+                    const mia = ++ultima;
+                    try {
+                        const r = await NLT_API.communityBuscarPersonas(q);
+                        if (mia !== ultima) return;   // llegó una respuesta vieja
+                        res.innerHTML = r.users.length ? r.users.map(u => `<a href="community.html?u=${encodeURIComponent(u.username)}" role="option" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5">
+                                <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${u.avatar_url ? `<img loading="lazy" src="${esc(u.avatar_url)}" class="w-full h-full object-cover">` : iniciales(u.display_name)}</div>
+                                <div class="min-w-0"><p class="text-sm font-semibold text-white truncate">${esc(u.display_name)}${u.verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-[11px] font-normal text-gray-500">@${esc(u.username)}</span></p>
+                                ${u.bio ? `<p class="text-[11px] text-gray-500 truncate">${esc(u.bio)}</p>` : ''}</div></a>`).join('')
+                            : '<p class="text-xs text-gray-500 p-3">No encontramos a nadie con ese nombre.</p>';
+                        res.classList.remove('hidden');
+                    } catch (err) { res.innerHTML = `<p class="text-xs text-gray-500 p-3">${esc(err.message || 'No se pudo buscar.')}</p>`; res.classList.remove('hidden'); }
+                }, 250);
+            });
+            document.addEventListener('click', (e) => { if (!e.target.closest('#buscadorPersonas')) cerrar(); });
+            input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { cerrar(); input.blur(); } });
+        })();
         document.getElementById('tab-vista-feed').addEventListener('click', () => mostrarVista('feed'));
         document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
         document.getElementById('tab-vista-mensajes').addEventListener('click', () => mostrarVista('mensajes'));
@@ -2182,6 +2237,7 @@
             const editarPerfilParam = params.get('editar_perfil');
 
             if (sesionActual) {
+                document.getElementById('buscadorPersonas').classList.remove('hidden');
                 try {
                     esMiembro = (await NLT_API.communityAcceso()).has_member_access;
                 } catch (_) {

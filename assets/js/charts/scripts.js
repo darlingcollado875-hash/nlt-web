@@ -68,7 +68,7 @@
         const state = NLTCharts.state, esc = NLTCharts.ui.esc;
         const ejecutor = crearEjecutor();
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
-        let ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
+        let busca = { q: '', sort: 'recent', creator: '', page: 0 }, hayMas = false, miUsuario = null, ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
         let sel = null /* script abierto: { id|null, nombre, codigo } */, sucio = false, mensaje = '', erroresVivos = [], timerValida = null;
 
         const btn = document.createElement('button');
@@ -228,11 +228,12 @@
             } catch (e) {
                 if (e.status === 403 || e.status === 401) { acceso = false; motivo = e.message || ''; } else { acceso = acceso === null ? null : acceso; motivo = e.message || 'No se pudieron cargar tus scripts.'; if (e.status === 503) acceso = 'pronto'; }
             }
+            if (!miUsuario) { try { miUsuario = (await NLT_API.communityMiPerfil()).username; } catch (_) { /* sin perfil todavía */ } }
             // Los que te compartieron (o sacaste de la tienda) se usan SIN necesidad del plan
             try { compartidos = (await NLT_API.chartsScriptsCompartidos()).scripts || []; } catch (_) { compartidos = []; }
         }
         async function cargarTienda() {
-            try { const r = await NLT_API.chartsScriptsTienda(); tienda = r.scripts || []; if (r.commission_pct != null) comisionPct = r.commission_pct; } catch (e) { tienda = []; mensaje = e.message || 'No se pudo cargar la tienda.'; }
+            try { const r = await NLT_API.chartsScriptsTienda(busca); tienda = (busca.page ? tienda : []).concat(r.scripts || []); hayMas = !!r.more; if (r.commission_pct != null) comisionPct = r.commission_pct; } catch (e) { tienda = []; mensaje = e.message || 'No se pudo cargar la tienda.'; }
             if (acceso === true) { try { ganancias = await NLT_API.chartsScriptGanancias(); } catch (_) { ganancias = null; } }
             try { admin = await NLT_API.chartsScriptAdmin(); } catch (_) { admin = null; }   // 403 = no eres admin: el panel simplemente no aparece
         }
@@ -346,15 +347,19 @@
             const panelAdmin = admin ? `<div class="sc-ficha"><b>Administración</b>
                 ${(admin.payouts || []).length ? admin.payouts.map((x) => `<div class="sc-acc"><span>${esc(x.email)} — debe US$${Number(x.owed_usd).toFixed(2)} (${x.sales} cobros)</span><button class="sc-b on" data-a="adm-pagado" data-v="${esc(x.seller_user_id)}">Marcar pagado</button></div>`).join('') : '<p class="sc-peq">Sin pagos pendientes a creadores.</p>'}
                 ${(admin.reports || []).length ? `<div class="sc-sub" style="margin-top:8px">Reportes</div>` + admin.reports.map((r) => `<div class="sc-acc"><span>${esc(r.name)}: ${esc(r.reason)}</span><button class="sc-b ${r.blocked ? '' : 'mal'}" data-a="adm-bloquear" data-id="${esc(r.script_id)}" data-b="${r.blocked ? '0' : '1'}">${r.blocked ? 'Desbloquear' : 'Bloquear'}</button></div>`).join('') : ''}</div>` : '';
-            return `<div class="sc-sub">Tienda de indicadores</div>${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}${gan}${panelAdmin}
+            const barra = `<form class="sc-form" data-a="buscar-tienda" role="search"><input class="sc-bq" type="search" name="q" maxlength="40" placeholder="Buscar indicadores o creadores…" aria-label="Buscar indicadores" value="${esc(busca.q)}">
+                    <select class="sc-ej" name="sort" aria-label="Ordenar"><option value="recent" ${busca.sort === 'recent' ? 'selected' : ''}>Más recientes</option><option value="name" ${busca.sort === 'name' ? 'selected' : ''}>Nombre A–Z</option><option value="price_asc" ${busca.sort === 'price_asc' ? 'selected' : ''}>Precio: menor a mayor</option><option value="price_desc" ${busca.sort === 'price_desc' ? 'selected' : ''}>Precio: mayor a menor</option></select></form>
+                ${busca.creator ? `<p class="sc-peq">Mostrando los de <b>@${esc(busca.creator)}</b> <button class="sc-link" data-a="quitar-creador">Ver todos</button></p>` : ''}`;
+            return `<div class="sc-sub">Tienda de indicadores</div>${barra}${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}${gan}${panelAdmin}
                 ${tienda.length ? tienda.map((t) => {
                     const enGrafico = activos.has(t.id);
                     const accion = t.owned
                         ? `<button class="sc-b ${enGrafico ? '' : 'on'}" data-a="usar" data-id="${esc(t.id)}">${enGrafico ? 'Quitar' : 'Usar'}</button>`
                         : `<button class="sc-b on" data-a="comprar" data-id="${esc(t.id)}" ${compraEnCurso ? 'disabled' : ''}>Comprar ${esc(precioTxt(t))}</button>`;
-                    return `<div class="sc-tienda"><div><b>${esc(t.name)}</b><span class="sc-peq"> · ${esc(t.creator)} · ${esc(precioTxt(t))}</span><p>${esc(t.description)}</p>
+                    return `<div class="sc-tienda"><div><b>${esc(t.name)}</b><span class="sc-peq"> · ${t.creator_username ? `<a class="sc-link" href="community.html?u=${encodeURIComponent(t.creator_username)}" title="Ver perfil">${esc(t.creator)}${t.creator_verified ? ' ✔' : ''} @${esc(t.creator_username)}</a> <button class="sc-link" data-a="por-creador" data-u="${esc(t.creator_username)}">sus indicadores</button>` : esc(t.creator)} · ${esc(precioTxt(t))}</span><p>${esc(t.description)}</p>
                         ${t.mine ? '<span class="sc-peq">Es tuyo</span>' : `<button class="sc-link" data-a="reportar" data-id="${esc(t.id)}">Reportar</button>`}</div>${t.mine ? '' : accion}</div>`;
-                }).join('') : '<p class="sc-peq">Todavía no hay indicadores publicados.</p>'}
+                }).join('') : `<p class="sc-peq">${busca.q || busca.creator ? 'No encontramos indicadores con esa búsqueda.' : 'Todavía no hay indicadores publicados.'}</p>`}
+                ${hayMas ? '<button class="sc-b" data-a="mas-tienda">Ver más</button>' : ''}
                 <p class="sc-peq">Los indicadores de la tienda los publican otros usuarios y salen sin revisión previa. Úsalos bajo tu criterio; NLT no los garantiza ni son recomendación de inversión. Los de pago se cobran con tarjeta por Whop; el acceso se activa al confirmarse el pago y dura mientras la suscripción esté vigente (o para siempre si fue pago único). Si algo está mal, usa Reportar.</p>`;
         }
         function htmlEditor() {
@@ -393,6 +398,7 @@
             if (modal.hidden) return;
             const foco = document.activeElement, enTA = foco && foco.classList && foco.classList.contains('sc-ta');
             const ini = enTA ? foco.selectionStart : 0, fin = enTA ? foco.selectionEnd : 0, st = enTA ? foco.scrollTop : 0, sl = enTA ? foco.scrollLeft : 0;
+            const enBq = foco && foco.classList && foco.classList.contains('sc-bq'), posBq = enBq ? foco.selectionStart : 0;
             let cuerpo;
             if (acceso === 'pronto') {
                 cuerpo = '<div class="sc-lock"><i class="ph ph-hourglass"></i><h3>Casi listo</h3><p>Los scripts se están activando. Vuelve en unos minutos.</p></div>';
@@ -407,6 +413,7 @@
                         <select class="sc-ej" data-a="ejemplo" aria-label="Empezar desde un ejemplo"><option value="">Empezar desde un ejemplo…</option>${ej}</select>
                         <div class="sc-sub">Mis scripts</div><div class="sc-items">${lista.length ? lista.map((s) => item(s, false)).join('') : '<p class="sc-peq">Todavía no tienes scripts guardados.</p>'}</div>
                         <p class="sc-peq">${lista.length}/${max} scripts</p>` : `<div class="sc-lockmini"><i class="ph ph-lock-key"></i> Crear scripts: plan NLT Charts Trader. <a href="charts-trader.html">Ver plan</a></div>`}
+                        ${miUsuario ? `<a class="sc-link" href="community.html?u=${encodeURIComponent(miUsuario)}">Ver mi perfil público (@${esc(miUsuario)})</a>` : ''}
                         ${compartidos.length ? `<div class="sc-sub">Compartidos conmigo</div><div class="sc-items">${compartidos.map((s) => item(s, true)).join('')}</div>` : ''}
                         <button class="sc-b${vista === 'tienda' ? ' on' : ''}" data-a="tienda"><i class="ph ph-storefront"></i> Tienda de indicadores</button>
                         <details class="sc-ayuda"><summary>Guía rápida</summary><p class="sc-peq">Empieza con <code>indicator("Nombre", overlay=true)</code> (overlay = sobre las velas). Usa <code>close</code>, <code>high</code>, <code>low</code>, <code>open</code>, <code>volume</code>; funciones como <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.crossover</code>; dibuja con <code>plot</code>, <code>hline</code>, <code>bgcolor</code>, <code>plotshape</code>; los ajustes con <code>input.int</code>/<code>input.float</code>. Los bloques (<code>if</code>, <code>for</code>) se indentan con 4 espacios. <code>x[1]</code> es el valor de la vela anterior.</p></details>
@@ -414,6 +421,7 @@
             }
             modal.innerHTML = `<div class="sc-card"><header><h2><i class="ph ph-code"></i> NLT Script</h2><button class="sc-x" data-a="cerrar" aria-label="Cerrar">×</button></header>${cuerpo}
                 <footer>Tus scripts corren solo en tu navegador, aislados. Informativos: no son recomendación de inversión.</footer></div>`;
+            if (enBq) { const bq = modal.querySelector('.sc-bq'); if (bq) { bq.focus(); bq.setSelectionRange(posBq, posBq); } }
             const ta = modal.querySelector('.sc-ta');
             if (ta && enTA) { ta.focus(); ta.setSelectionRange(ini, fin); ta.scrollTop = st; ta.scrollLeft = sl; sincronizar(ta); }
         }
@@ -471,8 +479,16 @@
                 pintar();
             }
         });
+        let timerBusca = null;
+        modal.addEventListener('input', (e) => {
+            if (!e.target.matches('.sc-bq')) return;
+            clearTimeout(timerBusca);
+            timerBusca = setTimeout(() => { busca.q = e.target.value.trim(); busca.creator = ''; recargarTienda(); }, 300);
+        });
+        modal.addEventListener('change', (e) => { if (e.target.matches('[data-a="buscar-tienda"] select')) { busca.sort = e.target.value; recargarTienda(); } });
         modal.addEventListener('submit', async (e) => {
             e.preventDefault();
+            if (e.target.dataset.a === 'buscar-tienda') { clearTimeout(timerBusca); busca.q = e.target.elements.q.value.trim(); busca.creator = ''; recargarTienda(); return; }
             const f = e.target;
             if (f.dataset.a === 'compartir') {
                 const email = f.elements.email.value.trim();
@@ -489,6 +505,7 @@
                 pintar();
             }
         });
+        async function recargarTienda() { busca.page = 0; await cargarTienda(); pintar(); }
         async function comprar(id) {
             if (compraEnCurso) return;
             compraEnCurso = id; mensaje = 'Abriendo el pago…'; pintar();
@@ -558,6 +575,9 @@
             else if (a === 'tienda') { vista = 'tienda'; mensaje = ''; pintar(); cargarTienda().then(pintar); }
             else if (a === 'usar') usarDeTienda(acc.dataset.id);
             else if (a === 'comprar') comprar(acc.dataset.id);
+            else if (a === 'por-creador') { busca = { q: '', sort: busca.sort, creator: acc.dataset.u, page: 0 }; recargarTienda(); }
+            else if (a === 'quitar-creador') { busca.creator = ''; busca.page = 0; recargarTienda(); }
+            else if (a === 'mas-tienda') { busca.page += 1; cargarTienda().then(pintar); }
             else if (a === 'reportar') reportar(acc.dataset.id);
             else if (a === 'adm-pagado') admPagado(acc.dataset.v);
             else if (a === 'adm-bloquear') admBloquear(acc.dataset.id, acc.dataset.b === '1');
@@ -578,6 +598,15 @@
         btn.addEventListener('click', (e) => { e.stopPropagation(); if (modal.hidden) abrir(); else cerrar(); });
         const ancla = document.getElementById('chBtnConfig');
         if (ancla) ancla.before(btn);
+
+        // Enlace directo a la tienda (?tienda=@creador o ?tienda=texto): lo usan los perfiles de Community
+        (async function irATienda() {
+            const q = new URLSearchParams(window.location.search), t = q.get('tienda');
+            if (!t) return;
+            try { q.delete('tienda'); history.replaceState(null, '', window.location.pathname + (q.toString() ? '?' + q : '')); } catch (_) { /* nada */ }
+            if (t.startsWith('@')) busca = { q: '', sort: 'recent', creator: t.slice(1).toLowerCase(), page: 0 }; else busca = { q: t.slice(0, 40), sort: 'recent', creator: '', page: 0 };
+            await abrir(); vista = 'tienda'; await cargarTienda(); pintar();
+        })();
 
         // Volviendo del pago: abrir la tienda y esperar a que el aviso de Whop active el acceso (puede tardar unos segundos)
         (async function volverDelPago() {
