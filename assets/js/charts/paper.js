@@ -104,7 +104,7 @@
         const margenUsado = () => cuenta.posiciones.reduce((a, p) => a + margen(p), 0);
 
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnPaper'; btn.className = 'ch-btn'; btn.title = 'Simulador: practicá con dinero virtual'; btn.setAttribute('aria-label', 'Simulador de trading');
+        btn.type = 'button'; btn.id = 'chBtnPaper'; btn.className = 'ch-btn ch-herr'; btn.title = 'Simulador: practicá con dinero virtual'; btn.setAttribute('aria-label', 'Simulador de trading');
         btn.innerHTML = '<i class="ph ph-game-controller"></i><span class="ch-btn-label">Simulador</span>';
         const pop = document.createElement('div');
         pop.className = 'mc-menu pp-pop'; pop.id = 'chPaper'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Simulador de trading');
@@ -275,7 +275,7 @@
                 const pf = prefill || {};
                 cuerpo = `<form data-pp-form class="al-form"><div class="al-fila2"><b>${esc(sym)}</b><span class="pp-px">${px != null ? px.toFixed(p) : 'sin precio'}</span></div>
                     <div class="al-fila2"><select name="type" class="mc-sel"><option value="market">Mercado</option><option value="limit"${pf.type === 'limit' ? ' selected' : ''}>Límite</option><option value="stop"${pf.type === 'stop' ? ' selected' : ''}>Stop</option></select>
-                    <input name="lots" class="mc-sel" type="number" step="any" min="0" inputmode="decimal" placeholder="Lotes" value="${pf.lots != null ? esc(pf.lots) : '0.10'}"><input name="price" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Precio (límite/stop)" value="${pf.price != null ? esc(pf.price) : ''}"></div>
+                    <input name="lots" class="mc-sel" type="number" step="any" min="0" inputmode="decimal" placeholder="Lotes" value="${pf.lots != null ? esc(pf.lots) : '0.10'}"><input name="price" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Precio" title="Precio de la orden pendiente (límite o stop)" value="${pf.price != null ? esc(pf.price) : ''}"></div>
                     <div class="al-fila2"><input name="sl" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Stop loss" value="${pf.sl != null ? esc(pf.sl) : ''}"><input name="tp" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Take profit" value="${pf.tp != null ? esc(pf.tp) : ''}"></div>
                     <div class="al-fila2"><button type="submit" data-side="buy" class="pp-buy">COMPRAR</button><button type="submit" data-side="sell" class="pp-sell">VENDER</button></div>
                     <p class="mc-nota">1 lote = ${tam(sym).toLocaleString('en-US')} unidades · apalancamiento 1:${APALANCAMIENTO} · sin comisión ni spread.</p></form>`;

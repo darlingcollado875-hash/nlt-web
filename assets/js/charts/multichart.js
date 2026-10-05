@@ -211,7 +211,7 @@
 
         // ── Botón y menú de diseño ──
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnMulti'; btn.className = 'ch-btn'; btn.title = 'Diseño de gráficos (multi-gráfico)'; btn.setAttribute('aria-label', 'Diseño de gráficos');
+        btn.type = 'button'; btn.id = 'chBtnMulti'; btn.className = 'ch-btn ch-herr'; btn.title = 'Diseño de gráficos (multi-gráfico)'; btn.setAttribute('aria-label', 'Diseño de gráficos');
         btn.innerHTML = '<i class="ph ph-squares-four"></i><span class="ch-btn-label">Diseño</span>';
         const menu = document.createElement('div');
         menu.className = 'mc-menu'; menu.id = 'chMultiMenu'; menu.hidden = true; menu.setAttribute('role', 'dialog'); menu.setAttribute('aria-label', 'Diseño de gráficos');
@@ -273,7 +273,7 @@
         popCmp.className = 'mc-menu'; popCmp.id = 'chCompareMenu'; popCmp.hidden = true; popCmp.setAttribute('role', 'dialog'); popCmp.setAttribute('aria-label', 'Comparar símbolos');
         document.body.appendChild(popCmp);
         const btnCmp = document.createElement('button');
-        btnCmp.type = 'button'; btnCmp.id = 'chBtnCompare'; btnCmp.className = 'ch-btn'; btnCmp.title = 'Comparar símbolos'; btnCmp.setAttribute('aria-label', 'Comparar símbolos');
+        btnCmp.type = 'button'; btnCmp.id = 'chBtnCompare'; btnCmp.className = 'ch-btn ch-herr'; btnCmp.title = 'Comparar símbolos'; btnCmp.setAttribute('aria-label', 'Comparar símbolos');
         btnCmp.innerHTML = '<i class="ph ph-chart-line"></i><span class="ch-btn-label">Comparar</span>';
 
         const pctVisible = (lista, r, valor) => {

@@ -35,7 +35,7 @@
         let alertas = [], max = 30, disponible = true, cargando = false;
 
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnAlertas'; btn.className = 'ch-btn'; btn.title = 'Alertas de precio (Alt+A)'; btn.setAttribute('aria-label', 'Alertas de precio');
+        btn.type = 'button'; btn.id = 'chBtnAlertas'; btn.className = 'ch-btn ch-herr'; btn.title = 'Alertas de precio (Alt+A)'; btn.setAttribute('aria-label', 'Alertas de precio');
         btn.innerHTML = '<i class="ph ph-bell-ringing"></i><span class="ch-btn-label">Alertas</span>';
         const pop = document.createElement('div');
         pop.className = 'mc-menu al-pop'; pop.id = 'chAlertas'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Alertas de precio');
