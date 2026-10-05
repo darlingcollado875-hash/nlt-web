@@ -953,6 +953,13 @@
         // NLT Script: scripts (indicadores) de cada usuario. El servidor solo guarda el texto.
         chartsScripts: () => request('/charts/scripts'),
         chartsScript: (id) => request(`/charts/scripts/${encodeURIComponent(id)}`),
+        chartsScriptsCompartidos: () => request('/charts/scripts/shared'),
+        chartsScriptCompartido: (id) => request(`/charts/scripts/shared/${encodeURIComponent(id)}`),
+        chartsScriptsTienda: () => request('/charts/scripts/market'),
+        chartsScriptPublicar: (id, listado, descripcion) => request(`/charts/scripts/${encodeURIComponent(id)}/listing`, { method: 'PUT', body: JSON.stringify({ listed: listado, description: descripcion }), intentos: 1 }),
+        chartsScriptAccesos: (id) => request(`/charts/scripts/${encodeURIComponent(id)}/grants`),
+        chartsScriptDarAcceso: (id, email) => request(`/charts/scripts/${encodeURIComponent(id)}/grants`, { method: 'POST', body: JSON.stringify({ email }), intentos: 1 }),
+        chartsScriptQuitarAcceso: (id, accesoId) => request(`/charts/scripts/${encodeURIComponent(id)}/grants/${encodeURIComponent(accesoId)}`, { method: 'DELETE', intentos: 1 }),
         chartsScriptCrear: (nombre, codigo) => request('/charts/scripts', { method: 'POST', body: JSON.stringify({ name: nombre, code: codigo }), intentos: 1 }),
         chartsScriptGuardar: (id, nombre, codigo) => request(`/charts/scripts/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ name: nombre, code: codigo }), intentos: 1 }),
         chartsScriptBorrar: (id) => request(`/charts/scripts/${encodeURIComponent(id)}`, { method: 'DELETE', intentos: 1 }),

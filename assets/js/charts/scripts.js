@@ -68,7 +68,7 @@
         const state = NLTCharts.state, esc = NLTCharts.ui.esc;
         const ejecutor = crearEjecutor();
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
-        let lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
+        let compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
         let sel = null /* script abierto: { id|null, nombre, codigo } */, sucio = false, mensaje = '', erroresVivos = [], timerValida = null;
 
         const btn = document.createElement('button');
@@ -228,20 +228,39 @@
             } catch (e) {
                 if (e.status === 403 || e.status === 401) { acceso = false; motivo = e.message || ''; } else { acceso = acceso === null ? null : acceso; motivo = e.message || 'No se pudieron cargar tus scripts.'; if (e.status === 503) acceso = 'pronto'; }
             }
+            // Los que te compartieron (o sacaste de la tienda) se usan SIN necesidad del plan
+            try { compartidos = (await NLT_API.chartsScriptsCompartidos()).scripts || []; } catch (_) { compartidos = []; }
+        }
+        async function cargarTienda() {
+            try { tienda = (await NLT_API.chartsScriptsTienda()).scripts || []; } catch (e) { tienda = []; mensaje = e.message || 'No se pudo cargar la tienda.'; }
+        }
+        async function cargarAccesos() {
+            accesos = [];
+            if (!sel || !sel.id || sel.ajeno) return;
+            try { accesos = (await NLT_API.chartsScriptAccesos(sel.id)).grants || []; } catch (_) { accesos = []; }
+        }
+        async function abrirAjeno(id) {
+            try {
+                const r = await NLT_API.chartsScriptCompartido(id);
+                const s = r.script;
+                sel = { id: s.id, nombre: s.name, codigo: s.code, ajeno: true, creador: s.creator, descripcion: s.description }; sucio = false; mensaje = ''; vista = 'mis';
+            } catch (e) { mensaje = e.message || 'No se pudo abrir el script.'; }
+            pintar();
         }
         async function abrirScript(id) {
             try {
                 const r = await NLT_API.chartsScript(id);
                 const s = r.script;
-                sel = { id: s.id, nombre: s.name, codigo: s.code }; sucio = false; mensaje = '';
+                const meta = lista.find((x) => x.id === s.id) || {};
+                sel = { id: s.id, nombre: s.name, codigo: s.code, publicado: meta.visibility === 'listed', descripcion: meta.description || '' }; sucio = false; mensaje = ''; vista = 'mis';
             } catch (e) { mensaje = e.message || 'No se pudo abrir el script.'; }
-            validarVivo(); pintar();
+            validarVivo(); await cargarAccesos(); pintar();
         }
         function nuevo(ejemplo) {
             const base = ejemplo || NLTCharts.nltsEjemplos[0];
             let nombre = ejemplo ? ejemplo.nombre : 'Mi script', k = 2;
             while (lista.some((s) => s.name === nombre)) nombre = `${ejemplo ? ejemplo.nombre : 'Mi script'} ${k++}`;
-            sel = { id: null, nombre, codigo: base.codigo }; sucio = true; mensaje = '';
+            sel = { id: null, nombre, codigo: base.codigo }; sucio = true; mensaje = ''; vista = 'mis'; accesos = [];
             validarVivo(); pintar();
         }
         async function guardar() {
@@ -294,7 +313,43 @@
         }
         // errores de sintaxis (al escribir) primero; si no hay, los que dio la última corrida en el gráfico
         const erroresMostrados = () => (erroresVivos.length ? erroresVivos : (sel && sel.id && activos.get(sel.id) && activos.get(sel.id).errores) || (sel && sel.errorCorrida) || []);
+        function htmlAjeno() {
+            const enGrafico = activos.has(sel.id);
+            return `<div class="sc-barra"><div class="sc-nombre sc-fijo">${esc(sel.nombre)}</div>
+                    <button class="sc-b ${enGrafico ? '' : 'on'}" data-a="grafico-ajeno">${enGrafico ? 'Quitar del gráfico' : 'Añadir al gráfico'}</button></div>
+                <div class="sc-ficha"><p class="sc-peq">Indicador de <b>${esc(sel.creador || 'un creador')}</b></p>${sel.descripcion ? `<p>${esc(sel.descripcion)}</p>` : ''}
+                    <p class="sc-peq">Es de otra persona: aquí solo lo usas y ajustas. No se puede editar.</p></div>
+                ${erroresMostrados().length ? `<div class="sc-estado mal">${erroresMostrados().map((e) => `<div>${esc(e.mensaje)}</div>`).join('')}</div>` : ''}
+                ${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}
+                ${htmlAjustes()}`;
+        }
+        function htmlCompartir() {
+            if (!sel || !sel.id || sel.ajeno || sucio) return '';
+            const filas = accesos.map((g) => `<div class="sc-acc"><span>${esc(g.email)}</span><button class="sc-b mal" data-a="revocar" data-gid="${esc(g.id)}">Quitar</button></div>`).join('');
+            return `<div class="sc-comp"><div class="sc-sub">Compartir con personas (acceso privado)</div>
+                    <form class="sc-form" data-a="compartir"><input type="email" name="email" placeholder="correo de la persona (con cuenta en NLT)" required maxlength="200"><button class="sc-b on" type="submit">Dar acceso</button></form>
+                    ${filas || '<p class="sc-peq">Nadie más tiene acceso todavía.</p>'}
+                    <div class="sc-sub" style="margin-top:12px">Tienda de indicadores</div>
+                    <form class="sc-form" data-a="publicar"><input type="text" name="descripcion" maxlength="500" placeholder="¿Qué hace tu indicador? (mínimo 10 caracteres)" value="${esc(sel.descripcion || '')}">
+                        <button class="sc-b ${sel.publicado ? '' : 'on'}" type="submit" data-listar="${sel.publicado ? '0' : '1'}">${sel.publicado ? 'Quitar de la tienda' : 'Publicar en la tienda'}</button></form>
+                    <p class="sc-peq">${sel.publicado ? 'Publicado: cualquier usuario de NLT puede añadirlo a su gráfico.' : 'Publicar lo deja disponible para todos los usuarios de NLT.'} Quien lo use podría ver cómo está hecho (corre en su navegador): no pongas contraseñas ni datos privados en el código.</p></div>`;
+        }
+        function htmlTienda() {
+            return `<div class="sc-sub">Tienda de indicadores</div>${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}
+                ${tienda.length ? tienda.map((t) => `<div class="sc-tienda"><div><b>${esc(t.name)}</b><span class="sc-peq"> · ${esc(t.creator)}</span><p>${esc(t.description)}</p></div>
+                    <button class="sc-b ${activos.has(t.id) ? '' : 'on'}" data-a="usar" data-id="${esc(t.id)}">${activos.has(t.id) ? 'Quitar' : 'Usar'}</button></div>`).join('') : '<p class="sc-peq">Todavía no hay indicadores publicados.</p>'}
+                <p class="sc-peq">Los indicadores de la tienda los publican otros usuarios y salen sin revisión previa. Úsalos bajo tu criterio; NLT no los garantiza.</p>`;
+        }
         function htmlEditor() {
+            if (vista === 'tienda') return htmlTienda();
+            if (sel && sel.ajeno) return htmlAjeno();
+            if (acceso !== true) {
+                return `<div class="sc-vacio"><i class="ph ph-lock-key"></i><p><b>Crear indicadores viene con NLT Charts Trader.</b></p>
+                    <p class="sc-peq">Aquí puedes usar los que te compartan o los de la tienda.</p><a class="sc-b on" href="charts-trader.html">Ver el plan</a></div>`;
+            }
+            return htmlEditorPropio();
+        }
+        function htmlEditorPropio() {
             if (!sel) {
                 return `<div class="sc-vacio"><i class="ph ph-code"></i><p>Elige un script de la lista o crea uno nuevo.</p>
                     <p class="sc-peq">NLT Script se escribe parecido a Pine Script v5 (indentación en vez de llaves). Un indicador es un texto que calcula números con las velas y los dibuja en tu gráfico.</p>
@@ -315,28 +370,28 @@
                 <div class="sc-estado ${errs.length ? 'mal' : 'ok'}" role="status">${errs.length
                     ? errs.map((e) => `<div class="sc-err"${e.linea ? ` data-linea="${e.linea}"` : ''}>${e.linea ? `<b>Línea ${e.linea}:</b> ` : ''}${esc(e.mensaje)}</div>`).join('')
                     : '<span>Sin errores de sintaxis.</span>'}${mensaje ? `<div class="sc-msg">${esc(mensaje)}</div>` : ''}</div>
-                ${htmlAjustes()}`;
+                ${htmlAjustes()}${htmlCompartir()}`;
         }
         function pintar() {
             if (modal.hidden) return;
             const foco = document.activeElement, enTA = foco && foco.classList && foco.classList.contains('sc-ta');
             const ini = enTA ? foco.selectionStart : 0, fin = enTA ? foco.selectionEnd : 0, st = enTA ? foco.scrollTop : 0, sl = enTA ? foco.scrollLeft : 0;
             let cuerpo;
-            if (acceso === false) {
-                cuerpo = `<div class="sc-lock"><i class="ph ph-lock-key"></i><h3>NLT Script viene con NLT Charts Trader</h3>
-                    <p>Con el plan conectas tu cuenta MT5 al gráfico, operas desde ahí y escribes tus propios indicadores con NLT Script.</p>
-                    <a class="sc-b on" href="charts-trader.html">Ver el plan</a></div>`;
-            } else if (acceso === 'pronto') {
+            if (acceso === 'pronto') {
                 cuerpo = '<div class="sc-lock"><i class="ph ph-hourglass"></i><h3>Casi listo</h3><p>Los scripts se están activando. Vuelve en unos minutos.</p></div>';
             } else if (acceso === null) {
                 cuerpo = `<div class="sc-lock"><p>${esc(motivo || 'Cargando tus scripts…')}</p></div>`;
             } else {
+                const puedeCrear = acceso === true;
                 const ej = NLTCharts.nltsEjemplos.map((e, i) => `<option value="${i}">${esc(e.nombre)}</option>`).join('');
+                const item = (s, ajeno) => `<button class="sc-item${vista === 'mis' && sel && sel.id === s.id && !!sel.ajeno === ajeno ? ' sel' : ''}" data-id="${esc(s.id)}" ${ajeno ? 'data-ajeno="1"' : ''}><span>${esc(s.name)}</span>${activos.has(s.id) ? '<em>en gráfico</em>' : ''}</button>`;
                 cuerpo = `<div class="sc-cols"><aside class="sc-lista">
-                        <button class="sc-b on" data-a="nuevo" ${lista.length >= max ? 'disabled' : ''}>+ Nuevo script</button>
+                        ${puedeCrear ? `<button class="sc-b on" data-a="nuevo" ${lista.length >= max ? 'disabled' : ''}>+ Nuevo script</button>
                         <select class="sc-ej" data-a="ejemplo" aria-label="Empezar desde un ejemplo"><option value="">Empezar desde un ejemplo…</option>${ej}</select>
-                        <div class="sc-items">${lista.length ? lista.map((s) => `<button class="sc-item${sel && sel.id === s.id ? ' sel' : ''}" data-id="${esc(s.id)}"><span>${esc(s.name)}</span>${activos.has(s.id) ? '<em>en gráfico</em>' : ''}</button>`).join('') : '<p class="sc-peq">Todavía no tienes scripts guardados.</p>'}</div>
-                        <p class="sc-peq">${lista.length}/${max} scripts</p>
+                        <div class="sc-sub">Mis scripts</div><div class="sc-items">${lista.length ? lista.map((s) => item(s, false)).join('') : '<p class="sc-peq">Todavía no tienes scripts guardados.</p>'}</div>
+                        <p class="sc-peq">${lista.length}/${max} scripts</p>` : `<div class="sc-lockmini"><i class="ph ph-lock-key"></i> Crear scripts: plan NLT Charts Trader. <a href="charts-trader.html">Ver plan</a></div>`}
+                        ${compartidos.length ? `<div class="sc-sub">Compartidos conmigo</div><div class="sc-items">${compartidos.map((s) => item(s, true)).join('')}</div>` : ''}
+                        <button class="sc-b${vista === 'tienda' ? ' on' : ''}" data-a="tienda"><i class="ph ph-storefront"></i> Tienda de indicadores</button>
                         <details class="sc-ayuda"><summary>Guía rápida</summary><p class="sc-peq">Empieza con <code>indicator("Nombre", overlay=true)</code> (overlay = sobre las velas). Usa <code>close</code>, <code>high</code>, <code>low</code>, <code>open</code>, <code>volume</code>; funciones como <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.crossover</code>; dibuja con <code>plot</code>, <code>hline</code>, <code>bgcolor</code>, <code>plotshape</code>; los ajustes con <code>input.int</code>/<code>input.float</code>. Los bloques (<code>if</code>, <code>for</code>) se indentan con 4 espacios. <code>x[1]</code> es el valor de la vela anterior.</p></details>
                     </aside><section class="sc-ed">${htmlEditor()}</section></div>`;
             }
@@ -399,6 +454,47 @@
                 pintar();
             }
         });
+        modal.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const f = e.target;
+            if (f.dataset.a === 'compartir') {
+                const email = f.elements.email.value.trim();
+                try { await NLT_API.chartsScriptDarAcceso(sel.id, email); mensaje = `Acceso dado a ${email}.`; await cargarAccesos(); } catch (er) { mensaje = er.message || 'No se pudo dar acceso.'; }
+                pintar();
+            } else if (f.dataset.a === 'publicar') {
+                const listar = (e.submitter && e.submitter.dataset.listar) === '1';
+                try {
+                    await NLT_API.chartsScriptPublicar(sel.id, listar, f.elements.descripcion.value);
+                    sel.publicado = listar; sel.descripcion = f.elements.descripcion.value; mensaje = listar ? 'Publicado en la tienda.' : 'Quitado de la tienda.';
+                    await cargarLista();
+                } catch (er) { mensaje = er.message || 'No se pudo cambiar la publicación.'; }
+                pintar();
+            }
+        });
+        async function revocar(gid) {
+            try { await NLT_API.chartsScriptQuitarAcceso(sel.id, gid); mensaje = 'Acceso quitado.'; await cargarAccesos(); } catch (er) { mensaje = er.message || 'No se pudo quitar.'; }
+            pintar();
+        }
+        async function usarDeTienda(id) {
+            if (activos.has(id)) { desactivar(id); pintar(); return; }
+            try {
+                const r = await NLT_API.chartsScriptCompartido(id);
+                const ok = await activar(id, r.script.name, r.script.code);
+                const a = activos.get(id);
+                if (!ok) { mensaje = (a && a.errores && a.errores[0] && a.errores[0].mensaje) || 'Ese indicador no se pudo calcular.'; activos.delete(id); guardarActivos(); } else mensaje = '';
+            } catch (er) { mensaje = er.message || 'No se pudo usar este indicador.'; }
+            pintar();
+        }
+        async function alternarAjeno() {
+            if (!sel || !sel.ajeno) return;
+            if (activos.has(sel.id)) { desactivar(sel.id); mensaje = 'Quitado del gráfico.'; }
+            else {
+                const ok = await activar(sel.id, sel.nombre, sel.codigo);
+                const a = activos.get(sel.id);
+                if (ok) mensaje = 'Añadido al gráfico.'; else { sel.errorCorrida = a ? a.errores : []; activos.delete(sel.id); guardarActivos(); mensaje = ''; }
+            }
+            pintar();
+        }
         modal.addEventListener('click', (e) => {
             if (e.target === modal) { cerrar(); return; }
             const err = e.target.closest('.sc-err[data-linea]');
@@ -410,7 +506,7 @@
                 return;
             }
             const item = e.target.closest('.sc-item');
-            if (item) { abrirScript(item.dataset.id); return; }
+            if (item) { if (item.dataset.ajeno) abrirAjeno(item.dataset.id); else abrirScript(item.dataset.id); return; }
             const acc = e.target.closest('[data-a]');
             if (!acc) return;
             const a = acc.dataset.a;
@@ -419,6 +515,10 @@
             else if (a === 'guardar') guardar();
             else if (a === 'grafico') alternarEnGrafico();
             else if (a === 'borrar') borrar();
+            else if (a === 'tienda') { vista = 'tienda'; mensaje = ''; pintar(); cargarTienda().then(pintar); }
+            else if (a === 'usar') usarDeTienda(acc.dataset.id);
+            else if (a === 'grafico-ajeno') alternarAjeno();
+            else if (a === 'revocar') revocar(acc.dataset.gid);
         });
 
         async function abrir() {
@@ -440,13 +540,13 @@
             const guardados = state.prefs().scriptsActivos;
             if (!guardados || !Object.keys(guardados).length) return;
             await cargarLista();
-            if (acceso !== true) return;
-            for (const s of lista) {
-                if (!guardados[s.id]) continue;
+            for (const id of Object.keys(guardados)) {
                 try {
-                    const r = await NLT_API.chartsScript(s.id);
-                    await activar(s.id, r.script.name, r.script.code, (guardados[s.id] && guardados[s.id].inputs) || {});
-                } catch (_) { /* si falla uno, los demás siguen */ }
+                    // propio (si el plan sigue activo) o compartido / de la tienda (no exige plan)
+                    const propio = acceso === true && lista.some((x) => x.id === id);
+                    const r = propio ? await NLT_API.chartsScript(id) : await NLT_API.chartsScriptCompartido(id);
+                    await activar(id, r.script.name, r.script.code, (guardados[id] && guardados[id].inputs) || {});
+                } catch (_) { /* si falla uno (ya no tiene acceso, lo borraron), los demás siguen */ }
             }
         })();
 
