@@ -148,6 +148,7 @@
         function dibujarExtras(a, { ctx, chart: ch, indicator, xAxis, yAxis, bounding }) {
             const res = a.res;
             if (!res) return false;
+            if (a.slotsTablas && a.slotsTablas.length && window.NLTCharts.ui) window.NLTCharts.ui.tablero.ajustar(ch);
             const { from, to } = ch.getVisibleRange();
             const ancho = Math.max(1, (ch.getBarSpace && ch.getBarSpace().bar) || 6);
             const datos = ch.getDataList();
@@ -169,7 +170,7 @@
             });
             ctx.setLineDash([]);
             if (window.NLTCharts.scriptsDibujo) {
-                try { window.NLTCharts.scriptsDibujo.pintar(ctx, res, { xAxis, yAxis, bounding, datos, desde: from, hasta: to, ancho, tfMs: infoGrafico().tfMs }); } catch (_) { /* un dibujo raro no debe romper el gráfico */ }
+                try { window.NLTCharts.scriptsDibujo.pintar(ctx, { ...res, tablas: [] }, { xAxis, yAxis, bounding, datos, desde: from, hasta: to, ancho, tfMs: infoGrafico().tfMs }); } catch (_) { /* un dibujo raro no debe romper el gráfico */ }
             }
             ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
             res.shapes.forEach((s) => {
@@ -210,12 +211,60 @@
             });
         }
 
+        // ── tablas del script (table.new): en el tablero del gráfico, apiladas con las de otros indicadores ──
+        const POS_TABLERO = { top_left: 'Top Left', top_center: 'Top Center', top_right: 'Top Right', middle_left: 'Middle Left', middle_center: 'Middle Center', middle_right: 'Middle Right', bottom_left: 'Bottom Left', bottom_center: 'Bottom Center', bottom_right: 'Bottom Right' };
+        const TAM_TXT = { tiny: 9, small: 10.5, normal: 12, large: 15, huge: 20, auto: 12 };
+        // Solo colores con forma de color (el script puede venir de un tercero): nada que se pueda colar en el HTML
+        const colorSeguro = (c, defecto) => (typeof c === 'string' && /^(#[0-9a-f]{3,8}|rgba?\(\s*[\d.]+\s*(,\s*[\d.]+\s*){2,3}\)|[a-z]{3,20})$/i.test(c.trim()) ? c.trim() : defecto);
+        function tablaHTML(t, anchoCaja) {
+            const num = (x, d) => (typeof x === 'number' && Number.isFinite(x) ? x : d);
+            const borde = num(t.bordeW, 0) > 0 ? `${Math.min(8, num(t.bordeW, 0))}px solid ${colorSeguro(t.bordeC, 'rgba(255,255,255,.25)')}` : 'none';
+            let filas = '';
+            for (let r = 0; r < t.filas; r++) {
+                let tds = '';
+                for (let c = 0; c < t.cols; c++) {
+                    const ce = t.celdas[`${c},${r}`] || {};
+                    const px = TAM_TXT[ce.tam] || 12;
+                    const alin = String(ce.alin || '').replace(/^align_/, '');
+                    const fondo = colorSeguro(ce.fondo, 'transparent'), col = colorSeguro(ce.colorTexto, '#ffffff');
+                    const w = num(ce.ancho, 0) > 0 ? `min-width:${Math.round((Math.min(100, ce.ancho) / 100) * (anchoCaja || 600))}px;` : '';
+                    tds += `<td style="${w}font-size:${px}px;color:${col};background:${fondo};text-align:${alin === 'left' ? 'left' : alin === 'right' ? 'right' : 'center'};border:${borde}">${esc(ce.texto == null ? '' : String(ce.texto))}</td>`;
+                }
+                filas += `<tr>${tds}</tr>`;
+            }
+            const marco = num(t.marcoW, 0) > 0 ? `outline:${Math.min(8, num(t.marcoW, 0))}px solid ${colorSeguro(t.marco, 'rgba(255,255,255,.3)')};outline-offset:-1px;` : '';
+            return `<table class="sc-tbl" style="background:${colorSeguro(t.fondo, 'transparent')};${marco}">${filas}</table>`;
+        }
+        function quitarTablas(a) {
+            const T = window.NLTCharts.ui && window.NLTCharts.ui.tablero;
+            if (T) (a.slotsTablas || []).forEach((id) => T.quitar(id));
+            a.slotsTablas = [];
+        }
+        function pintarTablas(a) {
+            const T = window.NLTCharts.ui && window.NLTCharts.ui.tablero;
+            if (!T) return;
+            const tablas = (a.res && a.res.tablas) || [];
+            if (!tablas.length) { quitarTablas(a); return; }
+            T.ajustar(chart);
+            const ids = [];
+            tablas.slice(0, 9).forEach((t, i) => {
+                const id = `nlts-${a.id}-${i}`;
+                const el = T.slot(POS_TABLERO[t.pos] || 'Top Right', id);
+                if (!el) return;
+                ids.push(id);
+                const html = tablaHTML(t, (chart.getSize('candle_pane', 'main') || {}).width);
+                if (el.dataset.firma !== html) { el.innerHTML = html; el.dataset.firma = html; }
+            });
+            (a.slotsTablas || []).forEach((id) => { if (!ids.includes(id)) T.quitar(id); });
+            a.slotsTablas = ids;
+        }
+
         function nombreIndicador(a) { return `NLT_S_${a.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}_${a.version}`; }
         async function ponerEnGrafico(a) {
             const velas = chart.getDataList();
             const res = await correrScript(a, velas);
             a.errores = res.ok ? [] : res.errores;
-            if (!res.ok) { quitarDelGrafico(a); a.res = null; return false; }
+            if (!res.ok) { quitarDelGrafico(a); a.res = null; quitarTablas(a); return false; }
             a.res = res; a.firma = firmaDe(velas);
             a.nombreCorto = (res.meta && res.meta.titulo) || a.nombre;
             // cada cambio de forma (otra cantidad de plots, otro panel) pide registrar un indicador nuevo
@@ -232,16 +281,18 @@
                     if (a.res && a.firma === f) return filas(a.res, datos.length);
                     const r = await correrScript(a, datos);
                     if (!r.ok) { a.errores = r.errores; if (!modal.hidden) pintar(); return new Array(datos.length).fill({}); }
-                    a.errores = []; a.res = r; a.firma = f; revisarAlertas(a);
+                    a.errores = []; a.res = r; a.firma = f; pintarTablas(a); revisarAlertas(a);
                     return filas(r, datos.length);
                 },
                 draw: (args) => dibujarExtras(a, args),
             });
             const crear = { name: a.ind };
             if (overlay) { crear.paneId = CANDLE_PANE; chart.createIndicator(crear, true); } else chart.createIndicator(crear, false, { height: 130, minHeight: 60 });
+            pintarTablas(a);       // después de registrar: quitarDelGrafico() borra las tablas del script anterior
             return true;
         }
         function quitarDelGrafico(a) {
+            quitarTablas(a);
             if (!a.ind) return;
             try { chart.removeIndicator({ name: a.ind }); } catch (_) { /* ya no estaba */ }
             a.ind = null; a.forma = null;

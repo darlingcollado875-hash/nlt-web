@@ -188,3 +188,12 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .dw-btn.armado { background: linear-gradient(180deg, #5b8bff, #3a68ee) !important; color: #fff !important; border-color: transparent !important; box-shadow: 0 0 22px rgba(67, 120, 255, .55); animation: nltLate .9s ease-in-out infinite; }
 @keyframes nltLate { 50% { box-shadow: 0 0 34px rgba(67, 120, 255, .85); } }
 @media (prefers-reduced-motion: reduce) { .dw-btn.armado { animation: none; } }
+
+/* tableros: más anclajes (las tablas de NLT Script usan las 9 posiciones de Pine) */
+.ud-esq[data-pos="Top Center"] { top: 8px; left: 50%; transform: translateX(-50%); align-items: center; }
+.ud-esq[data-pos="Middle Left"] { top: 50%; left: 8px; transform: translateY(-50%); }
+.ud-esq[data-pos="Middle Center"] { top: 50%; left: 50%; transform: translate(-50%, -50%); align-items: center; }
+.ud-esq[data-pos="Middle Right"] { top: 50%; right: 8px; transform: translateY(-50%); align-items: flex-end; }
+.ud-esq[data-pos="Bottom Center"] { bottom: 8px; left: 50%; transform: translateX(-50%); align-items: center; }
+.sc-tbl { border-collapse: collapse; border-radius: 10px; overflow: hidden; font-family: Inter, system-ui, sans-serif; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .7); }
+.sc-tbl td { padding: 4px 9px; line-height: 1.35; font-weight: 600; white-space: pre-line; font-variant-numeric: tabular-nums; }
