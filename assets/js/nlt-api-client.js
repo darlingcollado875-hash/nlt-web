@@ -950,6 +950,12 @@
         // PRO: el backend decide el acceso; estos métodos solo preguntan.
         chartsProCatalogo: () => request('/charts/pro/catalog'),
         // NLT Charts Trader: cuentas MT5 conectadas al gráfico y operaciones (plan de pago; el servidor decide el acceso)
+        // NLT Script: scripts (indicadores) de cada usuario. El servidor solo guarda el texto.
+        chartsScripts: () => request('/charts/scripts'),
+        chartsScript: (id) => request(`/charts/scripts/${encodeURIComponent(id)}`),
+        chartsScriptCrear: (nombre, codigo) => request('/charts/scripts', { method: 'POST', body: JSON.stringify({ name: nombre, code: codigo }), intentos: 1 }),
+        chartsScriptGuardar: (id, nombre, codigo) => request(`/charts/scripts/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify({ name: nombre, code: codigo }), intentos: 1 }),
+        chartsScriptBorrar: (id) => request(`/charts/scripts/${encodeURIComponent(id)}`, { method: 'DELETE', intentos: 1 }),
         chartsTraderEstado: () => request('/charts/trader/status'),
         chartsTraderConectar: (datos) => request('/charts/trader/accounts', { method: 'POST', body: JSON.stringify(datos), lento: true }),
         chartsTraderDesconectar: (id) => request(`/charts/trader/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
