@@ -44,6 +44,7 @@
     const posicion = () => [
         { id: 'cuenta', tipo: 'float', def: 10000, titulo: 'Tamaño de cuenta', grupo: 'Cuenta y riesgo', tab: 'Entradas', min: 0, step: 100, recalc: false },
         { id: 'riesgo', tipo: 'float', def: 1, titulo: 'Riesgo (%)', grupo: 'Cuenta y riesgo', tab: 'Entradas', min: 0, max: 100, step: 0.1, recalc: false },
+        { id: 'pasoLote', tipo: 'string', def: '0.01', titulo: 'Redondear el lote a', grupo: 'Cuenta y riesgo', tab: 'Entradas', opciones: [{ v: '0.01', t: '0.01 (micro lote)' }, { v: '0.1', t: '0.1' }, { v: '1', t: '1 (lote estándar)' }], recalc: false },
         { id: 'ganancia', tipo: 'color', def: col('#22C55E', 80), titulo: 'Objetivo', grupo: 'Zonas', tab: 'Estilo', inline: 'z', recalc: false },
         { id: 'perdida', tipo: 'color', def: col('#EF4444', 80), titulo: 'Stop', grupo: 'Zonas', tab: 'Estilo', inline: 'z', recalc: false },
         { id: 'color', tipo: 'color', def: col('#9CA3AF', 0), titulo: 'Entrada', grupo: 'Línea de entrada', tab: 'Estilo', inline: 'l', recalc: false },
@@ -152,6 +153,7 @@
     // Zona conectada al NLT Zone Engine: estado que vuelve del servidor (pro.js lo actualiza).
     const ESTADO_ZONA = { 'ARMED': ['#3B82F6', 'ARMED'], 'IN ZONE': ['#EAB308', 'IN ZONE'], 'MITIGATED': ['#22C55E', 'MITIGATED'], 'INVALIDATED': ['#EF4444', 'INVALIDATED'] };
 
+    let simboloFn = () => '';   // lo fija montar(): el símbolo en pantalla (para el tamaño del contrato)
     let registrados = false;
     function registrar() {
         if (registrados) return;
@@ -254,7 +256,7 @@
                 const { h, v } = estiloDe(overlay);
                 const [ce, ct, cs] = coordinates;
                 const x1 = Math.min(ce.x, ct.x), x2 = Math.max(ce.x, ct.x, x1 + 8);
-                const m = calcularPosicion(h.lado, overlay.points.map((pt) => pt.value), v);
+                const m = calcularPosicion(h.lado, overlay.points.map((pt) => pt.value), v, simboloFn());
                 const caja = (y1, y2, c) => ({ type: 'polygon', attrs: { coordinates: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }] }, styles: { style: 'fill', color: css(c) } });
                 const fig = [caja(ce.y, ct.y, v.ganancia), caja(ce.y, cs.y, v.perdida),
                     { type: 'line', attrs: { coordinates: [{ x: x1, y: ce.y }, { x: x2, y: ce.y }] }, styles: lineaEstilo(v) }];
@@ -262,11 +264,16 @@
                 const f = NLTCharts.drawings.formatear, cx = (x1 + x2) / 2;
                 const dinero = (n) => `${n < 0 ? '−' : '+'}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
                 const txt = (y, texto, fondo, base) => ({ type: 'text', ignoreEvent: true, attrs: { x: cx, y, text: texto, align: 'center', baseline: base }, styles: { color: css(v.colorTexto), backgroundColor: fondo, size: 11, family: FUENTE, weight: 500, paddingLeft: 6, paddingRight: 6, paddingTop: 3, paddingBottom: 3, borderRadius: 3 } });
-                const detalle = (dist, pct, pl) => `${f(dist)}${v.mostrarPct ? ` (${pct.toFixed(2)}%)` : ''}${v.mostrarPL && m.cantidad ? ` · ${dinero(pl)}` : ''}`;
+                const detalle = (dist, pct, pl) => `${f(dist)}${v.mostrarPct ? ` (${pct.toFixed(2)}%)` : ''}${v.mostrarPL && m.lotes ? ` · ${dinero(pl)}` : ''}`;
                 const arribaEsTP = ct.y < cs.y;
                 fig.push(txt(arribaEsTP ? ct.y - 4 : ct.y + 4, `Objetivo: ${f(m.tp)} · ${detalle(m.distTP, m.pctTP, m.plTP)}`, css({ ...v.ganancia, t: 15 }), arribaEsTP ? 'bottom' : 'top'));
                 fig.push(txt(arribaEsTP ? cs.y + 4 : cs.y - 4, `Stop: ${f(m.sl)} · ${detalle(m.distSL, m.pctSL, m.plSL)}`, css({ ...v.perdida, t: 15 }), arribaEsTP ? 'top' : 'bottom'));
-                fig.push(txt(ce.y, `${h.lado === 'long' ? 'Long' : 'Short'} · R/R ${m.rr === null ? '—' : m.rr.toFixed(2)}${m.cantidad ? ` · Cant. ${m.cantidad.toLocaleString('en-US', { maximumFractionDigits: 4 })}` : ''}`, 'rgba(17,24,39,.88)', 'middle'));
+                fig.push(txt(ce.y, `${h.lado === 'long' ? 'Long' : 'Short'} · R/R ${m.rr === null ? '—' : m.rr.toFixed(2)}${m.lotes ? ` · ${formatearLotes(m.lotes)} ${m.lotes === 1 ? 'lote' : 'lotes'}${m.excede ? ' ⚠' : ''}` : ''}`, 'rgba(17,24,39,.88)', 'middle'));
+                if (m.lotes && v.mostrarEtiquetas) {
+                    // Panel de tamaño: lo que hay que poner en la plataforma para arriesgar lo planeado.
+                    const dineroPos = (n) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                    fig.push(txt(ce.y + 22, `LOTE ${formatearLotes(m.lotes)} · riesgo ${dineroPos(m.riesgoReal)} (${m.riesgoPct.toFixed(2)}% de ${dineroPos(v.cuenta)})`, m.excede ? 'rgba(180,83,9,.92)' : 'rgba(30,64,175,.9)', 'top'));
+                }
                 return fig;
             },
             performEventPressedMove: ({ points, performPointIndex, performPoint }) => {
@@ -293,17 +300,46 @@
         });
     }
 
-    // Números de una posición: distancias, %, R/R y P/L estimado arriesgando `riesgo`% de `cuenta` en el stop.
-    function calcularPosicion(lado, [entrada, tp, sl], v) {
+    // ── tamaño de la posición en LOTES ──
+    // Contrato por 1 lote: forex 100.000 unidades, oro 100 oz, plata 5.000 oz; cripto e índices, 1 unidad.
+    function contratoDe(sym) {
+        const s = String(sym || '').toUpperCase();
+        if (s === 'XAUUSD') return 100;
+        if (s === 'XAGUSD') return 5000;
+        if (/^(BTC|ETH|LTC|XRP|SOL|DXY|US30|US100|US500|NAS|SPX|GER|DAX|UK)/.test(s)) return 1;
+        return /^[A-Z]{6}$/.test(s) ? 100000 : 1;
+    }
+    // Factor para pasar la moneda de cotización a USD (en pares USDxxx se divide por el precio; en cruces sin USD es aproximado).
+    function convUSD(sym, precio) {
+        const s = String(sym || '').toUpperCase();
+        if (s.endsWith('USD')) return 1;
+        if (s.startsWith('USD') && precio) return 1 / precio;
+        return 1;
+    }
+    const formatearLotes = (n) => (n >= 10 ? n.toFixed(1) : n >= 1 ? n.toFixed(2) : n.toFixed(2)).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') || '0';
+
+    // Números de una posición: distancias, %, R/R y, con la cuenta y el riesgo elegidos, el LOTE que hay que operar
+    // (se redondea hacia ABAJO al paso del broker para no arriesgar más de lo planeado) y la ganancia/pérdida en dólares.
+    function calcularPosicion(lado, [entrada, tp, sl], v, sym) {
         const distTP = Math.abs(tp - entrada), distSL = Math.abs(entrada - sl);
+        const contrato = contratoDe(sym), conv = convUSD(sym, entrada);
         const riesgoDinero = (v.cuenta || 0) * (v.riesgo || 0) / 100;
-        const cantidad = distSL > 0 && riesgoDinero > 0 ? riesgoDinero / distSL : 0;
+        const porLoteSL = distSL * contrato * conv;                       // dólares que se pierden por 1 lote si salta el stop
+        const paso = parseFloat(v.pasoLote) > 0 ? parseFloat(v.pasoLote) : 0.01;
+        const exactos = porLoteSL > 0 && riesgoDinero > 0 ? riesgoDinero / porLoteSL : 0;
+        let lotes = exactos > 0 ? Math.floor(exactos / paso + 1e-9) * paso : 0;
+        let excede = false;
+        if (exactos > 0 && lotes < paso) { lotes = paso; excede = true; }  // ni el lote mínimo cabe en ese riesgo: se avisa
+        lotes = Number(lotes.toFixed(4));
         const signo = lado === 'long' ? 1 : -1;
+        const riesgoReal = lotes * porLoteSL;
         return {
-            lado, entrada, tp, sl, distTP, distSL, cantidad,
+            lado, entrada, tp, sl, distTP, distSL, lotes, excede, contrato, riesgoReal,
+            riesgoPct: v.cuenta ? (riesgoReal / v.cuenta) * 100 : 0,
+            cantidad: lotes * contrato,                                  // unidades (lotes × contrato)
             pctTP: entrada ? (distTP / entrada) * 100 : 0, pctSL: entrada ? (distSL / entrada) * 100 : 0,
             rr: distSL > 0 ? distTP / distSL : null,
-            plTP: cantidad * (tp - entrada) * signo, plSL: cantidad * (sl - entrada) * signo,
+            plTP: lotes * contrato * conv * (tp - entrada) * signo, plSL: lotes * contrato * conv * (sl - entrada) * signo,
         };
     }
 
@@ -326,6 +362,7 @@
      */
     function montar({ chart, toolsEl, hintEl, barraEl, getSymbol, onZonaMovida, puedeZonaNLT, onEnviarZona }) {
         registrar();
+        simboloFn = getSymbol;
         const state = NLTCharts.state;
         const esc = NLTCharts.ui.esc;
         let activa = null;       // herramienta en curso
@@ -581,6 +618,7 @@
             const zona = o.extendData && o.extendData.zonaNLT;
             barraEl.innerHTML = `
                 <span class="dw-nombre">${esc(h.label)}</span>
+                ${esPos ? (() => { const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v, getSymbol()); return m.lotes ? `<span class="dw-lote" title="Lote para arriesgar ${v.riesgo}% de $${v.cuenta} con este stop"><b>${formatearLotes(m.lotes)}</b> ${m.lotes === 1 ? 'lote' : 'lotes'} · riesgo $${m.riesgoReal.toFixed(2)}${m.excede ? ' ⚠' : ''}</span>` : '<span class="dw-lote" title="Poné cuenta y riesgo en la configuración">sin lote</span>'; })() : ''}
                 <label class="dw-color" title="Color"><input type="color" data-dw="color" value="${esc(v.color.hex)}"><span style="background:${css({ ...v.color, t: 0 })}"></span></label>
                 ${h.inputs.some((x) => x.id === 'relleno') ? `<label class="dw-color" title="Relleno"><input type="color" data-dw="relleno" value="${esc(v.relleno.hex)}"><span style="background:${css({ ...v.relleno, t: Math.min(v.relleno.t, 50) })}"></span></label>` : ''}
                 ${tieneLinea ? `<select class="dw-sel" data-dw="grosor" title="Grosor">${[...new Set([1, 2, 3, 4, 6, 8, 12, 16, 24, 32, v.grosor])].sort((a, b) => a - b).map((g) => `<option value="${g}"${g === v.grosor ? ' selected' : ''}>${g}px</option>`).join('')}</select>
@@ -762,8 +800,8 @@
                 const o = overlay(id);
                 if (!o || o.name !== 'nltPosition' || o.points.length < 3) return null;
                 const { h, v } = estiloDe(o);
-                const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v);
-                return { simbolo: getSymbol(), lado: h.lado === 'long' ? 'BUY' : 'SELL', entrada: m.entrada, sl: m.sl, tp: m.tp, cantidad: m.cantidad, rr: m.rr };
+                const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v, getSymbol());
+                return { simbolo: getSymbol(), lado: h.lado === 'long' ? 'BUY' : 'SELL', entrada: m.entrada, sl: m.sl, tp: m.tp, cantidad: m.cantidad, lotes: m.lotes, riesgo: m.riesgoReal, rr: m.rr };
             },
             abrirPropiedades,
             overlay,
@@ -820,7 +858,7 @@
     let precision = 5;
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.drawings = {
-        montar, HERRAMIENTAS, migrar, calcularPosicion,
+        montar, HERRAMIENTAS, migrar, calcularPosicion, contratoDe, convUSD,
         setPrecision(p) { precision = p; },
         formatear(x) { return Number(x).toFixed(precision); },
     };

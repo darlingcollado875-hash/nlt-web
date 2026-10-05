@@ -457,7 +457,7 @@
             desdePosicion(o) {
                 if (!o) return;
                 const sym = getSymbol(), px = precios[sym];
-                const lots = o.cantidad ? Math.max(0.01, Math.round((o.cantidad / tam(sym)) * 100) / 100) : 0.1;
+                const lots = o.lotes ? o.lotes : (o.cantidad ? Math.max(0.01, Math.round((o.cantidad / tam(sym)) * 100) / 100) : 0.1);
                 const cerca = px != null && Math.abs(o.entrada - px) / px < 0.0003;
                 prefill = { type: cerca ? 'market' : (o.lado === 'BUY' ? (o.entrada < (px || o.entrada) ? 'limit' : 'stop') : (o.entrada > (px || o.entrada) ? 'limit' : 'stop')), lots, price: cerca ? null : o.entrada, sl: o.sl, tp: o.tp };
                 mensaje = `Posición ${o.lado === 'BUY' ? 'de compra' : 'de venta'} cargada: elegí COMPRAR o VENDER para confirmar.`;
