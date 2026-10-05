@@ -29,6 +29,8 @@
         btn.innerHTML = '<i class="ph ph-currency-circle-dollar"></i><span class="ch-btn-label">Operar</span>';
         const saldoEl = document.createElement('span'); saldoEl.className = 'tr-saldo'; saldoEl.hidden = true; btn.appendChild(saldoEl);
         /** Saldo de la cuenta conectada, siempre visible arriba en el botón Operar. */
+        const oyentesPanel = new Set();
+        const avisarPanel = () => oyentesPanel.forEach((fn) => { try { fn(); } catch (_) { /* un oyente roto no frena la cuenta */ } });
         const gpAbierta = () => (vivo.summary && vivo.summary.profit != null ? Number(vivo.summary.profit) : (vivo.positions || []).reduce((a, p) => a + (Number(p.profit) || 0), 0));
         function pintarSaldo() {
             const c = cuentaActual();
@@ -144,7 +146,7 @@
             try { est = await NLT_API.chartsTraderEstado(); } catch (e) { est = est || { has_access: false, accounts: [], reason: e.message }; }
             if (est.accounts && est.accounts.length && !est.accounts.some((c) => c.id === cuentaId)) { cuentaId = est.accounts[0].id; state.savePrefs({ traderCuenta: cuentaId }); }
             if (!est.accounts || !est.accounts.length) cuentaId = null;
-            pintarSaldo();
+            pintarSaldo(); avisarPanel();
         }
         async function refrescar() {
             if (!est || !est.has_access || !cuentaId || cargando) return;
@@ -360,6 +362,22 @@
 
         const api = {
             cambioSimbolo: () => chips.actualizar(),
+            // Panel «Trade» (estilo MT5): datos en vivo de la cuenta real y sus acciones
+            alCambiar(fn) { oyentesPanel.add(fn); return () => oyentesPanel.delete(fn); },
+            datosPanel() {
+                const c = cuentaActual();
+                if (!c) return null;
+                const s = vivo.summary || {};
+                return {
+                    fuente: 'real', etiqueta: 'Real', cuenta: { id: c.id, login: c.login, server: c.server }, error: errorVivo || '', dec: (sym) => decimales(sym),
+                    summary: { balance: s.balance != null ? s.balance : c.balance, equity: s.equity, margin: s.margin, free_margin: s.free_margin, margin_level: s.margin_level, profit: gpAbierta() },
+                    positions: (vivo.positions || []).map((p) => ({ id: String(p.ticket), sym: p.symbol, nlt: p.nlt_symbol || p.symbol, side: p.side, lots: p.volume, open: p.open_price, current: p.current_price, sl: p.stop_loss, tp: p.take_profit, pl: Number(p.profit) || 0 })),
+                    orders: (vivo.orders || []).map((o) => ({ id: String(o.ticket), sym: o.symbol, nlt: o.nlt_symbol || o.symbol, side: o.side, type: o.type, lots: o.volume, price: o.price, sl: o.stop_loss, tp: o.take_profit })),
+                };
+            },
+            async cerrarPosicion(id) { try { await NLT_API.chartsTraderCerrar(cuentaId, id); await refrescar(); return null; } catch (e) { return e.message || 'El broker rechazó el cierre.'; } },
+            async cancelarOrden(id) { try { await NLT_API.chartsTraderCancelarOrden(cuentaId, id); await refrescar(); return null; } catch (e) { return e.message || 'El broker rechazó la cancelación.'; } },
+            async cambiarSLTP(id, sl, tp) { try { await NLT_API.chartsTraderModificar(cuentaId, id, { stop_loss: sl || 0, take_profit: tp || 0 }); await refrescar(); return null; } catch (e) { return e.message || 'El broker rechazó el cambio.'; } },
             puedeOperar,
             // Long/Short dibujado -> ticket con el lote, SL y TP ya cargados (se confirma a mano).
             /** Long/Short dibujado -> orden real AL INSTANTE (ya confirmada con el segundo toque del botón): lote, entrada, SL y TP salen de la herramienta.
