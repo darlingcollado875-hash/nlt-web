@@ -74,7 +74,7 @@
                 else if (datos && !['waiting', 'sent'].includes(datos.status)) {
                     finPedido();
                     const st = ESTADOS[datos.status];
-                    avisoError(datos.status === 'invalid' ? 'El análisis no se pudo completar. Inténtalo de nuevo en un momento.' : (st && st[2]) || 'No se pudo analizar la zona.');
+                    avisoError(datos.detail || (datos.status === 'invalid' ? 'El análisis no se pudo completar. Inténtalo de nuevo en un momento.' : (st && st[2]) || 'No se pudo analizar la zona.'));
                 }
             }
             pintar();
@@ -106,7 +106,7 @@
                 ${z ? fila('Precio', `${f(z.top)} → ${f(z.bottom)}`) : ''}
                 ${res ? fila('Calidad', [res.calidad, res.score != null ? `${res.score}%` : null].filter(Boolean).join(' · ') || '—') : ''}
                 ${res && res.motivo ? `<tr><td colspan="2" style="white-space:normal; max-width:260px; color:rgba(229,231,235,.85)">${esc(res.motivo)}</td></tr>` : ''}
-                ${error || (st && st[2] && !res && !analizando) ? `<tr><td colspan="2" style="color:rgba(156,163,175,.8); white-space:normal; max-width:260px">${esc(error || st[2])}</td></tr>` : ''}
+                ${error || (st && st[2] && !res && !analizando) ? `<tr><td colspan="2" style="color:rgba(156,163,175,.8); white-space:normal; max-width:260px">${esc(error || (datos && datos.detail) || st[2])}</td></tr>` : ''}
                 <tr><td colspan="2" style="padding-top:6px"><span class="ze-btns">
                     ${z ? `<button type="button" data-nltai="analizar" class="ze-btn on"${analizando ? ' disabled' : ''}>${analizando ? 'Analizando…' : (res ? 'Analizar de nuevo' : 'Analizar zona')}</button>` : ''}
                     <button type="button" data-nltai="reportes" class="ze-btn">Reportes</button></span></td></tr>
