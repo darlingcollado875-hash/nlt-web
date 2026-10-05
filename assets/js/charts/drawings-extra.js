@@ -97,6 +97,18 @@
                 inputs: [...T('#60A5FA', 0, 1), relleno('#22C55E', 88, 'Relleno (sube)'), { id: 'rellenoBaja', tipo: 'color', def: col('#EF4444', 88), titulo: 'Relleno (baja)', grupo: 'Fondo', tab: 'Estilo', recalc: false }], coords: ['Precio 1', 'Precio 2'] },
             { id: 'ruler', cat: 'medicion', overlay: 'nltRegla', pasos: 3, icono: 'ph-ruler', label: 'Regla', ayuda: 'Tocá dos puntos: mide precio, % , velas y tiempo',
                 inputs: [...T('#E5E7EB', 0, 1), relleno('#E5E7EB', 94)], coords: ['Precio 1', 'Precio 2'] },
+            { id: 'vpfr', cat: 'medicion', overlay: 'nltVPFR', pasos: 3, icono: 'ph-chart-bar-horizontal', label: 'Perfil de volumen de rango fijo', ayuda: 'Tocá el inicio y el fin del rango: se calcula el volumen por precio',
+                inputs: [{ id: 'filas', tipo: 'int', def: 24, titulo: 'Filas', grupo: 'Perfil', tab: 'Entradas', min: 8, max: 120, recalc: false },
+                    { id: 'vaPct', tipo: 'int', def: 70, titulo: 'Área de valor (%)', grupo: 'Perfil', tab: 'Entradas', min: 10, max: 100, recalc: false },
+                    { id: 'ancho', tipo: 'int', def: 70, titulo: 'Ancho (% del rango)', grupo: 'Perfil', tab: 'Entradas', min: 10, max: 100, recalc: false },
+                    { id: 'lado', tipo: 'string', def: 'left', titulo: 'Posición', grupo: 'Perfil', tab: 'Entradas', opciones: [{ v: 'left', t: 'Izquierda' }, { v: 'right', t: 'Derecha' }], recalc: false },
+                    bool('dividir', true, 'Separar volumen alcista y bajista', 'Perfil'),
+                    { id: 'color', tipo: 'color', def: col('#F59E0B', 0), titulo: 'POC', grupo: 'Colores', tab: 'Estilo', inline: 'c', recalc: false },
+                    { id: 'colorUp', tipo: 'color', def: col('#3B82F6', 45), titulo: 'Sube', grupo: 'Colores', tab: 'Estilo', inline: 'c', recalc: false },
+                    { id: 'colorDn', tipo: 'color', def: col('#F59E0B', 45), titulo: 'Baja', grupo: 'Colores', tab: 'Estilo', inline: 'c', recalc: false },
+                    { id: 'colorVA', tipo: 'color', def: col('#3B82F6', 88), titulo: 'Área de valor', grupo: 'Colores', tab: 'Estilo', recalc: false },
+                    bool('mostrarPOC', true, 'Línea del POC', 'Mostrar', 'm'), bool('mostrarVA', true, 'Área de valor (VAH/VAL)', 'Mostrar', 'm'), bool('mostrarEtiquetas', true, 'Etiquetas de precio', 'Mostrar', 'm')],
+                coords: ['Inicio del rango', 'Fin del rango'] },
             { id: 'forecast', cat: 'medicion', overlay: 'nltPronostico', pasos: 3, icono: 'ph-arrow-bend-up-right', label: 'Pronóstico', ayuda: 'Tocá el punto de partida y el objetivo',
                 inputs: [...T('#A78BFA', 0, 2), relleno('#A78BFA', 85)], coords: ['Partida', 'Objetivo'] },
 
@@ -107,6 +119,13 @@
                 inputs: [...T('#22D3EE', 0, 1), relleno('#22D3EE', 90), ...textoIn()], coords: ['Centro', 'Borde'] },
             { id: 'triangle', cat: 'formas', overlay: 'nltTriangulo', pasos: 4, icono: 'ph-triangle', label: 'Triángulo', ayuda: 'Tocá los 3 vértices',
                 inputs: [...T('#22D3EE', 0, 1), relleno('#22D3EE', 90), ...textoIn()], coords: ['Vértice 1', 'Vértice 2', 'Vértice 3'] },
+
+            { id: 'brush', cat: 'formas', overlay: 'nltBrush', pasos: 2, continuo: true, icono: 'ph-paint-brush', label: 'Pincel', ayuda: 'Mantené apretado y dibujá a mano alzada',
+                inputs: [{ id: 'color', tipo: 'color', def: col('#22D3EE', 0), titulo: 'Color', grupo: 'Trazo', tab: 'Estilo', inline: 'l', recalc: false },
+                    { id: 'grosor', tipo: 'int', def: 3, titulo: 'Grosor', grupo: 'Trazo', tab: 'Estilo', inline: 'l', min: 1, max: 40, recalc: false }], coords: [] },
+            { id: 'highlighter', cat: 'formas', overlay: 'nltBrush', pasos: 2, continuo: true, icono: 'ph-highlighter', label: 'Resaltador', ayuda: 'Mantené apretado y pasá sobre lo que querés resaltar',
+                inputs: [{ id: 'color', tipo: 'color', def: col('#FACC15', 62), titulo: 'Color', grupo: 'Trazo', tab: 'Estilo', inline: 'l', recalc: false },
+                    { id: 'grosor', tipo: 'int', def: 14, titulo: 'Grosor', grupo: 'Trazo', tab: 'Estilo', inline: 'l', min: 2, max: 40, recalc: false }], coords: [] },
 
             // ── Notas e íconos ──
             { id: 'note', cat: 'notas', overlay: 'nltNota', pasos: 2, icono: 'ph-note', label: 'Nota', ayuda: 'Tocá donde va la nota',
@@ -435,6 +454,83 @@
                 return f;
             } });
 
+        // ── perfil de volumen de rango fijo ──
+        // El volumen de cada vela se reparte entre las filas de precio que su rango (mín–máx) toca, en proporción.
+        // Se calcula una vez y se guarda: mover el gráfico o el cursor solo redibuja, no recalcula (ver `cachePerfil`).
+        const cachePerfil = new Map();
+        function perfilDe(datos, t1, t2, filas, vaPct) {
+            const ult = datos[datos.length - 1];
+            const clave = `${t1}|${t2}|${datos.length}|${ult ? ult.volume : 0}|${ult ? ult.close : 0}|${filas}|${vaPct}`;
+            if (cachePerfil.has(clave)) return cachePerfil.get(clave);
+            const velas = datos.filter((d) => d.timestamp >= t1 && d.timestamp <= t2);
+            if (!velas.length) return null;
+            let lo = Infinity, hi = -Infinity;
+            velas.forEach((d) => { lo = Math.min(lo, d.low); hi = Math.max(hi, d.high); });
+            if (!(hi > lo)) return null;
+            const paso = (hi - lo) / filas, up = new Array(filas).fill(0), dn = new Array(filas).fill(0);
+            velas.forEach((d) => {
+                const vol = d.volume > 0 ? d.volume : 1, rango = d.high - d.low, sube = d.close >= d.open;
+                const a = Math.max(0, Math.min(filas - 1, Math.floor((d.low - lo) / paso))), b = Math.max(0, Math.min(filas - 1, Math.floor((d.high - lo - 1e-12) / paso)));
+                for (let i = a; i <= b; i++) {
+                    const sup = Math.min(d.high, lo + (i + 1) * paso) - Math.max(d.low, lo + i * paso);
+                    const parte = rango > 0 ? vol * (sup / rango) : vol / (b - a + 1);
+                    if (sube) up[i] += parte; else dn[i] += parte;
+                }
+            });
+            const tot = up.map((v, i) => v + dn[i]), suma = tot.reduce((x, y) => x + y, 0);
+            let poc = 0; tot.forEach((v, i) => { if (v > tot[poc]) poc = i; });
+            // Área de valor: desde el POC se suma la fila vecina más grande hasta cubrir vaPct% del volumen.
+            let a = poc, b = poc, acum = tot[poc];
+            while (acum < (suma * vaPct) / 100 && (a > 0 || b < filas - 1)) {
+                const arriba = b < filas - 1 ? tot[b + 1] : -1, abajo = a > 0 ? tot[a - 1] : -1;
+                if (arriba >= abajo) { b++; acum += tot[b]; } else { a--; acum += tot[a]; }
+            }
+            const r = { lo, hi, paso, up, dn, tot, poc, vaLo: a, vaHi: b, max: Math.max(...tot), n: velas.length };
+            if (cachePerfil.size > 40) cachePerfil.clear();
+            cachePerfil.set(clave, r);
+            return r;
+        }
+        reg({ name: 'nltVPFR', totalStep: 3,
+            createPointFigures: ({ chart, overlay, coordinates, bounding, yAxis }) => {
+                if (coordinates.length < 2 || overlay.points.length < 2 || !yAxis) return [];
+                const { v } = estiloDe(overlay);
+                const [a, b] = overlay.points;
+                const x1 = Math.min(coordinates[0].x, coordinates[1].x), x2 = Math.max(coordinates[0].x, coordinates[1].x);
+                const t1 = Math.min(a.timestamp, b.timestamp), t2 = Math.max(a.timestamp, b.timestamp);
+                const f = [{ type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: x1, y: 0 }, { x: x1, y: bounding.height }] }, styles: { ...lineaEstilo({ ...v, grosor: 1, estiloLinea: 'dashed' }), color: 'rgba(148,163,184,.55)' } },
+                    { type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: x2, y: 0 }, { x: x2, y: bounding.height }] }, styles: { ...lineaEstilo({ ...v, grosor: 1, estiloLinea: 'dashed' }), color: 'rgba(148,163,184,.55)' } }];
+                const P = perfilDe(chart.getDataList(), t1, t2, v.filas, v.vaPct);
+                if (!P) return f;
+                const ancho = Math.max(8, (x2 - x1) * (v.ancho / 100)), izq = v.lado === 'left';
+                const yDe = (precio) => yAxis.convertToPixel(precio);
+                if (v.mostrarVA) {
+                    const yt = yDe(P.lo + (P.vaHi + 1) * P.paso), yb = yDe(P.lo + P.vaLo * P.paso);
+                    f.push({ type: 'rect', ignoreEvent: true, attrs: { x: x1, y: Math.min(yt, yb), width: x2 - x1, height: Math.abs(yb - yt) }, styles: { style: 'fill', color: css(v.colorVA) } });
+                }
+                for (let i = 0; i < P.tot.length; i++) {
+                    const yt = yDe(P.lo + (i + 1) * P.paso), yb = yDe(P.lo + i * P.paso), alto = Math.max(1, Math.abs(yb - yt) - 1), y = Math.min(yt, yb);
+                    const largo = (P.tot[i] / P.max) * ancho, enVA = i >= P.vaLo && i <= P.vaHi;
+                    const xBase = izq ? x1 : x2;
+                    const seg = (desde, ancho2, color) => ({ type: 'rect', ignoreEvent: true, attrs: { x: izq ? xBase + desde : xBase - desde - ancho2, y, width: Math.max(0, ancho2), height: alto }, styles: { style: 'fill', color } });
+                    if (v.dividir) {
+                        const lu = (P.up[i] / P.max) * ancho, ld = (P.dn[i] / P.max) * ancho;
+                        f.push(seg(0, lu, css(enVA || !v.mostrarVA ? v.colorUp : { ...v.colorUp, t: Math.min(95, v.colorUp.t + 25) })), seg(lu, ld, css(enVA || !v.mostrarVA ? v.colorDn : { ...v.colorDn, t: Math.min(95, v.colorDn.t + 25) })));
+                    } else {
+                        f.push(seg(0, largo, css(enVA || !v.mostrarVA ? v.colorUp : { ...v.colorUp, t: Math.min(95, v.colorUp.t + 25) })));
+                    }
+                }
+                if (v.mostrarPOC) {
+                    const y = yDe(P.lo + (P.poc + 0.5) * P.paso);
+                    f.push({ type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: x1, y }, { x: x2, y }] }, styles: { style: 'solid', size: 1.5, color: css({ ...v.color, t: 0 }) } });
+                    if (v.mostrarEtiquetas) f.push(caja(izq ? x2 - 4 : x1 + 4, y - 9, `POC ${pr(P.lo + (P.poc + 0.5) * P.paso)}`, 'rgba(17,24,39,.85)', 'bottom', izq ? 'right' : 'left', css({ ...v.color, t: 0 })));
+                }
+                if (v.mostrarVA && v.mostrarEtiquetas) {
+                    const vah = P.lo + (P.vaHi + 1) * P.paso, val = P.lo + P.vaLo * P.paso;
+                    f.push(caja(izq ? x2 - 4 : x1 + 4, yDe(vah), `VAH ${pr(vah)}`, 'rgba(17,24,39,.85)', 'bottom', izq ? 'right' : 'left'), caja(izq ? x2 - 4 : x1 + 4, yDe(val), `VAL ${pr(val)}`, 'rgba(17,24,39,.85)', 'top', izq ? 'right' : 'left'));
+                }
+                return f;
+            } });
+
         // ── formas ──
         const textoCentro = (v, x, y) => (v.texto ? [etiqueta(x, y, v.texto, v, 'center', 'middle')] : []);
         reg({ name: 'nltElipse', totalStep: 3,
@@ -461,6 +557,13 @@
                 if (coordinates.length < 3) return [seg(coordinates[0], coordinates[1], lineaEstilo(v))];
                 const cx = (coordinates[0].x + coordinates[1].x + coordinates[2].x) / 3, cy = (coordinates[0].y + coordinates[1].y + coordinates[2].y) / 3;
                 return [{ type: 'polygon', attrs: { coordinates: coordinates.slice(0, 3) }, styles: { style: 'stroke_fill', color: css(v.relleno), borderColor: css(v.color), borderSize: v.grosor, borderStyle: v.estiloLinea === 'solid' ? 'solid' : 'dashed', borderDashedValue: guiones(v.estiloLinea, v.grosor) } }, ...textoCentro(v, cx, cy)];
+            } });
+
+        reg({ name: 'nltBrush', totalStep: 2, needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: false,
+            createPointFigures: ({ overlay, coordinates }) => {
+                if (coordinates.length < 2) return [];
+                const { v } = estiloDe(overlay);
+                return [{ type: 'line', attrs: { coordinates }, styles: { style: 'solid', size: v.grosor, color: css(v.color) } }];
             } });
 
         // ── notas e íconos ──
