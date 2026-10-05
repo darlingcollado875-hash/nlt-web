@@ -108,6 +108,7 @@
             a.usaMtf = (res && res.usaMtf) || [];
             return res;
         }
+        let mensajePub = null;              // resultado del último intento de publicar, junto a los botones: { ok, texto }
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
         let cargandoTienda = false, busca = { q: '', sort: 'recent', creator: '', page: 0 }, hayMas = false, tienePlan = false, miUsuario = null, ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
         let sel = null /* script abierto: { id|null, nombre, codigo } */, sucio = false, mensaje = '', erroresVivos = [], timerValida = null;
@@ -379,6 +380,7 @@
             pintar();
         }
         async function abrirScript(id) {
+            mensajePub = null;
             try {
                 const r = await NLT_API.chartsScript(id);
                 const s = r.script;
@@ -391,7 +393,7 @@
             const base = ejemplo || NLTCharts.nltsEjemplos[0];
             let nombre = ejemplo ? ejemplo.nombre : 'Mi script', k = 2;
             while (lista.some((s) => s.name === nombre)) nombre = `${ejemplo ? ejemplo.nombre : 'Mi script'} ${k++}`;
-            sel = { id: null, nombre, codigo: base.codigo }; sucio = true; mensaje = ''; vista = 'mis'; accesos = [];
+            sel = { id: null, nombre, codigo: base.codigo }; sucio = true; mensaje = ''; mensajePub = null; vista = 'mis'; accesos = [];
             validarVivo(); pintar();
         }
         async function guardar() {
@@ -460,7 +462,7 @@
                 ${htmlAjustes()}`;
         }
         function htmlCompartir() {
-            if (!sel || !sel.id || sel.ajeno || sucio) return '';
+            if (!sel || !sel.id || sel.ajeno) return '';
             const gratisPublicado = sel.publicado && !sel.precio, ventaPublicada = sel.publicado && !!sel.precio;
             const filas = accesos.map((g) => `<div class="sc-acc"><span>${esc(g.email)}</span><button class="sc-b mal" data-a="revocar" data-gid="${esc(g.id)}">Quitar</button></div>`).join('');
             if (sel.bloqueado) return '<div class="sc-comp"><p class="sc-peq" style="color:#F87171">NLT bloqueó este indicador: no se puede publicar ni compartir.</p></div>';
@@ -468,6 +470,7 @@
                 <form class="sc-form" data-a="publicar">
                     <button class="sc-b ${gratisPublicado ? '' : 'on'}" type="submit" data-modo="abierto">${gratisPublicado ? 'Actualizar' : 'Publicar gratis'}</button>
                     ${gratisPublicado ? '<button class="sc-b mal" type="submit" data-modo="quitar">Quitar de la tienda</button>' : ''}</form>
+                ${mensajePub ? `<div class="sc-pubmsg ${mensajePub.ok ? 'ok' : 'mal'}" role="status">${esc(mensajePub.texto)}</div>` : ''}
                 <p class="sc-peq">Se publica con el nombre y la descripción de arriba. ${gratisPublicado ? 'Publicado: ' : ''}Cualquier usuario de NLT podrá usarlo, leer el código y copiarlo. Es gratis y no necesita ningún plan. Eres responsable de lo que publicas.</p>`;
             const privado = tienePlan ? `<div class="sc-sub" style="margin-top:14px">Compartir en privado · el código no se ve</div>
                 <form class="sc-form" data-a="compartir"><input type="email" name="email" placeholder="correo de la persona (con cuenta en NLT)" required maxlength="200"><button class="sc-b on" type="submit">Dar acceso</button></form>
@@ -532,7 +535,7 @@
                     <button class="sc-b ${enGrafico ? '' : 'on'}" data-a="grafico">${enGrafico ? 'Quitar del gráfico' : 'Añadir al gráfico'}</button>
                     <button class="sc-b mal" data-a="borrar" title="Borrar">${sel.id ? 'Borrar' : 'Descartar'}</button>
                 </div>
-                <label class="sc-descw"><textarea class="sc-desc" rows="2" maxlength="500" placeholder="Descripción (opcional): qué hace tu indicador y cómo se usa" aria-label="Descripción del script">${esc(sel.descripcion || '')}</textarea><span class="sc-desc-n">${(sel.descripcion || '').length}/500</span></label>
+                <label class="sc-descw"><textarea class="sc-desc" rows="2" maxlength="500" placeholder="Descripción: qué hace tu indicador y cómo se usa (necesaria para publicarlo, mínimo 10 letras)" aria-label="Descripción del script">${esc(sel.descripcion || '')}</textarea><span class="sc-desc-n">${(sel.descripcion || '').length}/500</span></label>
                 <div class="sc-cod"><pre class="sc-gut" aria-hidden="true">${Array.from({ length: n }, (_, i) => i + 1).join('\n')}</pre>
                     <div class="sc-edwrap"><pre class="sc-hl" aria-hidden="true"><code>${resaltar(sel.codigo, esc)}</code></pre>
                     <textarea class="sc-ta" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Código del script" data-a="codigo">${esc(sel.codigo)}</textarea></div></div>
@@ -601,7 +604,7 @@
         modal.addEventListener('input', (e) => {
             const t = e.target;
             if (t.matches('.sc-ta')) { sel.codigo = t.value; sucio = true; mensaje = ''; sel.errorCorrida = null; actualizarEditorLigero(t); }
-            else if (t.matches('.sc-desc')) { sel.descripcion = t.value; sucio = true; const g = modal.querySelector('[data-a="guardar"]'); if (g) g.disabled = false; const cu = modal.querySelector('.sc-desc-n'); if (cu) cu.textContent = `${t.value.length}/500`; }
+            else if (t.matches('.sc-desc')) { sel.descripcion = t.value; t.classList.remove('falta'); sucio = true; const g = modal.querySelector('[data-a="guardar"]'); if (g) g.disabled = false; const cu = modal.querySelector('.sc-desc-n'); if (cu) cu.textContent = `${t.value.length}/500`; }
             else if (t.matches('.sc-nombre')) { sel.nombre = t.value; sucio = true; const g = modal.querySelector('[data-a="guardar"]'); if (g) g.disabled = false; }
         });
         modal.addEventListener('scroll', (e) => { if (e.target.matches && e.target.matches('.sc-ta')) sincronizar(e.target); }, true);
@@ -648,15 +651,21 @@
                 const modo = (e.submitter && e.submitter.dataset.modo) || 'abierto';
                 const listar = modo !== 'quitar';
                 const descripcion = (sel.descripcion || '').trim();
-                if (listar && descripcion.length < 10) { mensaje = 'Para publicar, escribe arriba una descripción de tu indicador (mínimo 10 caracteres).'; pintar(); return; }
+                const avisoPub = (ok, texto) => { mensajePub = { ok, texto }; if (NLTCharts.ui && NLTCharts.ui.toast) NLTCharts.ui.toast(texto, ok ? 'ok' : 'error'); };
+                if (listar && descripcion.length < 10) {
+                    avisoPub(false, 'Para publicar escribe una descripción de tu indicador (mínimo 10 letras): qué hace y cómo se usa.'); pintar();
+                    const d = modal.querySelector('.sc-desc'); if (d) { d.classList.add('falta'); d.scrollIntoView({ block: 'center', behavior: 'smooth' }); d.focus({ preventScroll: true }); }
+                    return;
+                }
+                if (listar && sucio) { await guardar(); if (sucio) { avisoPub(false, 'No se pudo guardar el script antes de publicar.'); pintar(); return; } }       // se publica lo que está en pantalla
                 const precio = modo === 'venta' && f.elements.precio.value ? Number(f.elements.precio.value) : null;
                 if (modo === 'abierto' && sel.precio && !window.confirm('Al publicarlo gratis, su código quedará visible para todos (también para quienes ya lo compraron). ¿Continuar?')) return;
                 try {
                     await NLT_API.chartsScriptPublicar(sel.id, listar, descripcion, precio, modo === 'venta' ? f.elements.facturacion.value : 'monthly');
                     sel.publicado = listar; sel.descripcion = descripcion; sel.precio = precio || ''; sel.facturacion = modo === 'venta' ? f.elements.facturacion.value : 'monthly';
-                    mensaje = !listar ? 'Quitado de la tienda.' : precio ? 'A la venta en la tienda.' : 'Publicado gratis en la tienda.';
+                    avisoPub(true, !listar ? 'Quitado de la tienda.' : precio ? 'A la venta en la tienda.' : 'Publicado gratis en la tienda.');
                     await cargarLista();
-                } catch (er) { mensaje = er.message || 'No se pudo cambiar la publicación.'; }
+                } catch (er) { avisoPub(false, er.message || 'No se pudo cambiar la publicación.'); }
                 pintar();
             }
         });
