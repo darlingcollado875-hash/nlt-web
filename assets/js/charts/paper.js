@@ -72,13 +72,18 @@
         });
         return { alto, bajo };
     }
+    /** Tipo de la orden PENDIENTE que deja una posición dibujada exactamente en su entrada: límite si el precio tiene que venir a buscarla, stop si tiene que romperla. */
+    function tipoPendiente(lado, entrada, px) {
+        if (px == null || !Number.isFinite(px)) return 'limit';
+        return lado === 'BUY' ? (entrada <= px ? 'limit' : 'stop') : (entrada >= px ? 'limit' : 'stop');
+    }
     function validar(t, precio) {
         const { side, type, lots, price, sl, tp } = t;
         if (!(lots > 0) || lots > 1000) return 'El tamaño debe ser mayor que 0.';
         const ref = type === 'market' ? precio : price;
         if (!(ref > 0)) return 'Falta el precio.';
-        if (type === 'limit' && ((side === 'buy' && price >= precio) || (side === 'sell' && price <= precio))) return side === 'buy' ? 'Una compra límite va POR DEBAJO del precio actual.' : 'Una venta límite va POR ENCIMA del precio actual.';
-        if (type === 'stop' && ((side === 'buy' && price <= precio) || (side === 'sell' && price >= precio))) return side === 'buy' ? 'Una compra stop va POR ENCIMA del precio actual.' : 'Una venta stop va POR DEBAJO del precio actual.';
+        if (type === 'limit' && ((side === 'buy' && price > precio) || (side === 'sell' && price < precio))) return side === 'buy' ? 'Una compra límite va POR DEBAJO del precio actual.' : 'Una venta límite va POR ENCIMA del precio actual.';
+        if (type === 'stop' && ((side === 'buy' && price < precio) || (side === 'sell' && price > precio))) return side === 'buy' ? 'Una compra stop va POR ENCIMA del precio actual.' : 'Una venta stop va POR DEBAJO del precio actual.';
         if (sl != null && ((side === 'buy' && sl >= ref) || (side === 'sell' && sl <= ref))) return side === 'buy' ? 'El stop loss de una compra va por debajo de la entrada.' : 'El stop loss de una venta va por encima de la entrada.';
         if (tp != null && ((side === 'buy' && tp <= ref) || (side === 'sell' && tp >= ref))) return side === 'buy' ? 'El take profit de una compra va por encima de la entrada.' : 'El take profit de una venta va por debajo de la entrada.';
         return null;
@@ -350,11 +355,13 @@
             // Long/Short dibujado -> ticket ya cargado (lotes = unidades de la posición / tamaño del contrato)
             desdePosicion(o) {
                 if (!o) return;
-                const sym = getSymbol(), px = precios[sym];
+                const sym = getSymbol(), dl = chart.getDataList(), px = precios[sym] != null ? precios[sym] : (dl.length ? dl[dl.length - 1].close : null);
                 const lots = o.lotes ? o.lotes : (o.cantidad ? Math.max(0.01, Math.round((o.cantidad / tam(sym)) * 100) / 100) : 0.1);
-                const cerca = px != null && Math.abs(o.entrada - px) / px < 0.0003;
-                prefill = { type: cerca ? 'market' : (o.lado === 'BUY' ? (o.entrada < (px || o.entrada) ? 'limit' : 'stop') : (o.entrada > (px || o.entrada) ? 'limit' : 'stop')), lots, price: cerca ? null : o.entrada, sl: o.sl, tp: o.tp };
-                mensaje = `Posición ${o.lado === 'BUY' ? 'de compra' : 'de venta'} cargada: elegí COMPRAR o VENDER para confirmar.`;
+                // Siempre una orden PENDIENTE justo en la entrada dibujada (nunca a mercado): límite si el precio tiene que venir a buscarla, stop si tiene que romperla
+                const dec = pr(sym), r = (x) => (x == null ? null : Number(Number(x).toFixed(dec)));
+                const tipo = tipoPendiente(o.lado, o.entrada, px);
+                prefill = { type: tipo, lots, price: r(o.entrada), sl: r(o.sl), tp: r(o.tp) };
+                mensaje = `Posición ${o.lado === 'BUY' ? 'de compra' : 'de venta'} cargada como orden ${tipo === 'limit' ? 'límite' : 'stop'} en tu entrada (${r(o.entrada)}): elige ${o.lado === 'BUY' ? 'COMPRAR' : 'VENDER'} para dejarla puesta.`;
                 abrir('ticket');
             },
             estado: () => cuenta,
@@ -362,5 +369,5 @@
     }
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.paper = { montar, pnl, convUSD, llenaOrden, cierraPosicion, extremosDesde, validar, contrato };
+    window.NLTCharts.paper = { montar, tipoPendiente, pnl, convUSD, llenaOrden, cierraPosicion, extremosDesde, validar, contrato };
 })();
