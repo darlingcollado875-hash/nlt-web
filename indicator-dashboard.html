@@ -12,6 +12,7 @@
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Indicator | Panel</title>
     <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-ai-reporte.css?v=f2c9833b">
     <link rel="stylesheet" href="assets/css/nlt-flow.css?v=f1156d08">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
@@ -62,7 +63,7 @@
         <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
             <div>
                 <h1 class="text-lg md:text-2xl font-bold tracking-tight">NLT Indicator</h1>
-                <p class="text-[11px] text-gray-500 -mt-0.5">Las zonas se marcan en NLT V13.4 · acá recibes y ves el análisis</p>
+                <p class="text-[11px] text-gray-500 -mt-0.5">Marca una zona en NLT Charts · la IA la analiza y aquí quedan tus reportes</p>
             </div>
         </header>
 
@@ -117,81 +118,40 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-2" id="tabs">
-                    <span class="chip-activo activo" data-tab="connect">Connect TradingView</span>
-                    <span class="chip-activo" data-tab="history">Analysis History</span>
-                    <span class="chip-activo opacity-50 cursor-not-allowed" title="Próximamente">Statistics</span>
+                    <span class="chip-activo activo" data-tab="reports">Reportes</span>
+                    <span class="chip-activo" data-tab="how">Cómo usarlo</span>
                     <span class="ml-auto text-xs text-gray-500" id="usageBadge"></span>
                 </div>
 
-                <!-- ── TAB: CONNECT TRADINGVIEW ── -->
-                <section data-panel="connect" class="space-y-6">
-                    <div class="glass-card p-6 md:p-8">
-                        <div class="flex items-center justify-between mb-6">
-                            <h3 class="text-lg font-bold text-white">Connect TradingView</h3>
-                            <span id="connStatus" class="text-xs font-semibold px-3 py-1.5 rounded-full bg-white/5 text-gray-400">○ Not connected</span>
+                <!-- ── TAB: REPORTES (los análisis que haces desde NLT Charts) ── -->
+                <section data-panel="reports" class="space-y-4">
+                    <div class="glass-card p-5 md:p-6 flex flex-wrap items-center gap-4">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <i class="ph-fill ph-sparkle text-2xl text-nlt-accent shrink-0"></i>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-white">Tus reportes de NLT AI</p>
+                                <p class="text-xs text-gray-500">Cada zona que analizas en el gráfico deja aquí su reporte completo. En el gráfico verás solo el resumen.</p>
+                            </div>
                         </div>
-
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your webhook URL</label>
-                        <div class="flex gap-2 mb-4">
-                            <input id="connUrl" readonly class="flex-1 bg-black/30 border border-white/5 rounded-xl px-4 py-3 text-xs text-gray-300 font-mono" value="—">
-                            <button data-copy="connUrl" class="px-4 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Copiar</button>
-                        </div>
-
-                        <label class="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5">Your secret <span class="normal-case font-normal text-gray-600">(opcional / avanzado)</span></label>
-                        <div class="flex gap-2 mb-6">
-                            <input id="connSecret" readonly class="flex-1 bg-black/30 border border-white/5 rounded-xl px-4 py-3 text-xs text-gray-300 font-mono" value="—">
-                            <button data-copy="connSecret" class="px-4 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Copiar</button>
-                        </div>
-
-                        <div class="flex flex-wrap gap-3">
-                            <button id="btnCopyConfig" class="px-5 py-2.5 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Copiar configuración</button>
-                            <button id="btnRotate" class="px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer">Regenerar token</button>
-                        </div>
-                        <p id="connMsg" class="mt-3 text-xs text-gray-500 hidden"></p>
+                        <a href="charts.html" class="ml-auto px-4 py-2 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all">Abrir NLT Charts</a>
                     </div>
-
-                    <div class="glass-card p-6 md:p-8">
-                        <h3 class="text-sm font-bold text-white mb-4">Cómo conectarlo (una sola vez)</h3>
-                        <ol class="space-y-3 text-sm text-gray-400">
-                            <li><span class="text-nlt-accent font-bold mr-2">1.</span> En TradingView, Pine Editor → pega <span class="text-white">NLT Zone Engine V13.4</span> → Save → Add to chart. Marca la zona con los 2 clics que te pide.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">2.</span> En la config del indicador, grupo <span class="text-white">🌐 NLT AI (webhook)</span>, activa <span class="text-white">webhookEmit</span>.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">3.</span> Crea una alerta (icono del reloj → Crear alerta).</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">4.</span> En <span class="text-white">Condición</span>, elige <span class="text-white">Any alert() function call</span>.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">5.</span> En <span class="text-white">Notificaciones → Webhook URL</span>, pega tu Webhook URL de arriba.</li>
-                            <li><span class="text-nlt-accent font-bold mr-2">6.</span> Guarda. En cuanto llegue el primer análisis, este panel dirá <span class="text-white">✓ Connected</span> y aparecerá en <span class="text-white">Analysis History</span>.</li>
-                        </ol>
-                        <p class="text-[11px] text-gray-600 mt-4">El token de la URL identifica tu cuenta NLT. No lo compartas. La zona se marca y se cambia siempre desde V13.4 en TradingView — este panel solo recibe y muestra el resultado.</p>
-                    </div>
+                    <div id="repLista"><p class="text-sm text-gray-500 animate-pulse px-1">Cargando tus reportes…</p></div>
+                    <div id="repDetalle" class="hidden"></div>
                 </section>
 
-                <!-- ── TAB: HISTORY ── -->
-                <section data-panel="history" class="hidden space-y-4">
-                    <div class="glass-card p-0 overflow-hidden">
-                        <div class="p-6 border-b border-white/5 flex flex-wrap items-center justify-between gap-2">
-                            <h3 class="text-lg font-bold text-white">Analysis History</h3>
-                            <span class="text-[11px] text-gray-500">Cada zona que marcas en V13.4 y cada ENTRY_READY del motor genera una fila acá.</span>
-                        </div>
-                        <div class="overflow-x-auto">
-                            <table class="w-full text-sm responsive-table">
-                                <thead class="text-[10px] uppercase tracking-wider text-gray-600">
-                                    <tr class="border-b border-white/5">
-                                        <th class="text-left px-5 py-3 font-bold">Fecha</th>
-                                        <th class="text-left px-5 py-3 font-bold">Symbol</th>
-                                        <th class="text-left px-5 py-3 font-bold">Dir</th>
-                                        <th class="text-left px-5 py-3 font-bold">Prob.</th>
-                                        <th class="text-left px-5 py-3 font-bold">Grade</th>
-                                        <th class="text-left px-5 py-3 font-bold">Category</th>
-                                        <th class="text-left px-5 py-3 font-bold">Verdict</th>
-                                        <th class="px-5 py-3"></th>
-                                    </tr>
-                                </thead>
-                                <tbody id="histBody" class="divide-y divide-white/5 text-gray-300">
-                                    <tr><td colspan="8" class="px-5 py-6 text-gray-500">Cargando…</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- ── TAB: CÓMO USARLO ── -->
+                <section data-panel="how" class="hidden space-y-6">
+                    <div class="glass-card p-6 md:p-8">
+                        <h3 class="text-sm font-bold text-white mb-4">Todo se hace desde el gráfico (sin alertas ni webhooks)</h3>
+                        <ol class="space-y-3 text-sm text-gray-400">
+                            <li><span class="text-nlt-accent font-bold mr-2">1.</span> Abre <a href="charts.html" class="text-white underline decoration-white/30">NLT Charts</a> y dibuja un <span class="text-white">rectángulo</span> sobre la zona (Order Block o FVG) que quieres evaluar.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">2.</span> Selecciónalo y toca <span class="text-white">NLT Engine</span> para conectarlo; elige si es alcista o bajista.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">3.</span> En el panel <span class="text-white">🌐 NLT AI</span> del gráfico pulsa <span class="text-white">Analizar zona</span>.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">4.</span> En segundos aparece un aviso en el gráfico con el resumen: <span class="text-white">Entrada óptima</span>, <span class="text-white">válida</span>, <span class="text-white">débil</span> o <span class="text-white">no válida</span>.</li>
+                            <li><span class="text-nlt-accent font-bold mr-2">5.</span> Toca <span class="text-white">Ver reporte</span> (o entra aquí a <span class="text-white">Reportes</span>) para leer el análisis completo.</li>
+                        </ol>
+                        <p class="text-[11px] text-gray-600 mt-4">La zona se evalúa desde donde empieza tu rectángulo: lo que pasó antes de dibujarla no cuenta. Es informativo, no una recomendación de inversión.</p>
                     </div>
-                    <div id="histDetail" class="hidden"></div>
                 </section>
 
             </div>
@@ -200,6 +160,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=5a05efc3"></script>
+    <script src="assets/js/nlt-ai-reporte.js?v=f11dcf12"></script>
     <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
     <script>
     (function () {
@@ -209,38 +170,14 @@
         const gcls = (q) => 'g-' + String(q || '').replace('+', 'plus');
         const fmt = (n) => (n === null || n === undefined ? '—' : Math.round(n));
         let entitlement = null;
-        let connPollTimer = null;
-
-        function toast(elId, msg, ok) {
-            const el = $(elId);
-            el.textContent = msg;
-            el.className = 'mt-3 text-xs ' + (ok ? 'text-green-400' : 'text-red-400');
-            el.classList.remove('hidden');
-        }
 
         // ── tabs ──
         function activarTab(name) {
             document.querySelectorAll('[data-tab]').forEach((c) => c.classList.toggle('activo', c.dataset.tab === name));
             document.querySelectorAll('[data-panel]').forEach((p) => p.classList.toggle('hidden', p.dataset.panel !== name));
-            if (name === 'history') { cargarHistorial(); refrescarUsage(); }
-            if (name === 'connect') cargarConexion();
+            if (name === 'reports') { cargarReportes(); refrescarUsage(); }
         }
         document.querySelectorAll('[data-tab]').forEach((c) => c.addEventListener('click', () => c.dataset.tab && activarTab(c.dataset.tab)));
-
-        // ── copiar ──
-        document.querySelectorAll('[data-copy]').forEach((b) => b.addEventListener('click', () => {
-            const v = $(b.dataset.copy).value;
-            navigator.clipboard.writeText(v).then(() => { b.textContent = '✓'; setTimeout(() => b.textContent = 'Copiar', 1200); });
-        }));
-        $('btnCopyConfig').addEventListener('click', () => {
-            const txt = `NLT Indicator AI\nWebhook URL: ${$('connUrl').value}\nSecret: ${$('connSecret').value}\nCondición de alerta: Any alert() function call`;
-            navigator.clipboard.writeText(txt).then(() => toast('connMsg', 'Configuración copiada al portapapeles.', true));
-        });
-        $('btnRotate').addEventListener('click', async () => {
-            if (!confirm('Regenerar el token invalida la URL actual. Vas a tener que actualizar la alerta en TradingView. ¿Seguir?')) return;
-            try { pintarConexion(await NLT_API.indicatorAiConnectionRotate()); toast('connMsg', 'Token regenerado. Actualiza la Webhook URL en tu alerta.', true); }
-            catch (e) { toast('connMsg', e.message, false); }
-        });
 
         // ── guía de uso (PDF) ──
         async function abrirGuia(descargar) {
@@ -254,126 +191,30 @@
         $('btnVerGuia').addEventListener('click', () => abrirGuia(false));
         $('btnBajarGuia').addEventListener('click', () => abrirGuia(true));
 
-        // ── conexión ──
-        function pintarConexion(c) {
-            $('connUrl').value = c.webhook_url || '—';
-            $('connSecret').value = c.secret || '—';
-            const conn = c.status === 'connected';
-            const s = $('connStatus');
-            s.textContent = conn ? '✓ Connected' : '○ Not connected';
-            s.className = 'text-xs font-semibold px-3 py-1.5 rounded-full ' + (conn ? 'bg-green-500/15 text-green-400' : 'bg-white/5 text-gray-400');
-        }
-        async function cargarConexion() {
-            try {
-                const c = await NLT_API.indicatorAiConnection();
-                pintarConexion(c);
-                if (c.status !== 'connected' && !connPollTimer) {
-                    connPollTimer = setInterval(async () => {
-                        try {
-                            const c2 = await NLT_API.indicatorAiConnection();
-                            if (c2.status === 'connected') { pintarConexion(c2); clearInterval(connPollTimer); connPollTimer = null; }
-                        } catch (_) {}
-                    }, 10000);
-                }
-            } catch (e) { toast('connMsg', e.message, false); }
-        }
-
-        // ── tarjeta de resultado (la usa History) ──
-        function bar(label, val) {
-            return `<div class="flex items-center gap-3 text-xs">
-                <span class="w-28 text-gray-400">${label}</span>
-                <span class="flex-1 bar-track"><span class="bar-fill" style="width:${Math.max(0, Math.min(100, val || 0))}%"></span></span>
-                <span class="w-9 text-right text-gray-300">${fmt(val)}</span></div>`;
-        }
-        function lista(titulo, items, icon) {
-            if (!items || !items.length) return '';
-            return `<div><p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">${titulo}</p>
-                <ul class="space-y-1.5 text-sm text-gray-300">${items.map((x) => `<li><i class="ph ${icon} text-gray-500 mr-1.5"></i>${x}</li>`).join('')}</ul></div>`;
-        }
-        function tarjetaResultado(a) {
-            const L = a.scores_layers || {}, S = a.claude_scores || {};
-            return `<div class="glass-card p-6 md:p-8 space-y-7">
-                <div class="flex flex-wrap items-start gap-6">
-                    <div>
-                        <p class="text-4xl md:text-5xl font-extrabold text-white leading-none">${fmt(a.probability)}<span class="text-lg text-gray-500">%</span></p>
-                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">AI Quality</p>
-                    </div>
-                    <div><span class="grade ${gcls(a.quality)}">${a.quality || '—'}</span>
-                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">${a.category || ''}</p></div>
-                    <div><p class="text-xl font-bold ${a.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}">${a.direction || '—'}</p>
-                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mt-1">Bias: ${a.bias || '—'}</p></div>
-                    <div class="ml-auto text-right">
-                        <p class="text-sm font-bold text-white">${(a.verdict || '').replace(/_/g, ' ')}</p>
-                        <p class="text-[11px] text-gray-500 mt-1">Risk ${a.risk_level || '—'} · RR ${a.rr_quality || '—'}</p>
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Capas de score → NLT Final AI Score</p>
-                    <div class="space-y-2">
-                        ${bar('V13 SCORE', L.v13_score)}
-                        ${bar('NLT QUANT', L.nlt_quant_score)}
-                        ${bar('CLAUDE', L.claude_ai_score)}
-                        ${bar('FINAL NLT AI', L.final_ai_score)}
-                    </div>
-                </div>
-
-                <div>
-                    <p class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Desglose</p>
-                    <div class="grid md:grid-cols-2 gap-x-8 gap-y-2">
-                        ${bar('Structure', S.structure)}${bar('Liquidity', S.liquidity)}
-                        ${bar('Location', S.location)}${bar('Momentum', S.momentum)}
-                        ${bar('Confluence', S.confluence)}${bar('History', S.historical)}
-                    </div>
-                </div>
-
-                <div class="grid md:grid-cols-2 gap-6">
-                    ${lista('Confluences', a.confluences, 'ph-check')}
-                    ${lista('Warnings', a.warnings, 'ph-warning')}
-                    ${lista('Confirmation', a.confirmation_required, 'ph-arrow-right')}
-                    ${lista('Invalidation', a.invalidation, 'ph-x')}
-                </div>
-
-                ${a.explanation ? `<p class="text-sm text-gray-300 leading-relaxed border-t border-white/5 pt-5">${a.explanation}</p>` : ''}
-                ${a.data_gaps && a.data_gaps.length ? `<p class="text-[11px] text-gray-600">Datos faltantes: ${a.data_gaps.join(', ')}</p>` : ''}
-                <p class="text-[11px] text-gray-600">La probabilidad es una estimación de calidad/confianza del setup, no una garantía de resultado. Snapshot ${a.analysis_id}.</p>
-            </div>`;
-        }
-
-        // ── History ──
-        async function cargarHistorial() {
+        // ── Reportes (misma presentación que el visor del gráfico: assets/js/nlt-ai-reporte.js) ──
+        const R = window.NLTAiReporte;
+        async function cargarReportes() {
+            const box = $('repLista');
             try {
                 const { items } = await NLT_API.indicatorAiHistorial({ limit: 100 });
-                const tb = $('histBody');
-                if (!items.length) { tb.innerHTML = '<tr><td colspan="8" class="px-5 py-6 text-gray-500">Todavía no hiciste ningún análisis.</td></tr>'; return; }
-                tb.innerHTML = items.map((a) => `<tr class="hover:bg-white/[0.02] cursor-pointer" data-id="${a.analysis_id}">
-                    <td data-label="Fecha" class="px-5 py-3 text-gray-500">${(a.created_at || '').slice(0, 16).replace('T', ' ')}</td>
-                    <td data-label="Symbol" class="px-5 py-3 text-white">${a.symbol || '—'}</td>
-                    <td data-label="Dir" class="px-5 py-3 ${a.direction === 'SHORT' ? 'text-red-400' : 'text-green-400'}">${a.direction || '—'}</td>
-                    <td data-label="Prob." class="px-5 py-3 font-bold">${fmt(a.probability)}%</td>
-                    <td data-label="Grade" class="px-5 py-3"><span class="grade ${gcls(a.quality)}" style="min-width:0;padding:2px 8px;font-size:13px">${a.quality || '—'}</span></td>
-                    <td data-label="Category" class="px-5 py-3 text-gray-400">${a.category || '—'}</td>
-                    <td data-label="Verdict" class="px-5 py-3 text-gray-400">${(a.verdict || '').replace(/_/g, ' ')}</td>
-                    <td class="px-5 py-3 text-nlt-accent text-xs">ver →</td></tr>`).join('');
-                tb.querySelectorAll('tr[data-id]').forEach((tr) => tr.addEventListener('click', () => verDetalle(tr.dataset.id)));
-            } catch (e) {
-                $('histBody').innerHTML = `<tr><td colspan="8" class="px-5 py-6 text-red-400">${e.message}</td></tr>`;
-            }
+                if (!items.length) { box.innerHTML = '<div class="glass-card p-8 text-center"><p class="text-sm text-gray-400">Todavía no hiciste ningún análisis.</p><p class="text-xs text-gray-600 mt-2">Dibuja una zona en NLT Charts y pulsa <b class="text-gray-300">Analizar zona</b>: el reporte aparecerá aquí.</p></div>'; return; }
+                box.innerHTML = items.map(R.fila).join('');
+            } catch (e) { box.innerHTML = `<p class="text-sm text-red-400 px-1">${e.message}</p>`; }
         }
-        async function verDetalle(id) {
-            const box = $('histDetail');
-            box.innerHTML = '<p class="text-sm text-gray-500 animate-pulse px-1">Cargando análisis…</p>';
-            show('histDetail');
-            box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            try { box.innerHTML = tarjetaResultado(await NLT_API.indicatorAiAnalisis(id)); }
-            catch (e) { box.innerHTML = `<p class="text-sm text-red-400 px-1">${e.message}</p>`; }
+        async function verReporte(id) {
+            const det = $('repDetalle');
+            $('repLista').classList.add('hidden'); show('repDetalle');
+            det.innerHTML = '<p class="text-sm text-gray-500 animate-pulse px-1">Cargando el reporte…</p>';
+            try { det.innerHTML = '<button type="button" id="repVolver" class="mb-4 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-sm text-gray-300 transition-colors cursor-pointer"><i class="ph ph-arrow-left mr-1"></i>Reportes</button>' + R.html(await NLT_API.indicatorAiAnalisis(id)); $('repVolver').addEventListener('click', () => { hide('repDetalle'); $('repLista').classList.remove('hidden'); }); }
+            catch (e) { det.innerHTML = `<p class="text-sm text-red-400 px-1">${e.message}</p>`; }
         }
+        $('repLista').addEventListener('click', (e) => { const f = e.target.closest('[data-air-id]'); if (f) verReporte(f.dataset.airId); });
 
         // ── usage badge ──
         function pintarUsage(e) {
             if (!e) return;
             const q = e.quota;
-            $('usageBadge').textContent = q == null ? `${e.used || 0} análisis este mes` : `${e.used || 0} / ${q} analyses used`;
+            $('usageBadge').textContent = q == null ? `${e.used || 0} análisis este mes` : `${e.used || 0} / ${q} análisis usados`;
         }
         async function refrescarUsage() {
             try { const s = await NLT_API.indicatorAiStats(); pintarUsage(s.usage); } catch (_) {}
@@ -416,7 +257,7 @@
 
             show('vistaPanel');
             pintarUsage(entitlement);
-            cargarConexion();
+            cargarReportes();
         })();
     })();
     </script>
