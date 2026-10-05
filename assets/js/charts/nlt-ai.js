@@ -255,7 +255,7 @@
                     <span style="display:flex; align-items:center; gap:4px">
                         <button type="button" class="ch-gear ch-ind-star${fav ? ' on' : ''}" data-fav-ind="${ID}" title="${fav ? 'Quitar de favoritos' : 'Agregar a favoritos'}" aria-label="Favorito NLT AI"><i class="${fav ? 'ph-fill' : 'ph'} ph-star"></i></button>
                         <button type="button" class="ch-gear" data-nltai-gear title="Configuración" aria-label="Configuración de NLT AI"><i class="ph ph-gear-six"></i></button>
-                        ${pronto ? '<span class="ch-lock">PRÓXIMAMENTE</span>' : ''}
+                        ${pronto ? '<span class="ch-lock">PRÓXIMAMENTE</span>' : '<button type="button" class="ch-gear" data-nltai-guia title="Ver guía" aria-label="Ver guía de uso"><i class="ph ph-question"></i></button>'}
                     </span></div>
                 <p class="ch-ind-desc">Marca una zona, pulsa «Analizar zona» y la IA te dice si la entrada es válida: resumen en el gráfico y reporte completo en «Reportes». No necesita alertas ni webhooks.${extra}</p>
                 <label class="ch-ind" style="padding-left:0; margin-top:6px">
@@ -266,6 +266,8 @@
         function enlazar(el) {
             const cb = el.querySelector('[data-nltai-ver]');
             if (cb) cb.addEventListener('change', () => alternar(cb.checked));
+            const gu = el.querySelector('[data-nltai-guia]');
+            if (gu) gu.addEventListener('click', () => { if (window.NLTGuiaPro) window.NLTGuiaPro.iniciar('ai'); });
             const g = el.querySelector('[data-nltai-gear]');
             if (g) g.addEventListener('click', () => {
                 document.getElementById('chPanel').hidden = true;
