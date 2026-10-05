@@ -9,6 +9,7 @@
  * Sin comisión ni spread; el apalancamiento es 1:100. La conversión a dólares es aproximada en pares sin USD. */
 (function () {
     const REFRESCO_MS = 5000;
+    const REFRESCO_ACTIVO_MS = 3000;   // con posiciones u órdenes abiertas se revisa más seguido
     const APALANCAMIENTO = 100;
     const MAX_POSICIONES = 20, MAX_ORDENES = 30, MAX_HISTORIAL = 200;
     const SALDO_DEF = 10000;
@@ -34,27 +35,42 @@
         return 1;
     }
 
-    // ¿Debe ejecutarse la orden pendiente con este precio? Devuelve el precio de entrada o null.
-    function llenaOrden(o, precio) {
+    // ¿Debe ejecutarse la orden pendiente? Mira el precio actual Y los extremos (alto/bajo) de las velas de 1 minuto desde que
+    // se creó la orden: así un pico entre dos revisiones no se pierde. Devuelve el precio de entrada o null.
+    function llenaOrden(o, precio, alto, bajo) {
+        const techo = Math.max(precio, alto == null ? precio : alto), piso = Math.min(precio, bajo == null ? precio : bajo);
         if (o.side === 'buy') {
-            if (o.type === 'limit' && precio <= o.price) return o.price;
-            if (o.type === 'stop' && precio >= o.price) return precio;
+            if (o.type === 'limit' && piso <= o.price) return o.price;
+            if (o.type === 'stop' && techo >= o.price) return o.price;
         } else {
-            if (o.type === 'limit' && precio >= o.price) return o.price;
-            if (o.type === 'stop' && precio <= o.price) return precio;
+            if (o.type === 'limit' && techo >= o.price) return o.price;
+            if (o.type === 'stop' && piso <= o.price) return o.price;
         }
         return null;
     }
-    // ¿Salta SL o TP con este precio? Devuelve { precio, motivo } o null (si ambos, gana el stop: lo conservador).
-    function cierraPosicion(p, precio) {
+    // ¿Salta SL o TP? Igual: precio actual + extremos de las velas posteriores a la apertura. Si en el mismo minuto se tocan
+    // los dos no se sabe cuál fue primero: gana el stop (lo conservador).
+    function cierraPosicion(p, precio, alto, bajo) {
+        const techo = Math.max(precio, alto == null ? precio : alto), piso = Math.min(precio, bajo == null ? precio : bajo);
         if (p.side === 'buy') {
-            if (p.sl != null && precio <= p.sl) return { precio: p.sl, motivo: 'SL' };
-            if (p.tp != null && precio >= p.tp) return { precio: p.tp, motivo: 'TP' };
+            if (p.sl != null && piso <= p.sl) return { precio: p.sl, motivo: 'SL' };
+            if (p.tp != null && techo >= p.tp) return { precio: p.tp, motivo: 'TP' };
         } else {
-            if (p.sl != null && precio >= p.sl) return { precio: p.sl, motivo: 'SL' };
-            if (p.tp != null && precio <= p.tp) return { precio: p.tp, motivo: 'TP' };
+            if (p.sl != null && techo >= p.sl) return { precio: p.sl, motivo: 'SL' };
+            if (p.tp != null && piso <= p.tp) return { precio: p.tp, motivo: 'TP' };
         }
         return null;
+    }
+    // Extremos de las velas de 1 min que EMPEZARON después de `desde` (la vela en la que ocurrió el hecho no cuenta: parte de
+    // su rango es anterior). Devuelve { alto, bajo } o {}.
+    function extremosDesde(velas, desde) {
+        let alto = null, bajo = null;
+        (velas || []).forEach((v) => {
+            if (v.t < desde) return;
+            alto = alto == null ? v.h : Math.max(alto, v.h);
+            bajo = bajo == null ? v.l : Math.min(bajo, v.l);
+        });
+        return { alto, bajo };
     }
     function validar(t, precio) {
         const { side, type, lots, price, sl, tp } = t;
@@ -74,6 +90,8 @@
         const guardado = state.prefs().paper;
         let cuenta = guardado && guardado.v === 1 ? guardado : { v: 1, inicial: SALDO_DEF, saldo: SALDO_DEF, posiciones: [], ordenes: [], historial: [] };
         let precios = {};      // sym -> último precio
+        let velas1m = {};      // sym -> velas de 1 min recientes ({t,h,l,c}), para no perder los picos entre revisiones
+        let ultimoChequeo = 0; // cuándo se revisó por última vez (para pedir de más al volver a la pestaña)
         let tab = 'ticket', mensaje = '', prefill = null, timer = null;
 
         const guardar = () => state.savePrefs({ paper: cuenta });
@@ -319,7 +337,8 @@
             let cambio = false;
             [...cuenta.ordenes].forEach((o) => {
                 const px = precios[o.sym]; if (px == null) return;
-                const entrada = llenaOrden(o, px);
+                const { alto, bajo } = extremosDesde(velas1m[o.sym], o.creada || 0);
+                const entrada = llenaOrden(o, px, alto, bajo);
                 if (entrada == null) return;
                 cuenta.ordenes = cuenta.ordenes.filter((x) => x.id !== o.id);
                 if (cuenta.posiciones.length < MAX_POSICIONES) cuenta.posiciones.push({ id: o.id, sym: o.sym, side: o.side, lots: o.lots, entry: entrada, sl: o.sl, tp: o.tp, abierta: Date.now() });
@@ -327,24 +346,44 @@
             });
             [...cuenta.posiciones].forEach((p) => {
                 const px = precios[p.sym]; if (px == null) return;
-                const c = cierraPosicion(p, px);
-                if (c) { cerrar(p, c.precio, c.motivo); cambio = true; }
+                const { alto, bajo } = extremosDesde(velas1m[p.sym], p.abierta || 0);
+                const c = cierraPosicion(p, px, alto, bajo);
+                if (c) { cerrar(p, c.precio, c.motivo); cambio = true; if (!pop.hidden || p.sym === getSymbol()) avisar(`${c.motivo === 'TP' ? '🎯 Take profit' : '🛑 Stop loss'} alcanzado en ${p.sym}: ${dinero(cuenta.historial[0].pnl)}`); }
             });
             if (cambio) guardar();
             return cambio;
         }
         async function actualizar() {
             const syms = new Set([getSymbol(), ...cuenta.posiciones.map((p) => p.sym), ...cuenta.ordenes.map((o) => o.sym)]);
-            // para convertir a dólares los pares sin USD alcanza con el precio de cada par (aproximado)
-            try {
-                const r = await NLT_API.chartsQuotes([...syms]);
-                (r.quotes || []).forEach((q) => { if (q.last != null) precios[q.symbol] = q.last; });
-            } catch (_) { return; }
+            // Velas de 1 min de cada símbolo con posiciones u órdenes: dan el precio actual Y el alto/bajo desde la última revisión
+            // (un pico que toca el SL/TP entre dos revisiones cierra igual). Al volver a la pestaña se piden más para ponerse al día.
+            const faltaron = Math.ceil((Date.now() - (ultimoChequeo || Date.now())) / 60000);
+            const limite = Math.max(5, Math.min(300, faltaron + 3));
+            const desde = cuenta.posiciones.concat(cuenta.ordenes).reduce((m, x) => Math.min(m, x.abierta || x.creada || Date.now()), Date.now());
+            const minutosDesdeApertura = Math.ceil((Date.now() - desde) / 60000) + 3;
+            const pedir = Math.max(limite, Math.min(300, minutosDesdeApertura));
+            const resultados = await Promise.all([...syms].map(async (sym) => {
+                try {
+                    const necesitaHistoria = cuenta.posiciones.some((p) => p.sym === sym) || cuenta.ordenes.some((o) => o.sym === sym);
+                    const r = await NLT_API.chartsVelas(sym, '1m', { limit: necesitaHistoria ? pedir : 3 });
+                    return [sym, r.candles || []];
+                } catch (_) { return [sym, null]; }
+            }));
+            let alguno = false;
+            resultados.forEach(([sym, cs]) => {
+                if (!cs || !cs.length) return;
+                velas1m[sym] = cs; precios[sym] = cs[cs.length - 1].c; alguno = true;
+            });
+            if (!alguno) return;
+            ultimoChequeo = Date.now();
             evaluar(); pintarLineas(); if (!pop.hidden) pintar();
         }
+        let cadenciaActual = 0;
         function programar() {
             const necesita = !pop.hidden || cuenta.posiciones.length || cuenta.ordenes.length;
-            if (necesita && !timer) timer = setInterval(() => { if (!document.hidden) actualizar(); }, REFRESCO_MS);
+            const cadencia = cuenta.posiciones.length || cuenta.ordenes.length ? REFRESCO_ACTIVO_MS : REFRESCO_MS;
+            if (timer && cadencia !== cadenciaActual) { clearInterval(timer); timer = null; }
+            if (necesita && !timer) { cadenciaActual = cadencia; timer = setInterval(() => { if (!document.hidden) actualizar(); }, cadencia); }
             if (!necesita && timer) { clearInterval(timer); timer = null; }
         }
 
@@ -447,6 +486,7 @@
             pintar(); posicionar();
         });
 
+        document.addEventListener('visibilitychange', () => { if (!document.hidden && (cuenta.posiciones.length || cuenta.ordenes.length)) actualizar(); });
         const ancla = document.getElementById('chBtnConfig');
         if (ancla) ancla.before(btn);
         programar();
@@ -468,5 +508,5 @@
     }
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.paper = { montar, pnl, convUSD, llenaOrden, cierraPosicion, validar, contrato };
+    window.NLTCharts.paper = { montar, pnl, convUSD, llenaOrden, cierraPosicion, extremosDesde, validar, contrato };
 })();
