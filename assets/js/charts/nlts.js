@@ -162,6 +162,7 @@
                 while (prof > 0 && T[k].tipo !== 'EOF' && T[k].tipo !== 'NEWLINE') { if (T[k].tipo === 'OP' && T[k].valor === '<') prof++; if (T[k].tipo === 'OP' && T[k].valor === '>') prof--; k++; }
                 if (prof !== 0) return 0;
             }
+            while (T[k].tipo === 'OP' && T[k].valor === '[' && T[k + 1].tipo === 'OP' && T[k + 1].valor === ']') k += 2;   // float[], line[]
             return T[k].tipo === 'ID' ? k - k0 : 0;
         }
         function sentencia(enLinea) {
