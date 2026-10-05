@@ -494,6 +494,7 @@
         communityAdClick: (adId) => fetch(BASE_URL + `/community/ads/${adId}/click`, { method: 'POST' }).catch(() => {}),
         communityMiPerfil: () => request('/community/profile/me'),
         communityActualizarPerfil: (datos) => request('/community/profile/me', { method: 'PATCH', body: JSON.stringify(datos) }),
+        communityBuscarPersonas: (q) => request(`/community/search/users?q=${encodeURIComponent(q)}`),
         communityPerfilPublico: (username) => requestConSesionOpcional(`/community/profile/${username}`),
         communityPostsDePerfil: (username) => requestConSesionOpcional(`/community/profile/${username}/posts`),
         communitySeguir: (username) => request(`/community/follow/${username}`, { method: 'POST' }),
@@ -955,7 +956,12 @@
         chartsScript: (id) => request(`/charts/scripts/${encodeURIComponent(id)}`),
         chartsScriptsCompartidos: () => request('/charts/scripts/shared'),
         chartsScriptCompartido: (id) => request(`/charts/scripts/shared/${encodeURIComponent(id)}`),
-        chartsScriptsTienda: () => request('/charts/scripts/market'),
+        chartsScriptsTienda: (p = {}) => {
+            const qs = new URLSearchParams();
+            ['q', 'sort', 'creator'].forEach((k) => { if (p[k]) qs.set(k, p[k]); });
+            if (p.page) qs.set('page', String(p.page));
+            return request(`/charts/scripts/market${qs.toString() ? '?' + qs : ''}`);
+        },
         chartsScriptPublicar: (id, listado, descripcion, precio, facturacion) => request(`/charts/scripts/${encodeURIComponent(id)}/listing`, { method: 'PUT', body: JSON.stringify({ listed: listado, description: descripcion, price_usd: precio || null, billing: facturacion || 'monthly' }), intentos: 1 }),
         chartsScriptComprar: (id) => request(`/charts/scripts/${encodeURIComponent(id)}/buy`, { method: 'POST', lento: true, intentos: 1 }),
         chartsScriptReportar: (id, motivo) => request(`/charts/scripts/${encodeURIComponent(id)}/report`, { method: 'POST', body: JSON.stringify({ reason: motivo }), intentos: 1 }),
