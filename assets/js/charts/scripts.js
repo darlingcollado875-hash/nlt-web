@@ -68,7 +68,7 @@
         const state = NLTCharts.state, esc = NLTCharts.ui.esc;
         const ejecutor = crearEjecutor();
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
-        let compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
+        let ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
         let sel = null /* script abierto: { id|null, nombre, codigo } */, sucio = false, mensaje = '', erroresVivos = [], timerValida = null;
 
         const btn = document.createElement('button');
@@ -232,7 +232,9 @@
             try { compartidos = (await NLT_API.chartsScriptsCompartidos()).scripts || []; } catch (_) { compartidos = []; }
         }
         async function cargarTienda() {
-            try { tienda = (await NLT_API.chartsScriptsTienda()).scripts || []; } catch (e) { tienda = []; mensaje = e.message || 'No se pudo cargar la tienda.'; }
+            try { const r = await NLT_API.chartsScriptsTienda(); tienda = r.scripts || []; if (r.commission_pct != null) comisionPct = r.commission_pct; } catch (e) { tienda = []; mensaje = e.message || 'No se pudo cargar la tienda.'; }
+            if (acceso === true) { try { ganancias = await NLT_API.chartsScriptGanancias(); } catch (_) { ganancias = null; } }
+            try { admin = await NLT_API.chartsScriptAdmin(); } catch (_) { admin = null; }   // 403 = no eres admin: el panel simplemente no aparece
         }
         async function cargarAccesos() {
             accesos = [];
@@ -252,7 +254,7 @@
                 const r = await NLT_API.chartsScript(id);
                 const s = r.script;
                 const meta = lista.find((x) => x.id === s.id) || {};
-                sel = { id: s.id, nombre: s.name, codigo: s.code, publicado: meta.visibility === 'listed', descripcion: meta.description || '' }; sucio = false; mensaje = ''; vista = 'mis';
+                sel = { id: s.id, nombre: s.name, codigo: s.code, publicado: meta.visibility === 'listed', descripcion: meta.description || '', precio: meta.price_usd || '', facturacion: meta.billing || 'monthly', bloqueado: !!meta.blocked }; sucio = false; mensaje = ''; vista = 'mis';
             } catch (e) { mensaje = e.message || 'No se pudo abrir el script.'; }
             validarVivo(); await cargarAccesos(); pintar();
         }
@@ -330,15 +332,30 @@
                     <form class="sc-form" data-a="compartir"><input type="email" name="email" placeholder="correo de la persona (con cuenta en NLT)" required maxlength="200"><button class="sc-b on" type="submit">Dar acceso</button></form>
                     ${filas || '<p class="sc-peq">Nadie más tiene acceso todavía.</p>'}
                     <div class="sc-sub" style="margin-top:12px">Tienda de indicadores</div>
-                    <form class="sc-form" data-a="publicar"><input type="text" name="descripcion" maxlength="500" placeholder="¿Qué hace tu indicador? (mínimo 10 caracteres)" value="${esc(sel.descripcion || '')}">
-                        <button class="sc-b ${sel.publicado ? '' : 'on'}" type="submit" data-listar="${sel.publicado ? '0' : '1'}">${sel.publicado ? 'Quitar de la tienda' : 'Publicar en la tienda'}</button></form>
-                    <p class="sc-peq">${sel.publicado ? 'Publicado: cualquier usuario de NLT puede añadirlo a su gráfico.' : 'Publicar lo deja disponible para todos los usuarios de NLT.'} Quien lo use podría ver cómo está hecho (corre en su navegador): no pongas contraseñas ni datos privados en el código.</p></div>`;
+                    ${sel.bloqueado ? '<p class="sc-peq" style="color:#F87171">NLT bloqueó este indicador: no se puede publicar.</p>' : `<form class="sc-form" data-a="publicar"><input type="text" name="descripcion" maxlength="500" placeholder="¿Qué hace tu indicador? (mínimo 10 caracteres)" value="${esc(sel.descripcion || '')}">
+                        <input type="number" name="precio" min="2" max="200" step="0.01" placeholder="Precio US$ (vacío = gratis)" value="${esc(String(sel.precio || ''))}" style="max-width:190px">
+                        <select name="facturacion" class="sc-ej" aria-label="Tipo de cobro"><option value="monthly" ${sel.facturacion === 'one_time' ? '' : 'selected'}>Cobro mensual</option><option value="one_time" ${sel.facturacion === 'one_time' ? 'selected' : ''}>Pago único</option></select>
+                        <button class="sc-b ${sel.publicado ? '' : 'on'}" type="submit" data-listar="1">${sel.publicado ? 'Actualizar' : 'Publicar en la tienda'}</button>
+                        ${sel.publicado ? '<button class="sc-b mal" type="submit" data-listar="0">Quitar</button>' : ''}</form>`}
+                    <p class="sc-peq">${sel.publicado ? 'Publicado: cualquier usuario de NLT puede verlo en la tienda.' : 'Publicar lo deja visible para todos los usuarios de NLT.'} Si le pones precio, el pago lo cobra NLT y te corresponde el ${100 - comisionPct}% de cada cobro (NLT se queda el ${comisionPct}%); tus ganancias aparecen en la Tienda y NLT te las paga aparte. Quien lo use podría ver cómo está hecho (corre en su navegador): no pongas contraseñas ni datos privados en el código. Eres responsable de lo que publicas.</p></div>`;
         }
+        function precioTxt(t) { return t.price_usd ? `US$${Number(t.price_usd).toFixed(2)}${t.billing === 'one_time' ? ' · pago único' : ' / mes'}` : 'Gratis'; }
         function htmlTienda() {
-            return `<div class="sc-sub">Tienda de indicadores</div>${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}
-                ${tienda.length ? tienda.map((t) => `<div class="sc-tienda"><div><b>${esc(t.name)}</b><span class="sc-peq"> · ${esc(t.creator)}</span><p>${esc(t.description)}</p></div>
-                    <button class="sc-b ${activos.has(t.id) ? '' : 'on'}" data-a="usar" data-id="${esc(t.id)}">${activos.has(t.id) ? 'Quitar' : 'Usar'}</button></div>`).join('') : '<p class="sc-peq">Todavía no hay indicadores publicados.</p>'}
-                <p class="sc-peq">Los indicadores de la tienda los publican otros usuarios y salen sin revisión previa. Úsalos bajo tu criterio; NLT no los garantiza.</p>`;
+            const gan = ganancias && (ganancias.sales || ganancias.pending_usd || ganancias.paid_usd)
+                ? `<div class="sc-ficha"><b>Tus ventas</b><p>Por pagarte: <b>US$${Number(ganancias.pending_usd).toFixed(2)}</b> · Ya pagado: US$${Number(ganancias.paid_usd).toFixed(2)} · Cobros: ${ganancias.sales}</p><p class="sc-peq">NLT se queda el ${comisionPct}% de cada cobro y te paga tu parte aparte.</p></div>` : '';
+            const panelAdmin = admin ? `<div class="sc-ficha"><b>Administración</b>
+                ${(admin.payouts || []).length ? admin.payouts.map((x) => `<div class="sc-acc"><span>${esc(x.email)} — debe US$${Number(x.owed_usd).toFixed(2)} (${x.sales} cobros)</span><button class="sc-b on" data-a="adm-pagado" data-v="${esc(x.seller_user_id)}">Marcar pagado</button></div>`).join('') : '<p class="sc-peq">Sin pagos pendientes a creadores.</p>'}
+                ${(admin.reports || []).length ? `<div class="sc-sub" style="margin-top:8px">Reportes</div>` + admin.reports.map((r) => `<div class="sc-acc"><span>${esc(r.name)}: ${esc(r.reason)}</span><button class="sc-b ${r.blocked ? '' : 'mal'}" data-a="adm-bloquear" data-id="${esc(r.script_id)}" data-b="${r.blocked ? '0' : '1'}">${r.blocked ? 'Desbloquear' : 'Bloquear'}</button></div>`).join('') : ''}</div>` : '';
+            return `<div class="sc-sub">Tienda de indicadores</div>${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}${gan}${panelAdmin}
+                ${tienda.length ? tienda.map((t) => {
+                    const enGrafico = activos.has(t.id);
+                    const accion = t.owned
+                        ? `<button class="sc-b ${enGrafico ? '' : 'on'}" data-a="usar" data-id="${esc(t.id)}">${enGrafico ? 'Quitar' : 'Usar'}</button>`
+                        : `<button class="sc-b on" data-a="comprar" data-id="${esc(t.id)}" ${compraEnCurso ? 'disabled' : ''}>Comprar ${esc(precioTxt(t))}</button>`;
+                    return `<div class="sc-tienda"><div><b>${esc(t.name)}</b><span class="sc-peq"> · ${esc(t.creator)} · ${esc(precioTxt(t))}</span><p>${esc(t.description)}</p>
+                        ${t.mine ? '<span class="sc-peq">Es tuyo</span>' : `<button class="sc-link" data-a="reportar" data-id="${esc(t.id)}">Reportar</button>`}</div>${t.mine ? '' : accion}</div>`;
+                }).join('') : '<p class="sc-peq">Todavía no hay indicadores publicados.</p>'}
+                <p class="sc-peq">Los indicadores de la tienda los publican otros usuarios y salen sin revisión previa. Úsalos bajo tu criterio; NLT no los garantiza ni son recomendación de inversión. Los de pago se cobran con tarjeta por Whop; el acceso se activa al confirmarse el pago y dura mientras la suscripción esté vigente (o para siempre si fue pago único). Si algo está mal, usa Reportar.</p>`;
         }
         function htmlEditor() {
             if (vista === 'tienda') return htmlTienda();
@@ -464,13 +481,36 @@
             } else if (f.dataset.a === 'publicar') {
                 const listar = (e.submitter && e.submitter.dataset.listar) === '1';
                 try {
-                    await NLT_API.chartsScriptPublicar(sel.id, listar, f.elements.descripcion.value);
-                    sel.publicado = listar; sel.descripcion = f.elements.descripcion.value; mensaje = listar ? 'Publicado en la tienda.' : 'Quitado de la tienda.';
+                    const precio = f.elements.precio.value ? Number(f.elements.precio.value) : null;
+                    await NLT_API.chartsScriptPublicar(sel.id, listar, f.elements.descripcion.value, precio, f.elements.facturacion.value);
+                    sel.publicado = listar; sel.descripcion = f.elements.descripcion.value; sel.precio = precio || ''; sel.facturacion = f.elements.facturacion.value; mensaje = listar ? 'Publicado en la tienda.' : 'Quitado de la tienda.';
                     await cargarLista();
                 } catch (er) { mensaje = er.message || 'No se pudo cambiar la publicación.'; }
                 pintar();
             }
         });
+        async function comprar(id) {
+            if (compraEnCurso) return;
+            compraEnCurso = id; mensaje = 'Abriendo el pago…'; pintar();
+            try { const r = await NLT_API.chartsScriptComprar(id); window.location.assign(r.checkout_url); return; }
+            catch (er) { mensaje = er.message || 'No se pudo abrir el pago.'; compraEnCurso = null; }
+            pintar();
+        }
+        async function reportar(id) {
+            const motivo = window.prompt('¿Qué pasa con este indicador? (se envía al equipo de NLT)');
+            if (!motivo || motivo.trim().length < 3) return;
+            try { await NLT_API.chartsScriptReportar(id, motivo.trim()); mensaje = 'Gracias, lo revisaremos.'; } catch (er) { mensaje = er.message || 'No se pudo enviar el reporte.'; }
+            pintar();
+        }
+        async function admPagado(v) {
+            if (!window.confirm('¿Marcar como pagadas todas las ventas pendientes de este creador?')) return;
+            try { const r = await NLT_API.chartsScriptAdminPagado(v); mensaje = `Marcadas ${r.marked} ventas como pagadas.`; admin = await NLT_API.chartsScriptAdmin(); } catch (er) { mensaje = er.message || 'No se pudo marcar.'; }
+            pintar();
+        }
+        async function admBloquear(id, b) {
+            try { await NLT_API.chartsScriptAdminBloquear(id, b); mensaje = b ? 'Indicador bloqueado.' : 'Indicador desbloqueado.'; admin = await NLT_API.chartsScriptAdmin(); await cargarTienda(); } catch (er) { mensaje = er.message || 'No se pudo cambiar.'; }
+            pintar();
+        }
         async function revocar(gid) {
             try { await NLT_API.chartsScriptQuitarAcceso(sel.id, gid); mensaje = 'Acceso quitado.'; await cargarAccesos(); } catch (er) { mensaje = er.message || 'No se pudo quitar.'; }
             pintar();
@@ -517,6 +557,10 @@
             else if (a === 'borrar') borrar();
             else if (a === 'tienda') { vista = 'tienda'; mensaje = ''; pintar(); cargarTienda().then(pintar); }
             else if (a === 'usar') usarDeTienda(acc.dataset.id);
+            else if (a === 'comprar') comprar(acc.dataset.id);
+            else if (a === 'reportar') reportar(acc.dataset.id);
+            else if (a === 'adm-pagado') admPagado(acc.dataset.v);
+            else if (a === 'adm-bloquear') admBloquear(acc.dataset.id, acc.dataset.b === '1');
             else if (a === 'grafico-ajeno') alternarAjeno();
             else if (a === 'revocar') revocar(acc.dataset.gid);
         });
@@ -534,6 +578,20 @@
         btn.addEventListener('click', (e) => { e.stopPropagation(); if (modal.hidden) abrir(); else cerrar(); });
         const ancla = document.getElementById('chBtnConfig');
         if (ancla) ancla.before(btn);
+
+        // Volviendo del pago: abrir la tienda y esperar a que el aviso de Whop active el acceso (puede tardar unos segundos)
+        (async function volverDelPago() {
+            const q = new URLSearchParams(window.location.search), id = q.get('script_compra');
+            if (!id) return;
+            try { q.delete('script_compra'); history.replaceState(null, '', window.location.pathname + (q.toString() ? '?' + q : '')); } catch (_) { /* nada */ }
+            await abrir(); vista = 'tienda'; mensaje = 'Confirmando tu pago…'; pintar();
+            for (let i = 0; i < 12; i++) {
+                await cargarLista(); await cargarTienda();
+                if (tienda.some((t) => t.id === id && t.owned)) { mensaje = '¡Listo! Ya tienes el indicador: pulsa Usar.'; pintar(); return; }
+                pintar(); await new Promise((r) => setTimeout(r, 4000));
+            }
+            mensaje = 'El pago aún no se confirma. Si ya pagaste, en unos minutos aparecerá aquí.'; pintar();
+        })();
 
         // Al volver a abrir el gráfico, los scripts que dejaste puestos se vuelven a poner (si el plan sigue activo).
         (async function restaurar() {
