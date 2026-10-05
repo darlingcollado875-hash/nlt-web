@@ -1,4 +1,4 @@
-/* NLT Charts -- Simulador (paper trading): practicá con dinero virtual, sin riesgo.
+/* NLT Charts -- Simulador (paper trading): practica con dinero virtual, sin riesgo.
  *
  * Cuenta virtual (saldo inicial a tu elección) con órdenes a mercado, límite y stop, stop loss y take profit,
  * posiciones abiertas con ganancia/pérdida en vivo e historial. NO usa tu cuenta real ni envía nada al broker:
@@ -109,7 +109,7 @@
         const margenUsado = () => cuenta.posiciones.reduce((a, p) => a + margen(p), 0);
 
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnPaper'; btn.className = 'ch-btn ch-herr'; btn.title = 'Simulador: practicá con dinero virtual'; btn.setAttribute('aria-label', 'Simulador de trading');
+        btn.type = 'button'; btn.id = 'chBtnPaper'; btn.className = 'ch-btn ch-herr'; btn.title = 'Simulador: practica con dinero virtual'; btn.setAttribute('aria-label', 'Simulador de trading');
         btn.innerHTML = '<i class="ph ph-game-controller"></i><span class="ch-btn-label">Simulador</span>';
         const pop = document.createElement('div');
         pop.className = 'mc-menu pp-pop'; pop.id = 'chPaper'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Simulador de trading');
@@ -251,13 +251,13 @@
         // ── acciones ──
         function enviar(t) {
             const sym = getSymbol(), px = precios[sym];
-            if (px == null) return 'Todavía no hay precio de este símbolo. Probá en unos segundos.';
+            if (px == null) return 'Todavía no hay precio de este símbolo. Prueba en unos segundos.';
             const err = validar(t, px);
             if (err) return err;
             if (t.type === 'market') {
                 if (cuenta.posiciones.length >= MAX_POSICIONES) return `Máximo ${MAX_POSICIONES} posiciones abiertas.`;
                 const nuevaMargen = (t.lots * tam(sym) * px * convUSD(sym, px)) / APALANCAMIENTO;
-                if (nuevaMargen > equity() - margenUsado()) return `Margen insuficiente: necesitás ${dinero(nuevaMargen)} y tenés libre ${dinero(equity() - margenUsado())}.`;
+                if (nuevaMargen > equity() - margenUsado()) return `Margen insuficiente: necesitas ${dinero(nuevaMargen)} y tienes libre ${dinero(equity() - margenUsado())}.`;
                 cuenta.posiciones.push({ id: uid(), sym, side: t.side, lots: t.lots, entry: px, sl: t.sl, tp: t.tp, abierta: Date.now() });
             } else {
                 if (cuenta.ordenes.length >= MAX_ORDENES) return `Máximo ${MAX_ORDENES} órdenes pendientes.`;

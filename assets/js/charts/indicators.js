@@ -394,7 +394,7 @@
             if (pl) {
                 const sel = panelEl.querySelector('[data-plant-sel]'); const nombre = sel && sel.value;
                 if (pl.dataset.plant === 'guardar') guardarPlantilla();
-                else if (!nombre) window.alert('Elegí una plantilla de la lista.');
+                else if (!nombre) window.alert('Elige una plantilla de la lista.');
                 else if (pl.dataset.plant === 'aplicar') aplicarPlantilla(nombre);
                 else if (pl.dataset.plant === 'borrar' && window.confirm(`¿Borrar la plantilla "${nombre}"?`)) { const t = { ...plantillas() }; delete t[nombre]; state.savePrefs({ plantillasInd: t }); render(); }
                 return;

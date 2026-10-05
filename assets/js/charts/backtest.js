@@ -287,7 +287,7 @@
             const corriendo = st.job && ['queued', 'data', 'engine', 'simulation'].includes(st.job.status);
             const presets = [...c.presets.map((p) => [p.id, p.name]), ...st.presetsUsuario.map((p) => [p.id, `★ ${p.name}`])];
             return `
-            ${bloqueado ? `<div class="lab-aviso">NLT Backtest Lab corre el motor PRO del NLT Zone Engine en el servidor. Necesitás un plan de NLT Indicator o la prueba activa del Zone Engine.</div>` : ''}
+            ${bloqueado ? `<div class="lab-aviso">NLT Backtest Lab corre el motor PRO del NLT Zone Engine en el servidor. Necesitas un plan de NLT Indicator o la prueba activa del Zone Engine.</div>` : ''}
             <div class="lab-grid">
                 <fieldset><legend>Mercado</legend>
                     ${campo('Symbol', sel('symbol', c.symbols.map((s) => [s, s]), form.symbol))}
@@ -358,7 +358,7 @@
         }
         function htmlResultados() {
             const r = st.res;
-            if (!r) return '<p class="lab-vacio">Corré un backtest para ver los resultados.</p>';
+            if (!r) return '<p class="lab-vacio">Corre un backtest para ver los resultados.</p>';
             const m = r.metrics, meta = r.meta;
             const mensual = m.monthly_pl.length ? Math.max(...m.monthly_pl.map((x) => Math.abs(x.pl))) : 1;
             const est = r.zone_states || {};
@@ -390,7 +390,7 @@
         }
         function htmlOperaciones() {
             const r = st.res;
-            if (!r) return '<p class="lab-vacio">Corré un backtest para ver las operaciones.</p>';
+            if (!r) return '<p class="lab-vacio">Corre un backtest para ver las operaciones.</p>';
             const f = st.filtros, p = st.precision;
             const sesiones = [...new Set(r.trades.map((t) => t.sesion).filter(Boolean))];
             const zonas = [...new Set(r.trades.map((t) => t.zona && t.zona.tipo).filter(Boolean))];
@@ -429,7 +429,7 @@
                         <dt>Zone State</dt><dd>${esc(t.zona && t.zona.estado || (t.zona && t.zona.tipo === 'CRT' ? 'ruptura' : 'ENTRY_READY'))}</dd>
                         <dt>Reason for Entry</dt><dd>${esc(t.motivo_entrada)}</dd>
                         <dt>Reason for Exit</dt><dd>${esc(t.motivo_salida)}${t.ambigua ? `<br><small>⚠ vela con SL y TP: ${esc(t.ambigua.detalle)}</small>` : ''}</dd>
-                    </dl>` : '<p class="lab-vacio">Elegí una operación de la tabla (o tocala en el gráfico).</p>'}
+                    </dl>` : '<p class="lab-vacio">Elige una operación de la tabla (o tocala en el gráfico).</p>'}
                 </div>
             </div>`;
         }
@@ -443,7 +443,7 @@
             return { panel, trans, balance: r.metrics.initial_balance + cerradas.reduce((a, t) => a + t.pnl, 0), n: cerradas.length, abierta };
         }
         function htmlReplay() {
-            if (!st.res) return '<p class="lab-vacio">Corré un backtest para reproducir su período vela por vela.</p>';
+            if (!st.res) return '<p class="lab-vacio">Corre un backtest para reproducir su período vela por vela.</p>';
             const m = st.res.meta;
             return `
             <div class="lab-replay">
@@ -518,7 +518,7 @@
 
         async function guardarPreset() {
             const nombre = (form.nombrePreset || '').trim();
-            if (!nombre) { st.presetsMsg = 'Poné un nombre para el preset.'; pintar(); return; }
+            if (!nombre) { st.presetsMsg = 'Pon un nombre para el preset.'; pintar(); return; }
             const base = presetActual();
             const p = pedido();
             try {

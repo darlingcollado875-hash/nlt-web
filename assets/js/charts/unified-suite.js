@@ -769,7 +769,7 @@
             const d = dash && dash[k];
             if (!d) { NLTCharts.ui.tablero.quitar(`suite-${k}`); return; }
             const el = slotDash(k, d.pos || 'Top Right');
-            if (el) el.innerHTML = `<div class="ud-dash ${d.clase || ''}${dashMinimizados().has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Tocá para minimizar o expandir">${d.html}</div>`;
+            if (el) el.innerHTML = `<div class="ud-dash ${d.clase || ''}${dashMinimizados().has(k) ? ' ud-min' : ''}" data-dash="${k}" title="Toca para minimizar o expandir">${d.html}</div>`;
         });
     }
 

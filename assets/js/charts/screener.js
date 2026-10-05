@@ -35,7 +35,7 @@
     function montar({ simbolos, getSymbol, getTimeframe, onAbrir }) {
         const esc = NLTCharts.ui.esc;
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnScreener'; btn.className = 'ch-btn ch-herr'; btn.title = 'Screener: compará todos los instrumentos'; btn.setAttribute('aria-label', 'Screener');
+        btn.type = 'button'; btn.id = 'chBtnScreener'; btn.className = 'ch-btn ch-herr'; btn.title = 'Screener: compara todos los instrumentos'; btn.setAttribute('aria-label', 'Screener');
         btn.innerHTML = '<i class="ph ph-table"></i><span class="ch-btn-label">Screener</span>';
         const panel = document.createElement('section');
         panel.className = 'sc'; panel.id = 'chScreener'; panel.hidden = true; panel.setAttribute('aria-label', 'Screener');
@@ -113,7 +113,7 @@
                 <button type="button" data-sc="cerrar" class="ch-tool" aria-label="Cerrar"><i class="ph ph-x"></i></button></div>
                 <div class="sc-tabla"><table><thead><tr>${th('sym', 'Símbolo')}${th('last', 'Precio')}${th('chg', 'Var. día')}${th('rsi', `RSI ${tfBase}`)}${th('adx', `ADX ${tfBase}`)}<th>Tendencia ${esc(tfBase)}</th>${INTERVALOS.map((t) => th(`tf:${t}`, `Análisis ${t}`, 'sc-rat')).join('')}</tr></thead>
                 <tbody>${cuerpo || '<tr><td colspan="11" class="sc-vacio">Ningún instrumento cumple los filtros.</td></tr>'}</tbody></table></div>
-                <p class="mc-nota">Informativo, calculado con 300 velas por intervalo. No es una recomendación de inversión. Tocá una fila para abrirla en el gráfico.</p>`;
+                <p class="mc-nota">Informativo, calculado con 300 velas por intervalo. No es una recomendación de inversión. Toca una fila para abrirla en el gráfico.</p>`;
         }
 
         async function cargarTodo(forzar) {

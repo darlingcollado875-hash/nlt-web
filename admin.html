@@ -8,10 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Admin Center</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=f1156d08">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -159,7 +160,7 @@
             <!-- USUARIOS -->
             <div id="seccion-usuarios" class="seccion-admin hidden">
                 <h2 class="text-sm font-semibold text-white mb-3 flex items-center gap-2"><i class="ph-fill ph-users-three text-nlt-accent"></i> Usuarios</h2>
-                <p class="text-xs text-gray-500 mb-3">Asigná o quitá el plan de Copy System de cualquier usuario a mano (cortesías, pruebas, correcciones) -- sin pasar por una orden ni un pago.</p>
+                <p class="text-xs text-gray-500 mb-3">Asigna o quita el plan de Copy System de cualquier usuario a mano (cortesías, pruebas, correcciones) -- sin pasar por una orden ni un pago.</p>
                 <div class="glass-card overflow-hidden">
                     <table class="responsive-table w-full text-left text-sm">
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
@@ -429,11 +430,11 @@
                 <div class="flex items-center justify-between mb-3">
                     <h2 class="text-sm font-semibold text-white flex items-center gap-2"><i class="ph-fill ph-video-camera text-nlt-accent"></i> NLT Media Library</h2>
                 </div>
-                <p class="text-xs text-gray-500 mb-4">Subí un video, asignalo a Indicator/Academy/Community/Dashboard/Onboarding, y aparece automáticamente ahí -- sin tocar código.</p>
+                <p class="text-xs text-gray-500 mb-4">Sube un video, asignalo a Indicator/Academy/Community/Dashboard/Onboarding, y aparece automáticamente ahí -- sin tocar código.</p>
 
                 <div id="mediaDropzone" class="glass-card p-8 mb-4 border-2 border-dashed border-white/10 text-center cursor-pointer hover:border-nlt-accent/40 transition-colors">
                     <i class="ph ph-upload-simple text-3xl text-gray-500 mb-2"></i>
-                    <p class="text-sm text-gray-300 font-medium">Arrastrá un video, PDF o imagen acá o hacé clic para elegir uno</p>
+                    <p class="text-sm text-gray-300 font-medium">Arrastra un video, PDF o imagen acá o haz clic para elegir uno</p>
                     <p class="text-xs text-gray-600 mt-1">MP4, WebM, PDF, JPG, PNG -- hasta 1GB</p>
                     <input type="file" id="mediaFileInput" accept="video/*,application/pdf,image/*" class="hidden">
                 </div>
@@ -1534,7 +1535,7 @@
                     <h2 class="text-lg font-bold flex items-center gap-2"><i class="ph-fill ph-handshake text-nlt-accent"></i> NLT Partners</h2>
                     <button id="btn-nuevo-partner" class="px-3 py-1.5 rounded-lg bg-nlt-accent/10 border border-nlt-accent/20 text-nlt-accent text-xs font-semibold hover:bg-nlt-accent/20 cursor-pointer"><i class="ph-bold ph-plus"></i> Nuevo partner</button>
                 </div>
-                <p class="text-xs text-gray-500">Un prospecto (llega por become-partner.html) y un partner publicado son la misma fila -- cambiá el status interno y publicalo cuando corresponda. Nunca se muestra públicamente hasta que actives "Público" abajo.</p>
+                <p class="text-xs text-gray-500">Un prospecto (llega por become-partner.html) y un partner publicado son la misma fila -- cambia el status interno y publícalo cuando corresponda. Nunca se muestra públicamente hasta que actives "Público" abajo.</p>
 
                 <!-- Contadores (Fase 4: "impacto real, sin analytics avanzado") --
                      derivados en el propio cliente de la lista ya cargada, sin
@@ -1718,7 +1719,7 @@
                     </div>
                     <div class="lg:col-span-2 glass-card p-0 flex flex-col" style="max-height: 70vh" id="soporteDetalleBox">
                         <div class="flex-1 flex items-center justify-center p-10">
-                            <p class="text-sm text-gray-500 text-center">Elegí una conversación de la lista para ver los mensajes.</p>
+                            <p class="text-sm text-gray-500 text-center">Elige una conversación de la lista para ver los mensajes.</p>
                         </div>
                     </div>
                 </div>
@@ -1825,7 +1826,7 @@
             <div id="seccion-admin-global" class="seccion-admin hidden space-y-6">
                 <div>
                     <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-shield-star text-nlt-accent"></i> Administración Global</h2>
-                    <p class="text-xs text-gray-500">Solo vos podés otorgar o revocar permisos de administrador y la insignia de verificado. Un admin secundario nunca puede modificar sus propios permisos ni crear otro admin -- esto está protegido en el backend, no solo acá.</p>
+                    <p class="text-xs text-gray-500">Solo tú puedes otorgar o revocar permisos de administrador y la insignia de verificado. Un admin secundario nunca puede modificar sus propios permisos ni crear otro admin -- esto está protegido en el backend, no solo acá.</p>
                 </div>
 
                 <div class="glass-card p-6">
@@ -1870,9 +1871,9 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
+    <script src="assets/js/nlt-shared.js?v=5a05efc3"></script>
     <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
-    <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
+    <script src="assets/js/nlt-certificate.js?v=f29013df"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
         // comillas -- varios usos interpolan dentro de atributos donde una comilla
@@ -2714,7 +2715,7 @@
 
         function seleccionarArchivoMedia(file) {
             const kindOk = file.type.startsWith('video/') || file.type.startsWith('image/') || file.type === 'application/pdf';
-            if (!kindOk) { alert('Elegí un video, PDF o imagen.'); return; }
+            if (!kindOk) { alert('Elige un video, PDF o imagen.'); return; }
             mediaArchivoSeleccionado = file;
             document.getElementById('mediaArchivoNombre').textContent = `${file.name} -- ${formatearBytes(file.size)}`;
             document.getElementById('muTitulo').value = file.name.replace(/\.[^.]+$/, '');
@@ -2839,7 +2840,7 @@
             try {
                 const m = await NLT_API.adminObtenerMedia(mediaId);
                 const usoTexto = m.placements.length ? `\n\nEste video está siendo usado en: ${m.placements.join(', ')}.` : '';
-                if (!confirm(`¿Seguro que querés eliminar "${m.title}"?${usoTexto}`)) return;
+                if (!confirm(`¿Seguro que quieres eliminar "${m.title}"?${usoTexto}`)) return;
                 await NLT_API.adminBorrarMedia(mediaId);
                 cargarMedia();
             } catch (err) {
@@ -2954,7 +2955,7 @@
 
         document.getElementById('btn-sync-now').addEventListener('click', async () => {
             const proveedor = (_ultimoCalStatus && _ultimoCalStatus.provider) || 'el proveedor configurado';
-            if (!confirm(`${proveedor} tiene un límite de requests muy ajustado. ¿Confirmás que querés sincronizar ahora?`)) return;
+            if (!confirm(`${proveedor} tiene un límite de requests muy ajustado. ¿Confirmas que quieres sincronizar ahora?`)) return;
 
             const msg = document.getElementById('calSettingsMsg');
             msg.classList.remove('hidden');
@@ -3762,7 +3763,7 @@
             const nivel = document.getElementById('accesoNivel').value;
             const diasStr = document.getElementById('accesoDias').value.trim();
             const msg = document.getElementById('accesoMsg');
-            if (!userId) { alert('Ingresá el user_id del usuario'); return; }
+            if (!userId) { alert('Ingresa el user_id del usuario'); return; }
             try {
                 await NLT_API.adminAcademyConcederAcceso(userId, {
                     nivel, permanente: !diasStr, dias: diasStr ? parseInt(diasStr) : null,
@@ -4451,7 +4452,7 @@
                 valor: parseFloat(document.getElementById('reglaValor').value),
                 activo: true,
             };
-            if (isNaN(datos.valor)) { alert('Ingresá un valor válido'); return; }
+            if (isNaN(datos.valor)) { alert('Ingresa un valor válido'); return; }
             await NLT_API.adminAfiliadosGuardarRegla(datos);
             document.getElementById('reglaProducto').value = '';
             document.getElementById('reglaPlanId').value = '';

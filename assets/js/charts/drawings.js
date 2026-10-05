@@ -58,14 +58,14 @@
 
     const BASE = [
         {
-            id: 'hline', overlay: 'nltHLine', pasos: 2, icono: 'ph-minus', label: 'Línea horizontal', ayuda: 'Tocá el precio donde va la línea',
+            id: 'hline', overlay: 'nltHLine', pasos: 2, icono: 'ph-minus', label: 'Línea horizontal', ayuda: 'Toca el precio donde va la línea',
             inputs: [...linea({ color: col('#4378ff', 0) }),
                 { id: 'mostrarPrecio', tipo: 'bool', def: true, titulo: 'Mostrar precio', grupo: 'Etiqueta', tab: 'Estilo', recalc: false },
                 ...textoIn()],
             coords: ['Precio'],
         },
         {
-            id: 'trend', overlay: 'nltTrend', pasos: 3, icono: 'ph-line-segment', label: 'Línea de tendencia', ayuda: 'Tocá el punto inicial y después el final',
+            id: 'trend', overlay: 'nltTrend', pasos: 3, icono: 'ph-line-segment', label: 'Línea de tendencia', ayuda: 'Toca el punto inicial y después el final',
             inputs: [...linea({ color: col('#4378ff', 0), grosor: 2 }),
                 { id: 'extIzq', tipo: 'bool', def: false, titulo: 'Extender a la izquierda', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
                 { id: 'extDer', tipo: 'bool', def: false, titulo: 'Extender a la derecha', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
@@ -73,7 +73,7 @@
             coords: ['Precio 1', 'Precio 2'],
         },
         {
-            id: 'ray', overlay: 'nltTrend', pasos: 3, icono: 'ph-arrow-up-right', label: 'Rayo', ayuda: 'Tocá el origen y después la dirección',
+            id: 'ray', overlay: 'nltTrend', pasos: 3, icono: 'ph-arrow-up-right', label: 'Rayo', ayuda: 'Toca el origen y después la dirección',
             inputs: [...linea({ color: col('#4378ff', 0), grosor: 2 }),
                 { id: 'extIzq', tipo: 'bool', def: false, titulo: 'Extender a la izquierda', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
                 { id: 'extDer', tipo: 'bool', def: true, titulo: 'Extender a la derecha', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
@@ -81,7 +81,7 @@
             coords: ['Precio 1', 'Precio 2'],
         },
         {
-            id: 'rect', overlay: 'nltRect', pasos: 3, icono: 'ph-rectangle', label: 'Rectángulo', ayuda: 'Tocá una esquina y después la opuesta',
+            id: 'rect', overlay: 'nltRect', pasos: 3, icono: 'ph-rectangle', label: 'Rectángulo', ayuda: 'Toca una esquina y después la opuesta',
             inputs: [
                 { id: 'color', tipo: 'color', def: col('#4378ff', 0), titulo: 'Borde', grupo: 'Borde', tab: 'Estilo', inline: 'b', recalc: false },
                 { id: 'grosor', tipo: 'int', def: 1, titulo: 'Grosor', grupo: 'Borde', tab: 'Estilo', inline: 'b', min: 1, max: 6, recalc: false },
@@ -92,7 +92,7 @@
             coords: ['Precio superior', 'Precio inferior'],
         },
         {
-            id: 'fib', overlay: 'nltFib', pasos: 3, icono: 'ph-chart-bar-horizontal', label: 'Fibonacci', ayuda: 'Tocá el inicio del impulso y después el final',
+            id: 'fib', overlay: 'nltFib', pasos: 3, icono: 'ph-chart-bar-horizontal', label: 'Fibonacci', ayuda: 'Toca el inicio del impulso y después el final',
             inputs: [...linea({ color: col('#9CA3AF', 0) }),
                 ...NIVELES_FIB.map((n, k) => ({ id: `n${k}`, tipo: 'bool', def: NIVELES_ON.includes(n), titulo: String(n), grupo: 'Niveles', tab: 'Estilo', inline: `n${Math.floor(k / 3)}`, recalc: false })),
                 { id: 'relleno', tipo: 'color', def: col('#4378ff', 94), titulo: 'Relleno entre niveles', grupo: 'Fondo', tab: 'Estilo', recalc: false },
@@ -101,7 +101,7 @@
             coords: ['Precio 1 (nivel 1)', 'Precio 2 (nivel 0)'],
         },
         {
-            id: 'text', overlay: 'nltText', pasos: 2, icono: 'ph-text-t', label: 'Texto', ayuda: 'Tocá donde va el texto',
+            id: 'text', overlay: 'nltText', pasos: 2, icono: 'ph-text-t', label: 'Texto', ayuda: 'Toca donde va el texto',
             inputs: [
                 { id: 'color', tipo: 'color', def: col('#E5E7EB', 0), titulo: 'Color', grupo: 'Texto', tab: 'Estilo', inline: 't', recalc: false },
                 { id: 'tamano', tipo: 'int', def: 13, titulo: 'Tamaño', grupo: 'Texto', tab: 'Estilo', inline: 't', min: 8, max: 48, recalc: false },
@@ -111,11 +111,11 @@
             coords: ['Precio'],
         },
         {
-            id: 'long', overlay: 'nltPosition', pasos: 2, icono: 'ph-trend-up', label: 'Long Position', ayuda: 'Tocá el precio de entrada', lado: 'long',
+            id: 'long', overlay: 'nltPosition', pasos: 2, icono: 'ph-trend-up', label: 'Long Position', ayuda: 'Toca el precio de entrada', lado: 'long',
             inputs: posicion(), coords: ['Entrada', 'Objetivo (TP)', 'Stop (SL)'],
         },
         {
-            id: 'short', overlay: 'nltPosition', pasos: 2, icono: 'ph-trend-down', label: 'Short Position', ayuda: 'Tocá el precio de entrada', lado: 'short',
+            id: 'short', overlay: 'nltPosition', pasos: 2, icono: 'ph-trend-down', label: 'Short Position', ayuda: 'Toca el precio de entrada', lado: 'short',
             inputs: posicion(), coords: ['Entrada', 'Objetivo (TP)', 'Stop (SL)'],
         },
     ];
@@ -662,7 +662,7 @@
             const zona = o.extendData && o.extendData.zonaNLT;
             barraEl.innerHTML = `
                 <span class="dw-nombre">${esc(h.label)}</span>
-                ${esPos ? (() => { const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v, getSymbol()); return m.lotes ? `<span class="dw-lote" title="Lote para arriesgar ${v.riesgo}% de $${v.cuenta} con este stop"><b>${formatearLotes(m.lotes)}</b> ${m.lotes === 1 ? 'lote' : 'lotes'} · riesgo $${m.riesgoReal.toFixed(2)}${m.excede ? ' ⚠' : ''}</span>` : '<span class="dw-lote" title="Poné cuenta y riesgo en la configuración">sin lote</span>'; })() : ''}
+                ${esPos ? (() => { const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v, getSymbol()); return m.lotes ? `<span class="dw-lote" title="Lote para arriesgar ${v.riesgo}% de $${v.cuenta} con este stop"><b>${formatearLotes(m.lotes)}</b> ${m.lotes === 1 ? 'lote' : 'lotes'} · riesgo $${m.riesgoReal.toFixed(2)}${m.excede ? ' ⚠' : ''}</span>` : '<span class="dw-lote" title="Pon cuenta y riesgo en la configuración">sin lote</span>'; })() : ''}
                 <label class="dw-color" title="Color"><input type="color" data-dw="color" value="${esc(v.color.hex)}"><span style="background:${css({ ...v.color, t: 0 })}"></span></label>
                 ${h.inputs.some((x) => x.id === 'relleno') ? `<label class="dw-color" title="Relleno"><input type="color" data-dw="relleno" value="${esc(v.relleno.hex)}"><span style="background:${css({ ...v.relleno, t: Math.min(v.relleno.t, 50) })}"></span></label>` : ''}
                 ${tieneLinea ? `<select class="dw-sel" data-dw="grosor" title="Grosor">${[...new Set([1, 2, 3, 4, 6, 8, 12, 16, 24, 32, v.grosor])].sort((a, b) => a - b).map((g) => `<option value="${g}"${g === v.grosor ? ' selected' : ''}>${g}px</option>`).join('')}</select>
@@ -829,7 +829,7 @@
                 activa = null;
                 if (seleccionado && overlay(seleccionado) && !modoBorrar) { chart.removeOverlay({ id: seleccionado }); deseleccionar(); salirDeHerramienta(); return; }
                 modoBorrar = !modoBorrar;
-                ayuda(modoBorrar ? 'Tocá un dibujo para borrarlo' : '');
+                ayuda(modoBorrar ? 'Toca un dibujo para borrarlo' : '');
                 marcarBotones();
             } else if (b.dataset.accion === 'iman') {
                 iman = iman === 'normal' ? 'weak_magnet' : iman === 'weak_magnet' ? 'strong_magnet' : 'normal';

@@ -6,6 +6,17 @@
   [headers.values]
     Cache-Control = "no-cache"
 
+# Velocidad: JS/CSS versionados con ?v=<hash> (python3 tools/stamp_versions.py) -> un día de caché sin preguntar al servidor.
+[[headers]]
+  for = "/assets/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/assets/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
 # --- Proxy del tokenizador de Pay2Commerce ---------------------------------
 # Bug real y confirmado en su tokenizer.js (v1.0.0): las llamadas internas
 # que hace ("Step 1: Get processor config" y "Step 4: Exchange OTS for
