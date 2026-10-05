@@ -20,7 +20,7 @@
         let w = null, cola = Promise.resolve(), seq = 0;
         const matar = () => { if (w) { try { w.terminate(); } catch (_) { /* nada */ } w = null; } };
         const vacio = (msg) => ({ ok: false, n: 0, errores: [{ linea: null, mensaje: msg }], meta: {}, inputs: [], plots: [], hlines: [], bgcolors: [], shapes: [], alerts: [] });
-        function una(codigo, velas, inputs, ast) {
+        function una(codigo, velas, opc) {
             return new Promise((resolve) => {
                 const id = ++seq;
                 let listo = false;
@@ -32,11 +32,11 @@
                         w.onerror = (ev) => { matar(); fin(vacio('No se pudo iniciar el motor de scripts en este navegador.' + (ev && ev.message ? ` (${ev.message})` : ''))); };
                     }
                     w.onmessage = (ev) => { if (ev.data && ev.data.id === id) fin(ev.data.r); };
-                    w.postMessage({ id, codigo, velas, inputs, ast });
+                    w.postMessage({ id, codigo, velas, opc });
                 } catch (e) { matar(); fin(vacio('No se pudo iniciar el motor de scripts: ' + (e.message || e))); }
             });
         }
-        return { correr: (codigo, velas, inputs, ast) => { const p = cola.then(() => una(codigo, velas, inputs, ast)); cola = p.catch(() => {}); return p; }, matar };
+        return { correr: (codigo, velas, opc) => { const p = cola.then(() => una(codigo, velas, opc)); cola = p.catch(() => {}); return p; }, matar };
     }
 
     function velasDe(lista) {
@@ -64,9 +64,50 @@
         }).join('') + '\n';
     }
 
-    function montar({ chart, getSymbol }) {
+    function montar({ chart, getSymbol, getTimeframe, simbolos, timeframes }) {
         const state = NLTCharts.state, esc = NLTCharts.ui.esc;
         const ejecutor = crearEjecutor();
+        const infoSimbolo = Object.fromEntries((simbolos || []).map((x) => [x.symbol, x]));
+        const MS_TF = { '1m': 60000, '3m': 180000, '5m': 300000, '15m': 900000, '30m': 1800000, '45m': 2700000, '1H': 3600000, '2H': 7200000, '4H': 14400000, '1D': 86400000, '1W': 604800000 };
+        /** Datos del gráfico que el script puede leer (syminfo.*, timeframe.*) y temporalidades que NLT Charts sabe pedir. */
+        function infoGrafico() {
+            const sym = getSymbol(), tf = getTimeframe ? getTimeframe() : '15m', i = infoSimbolo[sym] || {};
+            return { symbol: sym, tf, tfMs: MS_TF[tf] || 0, precision: i.price_precision, tipo: i.category === 'metals' ? 'commodity' : i.category === 'crypto' ? 'crypto' : i.category === 'indices' ? 'index' : 'forex', tfs: timeframes || ['1m', '5m', '15m', '30m', '1H', '4H', '1D'] };
+        }
+
+        // ── datos de OTRAS temporalidades (request.security): se piden al servidor y se guardan unos segundos ──
+        const MTF_TTL_MS = 20000;
+        const mtfCache = new Map();           // 'SIMBOLO|tf' -> { t, velas } | { t, error }
+        const aArreglos = (cs) => { const v = { t: [], o: [], h: [], l: [], c: [], v: [] }; cs.forEach((c) => { v.t.push(c.t); v.o.push(c.o); v.h.push(c.h); v.l.push(c.l); v.c.push(c.c); v.v.push(c.v || 0); }); return v; };
+        async function traerMtf(lista) {
+            await Promise.all(lista.map(async ({ simbolo, tf }) => {
+                const clave = `${simbolo}|${tf}`, hit = mtfCache.get(clave);
+                if (hit && !hit.error && Date.now() - hit.t < MTF_TTL_MS) return;
+                try {
+                    const r = await NLT_API.chartsVelas(simbolo, tf, { limit: 1500 });
+                    mtfCache.set(clave, { t: Date.now(), velas: aArreglos(r.candles || []) });
+                } catch (e) { mtfCache.set(clave, { t: Date.now(), error: (e && e.message) || 'sin respuesta' }); }
+            }));
+        }
+        const mtfListo = () => { const o = {}; mtfCache.forEach((h, k) => { if (!h.error && h.velas.t.length) o[k] = h.velas; }); return o; };
+        const falla = (msg) => ({ ok: false, n: 0, errores: [{ linea: null, mensaje: msg }], meta: {}, inputs: [], plots: [], hlines: [], fills: [], bgcolors: [], shapes: [], alerts: [], velasPropias: [], etiquetas: [], lineas: [], cajas: [], tablas: [], avisos: [] });
+        /** Corre el script; si usa otras temporalidades, pide lo que falte y vuelve a correr (hasta 4 veces). */
+        async function correrScript(a, velas) {
+            const base = { inputs: a.inputs, ast: a.ast || undefined, chart: infoGrafico() };
+            if (a.usaMtf && a.usaMtf.length) await traerMtf(a.usaMtf);        // refresco de lo que ya usaba (si pasaron más de 20 s)
+            let res;
+            for (let intento = 0; intento < 4; intento++) {
+                res = await ejecutor.correr(a.codigo, velasDe(velas), { ...base, mtf: mtfListo() });
+                if (!res.ok || !res.necesita || !res.necesita.length) break;
+                const faltan = res.necesita.filter((x) => { const h = mtfCache.get(`${x.simbolo}|${x.tf}`); return !h || (!h.error && !h.velas.t.length) || (h.error && Date.now() - h.t > 60000); });
+                const conError = res.necesita.map((x) => ({ x, h: mtfCache.get(`${x.simbolo}|${x.tf}`) })).find((y) => y.h && y.h.error && Date.now() - y.h.t <= 60000);
+                if (conError) { res = falla(`No se pudieron cargar las velas de ${conError.x.simbolo} en ${conError.x.tf} (request.security): ${conError.h.error}`); break; }
+                if (!faltan.length) break;
+                await traerMtf(faltan);
+            }
+            a.usaMtf = (res && res.usaMtf) || [];
+            return res;
+        }
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
         let cargandoTienda = false, busca = { q: '', sort: 'recent', creator: '', page: 0 }, hayMas = false, tienePlan = false, miUsuario = null, ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
         let sel = null /* script abierto: { id|null, nombre, codigo } */, sucio = false, mensaje = '', erroresVivos = [], timerValida = null;
@@ -97,7 +138,7 @@
         function figuras(res) {
             return res.plots.map((p, j) => {
                 const base = PALETA[j % PALETA.length];
-                const color = (data) => (data.current && data.current['c' + j]) || p.color || base;
+                const color = (data) => (p.oculto ? 'rgba(0,0,0,0)' : (data.current && data.current['c' + j]) || p.color || base);
                 const tit = `${p.titulo}: `;
                 if (p.estilo === 'histogram' || p.estilo === 'columns') return { key: 'p' + j, title: tit, type: 'bar', baseValue: 0, styles: ({ data }) => ({ color: color(data), style: 'fill' }) };
                 if (p.estilo === 'circles' || p.estilo === 'cross') return { key: 'p' + j, title: tit, type: 'circle', styles: ({ data }) => ({ color: color(data), style: 'fill' }) };
@@ -127,6 +168,9 @@
                 ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(bounding.width, y); ctx.stroke();
             });
             ctx.setLineDash([]);
+            if (window.NLTCharts.scriptsDibujo) {
+                try { window.NLTCharts.scriptsDibujo.pintar(ctx, res, { xAxis, yAxis, bounding, datos, desde: from, hasta: to, ancho, tfMs: infoGrafico().tfMs }); } catch (_) { /* un dibujo raro no debe romper el gráfico */ }
+            }
             ctx.font = '11px sans-serif'; ctx.textAlign = 'center';
             res.shapes.forEach((s) => {
                 if (s.barra < from || s.barra >= to || !datos[s.barra]) return;
@@ -169,7 +213,7 @@
         function nombreIndicador(a) { return `NLT_S_${a.id.replace(/[^a-zA-Z0-9]/g, '').slice(0, 12)}_${a.version}`; }
         async function ponerEnGrafico(a) {
             const velas = chart.getDataList();
-            const res = await ejecutor.correr(a.codigo, velasDe(velas), a.inputs, a.ast);
+            const res = await correrScript(a, velas);
             a.errores = res.ok ? [] : res.errores;
             if (!res.ok) { quitarDelGrafico(a); a.res = null; return false; }
             a.res = res; a.firma = firmaDe(velas);
@@ -186,7 +230,7 @@
                 calc: async (datos) => {
                     const f = firmaDe(datos);
                     if (a.res && a.firma === f) return filas(a.res, datos.length);
-                    const r = await ejecutor.correr(a.codigo, velasDe(datos), a.inputs, a.ast);
+                    const r = await correrScript(a, datos);
                     if (!r.ok) { a.errores = r.errores; if (!modal.hidden) pintar(); return new Array(datos.length).fill({}); }
                     a.errores = []; a.res = r; a.firma = f; revisarAlertas(a);
                     return filas(r, datos.length);
@@ -331,6 +375,7 @@
                     <div class="sc-barra"><button class="sc-b" data-a="copiar-ajeno">Copiar a mis scripts</button></div>` : ''}
                 ${erroresMostrados().length ? `<div class="sc-estado mal">${erroresMostrados().map((e) => `<div>${esc(e.mensaje)}</div>`).join('')}</div>` : ''}
                 ${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}
+                ${avisosDelScript()}
                 ${htmlAjustes()}`;
         }
         function htmlCompartir() {
@@ -386,6 +431,11 @@
             if (sel && sel.ajeno) return htmlAjeno();
             return htmlEditorPropio();
         }
+        // avisos del script en marcha (por ejemplo: «es una estrategia», «barcolor no se dibuja»): no son errores
+        function avisosDelScript() {
+            const a = sel && sel.id && activos.get(sel.id), av = (a && a.res && a.res.avisos) || [];
+            return av.length ? `<div class="sc-estado sc-aviso">${av.map((x) => `<div>ℹ️ ${esc(x)}</div>`).join('')}</div>` : '';
+        }
         function htmlEditorPropio() {
             if (!sel) {
                 return `<div class="sc-vacio"><i class="ph ph-code"></i><p>Elige un script de la lista o crea uno nuevo.</p>
@@ -407,6 +457,7 @@
                 <div class="sc-estado ${errs.length ? 'mal' : 'ok'}" role="status">${errs.length
                     ? errs.map((e) => `<div class="sc-err"${e.linea ? ` data-linea="${e.linea}"` : ''}>${e.linea ? `<b>Línea ${e.linea}:</b> ` : ''}${esc(e.mensaje)}</div>`).join('')
                     : '<span>Sin errores de sintaxis.</span>'}${mensaje ? `<div class="sc-msg">${esc(mensaje)}</div>` : ''}</div>
+                ${avisosDelScript()}
                 ${htmlAjustes()}${htmlCompartir()}`;
         }
         function pintar() {
@@ -431,7 +482,8 @@
                         ${miUsuario ? `<a class="sc-link" href="community.html?u=${encodeURIComponent(miUsuario)}">Ver mi perfil público (@${esc(miUsuario)})</a>` : ''}
                         ${compartidos.length ? `<div class="sc-sub">Compartidos conmigo</div><div class="sc-items">${compartidos.map((s) => item(s, true)).join('')}</div>` : ''}
                         <button class="sc-b${vista === 'tienda' ? ' on' : ''}" data-a="tienda"><i class="ph ph-storefront"></i> Tienda</button>
-                        <details class="sc-ayuda"><summary>Guía rápida</summary><p class="sc-peq">Empieza con <code>indicator("Nombre", overlay=true)</code> (overlay = sobre las velas). Usa <code>close</code>, <code>high</code>, <code>low</code>, <code>open</code>, <code>volume</code>; funciones como <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.crossover</code>; dibuja con <code>plot</code>, <code>hline</code>, <code>bgcolor</code>, <code>plotshape</code>; los ajustes con <code>input.int</code>/<code>input.float</code>. Los bloques (<code>if</code>, <code>for</code>) se indentan con 4 espacios. <code>x[1]</code> es el valor de la vela anterior.</p></details>
+                        <details class="sc-ayuda"><summary>Guía rápida</summary><p class="sc-peq"><b>¿Tienes un script de TradingView?</b> Pégalo en un script nuevo: NLT Script entiende la mayor parte de Pine Script v5 (tipos, <code>switch</code>, listas, funciones propias, <code>request.security</code> con otras temporalidades, tablas, etiquetas, líneas, cajas, <code>fill</code>, <code>plotcandle</code>…). Si algo no se puede, te dice en qué línea. Todavía no: órdenes de estrategias (<code>strategy.entry</code>…), <code>barcolor</code>, tipos propios (<code>type</code>), mapas y matrices.</p>
+                        <p class="sc-peq">Empieza con <code>indicator("Nombre", overlay=true)</code> (overlay = sobre las velas). Usa <code>close</code>, <code>high</code>, <code>low</code>, <code>open</code>, <code>volume</code>; funciones como <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.crossover</code>; dibuja con <code>plot</code>, <code>hline</code>, <code>bgcolor</code>, <code>plotshape</code>; los ajustes con <code>input.int</code>/<code>input.float</code>. Los bloques (<code>if</code>, <code>for</code>) se indentan con 4 espacios. <code>x[1]</code> es el valor de la vela anterior. Con <code>request.security(syminfo.tickerid, "15", ta.ema(close, 21))</code> traes datos de otra temporalidad (sin mirar el futuro).</p></details>
                     </aside><section class="sc-ed">${htmlEditor()}</section></div>`;
             }
             modal.innerHTML = `<div class="sc-card"><header><h2><i class="ph ph-code"></i> NLT Script</h2><button class="sc-x" data-a="cerrar" aria-label="Cerrar">×</button></header>${cuerpo}
@@ -664,7 +716,7 @@
             }
         })();
 
-        return { abrir, activos: () => [...activos.keys()], correr: (cod, velas, inp, ast) => ejecutor.correr(cod, velas, inp, ast) };
+        return { abrir, activos: () => [...activos.keys()], correr: (cod, velas, inp, ast) => ejecutor.correr(cod, velas, { inputs: inp, ast }) };
     }
 
     window.NLTCharts = window.NLTCharts || {};

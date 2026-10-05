@@ -187,7 +187,7 @@
             try { trader = NLTCharts.trader.montar({ chart: motor.chart, getSymbol: () => symbol, simbolos: catalogo.symbols }); } catch (e) { console.warn('[NLT Charts] operar con cuenta real no disponible', e); }
         }
         if (NLTCharts.scripts && NLTCharts.nltsEjemplos && window.NLTS) {
-            try { scripts = NLTCharts.scripts.montar({ chart: motor.chart, getSymbol: () => symbol }); } catch (e) { console.warn('[NLT Charts] NLT Script no disponible', e); }
+            try { scripts = NLTCharts.scripts.montar({ chart: motor.chart, getSymbol: () => symbol, getTimeframe: () => timeframe, simbolos: catalogo.symbols, timeframes: catalogo.timeframes }); } catch (e) { console.warn('[NLT Charts] NLT Script no disponible', e); }
         }
         if (NLTCharts.screener) {
             try { NLTCharts.screener.montar({ simbolos: catalogo.symbols, getSymbol: () => symbol, getTimeframe: () => timeframe, onAbrir: (s, tf) => window.NLTCharts.app.irA(s, tf) }); } catch (e) { console.warn('[NLT Charts] screener no disponible', e); }
