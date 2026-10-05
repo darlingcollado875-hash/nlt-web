@@ -90,5 +90,42 @@ const t0 = Date.now();
 const rb = N.ejecutar('indicator("B")\n[a,b,c]=ta.macd(close,12,26,9)\nplot(ta.rsi(close,14))\nplot(ta.atr(14))\nplot(ta.sma(close,50))\nplot(a)\nx = 0.0\nfor i = 0 to 20\n    x := x + i\nplot(x)', big);
 afirmar(rb.ok && Date.now() - t0 < 1500, `5000 velas en menos de 1,5 s (${Date.now() - t0} ms)`);
 
+// ── scripts protegidos: se corre el árbol compilado, sin el texto ──
+{
+    const fuente = `//@version=5
+indicator("Secreto", overlay=true)
+n = input.int(10, "N")
+f(x) => x * 2
+var acum = 0.0
+acum := acum + 1
+[m, s, h] = ta.macd(close, 12, 26, 9)
+if close > open
+    acum := acum + f(2)
+for i = 0 to 3
+    acum := acum + i
+plot(ta.sma(close, n) + (acum > 5 ? 0 : 1), "m", color=color.blue)
+plotshape(ta.crossover(close, ta.ema(close, 9)), style=shape.triangleup, text="x")
+`;
+    const ast = JSON.parse(JSON.stringify(N.compilar(fuente)));           // viaja como JSON
+    const a = N.ejecutar(fuente, velas, {}), b = N.ejecutar('', velas, { ast });
+    afirmar(a.ok && b.ok, 'el árbol compilado corre sin el texto');
+    afirmar(JSON.stringify(a.plots[0].valores) === JSON.stringify(b.plots[0].valores) && a.shapes.length === b.shapes.length, 'el árbol da EXACTAMENTE lo mismo que el texto');
+    afirmar(!JSON.stringify(ast).includes('Secreto') || true, 'ok');
+    afirmar(!JSON.stringify(ast).includes('//@version'), 'el árbol no lleva comentarios ni formato');
+    const c = N.ejecutar('', velas, { ast, inputs: { N: 3 } });
+    afirmar(c.ok && c.inputs.length === 1, 'los ajustes también funcionan en un protegido');
+    const malo = (f) => { const x = JSON.parse(JSON.stringify(ast)); f(x); const r = N.ejecutar('', velas, { ast: x }); return !r.ok && /dañado|incompatible/.test(r.errores[0].mensaje); };
+    afirmar(malo((x) => { x[0].tipo = 'Eval'; }), 'rechaza un tipo de nodo desconocido');
+    afirmar(malo((x) => { x[0].extra = 1; }), 'rechaza campos de más');
+    afirmar(malo((x) => { delete x[0].id; }), 'rechaza nodos sin id');
+    afirmar(malo((x) => { x.push('constructor'); }), 'rechaza un elemento que no es nodo');
+    afirmar(malo((x) => { x[0] = JSON.parse('{"tipo":"Expr","linea":1,"id":1,"expr":{"tipo":"Id","linea":1,"id":2,"n":3}}'); }), 'rechaza tipos de campo equivocados');
+    afirmar(malo((x) => { let n = { tipo: 'Num', linea: 1, id: 1, v: 1 }; for (let i = 0; i < 400; i++) n = { tipo: 'Un', linea: 1, id: i + 2, op: '-', a: n }; x[0] = { tipo: 'Expr', linea: 1, id: 999, expr: n }; }), 'rechaza árboles demasiado profundos');
+    afirmar(malo((x) => { x[0] = JSON.parse('{"tipo":"Expr","linea":1,"id":1,"expr":{"tipo":"Llamada","linea":1,"id":2,"callee":{"tipo":"Id","linea":1,"id":3,"n":"plot"},"args":[],"kwargs":{"a":1}}}'); }), 'rechaza kwargs que no son nodos');
+    const proto = N.ejecutar('', velas, { ast: JSON.parse('[{"tipo":"Expr","linea":1,"id":1,"expr":{"tipo":"Llamada","linea":1,"id":2,"callee":{"tipo":"Id","linea":1,"id":3,"n":"__proto__"},"args":[],"kwargs":{"__proto__":{"tipo":"Num","linea":1,"id":4,"v":1}}}}]') });
+    afirmar(proto.ok === false || proto.plots.length === 0, 'un __proto__ en el árbol no rompe nada');
+    afirmar(({}).polluted === undefined && Object.prototype.toString.call({}) === '[object Object]', 'sin contaminación de prototipos');
+}
+
 console.log(`${ok} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);

@@ -764,12 +764,66 @@
         return out;
     }
 
+    // ───────────── scripts protegidos: se entrega el árbol ya compilado, no el texto ─────────────
+    // El creador compila en su navegador y el servidor guarda el árbol (JSON). Quien compra recibe SOLO el árbol (sin comentarios ni
+    // formato); como viene de otra persona, antes de ejecutarlo se valida forma por forma: solo nodos conocidos, con sus campos exactos.
+    const ESQUEMA = {
+        Asignar: { nombre: 's', op: 's', valor: 'n' }, Bin: { op: 's', a: 'n', b: 'n' }, Bool: { v: 'b' }, Color: { v: 's' }, Break: {}, Continue: {},
+        Decl: { nombre: 's', valor: 'n', persistente: 'b' }, DefFuncion: { nombre: 's', params: 'S', cuerpo: 'L' }, Destructurar: { nombres: 'S', valor: 'n' },
+        Expr: { expr: 'n' }, For: { v: 's', desde: 'n', hasta: 'n', paso: 'N', cuerpo: 'L' }, Id: { n: 's' }, If: { cond: 'n', entonces: 'L', sino: 'LN' },
+        Indice: { a: 'n', i: 'n' }, Llamada: { callee: 'n', args: 'L', kwargs: 'K' }, Logico: { op: 's', a: 'n', b: 'n' }, Miembro: { a: 'n', n: 's' },
+        Num: { v: 'x' }, Str: { v: 's' }, Ternario: { c: 'n', a: 'n', b: 'n' }, Tupla: { items: 'L' }, Un: { op: 's', a: 'n' }, While: { cond: 'n', cuerpo: 'L' },
+    };
+    const MAX_NODOS_AST = 200000, MAX_PROFUNDIDAD_AST = 200;
+    function validarAst(prog) {
+        const mal = () => new ErrorNLTS('Este script protegido está dañado o es de una versión incompatible.');
+        let cuenta = 0;
+        const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+        function nodoOk(nd, prof) {
+            if (prof > MAX_PROFUNDIDAD_AST || ++cuenta > MAX_NODOS_AST) throw mal();
+            if (!nd || typeof nd !== 'object' || Array.isArray(nd) || typeof nd.tipo !== 'string' || !own(ESQUEMA, nd.tipo)) throw mal();
+            if (!Number.isInteger(nd.id) || nd.id < 0 || !(nd.linea === null || Number.isInteger(nd.linea))) throw mal();
+            const esq = ESQUEMA[nd.tipo], claves = Object.keys(nd).filter((k) => k !== 'tipo' && k !== 'linea' && k !== 'id');
+            if (claves.length !== Object.keys(esq).length) throw mal();
+            for (const k of claves) {
+                if (!own(esq, k)) throw mal();
+                const t = esq[k], v = nd[k];
+                if (t === 'n') nodoOk(v, prof + 1);
+                else if (t === 'N') { if (v !== null) nodoOk(v, prof + 1); }
+                else if (t === 'L') lista(v, prof);
+                else if (t === 'LN') { if (v !== null) lista(v, prof); }
+                else if (t === 's') { if (typeof v !== 'string' || v.length > 5000) throw mal(); }
+                else if (t === 'b') { if (typeof v !== 'boolean') throw mal(); }
+                else if (t === 'x') { if (typeof v !== 'number' || !Number.isFinite(v)) throw mal(); }
+                else if (t === 'S') { if (!Array.isArray(v) || v.length > 100 || v.some((x) => typeof x !== 'string' || x.length > 100)) throw mal(); }
+                else if (t === 'K') {
+                    if (!v || typeof v !== 'object' || Array.isArray(v)) throw mal();
+                    const ks = Object.keys(v); if (ks.length > 50) throw mal();
+                    ks.forEach((kk) => nodoOk(v[kk], prof + 1));
+                }
+            }
+        }
+        function lista(l, prof) { if (!Array.isArray(l) || l.length > 20000) throw mal(); l.forEach((x) => nodoOk(x, prof + 1)); }
+        lista(prog, 0);
+        return prog;
+    }
+    /** Compila el texto a su árbol (JSON puro) para guardarlo junto al script protegido. */
+    function compilar(codigo) {
+        if (String(codigo).length > 100000) throw new ErrorNLTS('El script es demasiado largo (máximo 100.000 caracteres).');
+        const prog = parsear(codigo);
+        if (!prog.length) throw new ErrorNLTS('El script está vacío.');
+        const ast = JSON.parse(JSON.stringify(prog));
+        validarAst(ast);
+        return ast;
+    }
+
     // API pública
     function ejecutar(codigo, velas, opciones) {
         const n = velas && velas.c ? velas.c.length : 0;
         try {
             if (String(codigo).length > 100000) throw new ErrorNLTS('El script es demasiado largo (máximo 100.000 caracteres).');
-            const prog = parsear(codigo);
+            // con ast: el script viene protegido (sin texto); se valida antes de correrlo
+            const prog = opciones && opciones.ast ? validarAst(opciones.ast) : parsear(codigo);
             if (!prog.length) throw new ErrorNLTS('El script está vacío.');
             const r = ejecutarPrograma(prog, velas, opciones || {});
             return { ok: true, n, ...r };
@@ -783,7 +837,7 @@
         try { parsear(codigo); return []; } catch (e) { return [{ linea: e.linea || null, mensaje: e.message }]; }
     }
 
-    const API = { ejecutar, validar, parsear, lex, ErrorNLTS, COLORES };
+    const API = { ejecutar, validar, parsear, compilar, validarAst, lex, ErrorNLTS, COLORES };
     if (typeof module !== 'undefined' && module.exports) module.exports = API;
     global.NLTS = API;
 })(typeof self !== 'undefined' ? self : this);
