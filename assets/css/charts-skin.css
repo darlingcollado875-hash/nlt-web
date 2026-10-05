@@ -209,3 +209,11 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .dw-btn.dw-ico { padding-left: 8px; padding-right: 8px; }
 .dw-btn.dw-ico:not(.on) { color: #fbbf24; }
 @media (prefers-reduced-motion: reduce) { .tr-sw input, .tr-sw input::after { transition: none; } }
+
+/* descripción del script (debajo del nombre) */
+.sc-descw { position: relative; display: block; }
+.sc-desc { width: 100%; resize: vertical; min-height: 52px; max-height: 140px; padding: 10px 12px 22px; border-radius: 14px; background: rgba(255, 255, 255, .04); border: 1px solid var(--nlt-hair); color: #e5e7eb; font: inherit; font-size: 13px; line-height: 1.45; transition: border-color .2s ease, box-shadow .25s var(--nlt-ease), background .2s ease; }
+.sc-desc:focus { outline: none; border-color: rgba(var(--nlt-b), .75); background: rgba(var(--nlt-b), .06); box-shadow: 0 0 0 3px rgba(var(--nlt-b), .18); }
+.sc-desc::placeholder { color: #6f7a8b; }
+.sc-desc-n { position: absolute; right: 12px; bottom: 7px; font-size: 10.5px; color: #6f7a8b; pointer-events: none; }
+@media (max-width: 720px) { .sc-desc { font-size: 16px; } }

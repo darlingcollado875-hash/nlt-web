@@ -266,7 +266,7 @@
             a.errores = res.ok ? [] : res.errores;
             if (!res.ok) { quitarDelGrafico(a); a.res = null; quitarTablas(a); return false; }
             a.res = res; a.firma = firmaDe(velas);
-            a.nombreCorto = (res.meta && res.meta.titulo) || a.nombre;
+            a.nombreCorto = a.nombre || (res.meta && res.meta.titulo) || 'Script';       // en el gráfico se ve el nombre que TÚ le pusiste
             // cada cambio de forma (otra cantidad de plots, otro panel) pide registrar un indicador nuevo
             const forma = `${res.plots.map((p) => p.estilo + p.titulo).join('|')}#${res.meta.overlay ? 1 : 0}`;
             quitarDelGrafico(a);
@@ -353,7 +353,7 @@
                 const r = await NLT_API.chartsScript(id);
                 const s = r.script;
                 const meta = lista.find((x) => x.id === s.id) || {};
-                sel = { id: s.id, nombre: s.name, codigo: s.code, publicado: meta.visibility === 'listed', descripcion: meta.description || '', precio: meta.price_usd || '', facturacion: meta.billing || 'monthly', bloqueado: !!meta.blocked }; sucio = false; mensaje = ''; vista = 'mis';
+                sel = { id: s.id, nombre: s.name, codigo: s.code, publicado: meta.visibility === 'listed', descripcion: s.description != null ? s.description : (meta.description || ''), precio: meta.price_usd || '', facturacion: meta.billing || 'monthly', bloqueado: !!meta.blocked }; sucio = false; mensaje = ''; vista = 'mis';
             } catch (e) { mensaje = e.message || 'No se pudo abrir el script.'; }
             validarVivo(); await cargarAccesos(); pintar();
         }
@@ -371,7 +371,7 @@
             try {
                 let ast = null;
                 try { ast = window.NLTS.compilar(sel.codigo); } catch (_) { ast = null; }   // el compilado viaja con el script: es lo único que recibe quien lo use protegido
-                const r = sel.id ? await NLT_API.chartsScriptGuardar(sel.id, nombre, sel.codigo, ast) : await NLT_API.chartsScriptCrear(nombre, sel.codigo, ast);
+                const r = sel.id ? await NLT_API.chartsScriptGuardar(sel.id, nombre, sel.codigo, ast, sel.descripcion || '') : await NLT_API.chartsScriptCrear(nombre, sel.codigo, ast, sel.descripcion || '');
                 sel.id = r.script.id; sel.nombre = r.script.name; sucio = false; mensaje = 'Guardado.';
                 await cargarLista();
                 if (activos.has(sel.id)) await activar(sel.id, sel.nombre, sel.codigo);   // ya está en el gráfico: se actualiza
@@ -435,15 +435,15 @@
             const filas = accesos.map((g) => `<div class="sc-acc"><span>${esc(g.email)}</span><button class="sc-b mal" data-a="revocar" data-gid="${esc(g.id)}">Quitar</button></div>`).join('');
             if (sel.bloqueado) return '<div class="sc-comp"><p class="sc-peq" style="color:#F87171">NLT bloqueó este indicador: no se puede publicar ni compartir.</p></div>';
             const abierto = `<div class="sc-sub">Publicar gratis · código abierto</div>
-                <form class="sc-form" data-a="publicar"><input type="text" name="descripcion" maxlength="500" placeholder="¿Qué hace tu indicador? (mínimo 10 caracteres)" value="${esc(sel.descripcion || '')}">
+                <form class="sc-form" data-a="publicar">
                     <button class="sc-b ${gratisPublicado ? '' : 'on'}" type="submit" data-modo="abierto">${gratisPublicado ? 'Actualizar' : 'Publicar gratis'}</button>
                     ${gratisPublicado ? '<button class="sc-b mal" type="submit" data-modo="quitar">Quitar de la tienda</button>' : ''}</form>
-                <p class="sc-peq">${gratisPublicado ? 'Publicado: ' : ''}Cualquier usuario de NLT podrá usarlo, leer el código y copiarlo. Es gratis y no necesita ningún plan. Eres responsable de lo que publicas.</p>`;
+                <p class="sc-peq">Se publica con el nombre y la descripción de arriba. ${gratisPublicado ? 'Publicado: ' : ''}Cualquier usuario de NLT podrá usarlo, leer el código y copiarlo. Es gratis y no necesita ningún plan. Eres responsable de lo que publicas.</p>`;
             const privado = tienePlan ? `<div class="sc-sub" style="margin-top:14px">Compartir en privado · el código no se ve</div>
                 <form class="sc-form" data-a="compartir"><input type="email" name="email" placeholder="correo de la persona (con cuenta en NLT)" required maxlength="200"><button class="sc-b on" type="submit">Dar acceso</button></form>
                 ${filas || '<p class="sc-peq">Nadie más tiene acceso todavía.</p>'}
                 <div class="sc-sub" style="margin-top:14px">Vender en la tienda · el código no se ve</div>
-                <form class="sc-form" data-a="publicar"><input type="text" name="descripcion" maxlength="500" placeholder="¿Qué hace tu indicador? (mínimo 10 caracteres)" value="${esc(sel.descripcion || '')}">
+                <form class="sc-form" data-a="publicar">
                     <input type="number" name="precio" min="2" max="200" step="0.01" placeholder="Precio US$ (2 a 200)" value="${esc(String(sel.precio || ''))}" style="max-width:170px" required>
                     <select name="facturacion" class="sc-ej" aria-label="Tipo de cobro"><option value="monthly" ${sel.facturacion === 'one_time' ? '' : 'selected'}>Cobro mensual</option><option value="one_time" ${sel.facturacion === 'one_time' ? 'selected' : ''}>Pago único</option></select>
                     <button class="sc-b ${ventaPublicada ? '' : 'on'}" type="submit" data-modo="venta">${ventaPublicada ? 'Actualizar precio' : 'Poner a la venta'}</button>
@@ -502,6 +502,7 @@
                     <button class="sc-b ${enGrafico ? '' : 'on'}" data-a="grafico">${enGrafico ? 'Quitar del gráfico' : 'Añadir al gráfico'}</button>
                     <button class="sc-b mal" data-a="borrar" title="Borrar">${sel.id ? 'Borrar' : 'Descartar'}</button>
                 </div>
+                <label class="sc-descw"><textarea class="sc-desc" rows="2" maxlength="500" placeholder="Descripción (opcional): qué hace tu indicador y cómo se usa" aria-label="Descripción del script">${esc(sel.descripcion || '')}</textarea><span class="sc-desc-n">${(sel.descripcion || '').length}/500</span></label>
                 <div class="sc-cod"><pre class="sc-gut" aria-hidden="true">${Array.from({ length: n }, (_, i) => i + 1).join('\n')}</pre>
                     <div class="sc-edwrap"><pre class="sc-hl" aria-hidden="true"><code>${resaltar(sel.codigo, esc)}</code></pre>
                     <textarea class="sc-ta" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Código del script" data-a="codigo">${esc(sel.codigo)}</textarea></div></div>
@@ -570,6 +571,7 @@
         modal.addEventListener('input', (e) => {
             const t = e.target;
             if (t.matches('.sc-ta')) { sel.codigo = t.value; sucio = true; mensaje = ''; sel.errorCorrida = null; actualizarEditorLigero(t); }
+            else if (t.matches('.sc-desc')) { sel.descripcion = t.value; sucio = true; const g = modal.querySelector('[data-a="guardar"]'); if (g) g.disabled = false; const cu = modal.querySelector('.sc-desc-n'); if (cu) cu.textContent = `${t.value.length}/500`; }
             else if (t.matches('.sc-nombre')) { sel.nombre = t.value; sucio = true; const g = modal.querySelector('[data-a="guardar"]'); if (g) g.disabled = false; }
         });
         modal.addEventListener('scroll', (e) => { if (e.target.matches && e.target.matches('.sc-ta')) sincronizar(e.target); }, true);
@@ -615,7 +617,8 @@
             } else if (f.dataset.a === 'publicar') {
                 const modo = (e.submitter && e.submitter.dataset.modo) || 'abierto';
                 const listar = modo !== 'quitar';
-                const descripcion = f.elements.descripcion.value;
+                const descripcion = (sel.descripcion || '').trim();
+                if (listar && descripcion.length < 10) { mensaje = 'Para publicar, escribe arriba una descripción de tu indicador (mínimo 10 caracteres).'; pintar(); return; }
                 const precio = modo === 'venta' && f.elements.precio.value ? Number(f.elements.precio.value) : null;
                 if (modo === 'abierto' && sel.precio && !window.confirm('Al publicarlo gratis, su código quedará visible para todos (también para quienes ya lo compraron). ¿Continuar?')) return;
                 try {
