@@ -3086,6 +3086,7 @@
 
     function mountSupportChat(session) {
         if (!session || document.getElementById('supportChatBubble') || typeof window.NLT_API === 'undefined') return;
+        if (document.body && document.body.hasAttribute('data-sin-soporte')) return;       // páginas donde el chat de soporte no se muestra (p. ej. el gráfico)
         _inyectarSupportChatCSS();
 
         const bubble = document.createElement('button');

@@ -387,9 +387,6 @@
             #sidebar { position: fixed; top: 0; bottom: 0; left: 0; z-index: 50; transform: translateX(-100%); transition: transform 300ms; }
             #sidebar.sidebar-open { transform: translateX(0); }
             .ch-toolbar { padding-left: 68px; min-height: 64px; }
-            /* El chat de soporte flota sobre el gráfico: más chico y arriba de la barra de dibujo */
-            #supportChatBubble { bottom: calc(64px + env(safe-area-inset-bottom)) !important; right: 12px !important; width: 44px !important; height: 44px !important; opacity: .85; }
-            #supportChatBubble i { font-size: 20px !important; }
         }
         @media (min-width: 640px) { .ch-btn-label { display: inline; } }
         @media (min-width: 768px) {
@@ -508,7 +505,7 @@
     </style>
     <link rel="stylesheet" href="assets/css/charts-skin.css?v=8e104e61">
 </head>
-<body class="h-screen flex overflow-hidden">
+<body class="h-screen flex overflow-hidden" data-sin-soporte>
 
     <aside id="sidebar" class="w-[280px] border-r border-white/5 flex flex-col justify-between bg-nlt-bg/50 backdrop-blur-xl shrink-0"></aside>
 
@@ -534,7 +531,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
-    <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
+    <script src="assets/js/nlt-shared.js?v=0dc71ebc"></script>
     <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
     <script src="assets/js/charts/diag.js?v=a548c4e2"></script>
     <script src="assets/js/charts/fluidez.js?v=b2097835"></script>
