@@ -279,3 +279,11 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .ch-pc[aria-pressed="true"] { color: #fff; border-color: rgba(67, 120, 255, .6); background: rgba(67, 120, 255, .22); }
 body.ch-full #sidebar, body.ch-full #mobileSidebarToggle, body.ch-full #mobileSidebarBackdrop { display: none !important; }
 body.ch-full .ch-toolbar { padding-left: 16px; }
+
+/* Aviso discreto mientras llega historial más viejo (borde izquierdo del gráfico) */
+.ch-histcarga { position: absolute; z-index: 8; left: 50%; bottom: 44px; transform: translate(-50%, 6px); padding: 6px 14px 6px 30px; border-radius: 999px; font: 600 11.5px/1 'Inter', system-ui, sans-serif; color: #cfe0ff; white-space: nowrap;
+  background: rgba(14, 16, 22, .82); border: 1px solid rgba(67, 120, 255, .45); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); opacity: 0; pointer-events: none; transition: opacity .2s ease, transform .2s ease; }
+.ch-histcarga.on { opacity: 1; transform: translate(-50%, 0); }
+.ch-histcarga::before { content: ''; position: absolute; left: 11px; top: 50%; width: 11px; height: 11px; margin-top: -6px; border-radius: 50%; border: 2px solid rgba(143, 177, 255, .35); border-top-color: #8fb1ff; animation: chGiro .8s linear infinite; }
+@keyframes chGiro { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ch-histcarga::before { animation: none; } }
