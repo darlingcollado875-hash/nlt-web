@@ -837,9 +837,9 @@
         // y entra por el webhook. NLT Web solo lee y muestra.
         indicatorAiHistorial: (params = {}) => {
             const qs = new URLSearchParams(params).toString();
-            return request('/indicator-ai/analyses' + (qs ? `?${qs}` : ''), {}, INDICATOR_AI_BASE);
+            return request('/indicator-ai/analyses' + (qs ? `?${qs}` : ''), { timeoutMs: 25000, intentos: 1 }, INDICATOR_AI_BASE);
         },
-        indicatorAiAnalisis: (id) => request(`/indicator-ai/analyses/${id}`, {}, INDICATOR_AI_BASE),
+        indicatorAiAnalisis: (id) => request(`/indicator-ai/analyses/${id}`, { timeoutMs: 25000, intentos: 1 }, INDICATOR_AI_BASE),
         indicatorAiOutcome: (id, datos) => request(`/indicator-ai/analyses/${id}/outcome`, { method: 'POST', body: JSON.stringify(datos) }, INDICATOR_AI_BASE),
         indicatorAiStats: () => request('/indicator-ai/stats', {}, INDICATOR_AI_BASE),
         // Guía de uso (PDF). El <a href> no puede mandar Authorization, así que
