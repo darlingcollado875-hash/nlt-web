@@ -151,8 +151,8 @@
                 const form = (mostrarConexion || !cuentas.length) ? `<form data-tr-conectar class="al-form tr-conectar"><b>Conectar cuenta MT5</b>
                     <input name="login_numero" class="mc-sel" inputmode="numeric" placeholder="Número de cuenta" required><input name="password" class="mc-sel" type="password" autocomplete="off" placeholder="Contraseña" required>
                     <input name="broker_server" class="mc-sel" placeholder="Servidor del broker (ej. ICMarkets-Demo)" required>
-                    <select name="mode" class="mc-sel"><option value="trade">Operar (contraseña de trading)</option><option value="investor">Solo lectura (contraseña de inversor)</option></select>
-                    <p class="mc-nota">La contraseña se envía una vez al proveedor para conectar la cuenta; NLT no la guarda. Hasta ${est.max_accounts} cuentas. Empieza con una cuenta DEMO.</p>
+                    <input type="hidden" name="mode" value="trade">
+                    <p class="mc-nota">La contraseña se envía una vez al proveedor para conectar la cuenta; NLT la guarda cifrada solo para reconectar la sesión sola cuando el proveedor la enfría; puedes quitarla desconectando la cuenta. Hasta ${est.max_accounts} cuentas. Empieza con una cuenta DEMO.</p>
                     <button type="submit" class="mc-d on">Conectar</button></form>` : '';
                 const sel = cuentas.length ? `<div class="al-fila2"><select data-tr-cuenta class="mc-sel">${cuentas.map((x) => `<option value="${esc(x.id)}"${x.id === cuentaId ? ' selected' : ''}>#${esc(x.login)} · ${esc(x.server || '')}</option>`).join('')}</select>
                     <button type="button" data-tr="mas" class="mc-d" title="Conectar otra cuenta">+</button><button type="button" data-tr="desconectar" class="mc-d" title="Desconectar esta cuenta">Quitar</button></div>` : '';
@@ -189,7 +189,7 @@
                 }
                 const confirmaOn = state.prefs().confirmarOrden !== false;
                 const interruptor = c ? `<label class="tr-sw" title="Afecta al botón BUY/SELL de las posiciones que dibujas en el gráfico"><input type="checkbox" data-tr-confirmar ${confirmaOn ? 'checked' : ''}><span class="tr-sw-t"><b>Pedir confirmación</b> en el botón BUY/SELL de mis posiciones<small>${confirmaOn ? 'Activado: un primer toque arma el botón y el segundo envía la orden.' : 'Desactivado: un solo toque envía la orden real al instante.'}</small></span></label>` : '';
-                cuerpo = `${modo}${sel}${errorVivo ? `<p class="al-msg">${esc(errorVivo)}</p>` : ''}${form}${resumen}${tabs}${msg ? `<p class="al-msg">${esc(msg)}</p>` : ''}${panel}
+                cuerpo = `${modo}${sel}${errorVivo ? `<p class="al-msg">${esc(errorVivo)}</p>${c ? `<form data-tr-reconectar class="al-fila2"><input name="password" class="mc-sel" type="password" autocomplete="off" placeholder="${c.auto_reconnect ? 'Contraseña (opcional)' : 'Contraseña de trading'}"${c.auto_reconnect ? '' : ' required'}><button type="submit" class="mc-d on">Reconectar</button></form>` : ''}` : ''}${form}${resumen}${tabs}${msg ? `<p class="al-msg">${esc(msg)}</p>` : ''}${panel}
                     ${interruptor}<p class="mc-nota">Operar con dinero real implica riesgo de pérdida. Las posiciones, SL y TP se ven y se mueven también directo en el gráfico.</p>`;
             }
             pop.innerHTML = `<div class="mc-tit">Operar · cuenta real</div>${cuerpo}`;
@@ -257,6 +257,12 @@
                     cuentaId = r.account.id; state.savePrefs({ traderCuenta: cuentaId }); mostrarConexion = false; msg = 'Cuenta conectada.';
                     await cargarEstado(); await refrescar();
                 } catch (err) { msg = err.message || 'No se pudo conectar la cuenta.'; }
+                pintar(); posicionar(); return;
+            }
+            if (e.target.matches('[data-tr-reconectar]')) {
+                const b = e.target.querySelector('button[type=submit]'); b.disabled = true; b.textContent = 'Reconectando…';
+                try { await NLT_API.chartsTraderReconectar(cuentaId, String(f.get('password') || '')); msg = 'Cuenta reconectada.'; await cargarEstado(); await refrescar(); }
+                catch (err) { msg = err.message || 'No se pudo reconectar.'; }
                 pintar(); posicionar(); return;
             }
             if (e.target.matches('[data-tr-mapa]')) {
