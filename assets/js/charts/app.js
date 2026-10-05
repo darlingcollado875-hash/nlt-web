@@ -172,6 +172,7 @@
                 });
             } catch (e) { console.warn('[NLT Charts] multi-gráfico no disponible', e); }
         }
+        if (NLTCharts.ratings) { try { NLTCharts.ratings.montar({ chart: motor.chart, getSymbol: () => symbol, getTimeframe: () => timeframe }); } catch (e) { console.warn('[NLT Charts] análisis técnico no disponible', e); } }
         pro.iniciar();
         nltAi.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
