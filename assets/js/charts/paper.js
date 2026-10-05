@@ -106,20 +106,206 @@
                 },
             });
         }
+        // ── líneas + controles sobre el gráfico ──
+        // Las líneas (entrada, SL, TP, órdenes) las dibuja KLineChart; los controles (cerrar, quitar, arrastrar SL/TP) son
+        // fichas HTML pegadas a cada línea: así responden bien al tacto y se pueden arrastrar sin pelear con el gráfico.
+        const dom = chart.getDom();
+        const stage = (dom && (dom.closest('.ch-stage') || dom.parentElement)) || document.body;
+        const capa = document.createElement('div');
+        capa.className = 'pp-capa';
+        stage.appendChild(capa);
+        const aviso = document.createElement('div');
+        aviso.className = 'pp-aviso'; aviso.hidden = true; capa.appendChild(aviso);
+        let tAviso = null;
+        function avisar(txt) { aviso.textContent = txt; aviso.hidden = false; clearTimeout(tAviso); tAviso = setTimeout(() => { aviso.hidden = true; }, 3500); }
+        const fichas = new Map();     // clave -> { el, desc }
+        let arrastre = null;          // ficha que se está arrastrando: no se repinta ni se mueve sola
+        let armadoCierre = null;      // { clave, t } primer toque en ✕ de cerrar (el segundo confirma)
+        const yDe = (valor) => {
+            try { const c = chart.convertToPixel({ value: valor }, { paneId: 'candle_pane' }); return c && Number.isFinite(c.y) ? c.y : null; } catch (_) { return null; }
+        };
+        const valorDe = (y) => {
+            try { const r = chart.convertFromPixel([{ y }], { paneId: 'candle_pane' }); const v = Array.isArray(r) ? r[0] : r; return v && Number.isFinite(v.value) ? v.value : null; } catch (_) { return null; }
+        };
+        const desplazamientoY = () => (dom ? dom.getBoundingClientRect().top - stage.getBoundingClientRect().top : 0);
+        const colorPL = (g) => (g >= 0 ? '#22C55E' : '#EF4444');
+
+        // Descripción de las fichas que corresponden al estado actual (solo del símbolo que se ve).
+        function descripciones() {
+            const sym = getSymbol(), out = [];
+            cuenta.posiciones.filter((p) => p.sym === sym).forEach((p) => {
+                const f = flotante(p), lado = p.side === 'buy' ? 'BUY' : 'SELL';
+                out.push({ clave: `e:${p.id}`, tipo: 'entrada', id: p.id, valor: p.entry, color: colorPL(f), texto: `${lado} ${p.lots} · ${f >= 0 ? '+' : ''}${dinero(f)}`, fantasmas: [p.sl == null ? 'sl' : null, p.tp == null ? 'tp' : null].filter(Boolean) });
+                if (p.sl != null) out.push({ clave: `s:${p.id}`, tipo: 'sl', id: p.id, valor: p.sl, color: '#EF4444', texto: `SL ${dinero(pnl(p.side, p.entry, p.sl, p.lots, tam(p.sym), convUSD(p.sym, p.sl)))}` });
+                if (p.tp != null) out.push({ clave: `t:${p.id}`, tipo: 'tp', id: p.id, valor: p.tp, color: '#22C55E', texto: `TP +${dinero(pnl(p.side, p.entry, p.tp, p.lots, tam(p.sym), convUSD(p.sym, p.tp)))}` });
+            });
+            cuenta.ordenes.filter((o) => o.sym === sym).forEach((o) => out.push({ clave: `o:${o.id}`, tipo: 'orden', id: o.id, valor: o.price, color: '#F59E0B', texto: `${o.side === 'buy' ? 'BUY' : 'SELL'} ${o.type.toUpperCase()} ${o.lots}` }));
+            return out;
+        }
+        function htmlFicha(d) {
+            const grip = d.tipo === 'entrada' ? '' : '<i class="pp-grip" title="Arrastrá para mover" aria-hidden="true"></i>';
+            const fant = (d.fantasmas || []).map((k) => `<button type="button" class="pp-fant" data-a="add${k}" title="Agregar ${k === 'sl' ? 'stop loss' : 'take profit'}">+ ${k.toUpperCase()}</button>`).join('');
+            const armado = armadoCierre && armadoCierre.clave === d.clave && Date.now() - armadoCierre.t < 3000;
+            const x = d.tipo === 'entrada' ? `<button type="button" class="pp-x${armado ? ' listo' : ''}" data-a="cerrar" title="Cerrar la posición" aria-label="Cerrar la posición">${armado ? 'Cerrar' : '✕'}</button>`
+                : d.tipo === 'orden' ? '<button type="button" class="pp-x" data-a="cancelar" title="Cancelar la orden" aria-label="Cancelar la orden">✕</button>'
+                    : `<button type="button" class="pp-x" data-a="quitar" title="Quitar ${d.tipo === 'sl' ? 'el stop loss' : 'el take profit'}" aria-label="Quitar">✕</button>`;
+            return `${fant}<span class="pp-ficha" style="--c:${d.color}">${grip}<span class="pp-t">${esc(d.texto)}</span>${x}</span>`;
+        }
+        function colocar(f) {
+            const alto = dom ? dom.clientHeight : 0;
+            let y = f.yFija != null ? f.yFija : yDe(f.desc.valor);
+            if (y == null) { f.el.style.display = 'none'; return; }
+            f.el.style.display = '';
+            // Fuera de la pantalla: la ficha queda pegada al borde (con su flecha) para no perder el SL/TP; se puede arrastrar desde ahí.
+            const fuera = alto ? (y < 14 ? 'arriba' : y > alto - 14 ? 'abajo' : '') : '';
+            if (fuera && alto) y = fuera === 'arriba' ? 14 : alto - 14;
+            if (f.fuera !== fuera) { f.el.classList.toggle('fuera', !!fuera); f.el.dataset.fuera = fuera; f.fuera = fuera; }
+            const ty = Math.round(y + desplazamientoY());
+            if (f.ty !== ty) { f.el.style.transform = `translateY(${ty}px) translateY(-50%)`; f.ty = ty; }
+        }
+        function sincronizarFichas() {
+            const lista = descripciones(), vistas = new Set();
+            lista.forEach((d) => {
+                vistas.add(d.clave);
+                let f = fichas.get(d.clave);
+                if (!f) {
+                    const el = document.createElement('div');
+                    el.className = `pp-chip pp-${d.tipo}`; el.dataset.clave = d.clave;
+                    capa.appendChild(el);
+                    f = { el, desc: d, ty: null, html: '' };
+                    fichas.set(d.clave, f);
+                }
+                if (arrastre && arrastre.clave === d.clave) return;   // la que se arrastra la maneja el arrastre
+                f.desc = d;
+                const h = htmlFicha(d);
+                if (h !== f.html) { f.el.innerHTML = h; f.html = h; }
+                f.yFija = null;
+            });
+            [...fichas.keys()].forEach((k) => { if (!vistas.has(k)) { fichas.get(k).el.remove(); fichas.delete(k); } });
+            fichas.forEach(colocar);
+            if (fichas.size) bucleY(); 
+        }
+        let rafY = null;
+        function bucleY() {
+            if (rafY) return;
+            const paso = () => {
+                rafY = null;
+                if (!fichas.size) return;
+                if (!document.hidden) fichas.forEach(colocar);
+                rafY = requestAnimationFrame(paso);
+            };
+            rafY = requestAnimationFrame(paso);
+        }
+
         function pintarLineas() {
             registrarOverlay();
-            try { chart.removeOverlay({ groupId: GRUPO }); } catch (_) { /* nada */ }
-            const ult = chart.getDataList().slice(-1)[0]; if (!ult) return;
-            const sym = getSymbol();
-            const linea = (valor, texto, color) => chart.createOverlay({ name: 'nltPaperLine', groupId: GRUPO, lock: true, points: [{ timestamp: ult.timestamp, value: valor }], extendData: { texto, color } });
-            cuenta.posiciones.filter((p) => p.sym === sym).forEach((p) => {
-                const f = flotante(p);
-                linea(p.entry, `${p.side === 'buy' ? 'BUY' : 'SELL'} ${p.lots} · ${f >= 0 ? '+' : ''}${dinero(f)}`, f >= 0 ? '#22C55E' : '#EF4444');
-                if (p.sl != null) linea(p.sl, 'SL', '#EF4444');
-                if (p.tp != null) linea(p.tp, 'TP', '#22C55E');
-            });
-            cuenta.ordenes.filter((o) => o.sym === sym).forEach((o) => linea(o.price, `${o.side === 'buy' ? 'BUY' : 'SELL'} ${o.type.toUpperCase()} ${o.lots}`, '#F59E0B'));
+            if (!arrastre) {
+                try { chart.removeOverlay({ groupId: GRUPO }); } catch (_) { /* nada */ }
+                const ult = chart.getDataList().slice(-1)[0];
+                if (ult) {
+                    const linea = (clave, valor, color) => chart.createOverlay({ id: `pp-${clave}`, name: 'nltPaperLine', groupId: GRUPO, lock: true, points: [{ timestamp: ult.timestamp, value: valor }], extendData: { texto: '', color } });
+                    descripciones().forEach((d) => linea(d.clave, d.valor, d.tipo === 'entrada' ? '#9CA3AF' : d.color));
+                }
+            }
+            sincronizarFichas();
         }
+
+        // ── acciones de las fichas ──
+        function sugerirDistancia(p) {
+            const ult = chart.getDataList().slice(-14);
+            const rango = ult.length ? ult.reduce((a, k) => a + (k.high - k.low), 0) / ult.length : 0;
+            return rango > 0 ? rango * 1.5 : Math.abs(p.entry) * 0.005;
+        }
+        // Valida un SL/TP nuevo contra la entrada Y contra el precio actual (un stop del lado equivocado cerraría la posición al instante).
+        function errorSLTP(p, sl, tp) {
+            const px = precios[p.sym];
+            const err = validar({ side: p.side, type: 'market', lots: p.lots, price: p.entry, sl, tp }, p.entry);
+            if (err) return err;
+            if (px != null) {
+                if (sl != null && ((p.side === 'buy' && sl >= px) || (p.side === 'sell' && sl <= px))) return 'Ese stop loss ya está del lado del precio actual: cerraría la posición al instante.';
+                if (tp != null && ((p.side === 'buy' && tp <= px) || (p.side === 'sell' && tp >= px))) return 'Ese take profit ya está del lado del precio actual: cerraría la posición al instante.';
+            }
+            return null;
+        }
+        function accionFicha(clave, a) {
+            const f = fichas.get(clave); if (!f) return;
+            const d = f.desc, p = cuenta.posiciones.find((x) => x.id === d.id), o = cuenta.ordenes.find((x) => x.id === d.id);
+            if (a === 'cerrar' && p) {
+                if (!armadoCierre || armadoCierre.clave !== clave || Date.now() - armadoCierre.t > 3000) {
+                    armadoCierre = { clave, t: Date.now() };
+                    const x = f.el.querySelector('.pp-x'); if (x) { x.textContent = 'Cerrar'; x.classList.add('listo'); }
+                    setTimeout(() => { if (armadoCierre && armadoCierre.clave === clave) { armadoCierre = null; const x2 = f.el.querySelector('.pp-x'); if (x2) { x2.textContent = '✕'; x2.classList.remove('listo'); } } }, 3000);
+                    return;
+                }
+                armadoCierre = null;
+                const px = precios[p.sym];
+                if (px == null) { avisar('Todavía no hay precio para cerrar.'); return; }
+                const g = flotante(p); cerrar(p, px, 'Manual'); guardar(); avisar(`Posición cerrada: ${g >= 0 ? '+' : ''}${dinero(g)}`);
+            } else if (a === 'cancelar' && o) {
+                cuenta.ordenes = cuenta.ordenes.filter((x) => x.id !== o.id); guardar();
+            } else if (p && (a === 'addsl' || a === 'addtp')) {
+                const dist = sugerirDistancia(p), px = precios[p.sym] != null ? precios[p.sym] : p.entry, signo = p.side === 'buy' ? 1 : -1;
+                const sl = a === 'addsl' ? px - signo * dist : p.sl, tp = a === 'addtp' ? px + signo * dist * 2 : p.tp;
+                const err = errorSLTP(p, sl, tp);
+                if (err) { avisar(err); return; }
+                p.sl = sl != null ? Number(sl.toFixed(pr(p.sym))) : null; p.tp = tp != null ? Number(tp.toFixed(pr(p.sym))) : null; guardar();
+                avisar(`${a === 'addsl' ? 'Stop loss' : 'Take profit'} agregado: arrastralo para ajustarlo.`);
+            } else if (p && a === 'quitar') {
+                if (d.tipo === 'sl') p.sl = null; else p.tp = null;
+                guardar();
+            }
+            pintarLineas(); programar(); if (!pop.hidden) pintar();
+        }
+        capa.addEventListener('click', (e) => {
+            const b = e.target.closest('button[data-a]'); if (!b) return;
+            const ficha = b.closest('.pp-chip'); if (ficha) accionFicha(ficha.dataset.clave, b.dataset.a);
+        });
+
+        // ── arrastrar SL / TP / órdenes pendientes ──
+        capa.addEventListener('pointerdown', (e) => {
+            const grip = e.target.closest('.pp-grip, .pp-t'); const ficha = e.target.closest('.pp-chip');
+            if (!grip || !ficha || e.target.closest('button')) return;
+            const f = fichas.get(ficha.dataset.clave);
+            if (!f || f.desc.tipo === 'entrada') return;
+            e.preventDefault();
+            try { e.target.closest('.pp-ficha').setPointerCapture(e.pointerId); } catch (_) { /* sin captura: el arrastre igual funciona con el ratón */ }
+            arrastre = { clave: f.desc.clave, f, id: e.pointerId, valor: f.desc.valor };
+            ficha.classList.add('arrastrando');
+            if (window.NLTCharts && NLTCharts.motor) { /* el gráfico no se mueve: el evento no le llega a la capa */ }
+        });
+        capa.addEventListener('pointermove', (e) => {
+            if (!arrastre || e.pointerId !== arrastre.id) return;
+            const r = stage.getBoundingClientRect();
+            const y = e.clientY - r.top - desplazamientoY();
+            const v = valorDe(y); if (v == null) return;
+            const f = arrastre.f, d = f.desc;
+            arrastre.valor = v; f.yFija = Math.max(0, Math.min(dom.clientHeight, y));
+            const p = cuenta.posiciones.find((x) => x.id === d.id);
+            let t = d.texto;
+            if (p && (d.tipo === 'sl' || d.tipo === 'tp')) { const g = pnl(p.side, p.entry, v, p.lots, tam(p.sym), convUSD(p.sym, v)); t = `${d.tipo.toUpperCase()} ${g >= 0 ? '+' : ''}${dinero(g)} · ${v.toFixed(pr(p.sym))}`; }
+            else t = `${d.texto.split(' @')[0]} @ ${v.toFixed(pr(getSymbol()))}`;
+            const tt = f.el.querySelector('.pp-t'); if (tt) tt.textContent = t;
+            try { chart.overrideOverlay({ id: `pp-${d.clave}`, points: [{ timestamp: chart.getDataList().slice(-1)[0].timestamp, value: v }] }); } catch (_) { /* sin línea */ }
+            colocar(f);
+        });
+        function terminarArrastre(e, confirmar) {
+            if (!arrastre || (e && e.pointerId !== arrastre.id)) return;
+            const { f, valor } = arrastre, d = f.desc;
+            arrastre.f.el.classList.remove('arrastrando');
+            arrastre = null;
+            if (confirmar) {
+                const dec = pr(getSymbol()), nuevo = Number(valor.toFixed(dec));
+                const p = cuenta.posiciones.find((x) => x.id === d.id), o = cuenta.ordenes.find((x) => x.id === d.id);
+                let err = null;
+                if (p && d.tipo === 'sl') { err = errorSLTP(p, nuevo, p.tp); if (!err) p.sl = nuevo; }
+                else if (p && d.tipo === 'tp') { err = errorSLTP(p, p.sl, nuevo); if (!err) p.tp = nuevo; }
+                else if (o) { err = validar({ side: o.side, type: o.type, lots: o.lots, price: nuevo, sl: o.sl, tp: o.tp }, precios[o.sym] != null ? precios[o.sym] : nuevo); if (!err) o.price = nuevo; }
+                if (err) avisar(err); else guardar();
+            }
+            f.html = ''; pintarLineas(); if (!pop.hidden) pintar();
+        }
+        capa.addEventListener('pointerup', (e) => terminarArrastre(e, true));
+        capa.addEventListener('pointercancel', (e) => terminarArrastre(e, false));
 
         // ── motor: se evalúa con cada cotización nueva ──
         function cerrar(p, precio, motivo) {
