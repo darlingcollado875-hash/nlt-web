@@ -475,5 +475,5 @@
     }
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.engine = { crear, COLORES: C, FUENTE, APARIENCIA, estilosApariencia };
+    window.NLTCharts.engine = { crear, ESTILOS, COLORES: C, FUENTE, APARIENCIA, estilosApariencia };
 })();
