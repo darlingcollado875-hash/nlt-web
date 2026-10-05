@@ -126,9 +126,14 @@
         try { body = await resp.json(); } catch (_) { /* respuesta vacía, ok */ }
 
         if (!resp.ok) {
-            const detalle = (body && body.detail) ? body.detail : `Error HTTP ${resp.status}`;
+            let detalle = (body && body.detail) ? body.detail : `Error HTTP ${resp.status}`;
+            let codigo = null;
+            // Algunos endpoints devuelven detail = { code, message } (ej. plan_required, trading_disabled).
+            if (detalle && typeof detalle === 'object' && !Array.isArray(detalle)) { codigo = detalle.code || null; detalle = detalle.message || `Error HTTP ${resp.status}`; }
+            else if (Array.isArray(detalle)) detalle = detalle.map((d) => (d && d.msg) || String(d)).join('; ');
             const err = new Error(detalle);
             err.status = resp.status;   // para distinguir casos (ej. 503 = función no disponible todavía)
+            if (codigo) err.code = codigo;
             throw err;
         }
         return body;
@@ -944,6 +949,14 @@
         },
         // PRO: el backend decide el acceso; estos métodos solo preguntan.
         chartsProCatalogo: () => request('/charts/pro/catalog'),
+        // NLT Charts Trader: cuentas MT5 conectadas al gráfico y operaciones (plan de pago; el servidor decide el acceso)
+        chartsTraderEstado: () => request('/charts/trader/status'),
+        chartsTraderConectar: (datos) => request('/charts/trader/accounts', { method: 'POST', body: JSON.stringify(datos), lento: true }),
+        chartsTraderDesconectar: (id) => request(`/charts/trader/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+        chartsTraderEnVivo: (id) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/live`),
+        chartsTraderOrden: (id, orden) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/orders`, { method: 'POST', body: JSON.stringify(orden), timeoutMs: 30000, intentos: 1 }),
+        chartsTraderModificar: (id, ticket, cambios) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/positions/${encodeURIComponent(ticket)}`, { method: 'PATCH', body: JSON.stringify(cambios), intentos: 1 }),
+        chartsTraderCerrar: (id, ticket, volumen) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/positions/${encodeURIComponent(ticket)}/close`, { method: 'POST', body: JSON.stringify(volumen ? { volume: volumen } : {}), intentos: 1 }),
         // Alertas de precio 24/7 (corren en el servidor)
         chartsAlertas: () => request('/charts/alerts'),
         chartsCrearAlerta: (alerta) => request('/charts/alerts', { method: 'POST', body: JSON.stringify(alerta) }),

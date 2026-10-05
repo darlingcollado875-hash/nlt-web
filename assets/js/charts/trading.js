@@ -9,36 +9,30 @@
  * execution_enabled=false, activo() es false, el botón BUY/SELL de la barra
  * del dibujo queda deshabilitado y enviar() rechaza sin mandar nada. */
 (function () {
+    // Antes esta interfaz estaba "preparada y apagada". Ahora el BUY/SELL de una Long/Short dibujada abre el ticket de
+    // NLT Charts Trader (trader.js) con el lote, el SL y el TP ya cargados: el usuario confirma ahí. El servidor decide
+    // si hay plan, cuenta conectada y si la ejecución está encendida.
     const ACCIONES = ['BUY', 'SELL', 'CLOSE', 'MODIFY'];
-    let estado = { execution_enabled: false, reason: 'La ejecución real desde NLT Charts todavía no está activada.' };
 
-    async function cargar() {
-        try {
-            if (window.NLT_API && NLT_API.chartsTradingEstado) estado = await NLT_API.chartsTradingEstado();
-        } catch (_) { /* sin estado del servidor = apagado */ }
-        return estado;
-    }
+    async function cargar() { return { execution_enabled: !!(window.NLTCharts && NLTCharts.traderApi && NLTCharts.traderApi.puedeOperar()) }; }
 
-    // Posición del gráfico -> orden en el formato de /charts/trading/orders.
-    function ordenDesdePosicion(pos, cuentaId) {
+    function ordenDesdePosicion(pos) {
         if (!pos) return null;
-        return {
-            action: pos.lado, symbol: pos.simbolo, account_id: cuentaId || null,
-            quantity: pos.cantidad || null, entry: pos.entrada, sl: pos.sl, tp: pos.tp,
-        };
+        return { action: pos.lado, symbol: pos.simbolo, quantity: pos.cantidad || null, lots: pos.lotes || null, entry: pos.entrada, sl: pos.sl, tp: pos.tp };
     }
 
-    async function enviar(pos, cuentaId) {
-        if (!estado.execution_enabled) throw new Error(estado.reason || 'Ejecución no activada');
-        const orden = ordenDesdePosicion(pos, cuentaId);
+    async function enviar(pos) {
+        if (!window.NLTCharts || !NLTCharts.traderApi) throw new Error('Operar con tu cuenta todavía no está disponible.');
+        const orden = ordenDesdePosicion(pos);
         if (!orden || !ACCIONES.includes(orden.action)) throw new Error('Orden inválida');
-        return NLT_API.chartsTradingOrden(orden);
+        NLTCharts.traderApi.desdePosicion(pos);
+        return { opened: true };
     }
 
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.trading = {
         ACCIONES, cargar, ordenDesdePosicion, enviar,
-        activo: () => !!estado.execution_enabled,
-        estado: () => ({ ...estado }),
+        activo: () => !!(window.NLTCharts && NLTCharts.traderApi),
+        estado: () => ({ execution_enabled: !!(window.NLTCharts && NLTCharts.traderApi && NLTCharts.traderApi.puedeOperar()) }),
     };
 })();
