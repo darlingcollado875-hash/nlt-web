@@ -103,6 +103,20 @@
         .al-form { display: flex; flex-direction: column; gap: 6px; } .al-fila2 { display: flex; gap: 6px; align-items: center; } .al-fila2 .mc-sel { flex: 1; height: 30px; min-width: 0; } .al-nota { height: 30px; }
         .al-push { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #D1D5DB; background: rgba(34,211,238,.08); border: 1px solid rgba(34,211,238,.25); border-radius: 10px; padding: 8px; margin-bottom: 10px; }
         .al-msg { font-size: 12px; color: #FDE68A; margin: 0 0 8px; }
+        .ch-plant { display: flex; gap: 6px; margin: 0 0 10px; }
+        .ch-plant select { flex: 1; min-width: 0; background: #151A22; color: #E5E7EB; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 12px; padding: 6px 8px; }
+        .ch-plant button { background: #151A22; color: #D1D5DB; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 12px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+        .ch-plant button:hover { color: #fff; border-color: #22D3EE; }
+        .an-pop { width: 340px; max-height: calc(100vh - 90px); overflow-y: auto; }
+        .an-med { text-align: center; padding: 6px 0 10px; } .an-med.grande { padding-bottom: 14px; }
+        .an-med-t { font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: .06em; }
+        .an-med-v { font-size: 16px; font-weight: 700; margin: 2px 0 8px; } .an-med.grande .an-med-v { font-size: 22px; }
+        .an-barra { position: relative; height: 6px; border-radius: 3px; background: linear-gradient(90deg,#EF4444,#9CA3AF 50%,#22C55E); margin: 0 6px; }
+        .an-barra i { position: absolute; top: -4px; width: 4px; height: 14px; margin-left: -2px; border-radius: 2px; background: #fff; box-shadow: 0 0 0 2px #0D1016; }
+        .an-cuentas { display: flex; justify-content: space-between; font-size: 11px; color: #9CA3AF; margin-top: 8px; padding: 0 2px; }
+        .an-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--ch-line); }
+        .an-pop details { border-top: 1px solid var(--ch-line); padding: 6px 0; } .an-pop summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #D1D5DB; }
+        .an-tab { width: 100%; font-size: 12px; margin-top: 6px; border-collapse: collapse; } .an-tab td { padding: 3px 2px; color: #D1D5DB; } .an-tab td:nth-child(2) { color: #9CA3AF; text-align: right; } .an-tab td:last-child { text-align: right; font-weight: 600; }
         .ch-tool-sep { width: 1px; height: 24px; align-self: center; background: var(--ch-line); margin: 0 4px; flex-shrink: 0; }
         .ch-hint { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); font-size: 12px; color: #E5E7EB; background: rgba(13,16,22,0.92); border: 1px solid var(--ch-line); border-radius: 999px; padding: 6px 12px; pointer-events: none; white-space: nowrap; z-index: 5; }
 
@@ -432,14 +446,16 @@
     <script src="assets/js/charts/watchlist.js?v=7aa1a4ae"></script>
     <script src="assets/js/charts/indicators-free.js?v=c3ae9a50"></script>
     <script src="assets/js/charts/unified-suite.js?v=12b89dab"></script>
-    <script src="assets/js/charts/indicators.js?v=de9918a5"></script>
+    <script src="assets/js/charts/indicators-extra.js?v=659e08e5"></script>
+    <script src="assets/js/charts/indicators.js?v=9abf8aaa"></script>
     <script src="assets/js/charts/pro.js?v=f8fe0bb1"></script>
     <script src="assets/js/charts/nlt-ai.js?v=abf12a4c"></script>
     <script src="assets/js/charts/replay.js?v=85f63c39"></script>
     <script src="assets/js/charts/historia.js?v=cf46a5bd"></script>
     <script src="assets/js/charts/backtest.js?v=38be954c"></script>
     <script src="assets/js/charts/multichart.js?v=c083b3da"></script>
+    <script src="assets/js/charts/ratings.js?v=55503b92"></script>
     <script src="assets/js/charts/alerts.js?v=db12e9c2"></script>
-    <script src="assets/js/charts/app.js?v=821a226c"></script>
+    <script src="assets/js/charts/app.js?v=715f9186"></script>
 </body>
 </html>

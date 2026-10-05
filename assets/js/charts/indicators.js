@@ -53,6 +53,8 @@
             ],
         },
     ];
+    // Más indicadores (VWAP, Ichimoku, Supertrend, ATR, MFI, ADX...): ver indicators-extra.js
+    if (NLTCharts.indicatorsExtra) GRUPOS.push(...NLTCharts.indicatorsExtra.GRUPOS);
     const FREE = GRUPOS.flatMap((g) => g.items);
     // Indicadores PRO que se pueden marcar con ⭐ (se prenden desde su propio módulo).
     const PRO_FAV = {
@@ -157,6 +159,7 @@
      */
     function montar({ chart, panelEl, panelBgEl, activos, getTimeframe, onCambio, pro }) {
         NLTCharts.freeIndicators.registrar();
+        if (NLTCharts.indicatorsExtra) NLTCharts.indicatorsExtra.registrar();
         NLTCharts.unified.registrar();
         registrarEsquemas();
         const state = NLTCharts.state;
@@ -321,12 +324,45 @@
             });
             return bloques.join('') || '<p class="ch-ind-desc" style="padding:8px 2px">Sin resultados.</p>';
         }
+        // ── Plantillas: guarda los indicadores activos con su configuración y los vuelve a poner con un clic ──
+        const plantillas = () => { const p = state.prefs().plantillasInd; return p && typeof p === 'object' ? p : {}; };
+        function plantillasHTML() {
+            const nombres = Object.keys(plantillas()).sort();
+            return `<div class="ch-plant"><select data-plant-sel aria-label="Plantillas de indicadores"><option value="">Plantillas…</option>${nombres.map((n) => `<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select>
+                <button type="button" data-plant="aplicar" title="Aplicar la plantilla elegida">Aplicar</button>
+                <button type="button" data-plant="guardar" title="Guardar los indicadores actuales como plantilla">Guardar</button>
+                <button type="button" data-plant="borrar" title="Borrar la plantilla elegida" aria-label="Borrar plantilla"><i class="ph ph-trash"></i></button></div>`;
+        }
+        function guardarPlantilla() {
+            const ids = [...on];
+            if (!ids.length) { window.alert('No hay indicadores activos para guardar.'); return; }
+            const nombre = (window.prompt('Nombre de la plantilla') || '').trim().slice(0, 40);
+            if (!nombre) return;
+            const todas = plantillas();
+            if (todas[nombre] && !window.confirm(`Ya existe "${nombre}". ¿Reemplazarla?`)) return;
+            const ajustes = {};
+            ids.forEach((id) => { if (NLTCharts.settings.tiene(id)) ajustes[id] = { ...NLTCharts.settings.valores(id) }; });
+            state.savePrefs({ plantillasInd: { ...todas, [nombre]: { ids, ajustes } } });
+            render();
+            const sel = panelEl.querySelector('[data-plant-sel]'); if (sel) sel.value = nombre;
+        }
+        function aplicarPlantilla(nombre) {
+            const t = plantillas()[nombre];
+            if (!t) return;
+            [...on].forEach(desactivar);
+            (t.ids || []).filter((id) => porId[id]).forEach((id) => {
+                if (t.ajustes && t.ajustes[id]) NLTCharts.settings.guardar(id, t.ajustes[id]);
+                activar(id);
+            });
+            guardarActivos(); render();
+        }
         function render() {
             panelEl.innerHTML = `
                 <div class="flex items-center justify-between mb-3">
                     <p class="text-sm font-bold">Indicadores</p>
                     <button type="button" data-cerrar class="ch-tool" aria-label="Cerrar"><i class="ph ph-x"></i></button>
                 </div>
+ ${plantillasHTML()}
                 <input type="search" class="wl-buscar ch-ind-buscar" placeholder="Buscar indicador" value="${esc(filtro)}" aria-label="Buscar indicador">
                 <div data-ind-lista>${listaHTML()}</div>
                 <div id="chProSeccion"></div>`;
@@ -354,6 +390,15 @@
         });
         panelEl.addEventListener('click', (ev) => {
             if (ev.target.closest('[data-cerrar]')) { cerrar(); return; }
+            const pl = ev.target.closest('[data-plant]');
+            if (pl) {
+                const sel = panelEl.querySelector('[data-plant-sel]'); const nombre = sel && sel.value;
+                if (pl.dataset.plant === 'guardar') guardarPlantilla();
+                else if (!nombre) window.alert('Elegí una plantilla de la lista.');
+                else if (pl.dataset.plant === 'aplicar') aplicarPlantilla(nombre);
+                else if (pl.dataset.plant === 'borrar' && window.confirm(`¿Borrar la plantilla "${nombre}"?`)) { const t = { ...plantillas() }; delete t[nombre]; state.savePrefs({ plantillasInd: t }); render(); }
+                return;
+            }
             const star = ev.target.closest('[data-fav-ind]');
             if (star) {
                 const id = star.dataset.favInd;
