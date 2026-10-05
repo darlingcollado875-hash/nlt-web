@@ -26,11 +26,8 @@
     // quedaría bloqueada como "contenido mixto" por el navegador.
     const BASE_URL = esLocal ? `${window.location.protocol}//127.0.0.1:8091` : 'https://nlt-api-production.up.railway.app';
 
-    // NLT Indicator AI está en BETA y corre en el environment de STAGING de
-    // Railway (todavía NO en producción). Por eso sus endpoints usan una base
-    // distinta a la del resto de NLT_API. Se puede sobreescribir con
-    // ?ai_api=<url> o localStorage 'NLT_AI_API' (para QA). Cuando el módulo
-    // pase a producción, basta con poner INDICATOR_AI_BASE = BASE_URL.
+    // NLT Indicator AI ya corre en producción (antes, en beta, usaba STAGING).
+    // Se puede sobreescribir con ?ai_api=<url> o localStorage 'NLT_AI_API' (QA).
     const INDICATOR_AI_BASE = (() => {
         try {
             const q = new URLSearchParams(window.location.search).get('ai_api');
@@ -38,8 +35,7 @@
             const ls = window.localStorage && localStorage.getItem('NLT_AI_API');
             if (ls) return ls.replace(/\/+$/, '');
         } catch (_) { /* sin query/localStorage -- default abajo */ }
-        if (esLocal) return BASE_URL;                       // dev local -> backend local
-        return 'https://nlt-api-staging.up.railway.app';    // beta -> staging
+        return BASE_URL;
     })();
 
     async function _token() {
