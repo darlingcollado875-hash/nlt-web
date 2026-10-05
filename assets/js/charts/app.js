@@ -60,6 +60,7 @@
         let pro = null;   // se crea más abajo; los dibujos lo consultan en tiempo de uso
         // Tiempo restante de la vela actual (reloj del servidor), sobre la escala de precios
         if (NLTCharts.pantallaCompleta) { try { NLTCharts.pantallaCompleta.montar({ stageEl: document.querySelector('.ch-stage') }); } catch (e) { console.warn('[NLT Charts] pantalla completa no disponible', e); } }
+        if (NLTCharts.tradePanel) { try { NLTCharts.tradePanel.montar({ mainEl: document.getElementById('chMain'), state }); } catch (e) { console.warn('[NLT Charts] panel Trade no disponible', e); } }
         if (NLTCharts.leyendaPlegable) { try { NLTCharts.leyendaPlegable.montar({ chart: motor.chart, stageEl: document.querySelector('.ch-stage'), state }); } catch (e) { console.warn('[NLT Charts] leyenda plegable no disponible', e); } }
         if (NLTCharts.countdown) NLTCharts.countdown.montar({ chart: motor.chart, stageEl: document.querySelector('.ch-stage') });
         NLTCharts.settings.registrar('GRAFICO', NLTCharts.engine.APARIENCIA);

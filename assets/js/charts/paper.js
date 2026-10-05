@@ -182,7 +182,9 @@
             },
         });
         const avisar = chips.avisar;
-        function pintarLineas() { chips.actualizar(); }
+        const oyentesPanel = new Set();
+        const avisarPanel = () => oyentesPanel.forEach((fn) => { try { fn(); } catch (_) { /* un oyente roto no frena al simulador */ } });
+        function pintarLineas() { chips.actualizar(); avisarPanel(); }
 
         // ── motor: se evalúa con cada cotización nueva ──
         function cerrar(p, precio, motivo) {
@@ -365,6 +367,24 @@
                 abrir('ticket');
             },
             estado: () => cuenta,
+            // Panel «Trade» (estilo MT5): saldo, equity, posiciones con su ganancia/pérdida en vivo y órdenes pendientes
+            alCambiar(fn) { oyentesPanel.add(fn); return () => oyentesPanel.delete(fn); },
+            datosPanel() {
+                const eq = equity(), mu = margenUsado();
+                return {
+                    fuente: 'sim', etiqueta: 'Simulador', cuenta: { id: 'sim', login: 'Virtual' }, dec: (sym) => pr(sym),
+                    summary: { balance: cuenta.saldo, equity: eq, margin: mu, free_margin: eq - mu, margin_level: mu > 0 ? (eq / mu) * 100 : null, profit: flotanteTotal() },
+                    positions: cuenta.posiciones.map((p) => ({ id: p.id, sym: p.sym, nlt: p.sym, side: p.side, lots: p.lots, open: p.entry, current: precios[p.sym] != null ? precios[p.sym] : null, sl: p.sl, tp: p.tp, pl: flotante(p) })),
+                    orders: cuenta.ordenes.map((o) => ({ id: o.id, sym: o.sym, nlt: o.sym, side: o.side, type: o.type, lots: o.lots, price: o.price, sl: o.sl, tp: o.tp })),
+                };
+            },
+            cerrarPosicion(id) { const x = cuenta.posiciones.find((q) => q.id === id); if (!x || precios[x.sym] == null) return 'Sin precio para cerrar todavía.'; cerrar(x, precios[x.sym], 'Manual'); guardar(); pintarLineas(); programar(); return null; },
+            cancelarOrden(id) { cuenta.ordenes = cuenta.ordenes.filter((o) => o.id !== id); guardar(); pintarLineas(); programar(); return null; },
+            cambiarSLTP(id, sl, tp) {
+                const x = cuenta.posiciones.find((q) => q.id === id); if (!x) return 'Esa posición ya no está abierta.';
+                const err = validar({ side: x.side, type: 'market', lots: x.lots, price: x.entry, sl, tp }, x.entry); if (err) return err;
+                x.sl = sl; x.tp = tp; guardar(); pintarLineas(); return null;
+            },
         };
     }
 
