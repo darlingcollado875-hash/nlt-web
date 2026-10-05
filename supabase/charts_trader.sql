@@ -30,3 +30,7 @@ create table if not exists public.chart_trade_log (
 );
 create index if not exists chart_trade_log_user_idx on public.chart_trade_log (user_id, created_at desc);
 alter table public.chart_trade_log enable row level security;
+
+-- ── Actualización: mapeo de símbolos por cuenta + plan abierto a $10/mes ──
+alter table public.cuentas_mt5 add column if not exists symbol_map jsonb not null default '{}'::jsonb;
+update public.plans set precio = 10.00, activo = true, updated_at = now() where id = 'CHARTS_TRADER_MONTHLY';
