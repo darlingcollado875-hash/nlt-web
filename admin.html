@@ -103,6 +103,7 @@
             <button data-seccion="usuarios" class="tab-admin"><i class="ph-fill ph-users-three mr-1.5"></i>Usuarios</button>
             <button data-seccion="planes" class="tab-admin"><i class="ph-fill ph-tag mr-1.5"></i>Planes</button>
             <button data-seccion="pagos" class="tab-admin"><i class="ph-fill ph-credit-card mr-1.5"></i>Pagos · Copy System</button>
+            <button data-seccion="script_ventas" class="tab-admin"><i class="ph-fill ph-code mr-1.5"></i>NLT Script · Ventas</button>
             <button data-seccion="indicador" class="tab-admin"><i class="ph-fill ph-chart-bar mr-1.5"></i>Indicador · Órdenes</button>
             <button data-seccion="contenido" class="tab-admin"><i class="ph-fill ph-image mr-1.5"></i>Contenido Ecosistema</button>
             <button data-seccion="media" class="tab-admin"><i class="ph-fill ph-video-camera mr-1.5"></i>Media</button>
@@ -244,6 +245,32 @@
                         <tbody id="tablaPagos" class="divide-y divide-white/5 text-gray-300">
                             <tr><td colspan="10" class="px-5 py-6 text-center text-nlt-accent animate-pulse">Cargando pagos...</td></tr>
                         </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- NLT SCRIPT: VENTAS Y PAGOS A CREADORES -->
+            <div id="seccion-script_ventas" class="seccion-admin hidden space-y-6">
+                <div class="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                        <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-code text-nlt-accent"></i> NLT Script · Ventas y pagos a creadores</h2>
+                        <p class="text-xs text-gray-500 max-w-2xl">Todo lo que se vende en la tienda de indicadores: lo cobrado, tu comisión, lo que debes a cada creador y sus solicitudes de pago. El cobro entra a tu Whop; a los creadores les pagas tú por fuera y aquí lo marcas.</p>
+                    </div>
+                    <button id="svRecargar" class="px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-xs font-semibold text-gray-300 flex items-center gap-1.5"><i class="ph ph-arrows-clockwise"></i> Actualizar</button>
+                </div>
+                <div id="svStats" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4"><p class="text-xs text-gray-500 col-span-full animate-pulse">Cargando...</p></div>
+                <div class="flex items-center gap-2 border-b border-white/5 pb-2">
+                    <button data-sv-vista="solicitudes" class="sv-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-nlt-accent/15 text-white border border-nlt-accent/30">Solicitudes de pago <span id="svBadge" class="ml-1 px-1.5 py-0.5 rounded-full bg-nlt-accent/30 text-[10px]"></span></button>
+                    <button data-sv-vista="ventas" class="sv-tab px-3 py-1.5 rounded-lg text-xs font-semibold bg-white/5 text-gray-400 border border-transparent">Todas las ventas</button>
+                </div>
+                <div id="svSolicitudes" class="space-y-3"></div>
+                <div id="svVentas" class="glass-card overflow-x-auto hidden">
+                    <table class="w-full text-left text-sm md:min-w-[980px]">
+                        <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5"><tr>
+                            <th class="px-4 py-3 font-semibold">Fecha</th><th class="px-4 py-3 font-semibold">Indicador</th><th class="px-4 py-3 font-semibold">Creador</th><th class="px-4 py-3 font-semibold">Comprador</th>
+                            <th class="px-4 py-3 font-semibold text-right">Cobrado</th><th class="px-4 py-3 font-semibold text-right">NLT</th><th class="px-4 py-3 font-semibold text-right">Creador</th><th class="px-4 py-3 font-semibold">Estado</th>
+                        </tr></thead>
+                        <tbody id="svTabla" class="divide-y divide-white/5 text-gray-300"></tbody>
                     </table>
                 </div>
             </div>
@@ -1844,7 +1871,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=2efe53c3"></script>
+    <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
     <script src="assets/js/nlt-certificate.js?v=d90bf8ca"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -2343,6 +2370,73 @@
                 if (/audiencia cambi/i.test(err.message)) { await cargarAudienciaNotif(); $n('notifConfirmar').classList.add('hidden'); }
                 btn.disabled = false;
             }
+        });
+
+        // --- NLT Script: ventas y pagos a creadores ---
+        let svDatos = null, svVista = 'solicitudes';
+        const svDinero = (n) => `$${Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        const svFecha = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleString('es', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'; };
+        const SV_ESTADO = { pending: ['Por pagar', 'text-yellow-400 bg-yellow-400/10 border-yellow-400/25'], requested: ['Solicitado', 'text-nlt-accent bg-nlt-accent/10 border-nlt-accent/30'], paid: ['Pagado', 'text-nlt-success bg-nlt-success/10 border-nlt-success/25'], rejected: ['Rechazada', 'text-nlt-danger bg-nlt-danger/10 border-nlt-danger/25'] };
+        const svChip = (st) => { const [t, c] = SV_ESTADO[st] || [st, 'text-gray-400 bg-white/5 border-white/10']; return `<span class="inline-block px-2 py-0.5 rounded-full border text-[10px] font-bold uppercase tracking-wider ${c}">${t}</span>`; };
+        function svPintar() {
+            if (!svDatos) return;
+            const t = svDatos.totals || {}, sol = svDatos.requests || [], enEspera = sol.filter((r) => r.status === 'pending');
+            document.getElementById('svStats').innerHTML = [
+                ['Ventas cobradas', `${t.sales || 0}`, `${svDinero(t.gross_usd)} en total`, ''],
+                ['Comisión NLT', svDinero(t.nlt_usd), 'tu parte, ya en tu Whop', 'text-nlt-accent'],
+                ['Parte de creadores', svDinero(t.creators_usd), 'lo que les corresponde', ''],
+                ['Por pagar', svDinero(t.owed_usd), 'pendiente + solicitado', 'text-yellow-400'],
+                ['Solicitudes en espera', svDinero(enEspera.reduce((a, r) => a + r.amount_usd, 0)), `${enEspera.length} solicitud(es)`, enEspera.length ? 'text-nlt-accent' : ''],
+                ['Ya pagado', svDinero(t.paid_usd), 'a creadores', 'text-nlt-success'],
+            ].map(([a, b, c, k]) => `<div class="glass-card p-4"><p class="text-[10px] text-gray-500 uppercase tracking-wider mb-1">${a}</p><p class="text-xl font-bold text-white ${k}">${b}</p><p class="text-[11px] text-gray-500 mt-0.5">${c}</p></div>`).join('');
+            document.getElementById('svBadge').textContent = enEspera.length || '';
+            document.getElementById('svBadge').classList.toggle('hidden', !enEspera.length);
+            const orden = [...sol].sort((a, b) => (a.status === 'pending' ? 0 : 1) - (b.status === 'pending' ? 0 : 1));
+            document.getElementById('svSolicitudes').innerHTML = orden.length ? orden.map((r) => `
+                <div class="glass-card p-5 ${r.status === 'pending' ? 'border-nlt-accent/30' : ''}">
+                    <div class="flex items-start justify-between gap-4 flex-wrap">
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold text-white truncate">${esc(r.seller)}</p>
+                            <p class="text-[11px] text-gray-500">Solicitado ${esc(svFecha(r.created_at))}${r.resolved_at ? ` · resuelto ${esc(svFecha(r.resolved_at))}` : ''}</p>
+                        </div>
+                        <div class="text-right"><p class="text-xl font-bold text-white">${svDinero(r.amount_usd)}</p>${svChip(r.status)}</div>
+                    </div>
+                    <div class="mt-3 flex items-center gap-2 flex-wrap rounded-xl bg-black/20 border border-white/5 px-3 py-2">
+                        <span class="text-[10px] uppercase tracking-wider text-gray-500">Pagar por</span><b class="text-xs text-white">${esc(r.method)}</b>
+                        <code class="text-xs text-gray-300 break-all flex-1">${esc(r.details)}</code>
+                        <button data-sv="copiar" data-v="${esc(r.details)}" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-[11px] font-semibold text-gray-300"><i class="ph ph-copy"></i> Copiar</button>
+                    </div>
+                    ${r.note ? `<p class="mt-2 text-xs text-gray-400"><b class="text-gray-300">Nota:</b> ${esc(r.note)}</p>` : ''}
+                    ${r.status === 'pending' ? `<div class="mt-3 flex gap-2"><button data-sv="pagado" data-id="${esc(r.id)}" class="px-4 py-2 rounded-lg bg-nlt-accent text-white text-xs font-semibold">Marcar como pagado</button><button data-sv="rechazar" data-id="${esc(r.id)}" class="px-4 py-2 rounded-lg bg-white/5 hover:bg-nlt-danger/20 text-gray-300 text-xs font-semibold">Rechazar</button></div>` : ''}
+                </div>`).join('') : '<div class="glass-card p-6 text-sm text-gray-500">Todavía no hay solicitudes de pago. Cuando un creador pida su dinero aparecerá aquí con su método de cobro.</div>';
+            document.getElementById('svTabla').innerHTML = (svDatos.sales || []).map((v) => `<tr>
+                <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">${esc(svFecha(v.date))}</td><td class="px-4 py-3 font-semibold text-white">${esc(v.script)}<span class="block text-[10px] font-normal text-gray-500">${v.billing === 'monthly' ? 'mensual' : 'pago único'}</span></td>
+                <td class="px-4 py-3 text-xs">${esc(v.seller)}</td><td class="px-4 py-3 text-xs">${esc(v.buyer)}</td>
+                <td class="px-4 py-3 text-right font-semibold">${svDinero(v.gross_usd)}</td><td class="px-4 py-3 text-right text-nlt-accent">${svDinero(v.nlt_share_usd)}</td><td class="px-4 py-3 text-right">${svDinero(v.creator_share_usd)}</td><td class="px-4 py-3">${svChip(v.status)}</td></tr>`).join('')
+                || '<tr><td colspan="8" class="px-4 py-8 text-center text-gray-500">Aún no hay ventas de indicadores.</td></tr>';
+        }
+        function svVer(vista) {
+            svVista = vista;
+            document.getElementById('svSolicitudes').classList.toggle('hidden', vista !== 'solicitudes');
+            document.getElementById('svVentas').classList.toggle('hidden', vista !== 'ventas');
+            document.querySelectorAll('.sv-tab').forEach((b) => { const on = b.dataset.svVista === vista; b.className = `sv-tab px-3 py-1.5 rounded-lg text-xs font-semibold border ${on ? 'bg-nlt-accent/15 text-white border-nlt-accent/30' : 'bg-white/5 text-gray-400 border-transparent'}`; });
+        }
+        async function cargarScriptVentas() {
+            try { svDatos = await NLT_API.chartsScriptAdminVentas(); svPintar(); svVer(svVista); }
+            catch (err) { document.getElementById('svStats').innerHTML = `<p class="text-xs text-nlt-danger col-span-full">No se pudo cargar: ${esc(err.message || '')}</p>`; }
+        }
+        document.getElementById('seccion-script_ventas').addEventListener('click', async (e) => {
+            const tab = e.target.closest('.sv-tab'); if (tab) { svVer(tab.dataset.svVista); return; }
+            if (e.target.closest('#svRecargar')) { await cargarScriptVentas(); return; }
+            const b = e.target.closest('[data-sv]'); if (!b) return;
+            if (b.dataset.sv === 'copiar') { try { await navigator.clipboard.writeText(b.dataset.v); b.innerHTML = '<i class="ph ph-check"></i> Copiado'; setTimeout(() => { b.innerHTML = '<i class="ph ph-copy"></i> Copiar'; }, 1500); } catch (_) { /* sin permiso de portapapeles */ } return; }
+            const pagado = b.dataset.sv === 'pagado';
+            const nota = window.prompt(pagado ? 'Referencia del pago (hash, número de operación…). Opcional:' : 'Motivo del rechazo (el creador lo verá):', '');
+            if (nota === null) return;
+            if (!pagado && !nota.trim()) { alert('Escribe el motivo del rechazo para que el creador sepa qué corregir.'); return; }
+            b.disabled = true;
+            try { await NLT_API.chartsScriptAdminResolver(b.dataset.id, pagado ? 'paid' : 'rejected', nota.trim()); await cargarScriptVentas(); }
+            catch (err) { alert(err.message || 'No se pudo actualizar la solicitud.'); b.disabled = false; }
         });
 
         // --- Acceso manual al Zone Engine PRO ---
@@ -5695,6 +5789,7 @@
             planes: [cargarPlanes],
             pagos: [cargarPagos],
             indicador: [cargarIndicador],
+            script_ventas: [cargarScriptVentas],
             notificaciones: [cargarNotificaciones],
             contenido: [cargarContenido],
             media: [cargarMedia],
