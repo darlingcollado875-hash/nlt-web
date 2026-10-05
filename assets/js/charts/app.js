@@ -164,7 +164,7 @@
             if (paper) setTimeout(() => paper.cambioSimbolo(), 1200);
             if (trader) setTimeout(() => trader.cambioSimbolo(), 1200);
         }
-        let multi = null, alertas = null, paper = null, trader = null;
+        let multi = null, alertas = null, paper = null, trader = null, scripts = null;
         cargar();
         if (NLTCharts.multi) {
             try {
@@ -186,6 +186,9 @@
         if (NLTCharts.trader && NLTCharts.poschips) {
             try { trader = NLTCharts.trader.montar({ chart: motor.chart, getSymbol: () => symbol, simbolos: catalogo.symbols }); } catch (e) { console.warn('[NLT Charts] operar con cuenta real no disponible', e); }
         }
+        if (NLTCharts.scripts && NLTCharts.nltsEjemplos && window.NLTS) {
+            try { scripts = NLTCharts.scripts.montar({ chart: motor.chart, getSymbol: () => symbol }); } catch (e) { console.warn('[NLT Charts] NLT Script no disponible', e); }
+        }
         if (NLTCharts.screener) {
             try { NLTCharts.screener.montar({ simbolos: catalogo.symbols, getSymbol: () => symbol, getTimeframe: () => timeframe, onAbrir: (s, tf) => window.NLTCharts.app.irA(s, tf) }); } catch (e) { console.warn('[NLT Charts] screener no disponible', e); }
         }
@@ -195,7 +198,7 @@
         window.NLTCharts.motor = motor; // para depurar desde la consola
         window.NLTCharts.app = {
             activarIndicador: (id) => ind.activar(id), desactivarIndicador: (id) => ind.desactivar(id), indicadoresActivos: () => ind.activos(),
-            pro, nltAi, dibujos: dib, motor, paper: () => paper, trader: () => trader,
+            pro, nltAi, dibujos: dib, motor, paper: () => paper, trader: () => trader, scripts: () => scripts,
             // NLT Backtest Lab: lleva el gráfico a un símbolo/timeframe por el mismo camino que la barra
             irA(s, tf) {
                 if (tf && tf !== timeframe && catalogo.timeframes.includes(tf)) {

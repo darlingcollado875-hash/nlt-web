@@ -146,6 +146,58 @@
         .pp-aviso { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); max-width: calc(100% - 24px); pointer-events: none; background: rgba(13,16,22,.96); border: 1px solid var(--ch-line); color: #F3F4F6; border-radius: 10px; padding: 8px 12px; font-size: 12px; box-shadow: 0 8px 24px rgba(0,0,0,.5); }
         @media (pointer: coarse) { .pp-x { min-width: 32px; height: 32px; } .pp-ficha { padding: 4px 5px 4px 10px; } .pp-grip { width: 14px; height: 22px; } .pp-fant { height: 32px; } }
         .tr-pop { width: 360px; }
+
+        /* NLT Script: editor de indicadores propios */
+        .sc-modal { position: fixed; inset: 0; z-index: 95; background: rgba(4,6,10,.72); display: flex; align-items: center; justify-content: center; padding: 16px; }
+        .sc-modal[hidden] { display: none; }
+        .sc-card { width: min(1040px, 100%); height: min(720px, 100%); background: #0D1016; border: 1px solid var(--ch-line); border-radius: 16px; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0,0,0,.6); overflow: hidden; }
+        .sc-card header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--ch-line); }
+        .sc-card h2 { font-size: 15px; font-weight: 700; display: flex; gap: 8px; align-items: center; margin: 0; }
+        .sc-card h2 i { color: rgb(var(--ch-accent)); }
+        .sc-x { background: none; border: 0; color: #9CA3AF; font-size: 26px; line-height: 1; cursor: pointer; padding: 0 6px; }
+        .sc-card footer { padding: 8px 16px; border-top: 1px solid var(--ch-line); font-size: 11px; color: #6B7280; }
+        .sc-cols { flex: 1; min-height: 0; display: flex; }
+        .sc-lista { width: 230px; flex-shrink: 0; border-right: 1px solid var(--ch-line); padding: 12px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+        .sc-items { display: flex; flex-direction: column; gap: 4px; }
+        .sc-item { text-align: left; background: #151A22; color: #D1D5DB; border: 1px solid var(--ch-line); border-radius: 8px; padding: 8px 10px; font-size: 13px; cursor: pointer; display: flex; justify-content: space-between; gap: 6px; }
+        .sc-item.sel { border-color: #22D3EE; color: #67E8F9; }
+        .sc-item em { font-style: normal; font-size: 10px; color: #4ADE80; flex-shrink: 0; }
+        .sc-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .sc-ej, .sc-nombre, .sc-in input, .sc-in select { background: #151A22; color: #fff; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 13px; padding: 7px 9px; }
+        .sc-b { background: #151A22; color: #D1D5DB; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 13px; font-weight: 600; padding: 8px 12px; cursor: pointer; text-decoration: none; text-align: center; }
+        .sc-b.on { background: rgba(34,211,238,.14); border-color: #22D3EE; color: #67E8F9; }
+        .sc-b.mal { color: #F87171; }
+        .sc-b:disabled { opacity: .4; cursor: default; }
+        .sc-peq { font-size: 12px; color: #9CA3AF; line-height: 1.5; margin: 4px 0; }
+        .sc-peq code, .sc-ayuda code { background: #151A22; padding: 1px 4px; border-radius: 4px; font-size: 11px; color: #67E8F9; }
+        .sc-ayuda summary { cursor: pointer; font-size: 12px; color: #9CA3AF; }
+        .sc-ed { flex: 1; min-width: 0; display: flex; flex-direction: column; padding: 12px; gap: 8px; overflow-y: auto; }
+        .sc-barra { display: flex; gap: 6px; flex-wrap: wrap; }
+        .sc-nombre { flex: 1; min-width: 140px; font-weight: 600; }
+        .sc-cod { flex: 1; min-height: 220px; display: flex; background: #080A0F; border: 1px solid var(--ch-line); border-radius: 10px; overflow: hidden; font: 13px/19px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+        .sc-gut { margin: 0; padding: 10px 8px; color: #4B5563; text-align: right; overflow: hidden; user-select: none; font: inherit; min-width: 38px; background: #0B0E14; }
+        .sc-edwrap { position: relative; flex: 1; min-width: 0; }
+        .sc-hl, .sc-ta { position: absolute; inset: 0; margin: 0; padding: 10px 12px; font: inherit; white-space: pre; tab-size: 4; overflow: auto; border: 0; }
+        .sc-hl { pointer-events: none; color: #D1D5DB; background: transparent; overflow: hidden; }
+        .sc-hl code { font: inherit; }
+        .sc-ta { background: transparent; color: transparent; caret-color: #fff; resize: none; outline: none; -webkit-text-fill-color: transparent; }
+        .sc-ta::selection { background: rgba(34,211,238,.28); -webkit-text-fill-color: transparent; }
+        .sc-hl i { font-style: normal; }
+        .sc-c { color: #6B7280; } .sc-s { color: #FBBF24; } .sc-n { color: #FB923C; } .sc-f { color: #67E8F9; } .sc-k { color: #C084FC; } .sc-v { color: #4ADE80; }
+        .sc-estado { font-size: 12px; border-radius: 8px; padding: 8px 10px; background: #151A22; }
+        .sc-estado.ok span { color: #4ADE80; } .sc-estado.mal { border: 1px solid rgba(248,113,113,.4); color: #FCA5A5; }
+        .sc-err { cursor: pointer; padding: 2px 0; } .sc-msg { margin-top: 4px; color: #67E8F9; }
+        .sc-sub { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6B7280; margin-bottom: 6px; }
+        .sc-ajustes { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px; }
+        .sc-ajustes .sc-sub { grid-column: 1 / -1; margin: 0; }
+        .sc-in { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: #9CA3AF; }
+        .sc-vacio, .sc-lock { margin: auto; text-align: center; max-width: 380px; padding: 24px; color: #D1D5DB; display: flex; flex-direction: column; gap: 10px; align-items: center; }
+        .sc-vacio > i, .sc-lock > i { font-size: 38px; color: rgb(var(--ch-accent)); }
+        .sc-lock { flex: 1; justify-content: center; } .sc-lock h3 { font-size: 16px; margin: 0; }
+        @media (max-width: 720px) {
+            .sc-modal { padding: 0; } .sc-card { height: 100%; border-radius: 0; }
+            .sc-cols { flex-direction: column; } .sc-lista { width: auto; border-right: 0; border-bottom: 1px solid var(--ch-line); max-height: 36%; }
+        }
         .tr-lock { text-align: center; padding: 14px 6px; } .tr-lock i { font-size: 34px; color: #4378FF; } .tr-lock b { display: block; font-size: 15px; margin: 6px 0; } .tr-lock p { font-size: 12px; color: #9CA3AF; line-height: 1.5; margin: 0 0 14px; } .tr-lock a { display: inline-block; text-decoration: none; padding: 9px 18px; }
         .tr-modo { font-size: 12px; color: #FDE68A; background: rgba(250,204,21,.08); border: 1px solid rgba(250,204,21,.25); border-radius: 10px; padding: 8px 10px; margin: 0 0 10px; line-height: 1.4; }
         .tr-conectar { background: #131722; border-radius: 10px; padding: 10px; margin-bottom: 10px; }
@@ -463,7 +515,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=df063731"></script>
+    <script src="assets/js/nlt-api-client.js?v=b80f4e47"></script>
     <script src="assets/js/charts/diag.js?v=a548c4e2"></script>
     <script src="assets/js/charts/fluidez.js?v=b2097835"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
@@ -491,9 +543,12 @@
     <script src="assets/js/charts/ratings.js?v=55503b92"></script>
     <script src="assets/js/charts/alerts.js?v=db12e9c2"></script>
     <script src="assets/js/charts/screener.js?v=13010bdb"></script>
+    <script src="assets/js/charts/nlts.js?v=94d76dad"></script>
+    <script src="assets/js/charts/nlts-ejemplos.js?v=b3599eb4"></script>
+    <script src="assets/js/charts/scripts.js?v=ac7cc4c1"></script>
     <script src="assets/js/charts/poschips.js?v=7566cfca"></script>
     <script src="assets/js/charts/trader.js?v=7922729c"></script>
     <script src="assets/js/charts/paper.js?v=fdae0087"></script>
-    <script src="assets/js/charts/app.js?v=4c72e360"></script>
+    <script src="assets/js/charts/app.js?v=c220c31f"></script>
 </body>
 </html>
