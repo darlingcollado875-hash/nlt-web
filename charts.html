@@ -96,6 +96,13 @@
         .ch-fly-it i { font-size: 18px; color: #9CA3AF; flex: none; }
         .ch-fly-it:hover { background: rgba(255,255,255,.06); color: #fff; }
         .ch-fly-it.on { color: rgb(var(--ch-accent)); background: rgba(var(--ch-accent),.12); }
+        .al-pop { width: 330px; max-height: calc(100vh - 90px); overflow-y: auto; }
+        .al-fila { display: flex; align-items: center; gap: 6px; padding: 8px 0; border-top: 1px solid var(--ch-line); font-size: 13px; color: #E5E7EB; }
+        .al-fila.off { opacity: .6; } .al-txt { flex: 1; min-width: 0; } .al-txt small { color: #6B7280; font-size: 11px; }
+        .al-fila button { width: 30px; height: 30px; border-radius: 8px; color: #9CA3AF; font-size: 16px; cursor: pointer; flex: none; } .al-fila button:hover { color: #fff; background: rgba(255,255,255,.07); }
+        .al-form { display: flex; flex-direction: column; gap: 6px; } .al-fila2 { display: flex; gap: 6px; align-items: center; } .al-fila2 .mc-sel { flex: 1; height: 30px; min-width: 0; } .al-nota { height: 30px; }
+        .al-push { display: flex; gap: 8px; align-items: center; font-size: 12px; color: #D1D5DB; background: rgba(34,211,238,.08); border: 1px solid rgba(34,211,238,.25); border-radius: 10px; padding: 8px; margin-bottom: 10px; }
+        .al-msg { font-size: 12px; color: #FDE68A; margin: 0 0 8px; }
         .ch-plant { display: flex; gap: 6px; margin: 0 0 10px; }
         .ch-plant select { flex: 1; min-width: 0; background: #151A22; color: #E5E7EB; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 12px; padding: 6px 8px; }
         .ch-plant button { background: #151A22; color: #D1D5DB; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 12px; padding: 6px 10px; cursor: pointer; white-space: nowrap; }
@@ -422,7 +429,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
     <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=b16dbfcb"></script>
+    <script src="assets/js/nlt-api-client.js?v=8c975661"></script>
     <script src="assets/js/charts/diag.js?v=a548c4e2"></script>
     <script src="assets/js/charts/fluidez.js?v=b2097835"></script>
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
@@ -446,8 +453,9 @@
     <script src="assets/js/charts/replay.js?v=85f63c39"></script>
     <script src="assets/js/charts/historia.js?v=cf46a5bd"></script>
     <script src="assets/js/charts/backtest.js?v=38be954c"></script>
-    <script src="assets/js/charts/multichart.js?v=30710351"></script>
+    <script src="assets/js/charts/multichart.js?v=c083b3da"></script>
     <script src="assets/js/charts/ratings.js?v=55503b92"></script>
-    <script src="assets/js/charts/app.js?v=28ae9cb8"></script>
+    <script src="assets/js/charts/alerts.js?v=db12e9c2"></script>
+    <script src="assets/js/charts/app.js?v=715f9186"></script>
 </body>
 </html>

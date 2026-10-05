@@ -244,7 +244,7 @@
             el.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - el.offsetWidth - 8))}px`;
         };
         btn.addEventListener('click', (e) => { e.stopPropagation(); pintarMenu(); abrirMenu(menu, btn); });
-        document.addEventListener('click', (e) => { if (!e.target.closest('.mc-menu') && !e.target.closest('#chBtnMulti') && !e.target.closest('#chBtnCompare')) document.querySelectorAll('.mc-menu').forEach((m) => { m.hidden = true; }); });
+        document.addEventListener('click', (e) => { const ruta = e.composedPath(); if (!ruta.some((n) => n.classList && (n.classList.contains('mc-menu') || n.id === 'chBtnMulti' || n.id === 'chBtnCompare' || n.id === 'chBtnAlertas' || n.id === 'chBtnAnalisis'))) document.querySelectorAll('.mc-menu').forEach((m) => { m.hidden = true; }); });
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') document.querySelectorAll('.mc-menu').forEach((m) => { m.hidden = true; }); });
 
         // ── Comparar símbolos ──

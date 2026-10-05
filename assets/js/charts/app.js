@@ -160,8 +160,9 @@
             NLTCharts.drawings.setPrecision(porSimbolo[symbol].price_precision);
             motor.cargar(porSimbolo[symbol], timeframe);
             if (multi) multi.cambioPrincipal();
+            if (alertas) setTimeout(() => alertas.cambioSimbolo(), 1200);
         }
-        let multi = null;
+        let multi = null, alertas = null;
         cargar();
         if (NLTCharts.multi) {
             try {
