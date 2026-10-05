@@ -254,3 +254,20 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .sc-pubmsg { margin: 8px 0 2px; padding: 9px 12px; border-radius: 12px; font-size: 12.5px; line-height: 1.4; }
 .sc-pubmsg.ok { color: #86efac; background: rgba(34, 197, 94, .10); border: 1px solid rgba(34, 197, 94, .35); }
 .sc-pubmsg.mal { color: #fca5a5; background: rgba(239, 68, 68, .10); border: 1px solid rgba(239, 68, 68, .35); }
+
+/* Mis ganancias (creadores de indicadores) */
+.sc-gstats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin: 6px 0 10px; }
+@media (max-width: 640px) { .sc-gstats { grid-template-columns: 1fr 1fr; } }
+.sc-gcard { padding: 11px 13px; border-radius: 16px; background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02)); border: 1px solid var(--nlt-hair, rgba(255,255,255,.08)); }
+.sc-gcard small { display: block; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: #6b7280; margin-bottom: 3px; }
+.sc-gcard b { font-size: 17px; color: #fff; }
+.sc-gcard.pend b { color: #fbbf24; } .sc-gcard.rev b { color: #8fb1ff; } .sc-gcard.ok b { color: #22c55e; }
+.sc-cobro .sc-b { margin-top: 6px; }
+.sc-prog { height: 6px; border-radius: 999px; background: rgba(255,255,255,.08); overflow: hidden; margin: 8px 0 4px; }
+.sc-prog i { display: block; height: 100%; border-radius: 999px; background: linear-gradient(90deg, rgb(67,120,255), #8fb1ff); transition: width .5s cubic-bezier(.2,.8,.2,1); }
+.sc-vrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; margin-top: 6px; border-radius: 14px; background: rgba(255,255,255,.035); border: 1px solid var(--nlt-hair, rgba(255,255,255,.08)); }
+.sc-vtxt { min-width: 0; display: flex; flex-direction: column; gap: 2px; } .sc-vtxt b { font-size: 13px; color: #fff; } .sc-vtxt small { font-size: 11px; color: #6b7280; overflow-wrap: anywhere; }
+.sc-vmonto { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 3px; } .sc-vmonto b { color: #22c55e; font-size: 14px; }
+.sc-chip { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; border: 1px solid rgba(255,255,255,.12); color: #9ca3af; white-space: nowrap; }
+.sc-chip.pend { color: #fbbf24; background: rgba(251,191,36,.10); border-color: rgba(251,191,36,.3); } .sc-chip.rev { color: #8fb1ff; background: rgba(67,120,255,.14); border-color: rgba(67,120,255,.4); }
+.sc-chip.ok { color: #22c55e; background: rgba(34,197,94,.10); border-color: rgba(34,197,94,.3); } .sc-chip.mal { color: #f87171; background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.3); }

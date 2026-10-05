@@ -108,6 +108,7 @@
             a.usaMtf = (res && res.usaMtf) || [];
             return res;
         }
+        let gd = null, cargandoGd = false, msgGd = null;          // mis ganancias: { summary, sales, requests, profile, methods } y último aviso { ok, texto }
         let mensajePub = null;              // resultado del último intento de publicar, junto a los botones: { ok, texto }
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
         let cargandoTienda = false, busca = { q: '', sort: 'recent', creator: '', page: 0 }, hayMas = false, tienePlan = false, miUsuario = null, ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
@@ -510,8 +511,45 @@
                 ${hayMas ? '<button class="sc-b" data-a="mas-tienda">Ver más</button>' : ''}
                 <p class="sc-peq">Los indicadores de la tienda los publican otros usuarios y salen sin revisión previa. Úsalos bajo tu criterio; NLT no los garantiza ni son recomendación de inversión. Los de pago se cobran con tarjeta por Whop; el acceso se activa al confirmarse el pago y dura mientras la suscripción esté vigente (o para siempre si fue pago único). Si algo está mal, usa Reportar.</p>`;
         }
+        // ───────────── mis ganancias (el creador ve lo que vendió y pide su pago) ─────────────
+        const dolar = (n) => `US$${Number(n || 0).toFixed(2)}`;
+        const ESTADO_G = { pending: ['Por cobrar', 'pend'], requested: ['En revisión', 'rev'], paid: ['Pagado', 'ok'], rejected: ['Rechazada', 'mal'] };
+        const chipG = (st) => { const [t, c] = ESTADO_G[st] || [st, '']; return `<span class="sc-chip ${c}">${t}</span>`; };
+        const fechaG = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('es', { day: '2-digit', month: 'short', year: 'numeric' }) : ''; };
+        async function cargarGanancias() {
+            cargandoGd = true;
+            try { gd = await NLT_API.chartsScriptGananciasDetalle(); } catch (e) { msgGd = { ok: false, texto: e.message || 'No se pudieron cargar tus ganancias.' }; }
+            cargandoGd = false;
+        }
+        function htmlGanancias() {
+            if (!gd) return `<div class="sc-sub">Mis ganancias</div>${msgGd ? `<div class="sc-pubmsg mal">${esc(msgGd.texto)}</div>` : '<p class="sc-peq">Cargando tus ventas…</p>'}`;
+            const r = gd.summary, enEspera = gd.requests.find((x) => x.status === 'pending'), falta = Math.max(0, r.min_usd - r.pending_usd), pct = Math.min(100, Math.round((r.pending_usd / r.min_usd) * 100));
+            const puede = !enEspera && r.pending_usd >= r.min_usd && !!gd.profile;
+            const tarjetas = [['Por cobrar', dolar(r.pending_usd), 'pend'], ['En revisión', dolar(r.requested_usd), 'rev'], ['Ya pagado', dolar(r.paid_usd), 'ok'], ['Ventas', String(r.sales), '']]
+                .map(([a, b, c]) => `<div class="sc-gcard ${c}"><small>${a}</small><b>${b}</b></div>`).join('');
+            const cobro = enEspera
+                ? `<div class="sc-ficha sc-cobro"><b><i class="ph-fill ph-hourglass-medium"></i> Tu solicitud de ${dolar(enEspera.amount_usd)} está en revisión</b><p class="sc-peq">NLT la revisa y te paga por ${esc(enEspera.method)}. Verás aquí cuando quede pagada.</p></div>`
+                : `<div class="sc-ficha sc-cobro"><b>Pedir mi pago</b>
+                    <div class="sc-prog" aria-hidden="true"><i style="width:${pct}%"></i></div>
+                    <p class="sc-peq">${r.pending_usd >= r.min_usd ? `Tienes ${dolar(r.pending_usd)} listos para cobrar.` : `Llevas ${dolar(r.pending_usd)}. Te faltan ${dolar(falta)} para llegar al mínimo de ${dolar(r.min_usd)}.`}${gd.profile ? '' : ' Primero guarda cómo quieres que te paguemos.'}</p>
+                    <button class="sc-b on" data-a="pedir-pago" ${puede ? '' : 'disabled'}>${r.pending_usd >= r.min_usd ? `Pedir ${dolar(r.pending_usd)}` : 'Pedir mi pago'}</button></div>`;
+            const p = gd.profile || {};
+            const metodo = `<div class="sc-ficha"><b>Cómo quieres cobrar</b>
+                <form class="sc-form" data-a="metodo-cobro"><select name="method" class="sc-ej" aria-label="Método de cobro">${gd.methods.map((m) => `<option ${m === p.method ? 'selected' : ''}>${esc(m)}</option>`).join('')}</select>
+                    <input name="details" maxlength="300" required placeholder="Dirección de wallet, correo de PayPal o datos de la cuenta" value="${esc(p.details || '')}" style="flex:1;min-width:200px">
+                    <button class="sc-b" type="submit">Guardar</button></form>
+                <p class="sc-peq">Solo NLT ve estos datos y solo para pagarte. Revisa bien la dirección: un pago a una cuenta equivocada no se puede recuperar.</p></div>`;
+            const solicitudes = gd.requests.length ? `<div class="sc-sub">Mis solicitudes de pago</div>` + gd.requests.map((x) => `<div class="sc-vrow"><div class="sc-vtxt"><b>${dolar(x.amount_usd)}</b><small>${esc(x.method)} · ${esc(fechaG(x.created_at))}${x.note ? ` · ${esc(x.note)}` : ''}</small></div>${chipG(x.status)}</div>`).join('') : '';
+            const ventas = gd.sales.length ? `<div class="sc-sub">Mis ventas</div>` + gd.sales.map((v) => `<div class="sc-vrow"><div class="sc-vtxt"><b>${esc(v.script)}</b><small>${esc(fechaG(v.date))} · ${esc(v.buyer)} · ${v.billing === 'monthly' ? 'cobro mensual' : 'pago único'} · cobrado ${dolar(v.gross_usd)}</small></div><div class="sc-vmonto"><b>+${dolar(v.creator_share_usd)}</b>${chipG(v.status)}</div></div>`).join('')
+                : '<p class="sc-peq">Todavía no has vendido ningún indicador. Cuando alguien compre uno aparecerá aquí al instante.</p>';
+            return `<div class="sc-sub">Mis ganancias · ventas de tus indicadores</div>
+                ${msgGd ? `<div class="sc-pubmsg ${msgGd.ok ? 'ok' : 'mal'}" role="status">${esc(msgGd.texto)}</div>` : ''}
+                <div class="sc-gstats">${tarjetas}</div>${cobro}${metodo}${solicitudes}${ventas}
+                <p class="sc-peq">Recibes el ${100 - r.commission_pct}% de cada cobro (NLT se queda el ${r.commission_pct}%). El pago lo hace NLT por el método que guardaste, normalmente después de revisar tu solicitud.</p>`;
+        }
         function htmlEditor() {
             if (vista === 'tienda') return htmlTienda();
+            if (vista === 'ganancias') return htmlGanancias();
             if (sel && sel.ajeno) return htmlAjeno();
             return htmlEditorPropio();
         }
@@ -567,6 +605,7 @@
                         ${miUsuario ? `<a class="sc-link" href="community.html?u=${encodeURIComponent(miUsuario)}">Ver mi perfil público (@${esc(miUsuario)})</a>` : ''}
                         ${compartidos.length ? `<div class="sc-sub">Compartidos conmigo</div><div class="sc-items">${compartidos.map((s) => item(s, true)).join('')}</div>` : ''}
                         <button class="sc-b${vista === 'tienda' ? ' on' : ''}" data-a="tienda"><i class="ph ph-storefront"></i> Tienda</button>
+                        ${tienePlan || (ganancias && ganancias.sales) ? `<button class="sc-b${vista === 'ganancias' ? ' on' : ''}" data-a="ganancias"><i class="ph ph-coins"></i> Mis ganancias</button>` : ''}
                         <details class="sc-ayuda"><summary>Guía rápida</summary><p class="sc-peq"><b>¿Tienes un script de TradingView?</b> Pégalo en un script nuevo: NLT Script entiende la mayor parte de Pine Script v5 (tipos, <code>switch</code>, listas, funciones propias, <code>request.security</code> con otras temporalidades, tablas, etiquetas, líneas, cajas, <code>fill</code>, <code>plotcandle</code>…). Si algo no se puede, te dice en qué línea. Todavía no: órdenes de estrategias (<code>strategy.entry</code>…), <code>barcolor</code>, tipos propios (<code>type</code>), mapas y matrices.</p>
                         <p class="sc-peq">Empieza con <code>indicator("Nombre", overlay=true)</code> (overlay = sobre las velas). Usa <code>close</code>, <code>high</code>, <code>low</code>, <code>open</code>, <code>volume</code>; funciones como <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.crossover</code>; dibuja con <code>plot</code>, <code>hline</code>, <code>bgcolor</code>, <code>plotshape</code>; los ajustes con <code>input.int</code>/<code>input.float</code>. Los bloques (<code>if</code>, <code>for</code>) se indentan con 4 espacios. <code>x[1]</code> es el valor de la vela anterior. Con <code>request.security(syminfo.tickerid, "15", ta.ema(close, 21))</code> traes datos de otra temporalidad (sin mirar el futuro).</p></details>
                     </aside><section class="sc-ed">${htmlEditor()}</section></div>`;
@@ -647,6 +686,10 @@
                 const email = f.elements.email.value.trim();
                 try { await NLT_API.chartsScriptDarAcceso(sel.id, email); mensaje = `Acceso dado a ${email}.`; await cargarAccesos(); } catch (er) { mensaje = er.message || 'No se pudo dar acceso.'; }
                 pintar();
+            } else if (f.dataset.a === 'metodo-cobro') {
+                try { await NLT_API.chartsScriptMetodoCobro(f.elements.method.value, f.elements.details.value.trim()); msgGd = { ok: true, texto: 'Método de cobro guardado.' }; await cargarGanancias(); }
+                catch (er) { msgGd = { ok: false, texto: er.message || 'No se pudo guardar.' }; }
+                pintar();
             } else if (f.dataset.a === 'publicar') {
                 const modo = (e.submitter && e.submitter.dataset.modo) || 'abierto';
                 const listar = modo !== 'quitar';
@@ -669,6 +712,12 @@
                 pintar();
             }
         });
+        async function pedirPago() {
+            if (!gd || !window.confirm(`¿Pedir ${dolar(gd.summary.pending_usd)} a ${gd.profile ? gd.profile.method : 'tu método guardado'}? Se enviará a NLT para revisión.`)) return;
+            try { await NLT_API.chartsScriptPedirPago(); msgGd = { ok: true, texto: 'Solicitud enviada. NLT la revisará y te pagará por el método guardado.' }; await cargarGanancias(); }
+            catch (er) { msgGd = { ok: false, texto: er.message || 'No se pudo enviar la solicitud.' }; }
+            pintar();
+        }
         function copiarAjeno() {
             if (!sel || !sel.ajeno || !sel.codigo) return;
             let nombre = `${sel.nombre} (copia)`, k = 2;
@@ -744,6 +793,8 @@
             else if (a === 'grafico') alternarEnGrafico();
             else if (a === 'borrar') borrar();
             else if (a === 'tienda') { vista = 'tienda'; mensaje = ''; tienda = []; cargandoTienda = true; pintar(); cargarTienda().then(pintar); }
+            else if (a === 'ganancias') { vista = 'ganancias'; msgGd = null; gd = null; pintar(); cargarGanancias().then(pintar); }
+            else if (a === 'pedir-pago') pedirPago();
             else if (a === 'usar') usarDeTienda(acc.dataset.id);
             else if (a === 'comprar') comprar(acc.dataset.id);
             else if (a === 'copiar-ajeno') copiarAjeno();
