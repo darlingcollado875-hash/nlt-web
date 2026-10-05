@@ -174,19 +174,33 @@
             const velas = [...vistos.values()].sort((a, b) => a.timestamp - b.timestamp);
             return { velas, source: fuentes.size === 1 ? [...fuentes][0] : 'mixta', hit: partes.every((r) => r.cache.hit) };
         }
-        // Precarga silenciosa del bloque anterior cuando el usuario se acerca al borde izquierdo
+        // Precarga silenciosa del bloque anterior cuando el usuario se acerca al borde izquierdo. El resultado se GUARDA:
+        // cuando el gráfico pide ese tramo, ya está (o va de camino) y aparece al instante en vez de volver a pedirlo al servidor.
+        const precarga = new Map();      // `${ticker}|${tf}|${hasta}` -> { desde, p: Promise<resultado> }
         function precargar() {
             if (externo || !timeframe) return;
             const dl = chart.getDataList(), sym = chart.getSymbol();
             if (!dl.length || !sym) return;
             const vr = chart.getVisibleRange();
             const n = Math.round((PASO[timeframe] || 1500) * hist.factor);
-            if ((vr.realFrom ?? vr.from) > n * 0.25) return;
+            if ((vr.realFrom ?? vr.from) > n * 0.75) return;          // todavía lejos del borde: no hace falta
             const hasta = dl[0].timestamp, desde = hasta - n * DUR(timeframe) * calendario();
-            const k = `${sym.ticker}|${timeframe}|${Math.round(desde / 3.6e6)}`;
-            if (hist.precargados.has(k)) return;
-            hist.precargados.add(k);
-            market.historia(sym.ticker, timeframe, desde, hasta).catch(() => hist.precargados.delete(k));
+            const k = `${sym.ticker}|${timeframe}|${hasta}`;
+            if (precarga.has(k)) return;
+            const p = historia(sym.ticker, timeframe, desde, hasta);
+            precarga.set(k, { desde, p });
+            p.catch(() => precarga.delete(k));
+            if (precarga.size > 6) precarga.delete(precarga.keys().next().value);
+        }
+        // Aviso discreto mientras llega historia más vieja (el borde izquierdo no se queda "en blanco" sin explicación)
+        let chipHist = null, chipTimer = null;
+        function avisoHistoria(cargando, texto) {
+            const host = el.parentElement;
+            if (!host) return;
+            if (!chipHist) { chipHist = document.createElement('div'); chipHist.className = 'ch-histcarga'; chipHist.setAttribute('role', 'status'); host.appendChild(chipHist); }
+            clearTimeout(chipTimer);
+            if (!cargando) { chipHist.classList.remove('on'); return; }
+            chipTimer = setTimeout(() => { chipHist.textContent = texto || 'Cargando historial…'; chipHist.classList.add('on'); }, 250);   // si llega rápido ni se ve
         }
         let tPrecarga = 0;
         try { chart.subscribeAction('onScroll', () => { const t = Date.now(); if (t - tPrecarga > 400) { tPrecarga = t; precargar(); } }); } catch (_) { /* versión sin acciones */ }
@@ -251,23 +265,41 @@
                 }
                 if (type === 'forward') {
                     // historia MÁS VIEJA: solo el rango que falta, de la capa histórica (caché compartida)
-                    try {
-                        const n = pasoAdaptativo(tfPedido);
-                        const r = await historia(symbol.ticker, tfPedido, timestamp - n * dur * calendario(), timestamp);
-                        if (!vigente()) return;
-                        if (fuenteSerie && r.source !== fuenteSerie) {
-                            callback([], { forward: false, backward: false });
-                            recargarPorFuente(r.source);
+                    avisoHistoria(true);
+                    const claveP = `${symbol.ticker}|${tfPedido}|${timestamp}`;
+                    let ultimoError = null;
+                    for (let intento = 0; intento < 3; intento++) {
+                        try {
+                            const pre = precarga.get(claveP);
+                            let r;
+                            if (pre) { r = await pre.p; precarga.delete(claveP); }
+                            else { const n = pasoAdaptativo(tfPedido); r = await historia(symbol.ticker, tfPedido, timestamp - n * dur * calendario(), timestamp); }
+                            if (!vigente()) { avisoHistoria(false); return; }
+                            if (fuenteSerie && r.source !== fuenteSerie) {
+                                avisoHistoria(false);
+                                callback([], { forward: false, backward: false });
+                                recargarPorFuente(r.source);
+                                return;
+                            }
+                            avisoHistoria(false);
+                            callback(r.velas, { forward: r.velas.length > 0, backward: !!ventana });
+                            if (esperaForward) { const f = esperaForward; esperaForward = null; f(r.velas.length); }
+                            if (onData) onData({ demo: false, primera: false });
+                            setTimeout(precargar, 60);        // ya con el bloque nuevo puesto, se adelanta el siguiente
                             return;
+                        } catch (err) {
+                            ultimoError = err;
+                            precarga.delete(claveP);
+                            if (!vigente()) { avisoHistoria(false); return; }
+                            if (intento < 2) await new Promise((ok) => setTimeout(ok, 500 * (intento + 1)));       // un fallo suelto se reintenta solo
                         }
-                        callback(r.velas, { forward: r.velas.length > 0, backward: !!ventana });
-                        if (esperaForward) { const f = esperaForward; esperaForward = null; f(r.velas.length); }
-                        if (onData) onData({ demo: false, primera: false });
-                    } catch (err) {
-                        callback([], { forward: false, backward: !!ventana });
-                        if (onError) onError(err.message);
-                        if (esperaForward) { const f = esperaForward; esperaForward = null; f(-1); }
                     }
+                    // tras 3 intentos: se avisa, pero NO se da por terminada la historia (forward: true) para que al seguir moviendo vuelva a intentarlo
+                    avisoHistoria(true, 'No se pudo cargar el historial · sigue moviendo para reintentar');
+                    setTimeout(() => avisoHistoria(false), 4000);
+                    callback([], { forward: true, backward: !!ventana });
+                    if (onError) onError(ultimoError && ultimoError.message);
+                    if (esperaForward) { const f = esperaForward; esperaForward = null; f(-1); }
                     return;
                 }
                 if (ventana) {
@@ -383,7 +415,7 @@
                 if (cambiaSimbolo || cambiaPeriodo) {
                     market.fijarEstado('conectando'); historiaOk = false; market.nuevaGeneracion();
                     if (ventana) { ventana = null; avisarVentana(); }       // otro símbolo/timeframe: vuelve al vivo
-                    hist.precargados.clear(); hist.factor = 1;
+                    hist.precargados.clear(); precarga.clear(); hist.factor = 1;
                 }
                 if (cambiaSimbolo) chart.setSymbol({ ticker: symbolInfo.symbol, pricePrecision: symbolInfo.price_precision, volumePrecision: 0 });
                 if (cambiaPeriodo) chart.setPeriod(market.PERIODOS[tf]);
@@ -433,7 +465,7 @@
                 if (cancelarSuscripcion) { cancelarSuscripcion(); cancelarSuscripcion = null; }
                 market.nuevaGeneracion();
                 historiaOk = false;
-                hist.precargados.clear();
+                hist.precargados.clear(); precarga.clear();
                 const v = { centro: objetivo, fin: null, onProgreso };
                 const listo = new Promise((ok, mal) => { v.listo = { ok, mal }; });
                 ventana = v;
