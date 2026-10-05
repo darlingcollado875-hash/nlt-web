@@ -83,6 +83,7 @@
             const barra = `<button type="button" class="tp-barra" data-tp="alternar" aria-expanded="${abierto}" aria-label="${abierto ? 'Cerrar el panel Trade' : 'Abrir el panel Trade'}">
                     <span class="tp-id"><i class="ph-fill ph-circle ${d.error ? 'mal' : 'ok'}"></i><b>${f === 'real' ? `#${esc(d.cuenta.login)}` : 'Virtual'}</b></span>
                     <span class="tp-bal"><small>Balance</small><b>${dinero(s.balance)}</b></span>
+                    <span class="tp-eq"><small>Equity</small><b>${dinero(s.equity)}</b></span>
                     <span class="tp-bpl ${clase(s.profit)}"><small>${pos.length ? (pos.length === 1 ? '1 posición' : `${pos.length} posiciones`) : 'Sin posiciones'}</small><b>${conSigno(s.profit)}</b></span>
                     <i class="ph ph-caret-up tp-flecha"></i></button>`;
             let cuerpo = '';
@@ -149,6 +150,7 @@
         const espera = setInterval(() => { enlazar(); pintar(); if ((enlazadas.size === 2 || ++intentos > 40)) clearInterval(espera); }, 500);
         enlazar(); pintar();
         window.addEventListener('resize', () => { if (abierto) ultimaFirma = ''; });
+        document.addEventListener('pointerdown', (e) => { if (abierto && !el.hidden && !el.contains(e.target) && !e.target.closest('.nlt-toast')) { abierto = false; fila = null; armado = null; guardar({ panelTradeAbierto: false }); pintar(true); } }, true);
         return { pintar: () => pintar(true), abrir: () => { abierto = true; pintar(true); } };
     }
     window.NLTCharts = window.NLTCharts || {};
