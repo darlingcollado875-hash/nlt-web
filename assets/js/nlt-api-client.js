@@ -944,6 +944,11 @@
         },
         // PRO: el backend decide el acceso; estos métodos solo preguntan.
         chartsProCatalogo: () => request('/charts/pro/catalog'),
+        // Alertas de precio 24/7 (corren en el servidor)
+        chartsAlertas: () => request('/charts/alerts'),
+        chartsCrearAlerta: (alerta) => request('/charts/alerts', { method: 'POST', body: JSON.stringify(alerta) }),
+        chartsCambiarAlerta: (id, active) => request(`/charts/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
+        chartsBorrarAlerta: (id) => request(`/charts/alerts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         chartsLayout: () => request('/charts/layout'),
         chartsGuardarLayout: (layout) => request('/charts/layout', { method: 'PUT', body: JSON.stringify({ layout }) }),
         chartsProIniciarTrial: (indicatorId) => request(`/charts/pro/${encodeURIComponent(indicatorId)}/trial`, { method: 'POST' }),
