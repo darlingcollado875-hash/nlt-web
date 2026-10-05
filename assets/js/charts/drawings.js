@@ -405,6 +405,9 @@
         const state = NLTCharts.state;
         // Preferencia del usuario: pedir un segundo toque antes de mandar dinero real con el botón BUY/SELL (por defecto, SÍ)
         const pideConfirmar = () => state.prefs().confirmarOrden !== false;
+        // Cómo sale la orden de BUY/SELL y de Simular: auto = pendiente en la entrada dibujada (límite o stop según el precio), o a mercado / límite / stop a la fuerza
+        const TIPOS_EJ = [['auto', 'Auto (en tu entrada)'], ['market', 'A mercado'], ['limit', 'Límite'], ['stop', 'Stop']];
+        const tipoEj = () => { const t = state.prefs().tipoEjecucion; return TIPOS_EJ.some((x) => x[0] === t) ? t : 'auto'; };
         const esc = NLTCharts.ui.esc;
         let activa = null;       // herramienta en curso
         let modoBorrar = false;
@@ -668,6 +671,7 @@
                 ${esRect && puedeZonaNLT && puedeZonaNLT() ? `<button type="button" class="dw-btn${zona ? ' on' : ''}" data-dw="zona" title="${zona ? 'Zona conectada al NLT Zone Engine' : 'Enviar esta zona al NLT Zone Engine'}"><i class="ph ph-lightning"></i><span>NLT Engine</span></button>` : ''}
                 ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? (pideConfirmar() ? 'Operar esta posición con tu cuenta MT5: toca una vez para armar y otra para enviar' : 'Operar esta posición con tu cuenta MT5: un toque envía la orden') : 'Operar con tu cuenta todavía no está disponible'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
                 ${esPos && tr && tr.activo() ? (() => { const c = pideConfirmar(); return `<button type="button" class="dw-btn dw-ico${c ? ' on' : ''}" data-dw="confirmar" aria-pressed="${c}" title="${c ? 'Confirmación activada: BUY/SELL pide un segundo toque. Toca para enviar con un solo toque.' : 'Un solo toque: BUY/SELL envía la orden al instante. Toca para volver a pedir confirmación.'}" aria-label="Confirmación del botón BUY/SELL"><i class="ph ${c ? 'ph-shield-check' : 'ph-lightning'}"></i></button>`; })() : ''}
+                ${esPos && ((tr && tr.activo()) || (NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper())) ? `<select class="dw-sel" data-dw="tipoEj" title="Cómo se ejecuta al tocar BUY/SELL o Simular" aria-label="Tipo de ejecución">${TIPOS_EJ.map((x) => `<option value="${x[0]}"${x[0] === tipoEj() ? ' selected' : ''}>${x[1]}</option>`).join('')}</select>` : ''}
                 ${esPos && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper() ? `<button type="button" class="dw-btn" data-dw="sim" title="Practicar esta posición en el Simulador (dinero virtual)"><i class="ph ph-game-controller"></i><span>Simular</span></button>` : ''}
                 <button type="button" class="dw-btn" data-dw="config" title="Configuración" aria-label="Configuración"><i class="ph ph-gear-six"></i></button>
                 <button type="button" class="dw-btn" data-dw="duplicar" title="Duplicar" aria-label="Duplicar"><i class="ph ph-copy"></i></button>
@@ -696,6 +700,7 @@
             if (!el || !seleccionado) return;
             if (el.dataset.dw === 'grosor') actualizarEstilo(seleccionado, { grosor: parseInt(el.value, 10) });
             if (el.dataset.dw === 'estiloLinea') actualizarEstilo(seleccionado, { estiloLinea: el.value });
+            if (el.dataset.dw === 'tipoEj') { state.savePrefs({ tipoEjecucion: el.value }); desarmar(); pintarBarra(); }
         });
         let ordenArmada = null;     // { id, hasta, timer }: el botón BUY/SELL pide un segundo toque antes de mandar dinero real
         function desarmar(btn) {
@@ -735,7 +740,7 @@
                     // 1er toque: queda armado 4 s y muestra exactamente qué se va a mandar
                     desarmar(el);
                     el.dataset.html = el.innerHTML; el.classList.add('armado');
-                    el.innerHTML = `<i class="ph ph-check-circle"></i><span>${pos.lotes ? `${pos.lado === 'BUY' ? 'Comprar' : 'Vender'} ${formatearLotes(pos.lotes)} · tocar otra vez` : `${pos.lado === 'BUY' ? 'Comprar' : 'Vender'} · tocar otra vez`}</span>`;
+                    el.innerHTML = `<i class="ph ph-check-circle"></i><span>${pos.lotes ? `${pos.lado === 'BUY' ? 'Comprar' : 'Vender'} ${formatearLotes(pos.lotes)}${pos.tipo === 'market' ? ' a mercado' : pos.tipo === 'limit' ? ' límite' : pos.tipo === 'stop' ? ' stop' : ''} · tocar otra vez` : `${pos.lado === 'BUY' ? 'Comprar' : 'Vender'} · tocar otra vez`}</span>`;
                     ordenArmada = { id, timer: setTimeout(() => desarmar(el), 4000) };
                     return;
                 }
@@ -875,7 +880,7 @@
                 if (!o || o.name !== 'nltPosition' || o.points.length < 3) return null;
                 const { h, v } = estiloDe(o);
                 const m = calcularPosicion(h.lado, o.points.map((pt) => pt.value), v, getSymbol());
-                return { simbolo: getSymbol(), lado: h.lado === 'long' ? 'BUY' : 'SELL', entrada: m.entrada, sl: m.sl, tp: m.tp, cantidad: m.cantidad, lotes: m.lotes, riesgo: m.riesgoReal, rr: m.rr };
+                return { simbolo: getSymbol(), lado: h.lado === 'long' ? 'BUY' : 'SELL', entrada: m.entrada, sl: m.sl, tp: m.tp, cantidad: m.cantidad, lotes: m.lotes, riesgo: m.riesgoReal, rr: m.rr, tipo: tipoEj() };
             },
             abrirPropiedades,
             overlay,

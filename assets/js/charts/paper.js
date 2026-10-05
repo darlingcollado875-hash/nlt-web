@@ -359,9 +359,9 @@
                 const lots = o.lotes ? o.lotes : (o.cantidad ? Math.max(0.01, Math.round((o.cantidad / tam(sym)) * 100) / 100) : 0.1);
                 // Siempre una orden PENDIENTE justo en la entrada dibujada (nunca a mercado): límite si el precio tiene que venir a buscarla, stop si tiene que romperla
                 const dec = pr(sym), r = (x) => (x == null ? null : Number(Number(x).toFixed(dec)));
-                const tipo = tipoPendiente(o.lado, o.entrada, px);
-                prefill = { type: tipo, lots, price: r(o.entrada), sl: r(o.sl), tp: r(o.tp) };
-                mensaje = `Posición ${o.lado === 'BUY' ? 'de compra' : 'de venta'} cargada como orden ${tipo === 'limit' ? 'límite' : 'stop'} en tu entrada (${r(o.entrada)}): elige ${o.lado === 'BUY' ? 'COMPRAR' : 'VENDER'} para dejarla puesta.`;
+                const tipo = o.tipo === 'market' || o.tipo === 'limit' || o.tipo === 'stop' ? o.tipo : tipoPendiente(o.lado, o.entrada, px);
+                prefill = { type: tipo, lots, price: tipo === 'market' ? null : r(o.entrada), sl: r(o.sl), tp: r(o.tp) };
+                mensaje = `Posición ${o.lado === 'BUY' ? 'de compra' : 'de venta'} cargada ${tipo === 'market' ? 'a mercado' : `como orden ${tipo === 'limit' ? 'límite' : 'stop'} en tu entrada (${r(o.entrada)})`}: elige ${o.lado === 'BUY' ? 'COMPRAR' : 'VENDER'} para ${tipo === 'market' ? 'ejecutarla' : 'dejarla puesta'}. Puedes cambiar el tipo abajo.`;
                 abrir('ticket');
             },
             estado: () => cuenta,
