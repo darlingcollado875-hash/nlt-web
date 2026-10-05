@@ -249,3 +249,4 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .tr-op-pl { text-align: right; display: flex; flex-direction: column; gap: 1px; font-size: 14px; white-space: nowrap; }
 .tr-hist-res { margin-top: 0; }
 #chBtnTrader.ch-herr.con-saldo { width: auto; min-width: 0; padding-left: 10px; padding-right: 8px; gap: 7px; flex: 0 0 auto; }
+.tr-saldo.aviso { color: #fde68a; background: rgba(245, 158, 11, .16); border-color: rgba(245, 158, 11, .4); }

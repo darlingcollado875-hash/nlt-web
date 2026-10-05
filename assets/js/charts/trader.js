@@ -29,13 +29,16 @@
         btn.innerHTML = '<i class="ph ph-currency-circle-dollar"></i><span class="ch-btn-label">Operar</span>';
         const saldoEl = document.createElement('span'); saldoEl.className = 'tr-saldo'; saldoEl.hidden = true; btn.appendChild(saldoEl);
         /** Saldo de la cuenta conectada, siempre visible arriba en el botón Operar. */
+        const gpAbierta = () => (vivo.summary && vivo.summary.profit != null ? Number(vivo.summary.profit) : (vivo.positions || []).reduce((a, p) => a + (Number(p.profit) || 0), 0));
         function pintarSaldo() {
-            const c = cuentaActual(), b = vivo.summary && vivo.summary.balance != null ? vivo.summary.balance : (c ? c.balance : null);
-            saldoEl.hidden = !(c && b != null);
-            btn.classList.toggle('con-saldo', !saldoEl.hidden);
-            if (saldoEl.hidden) { btn.title = 'Operar con tu cuenta MT5'; return; }
-            saldoEl.textContent = dinero(b);
-            btn.title = `Cuenta #${c.login} · saldo ${dinero(b)}${vivo.summary && vivo.summary.equity != null ? ' · equity ' + dinero(vivo.summary.equity) : ''}`;
+            const c = cuentaActual();
+            btn.classList.toggle('con-saldo', !!c);
+            saldoEl.hidden = !c;
+            if (!c) { btn.title = 'Operar con tu cuenta MT5'; return; }
+            const b = vivo.summary && vivo.summary.balance != null ? vivo.summary.balance : c.balance;
+            saldoEl.classList.toggle('aviso', b == null && !!errorVivo);
+            saldoEl.textContent = b != null ? dinero(b) : (errorVivo ? 'Revisar' : '…');
+            btn.title = b != null ? `Cuenta #${c.login} · saldo ${dinero(b)}${vivo.summary && vivo.summary.equity != null ? ' · equity ' + dinero(vivo.summary.equity) : ''}` : `Cuenta #${c.login}${errorVivo ? ' · ' + errorVivo : ' · leyendo el saldo…'}`;
         }
         const pop = document.createElement('div');
         pop.className = 'mc-menu pp-pop tr-pop'; pop.id = 'chTrader'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Operar con tu cuenta MT5');
@@ -213,7 +216,7 @@
                 const sel = cuentas.length ? `<div class="al-fila2"><select data-tr-cuenta class="mc-sel">${cuentas.map((x) => `<option value="${esc(x.id)}"${x.id === cuentaId ? ' selected' : ''}>#${esc(x.login)} · ${esc(x.server || '')}</option>`).join('')}</select>
                     <button type="button" data-tr="mas" class="mc-d" title="Conectar otra cuenta">+</button><button type="button" data-tr="desconectar" class="mc-d" title="Desconectar esta cuenta">Quitar</button></div>` : '';
                 const resumen = c ? `<div class="pp-cuenta"><div><small>Balance</small><b>${s.balance != null ? dinero(s.balance) : dinero(c.balance)}</b></div><div><small>Equity</small><b>${s.equity != null ? dinero(s.equity) : '—'}</b></div>
-                    <div><small>G/P abierta</small><b style="color:${(Number(s.profit) || 0) >= 0 ? '#22C55E' : '#EF4444'}">${s.profit != null ? dinero(s.profit) : '—'}</b></div><div><small>Posiciones</small><b>${vivo.positions.length}</b></div></div>` : '';
+                    <div><small>G/P abierta</small><b style="color:${gpAbierta() >= 0 ? '#22C55E' : '#EF4444'}">${dinero(gpAbierta())}</b></div><div><small>Posiciones</small><b>${vivo.positions.length}</b></div></div>` : '';
                 const tabs = c ? `<div class="pp-tabs"><button type="button" data-tab="operar" class="${tab === 'operar' ? 'on' : ''}">Operar</button><button type="button" data-tab="pos" class="${tab === 'pos' ? 'on' : ''}">Posiciones (${vivo.positions.length})</button><button type="button" data-tab="ord" class="${tab === 'ord' ? 'on' : ''}">Órdenes (${(vivo.orders || []).length})</button><button type="button" data-tab="hist" class="${tab === 'hist' ? 'on' : ''}">Historial</button><button type="button" data-tab="sym" class="${tab === 'sym' ? 'on' : ''}">Símbolos</button></div>` : '';
                 let panel = '';
                 if (c && tab === 'operar') {
