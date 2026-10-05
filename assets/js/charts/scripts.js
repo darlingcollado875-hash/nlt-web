@@ -147,7 +147,7 @@
         }
         function dibujarExtras(a, { ctx, chart: ch, indicator, xAxis, yAxis, bounding }) {
             const res = a.res;
-            if (!res) return false;
+            if (!res || a.oculto) return false;
             if (a.slotsTablas && a.slotsTablas.length && window.NLTCharts.ui) window.NLTCharts.ui.tablero.ajustar(ch);
             const { from, to } = ch.getVisibleRange();
             const ancho = Math.max(1, (ch.getBarSpace && ch.getBarSpace().bar) || 6);
@@ -244,7 +244,7 @@
             const T = window.NLTCharts.ui && window.NLTCharts.ui.tablero;
             if (!T) return;
             const tablas = (a.res && a.res.tablas) || [];
-            if (!tablas.length) { quitarTablas(a); return; }
+            if (!tablas.length || a.oculto) { quitarTablas(a); return; }
             T.ajustar(chart);
             const ids = [];
             tablas.slice(0, 9).forEach((t, i) => {
@@ -285,12 +285,42 @@
                     return filas(r, datos.length);
                 },
                 draw: (args) => dibujarExtras(a, args),
+                createTooltipDataSource: () => ({ features: featuresScript(a) }),
             });
-            const crear = { name: a.ind };
+            const crear = { name: a.ind, visible: !a.oculto };
             if (overlay) { crear.paneId = CANDLE_PANE; chart.createIndicator(crear, true); } else chart.createIndicator(crear, false, { height: 130, minHeight: 60 });
             pintarTablas(a);       // después de registrar: quitarDelGrafico() borra las tablas del script anterior
             return true;
         }
+        // ───────────── botones de la leyenda: ojo, ajustes, código, quitar ─────────────
+        function featuresScript(a) {
+            const L = window.NLTCharts.leyenda;
+            if (!L || !L.feature) return [];
+            const out = [L.feature('ojo', a.oculto ? L.ICONO.ojoNo : L.ICONO.ojo)];
+            if (a.res && a.res.inputs && a.res.inputs.length) out.push(L.feature('ajustes', L.ICONO.ajustes));
+            if (a.codigo) out.push(L.feature('codigo', L.ICONO.codigo));
+            out.push(L.feature('quitar', L.ICONO.quitar));
+            return out;
+        }
+        function alternarOjo(a) {
+            a.oculto = !a.oculto;
+            if (a.ind) chart.overrideIndicator({ name: a.ind, visible: !a.oculto });
+            pintarTablas(a); guardarActivos();
+        }
+        async function abrirEn(a, que) {
+            await abrir();
+            if (lista.some((x) => x.id === a.id)) await abrirScript(a.id); else await abrirAjeno(a.id);
+            if (que === 'ajustes') { const el = modal.querySelector('.sc-ajustes'); if (el) el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+        }
+        chart.subscribeAction('onIndicatorTooltipFeatureClick', (data) => {
+            const nombre = data && data.indicator && data.indicator.name, acc = data && data.feature && data.feature.id;
+            if (!nombre || !acc || !String(nombre).startsWith('NLT_S_')) return;
+            const a = [...activos.values()].find((x) => x.ind === nombre);
+            if (!a) return;
+            if (acc === 'ojo') alternarOjo(a);
+            else if (acc === 'ajustes' || acc === 'codigo') abrirEn(a, acc);
+            else if (acc === 'quitar') { desactivar(a.id); if (!modal.hidden) pintar(); }
+        });
         function quitarDelGrafico(a) {
             quitarTablas(a);
             if (!a.ind) return;
@@ -299,7 +329,7 @@
         }
         function guardarActivos() {
             const o = {};
-            activos.forEach((a, id) => { o[id] = { inputs: a.inputs }; });
+            activos.forEach((a, id) => { o[id] = { inputs: a.inputs, oculto: !!a.oculto }; });
             state.savePrefs({ scriptsActivos: o });
         }
         async function activar(id, nombre, codigo, inputs, ast) {
@@ -765,6 +795,7 @@
                     // propio (si el plan sigue activo) o compartido / de la tienda (no exige plan)
                     const propio = lista.some((x) => x.id === id);
                     const r = propio ? await NLT_API.chartsScript(id) : await NLT_API.chartsScriptCompartido(id);
+                    if (guardados[id] && guardados[id].oculto) activos.set(id, { id, version: 0, oculto: true });
                     await activar(id, r.script.name, r.script.code, (guardados[id] && guardados[id].inputs) || {}, r.script.ast);
                 } catch (_) { /* si falla uno (ya no tiene acceso, lo borraron), los demás siguen */ }
             }
