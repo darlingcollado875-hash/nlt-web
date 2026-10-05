@@ -297,25 +297,21 @@
                 }
                 const sym = pos.simbolo || getSymbol(), dec = decimales(sym), r = (x) => (x == null ? null : Number(Number(x).toFixed(dec)));
                 const px = ultimoPrecio();
-                let tipo = 'market';
-                if (px != null && pos.entrada && Math.abs(pos.entrada - px) / px > 0.0003) tipo = pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop');
-                const orden = { symbol: sym, side: pos.lado === 'BUY' ? 'buy' : 'sell', volume: pos.lotes, type: tipo, price: tipo === 'market' ? null : r(pos.entrada), stop_loss: r(pos.sl), take_profit: r(pos.tp), client_id: idUnico() };
+                // Siempre PENDIENTE en la entrada exacta que dibujaste: límite si el precio debe venir a buscarla, stop si debe romperla
+                const tipo = px == null ? 'limit' : (pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop'));
+                const orden = { symbol: sym, side: pos.lado === 'BUY' ? 'buy' : 'sell', volume: pos.lotes, type: tipo, price: r(pos.entrada), stop_loss: r(pos.sl), take_profit: r(pos.tp), client_id: idUnico() };
                 avisar(`Enviando ${pos.lado === 'BUY' ? 'compra' : 'venta'} de ${pos.lotes} lotes de ${sym}…`);
                 try {
                     const resp = await NLT_API.chartsTraderOrden(cuentaId, orden);
-                    avisar(resp.status === 'duplicate' ? 'Esa orden ya se había enviado.' : tipo === 'market' ? `✓ ${orden.side === 'buy' ? 'Compra' : 'Venta'} enviada: ${pos.lotes} lotes de ${sym}${orden.stop_loss ? ' · SL ' + orden.stop_loss : ''}${orden.take_profit ? ' · TP ' + orden.take_profit : ''}` : `✓ Orden pendiente (${tipo === 'limit' ? 'límite' : 'stop'}) creada en ${orden.price}`, 'ok');
+                    avisar(resp.status === 'duplicate' ? 'Esa orden ya se había enviado.' : `✓ ${orden.side === 'buy' ? 'Compra' : 'Venta'} ${tipo === 'limit' ? 'límite' : 'stop'} puesta en ${orden.price}: ${pos.lotes} lotes de ${sym}${orden.stop_loss ? ' · SL ' + orden.stop_loss : ''}${orden.take_profit ? ' · TP ' + orden.take_profit : ''}`, 'ok');
                     await refrescar(); if (!pop.hidden) { pintar(); posicionar(); }
                 } catch (err) { avisar(err.message || 'El broker rechazó la orden.', 'error'); }
             },
             desdePosicion(pos) {
                 if (!pos) return;
                 const px = ultimoPrecio();
-                let tipo = 'market';
-                if (px != null && pos.entrada && Math.abs(pos.entrada - px) / px > 0.0003) {
-                    // Si la entrada dibujada no es el precio de ahora, lo natural es una orden pendiente en ese nivel.
-                    tipo = pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop');
-                }
-                prefill = { volume: pos.lotes || null, sl: pos.sl, tp: pos.tp, type: tipo, price: tipo === 'market' ? null : pos.entrada };
+                const tipo = px == null ? 'limit' : (pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop'));
+                prefill = { volume: pos.lotes || null, sl: pos.sl, tp: pos.tp, type: tipo, price: pos.entrada };
                 pendiente = null; tab = 'operar'; msg = pos.lado === 'BUY' ? 'Compra cargada desde tu posición: revisa y elige COMPRAR.' : 'Venta cargada desde tu posición: revisa y elige VENDER.';
                 abrir('operar');
             },
