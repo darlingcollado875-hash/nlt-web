@@ -125,6 +125,10 @@
         .sc table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; } .sc th { position: sticky; top: 0; background: #0D1016; text-align: left; font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: .04em; padding: 8px 6px; cursor: pointer; white-space: nowrap; border-bottom: 1px solid var(--ch-line); } .sc th.on { color: #22D3EE; }
         .sc td { padding: 9px 6px; border-bottom: 1px solid rgba(255,255,255,.04); color: #E5E7EB; white-space: nowrap; } .sc tbody tr { cursor: pointer; } .sc tbody tr:hover { background: rgba(255,255,255,.04); }
         .sc-sym small { display: block; color: #6B7280; font-size: 11px; } .sc-rat { text-align: center; font-weight: 600; } .sc-tend { color: #9CA3AF; font-size: 12px; } .sc-vacio { text-align: center; color: #6B7280; padding: 24px; }
+        .pp-pop { width: 350px; max-height: calc(100vh - 90px); overflow-y: auto; }
+        .pp-cuenta { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; } .pp-cuenta div { background: #131722; border-radius: 10px; padding: 8px 10px; } .pp-cuenta small { display: block; font-size: 10px; color: #6B7280; text-transform: uppercase; letter-spacing: .05em; } .pp-cuenta b { font-size: 15px; }
+        .pp-tabs { display: flex; gap: 4px; margin-bottom: 10px; } .pp-tabs button { flex: 1; font-size: 11px; padding: 6px 4px; border-radius: 8px; color: #9CA3AF; background: #151A22; cursor: pointer; } .pp-tabs button.on { color: #67E8F9; background: rgba(34,211,238,.14); }
+        .pp-px { color: #E5E7EB; font-weight: 600; margin-left: auto; } .pp-buy, .pp-sell { flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; color: #fff; cursor: pointer; } .pp-buy { background: #16A34A; } .pp-sell { background: #DC2626; }
         .ch-tool-sep { width: 1px; height: 24px; align-self: center; background: var(--ch-line); margin: 0 4px; flex-shrink: 0; }
         .ch-hint { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); font-size: 12px; color: #E5E7EB; background: rgba(13,16,22,0.92); border: 1px solid var(--ch-line); border-radius: 999px; padding: 6px 12px; pointer-events: none; white-space: nowrap; z-index: 5; }
 
@@ -449,7 +453,7 @@
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
     <script src="assets/js/charts/drawings-extra.js?v=3926ed5e"></script>
-    <script src="assets/js/charts/drawings.js?v=d1249eda"></script>
+    <script src="assets/js/charts/drawings.js?v=eaa3dbcd"></script>
     <script src="assets/js/charts/trading.js?v=c5c388f9"></script>
     <script src="assets/js/charts/watchlist.js?v=7aa1a4ae"></script>
     <script src="assets/js/charts/indicators-free.js?v=c3ae9a50"></script>
@@ -465,6 +469,7 @@
     <script src="assets/js/charts/ratings.js?v=55503b92"></script>
     <script src="assets/js/charts/alerts.js?v=db12e9c2"></script>
     <script src="assets/js/charts/screener.js?v=13010bdb"></script>
-    <script src="assets/js/charts/app.js?v=715f9186"></script>
+    <script src="assets/js/charts/paper.js?v=507994c0"></script>
+    <script src="assets/js/charts/app.js?v=e5148672"></script>
 </body>
 </html>

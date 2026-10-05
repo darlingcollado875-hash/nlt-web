@@ -1,0 +1,286 @@
+/* NLT Charts -- Simulador (paper trading): practicá con dinero virtual, sin riesgo.
+ *
+ * Cuenta virtual (saldo inicial a tu elección) con órdenes a mercado, límite y stop, stop loss y take profit,
+ * posiciones abiertas con ganancia/pérdida en vivo e historial. NO usa tu cuenta real ni envía nada al broker:
+ * vive solo en tu navegador/cuenta de NLT (se guarda con tus preferencias).
+ *
+ * Cómo evalúa: cada 5 s pide las cotizaciones de los símbolos con posiciones u órdenes y revisa entradas, stop loss
+ * y take profit con ese precio -- SOLO mientras NLT Charts está abierto (no hay un servidor ejecutando tus órdenes).
+ * Sin comisión ni spread; el apalancamiento es 1:100. La conversión a dólares es aproximada en pares sin USD. */
+(function () {
+    const REFRESCO_MS = 5000;
+    const APALANCAMIENTO = 100;
+    const MAX_POSICIONES = 20, MAX_ORDENES = 30, MAX_HISTORIAL = 200;
+    const SALDO_DEF = 10000;
+    const GRUPO = 'nlt-paper';
+
+    // Tamaño del contrato por 1 lote.
+    function contrato(sym, categoria) {
+        if (categoria === 'forex') return 100000;
+        if (sym === 'XAUUSD') return 100;
+        return 1;
+    }
+    const dinero = (n) => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const uid = () => `p${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
+    // Ganancia/pérdida en dólares de `lotes` entre dos precios (la pura, testeable).
+    function pnl(side, entrada, salida, lotes, tam, conv) {
+        return (side === 'buy' ? salida - entrada : entrada - salida) * lotes * tam * conv;
+    }
+    // Factor para pasar la moneda de cotización a USD (aproximado con el precio actual en pares USDxxx).
+    function convUSD(sym, precio) {
+        if (sym.endsWith('USD')) return 1;
+        if (sym.startsWith('USD') && precio) return 1 / precio;
+        return 1;
+    }
+
+    // ¿Debe ejecutarse la orden pendiente con este precio? Devuelve el precio de entrada o null.
+    function llenaOrden(o, precio) {
+        if (o.side === 'buy') {
+            if (o.type === 'limit' && precio <= o.price) return o.price;
+            if (o.type === 'stop' && precio >= o.price) return precio;
+        } else {
+            if (o.type === 'limit' && precio >= o.price) return o.price;
+            if (o.type === 'stop' && precio <= o.price) return precio;
+        }
+        return null;
+    }
+    // ¿Salta SL o TP con este precio? Devuelve { precio, motivo } o null (si ambos, gana el stop: lo conservador).
+    function cierraPosicion(p, precio) {
+        if (p.side === 'buy') {
+            if (p.sl != null && precio <= p.sl) return { precio: p.sl, motivo: 'SL' };
+            if (p.tp != null && precio >= p.tp) return { precio: p.tp, motivo: 'TP' };
+        } else {
+            if (p.sl != null && precio >= p.sl) return { precio: p.sl, motivo: 'SL' };
+            if (p.tp != null && precio <= p.tp) return { precio: p.tp, motivo: 'TP' };
+        }
+        return null;
+    }
+    function validar(t, precio) {
+        const { side, type, lots, price, sl, tp } = t;
+        if (!(lots > 0) || lots > 1000) return 'El tamaño debe ser mayor que 0.';
+        const ref = type === 'market' ? precio : price;
+        if (!(ref > 0)) return 'Falta el precio.';
+        if (type === 'limit' && ((side === 'buy' && price >= precio) || (side === 'sell' && price <= precio))) return side === 'buy' ? 'Una compra límite va POR DEBAJO del precio actual.' : 'Una venta límite va POR ENCIMA del precio actual.';
+        if (type === 'stop' && ((side === 'buy' && price <= precio) || (side === 'sell' && price >= precio))) return side === 'buy' ? 'Una compra stop va POR ENCIMA del precio actual.' : 'Una venta stop va POR DEBAJO del precio actual.';
+        if (sl != null && ((side === 'buy' && sl >= ref) || (side === 'sell' && sl <= ref))) return side === 'buy' ? 'El stop loss de una compra va por debajo de la entrada.' : 'El stop loss de una venta va por encima de la entrada.';
+        if (tp != null && ((side === 'buy' && tp <= ref) || (side === 'sell' && tp >= ref))) return side === 'buy' ? 'El take profit de una compra va por encima de la entrada.' : 'El take profit de una venta va por debajo de la entrada.';
+        return null;
+    }
+
+    function montar({ chart, simbolos, getSymbol }) {
+        const state = NLTCharts.state, esc = NLTCharts.ui.esc;
+        const info = Object.fromEntries(simbolos.map((s) => [s.symbol, s]));
+        const guardado = state.prefs().paper;
+        let cuenta = guardado && guardado.v === 1 ? guardado : { v: 1, inicial: SALDO_DEF, saldo: SALDO_DEF, posiciones: [], ordenes: [], historial: [] };
+        let precios = {};      // sym -> último precio
+        let tab = 'ticket', mensaje = '', prefill = null, timer = null;
+
+        const guardar = () => state.savePrefs({ paper: cuenta });
+        const tam = (sym) => contrato(sym, info[sym] && info[sym].category);
+        const pr = (sym) => (info[sym] ? info[sym].price_precision : 5);
+        const flotante = (p) => (precios[p.sym] != null ? pnl(p.side, p.entry, precios[p.sym], p.lots, tam(p.sym), convUSD(p.sym, precios[p.sym])) : 0);
+        const flotanteTotal = () => cuenta.posiciones.reduce((a, p) => a + flotante(p), 0);
+        const margen = (p) => (precios[p.sym] != null ? (p.lots * tam(p.sym) * precios[p.sym] * convUSD(p.sym, precios[p.sym])) / APALANCAMIENTO : 0);
+        const equity = () => cuenta.saldo + flotanteTotal();
+        const margenUsado = () => cuenta.posiciones.reduce((a, p) => a + margen(p), 0);
+
+        const btn = document.createElement('button');
+        btn.type = 'button'; btn.id = 'chBtnPaper'; btn.className = 'ch-btn'; btn.title = 'Simulador: practicá con dinero virtual'; btn.setAttribute('aria-label', 'Simulador de trading');
+        btn.innerHTML = '<i class="ph ph-game-controller"></i><span class="ch-btn-label">Simulador</span>';
+        const pop = document.createElement('div');
+        pop.className = 'mc-menu pp-pop'; pop.id = 'chPaper'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Simulador de trading');
+        document.body.appendChild(pop);
+
+        // ── líneas en el gráfico (entrada, SL, TP de las posiciones del símbolo que se ve) ──
+        let registrado = false;
+        function registrarOverlay() {
+            if (registrado) return; registrado = true;
+            klinecharts.registerOverlay({
+                name: 'nltPaperLine', totalStep: 2, lock: true, needDefaultPointFigure: false, needDefaultXAxisFigure: false, needDefaultYAxisFigure: true,
+                createPointFigures: ({ overlay, coordinates, bounding }) => {
+                    if (!coordinates.length) return [];
+                    const y = coordinates[0].y, e = overlay.extendData || {};
+                    return [{ type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: 0, y }, { x: bounding.width, y }] }, styles: { style: 'dashed', dashedValue: [3, 3], size: 1, color: e.color } },
+                        { type: 'text', ignoreEvent: true, attrs: { x: bounding.width - 6, y: y - 3, text: e.texto || '', align: 'right', baseline: 'bottom' }, styles: { color: e.color, size: 11, family: 'Inter, system-ui, sans-serif', weight: 600, backgroundColor: 'transparent', borderSize: 0 } }];
+                },
+            });
+        }
+        function pintarLineas() {
+            registrarOverlay();
+            try { chart.removeOverlay({ groupId: GRUPO }); } catch (_) { /* nada */ }
+            const ult = chart.getDataList().slice(-1)[0]; if (!ult) return;
+            const sym = getSymbol();
+            const linea = (valor, texto, color) => chart.createOverlay({ name: 'nltPaperLine', groupId: GRUPO, lock: true, points: [{ timestamp: ult.timestamp, value: valor }], extendData: { texto, color } });
+            cuenta.posiciones.filter((p) => p.sym === sym).forEach((p) => {
+                const f = flotante(p);
+                linea(p.entry, `${p.side === 'buy' ? 'BUY' : 'SELL'} ${p.lots} · ${f >= 0 ? '+' : ''}${dinero(f)}`, f >= 0 ? '#22C55E' : '#EF4444');
+                if (p.sl != null) linea(p.sl, 'SL', '#EF4444');
+                if (p.tp != null) linea(p.tp, 'TP', '#22C55E');
+            });
+            cuenta.ordenes.filter((o) => o.sym === sym).forEach((o) => linea(o.price, `${o.side === 'buy' ? 'BUY' : 'SELL'} ${o.type.toUpperCase()} ${o.lots}`, '#F59E0B'));
+        }
+
+        // ── motor: se evalúa con cada cotización nueva ──
+        function cerrar(p, precio, motivo) {
+            const ganancia = pnl(p.side, p.entry, precio, p.lots, tam(p.sym), convUSD(p.sym, precios[p.sym] || precio));
+            cuenta.saldo += ganancia;
+            cuenta.posiciones = cuenta.posiciones.filter((x) => x.id !== p.id);
+            cuenta.historial.unshift({ id: p.id, sym: p.sym, side: p.side, lots: p.lots, entry: p.entry, exit: precio, pnl: ganancia, motivo, abierta: p.abierta, cerrada: Date.now() });
+            cuenta.historial = cuenta.historial.slice(0, MAX_HISTORIAL);
+        }
+        function evaluar() {
+            let cambio = false;
+            [...cuenta.ordenes].forEach((o) => {
+                const px = precios[o.sym]; if (px == null) return;
+                const entrada = llenaOrden(o, px);
+                if (entrada == null) return;
+                cuenta.ordenes = cuenta.ordenes.filter((x) => x.id !== o.id);
+                if (cuenta.posiciones.length < MAX_POSICIONES) cuenta.posiciones.push({ id: o.id, sym: o.sym, side: o.side, lots: o.lots, entry: entrada, sl: o.sl, tp: o.tp, abierta: Date.now() });
+                cambio = true;
+            });
+            [...cuenta.posiciones].forEach((p) => {
+                const px = precios[p.sym]; if (px == null) return;
+                const c = cierraPosicion(p, px);
+                if (c) { cerrar(p, c.precio, c.motivo); cambio = true; }
+            });
+            if (cambio) guardar();
+            return cambio;
+        }
+        async function actualizar() {
+            const syms = new Set([getSymbol(), ...cuenta.posiciones.map((p) => p.sym), ...cuenta.ordenes.map((o) => o.sym)]);
+            // para convertir a dólares los pares sin USD alcanza con el precio de cada par (aproximado)
+            try {
+                const r = await NLT_API.chartsQuotes([...syms]);
+                (r.quotes || []).forEach((q) => { if (q.last != null) precios[q.symbol] = q.last; });
+            } catch (_) { return; }
+            evaluar(); pintarLineas(); if (!pop.hidden) pintar();
+        }
+        function programar() {
+            const necesita = !pop.hidden || cuenta.posiciones.length || cuenta.ordenes.length;
+            if (necesita && !timer) timer = setInterval(() => { if (!document.hidden) actualizar(); }, REFRESCO_MS);
+            if (!necesita && timer) { clearInterval(timer); timer = null; }
+        }
+
+        // ── acciones ──
+        function enviar(t) {
+            const sym = getSymbol(), px = precios[sym];
+            if (px == null) return 'Todavía no hay precio de este símbolo. Probá en unos segundos.';
+            const err = validar(t, px);
+            if (err) return err;
+            if (t.type === 'market') {
+                if (cuenta.posiciones.length >= MAX_POSICIONES) return `Máximo ${MAX_POSICIONES} posiciones abiertas.`;
+                const nuevaMargen = (t.lots * tam(sym) * px * convUSD(sym, px)) / APALANCAMIENTO;
+                if (nuevaMargen > equity() - margenUsado()) return `Margen insuficiente: necesitás ${dinero(nuevaMargen)} y tenés libre ${dinero(equity() - margenUsado())}.`;
+                cuenta.posiciones.push({ id: uid(), sym, side: t.side, lots: t.lots, entry: px, sl: t.sl, tp: t.tp, abierta: Date.now() });
+            } else {
+                if (cuenta.ordenes.length >= MAX_ORDENES) return `Máximo ${MAX_ORDENES} órdenes pendientes.`;
+                cuenta.ordenes.push({ id: uid(), sym, side: t.side, type: t.type, lots: t.lots, price: t.price, sl: t.sl, tp: t.tp, creada: Date.now() });
+            }
+            guardar(); pintarLineas(); programar();
+            return null;
+        }
+        const numero = (v) => { const n = parseFloat(String(v).replace(',', '.')); return Number.isFinite(n) ? n : null; };
+
+        // ── interfaz ──
+        function pintar() {
+            const sym = getSymbol(), px = precios[sym], p = pr(sym);
+            const f = flotanteTotal(), eq = equity();
+            const cab = `<div class="mc-tit">Simulador · dinero virtual</div>
+                <div class="pp-cuenta"><div><small>Saldo</small><b>${dinero(cuenta.saldo)}</b></div><div><small>Equity</small><b>${dinero(eq)}</b></div>
+                <div><small>G/P abierta</small><b style="color:${f >= 0 ? '#22C55E' : '#EF4444'}">${f >= 0 ? '+' : ''}${dinero(f)}</b></div><div><small>Margen libre</small><b>${dinero(eq - margenUsado())}</b></div></div>
+                <div class="pp-tabs">${[['ticket', 'Operar'], ['pos', `Posiciones (${cuenta.posiciones.length})`], ['ord', `Órdenes (${cuenta.ordenes.length})`], ['hist', 'Historial']].map(([k, t]) => `<button type="button" data-tab="${k}" class="${tab === k ? 'on' : ''}">${t}</button>`).join('')}</div>
+                ${mensaje ? `<p class="al-msg">${esc(mensaje)}</p>` : ''}`;
+            let cuerpo = '';
+            if (tab === 'ticket') {
+                const pf = prefill || {};
+                cuerpo = `<form data-pp-form class="al-form"><div class="al-fila2"><b>${esc(sym)}</b><span class="pp-px">${px != null ? px.toFixed(p) : 'sin precio'}</span></div>
+                    <div class="al-fila2"><select name="type" class="mc-sel"><option value="market">Mercado</option><option value="limit"${pf.type === 'limit' ? ' selected' : ''}>Límite</option><option value="stop"${pf.type === 'stop' ? ' selected' : ''}>Stop</option></select>
+                    <input name="lots" class="mc-sel" type="number" step="any" min="0" inputmode="decimal" placeholder="Lotes" value="${pf.lots != null ? esc(pf.lots) : '0.10'}"><input name="price" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Precio (límite/stop)" value="${pf.price != null ? esc(pf.price) : ''}"></div>
+                    <div class="al-fila2"><input name="sl" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Stop loss" value="${pf.sl != null ? esc(pf.sl) : ''}"><input name="tp" class="mc-sel" type="number" step="any" inputmode="decimal" placeholder="Take profit" value="${pf.tp != null ? esc(pf.tp) : ''}"></div>
+                    <div class="al-fila2"><button type="submit" data-side="buy" class="pp-buy">COMPRAR</button><button type="submit" data-side="sell" class="pp-sell">VENDER</button></div>
+                    <p class="mc-nota">1 lote = ${tam(sym).toLocaleString('en-US')} unidades · apalancamiento 1:${APALANCAMIENTO} · sin comisión ni spread.</p></form>`;
+            } else if (tab === 'pos') {
+                cuerpo = cuenta.posiciones.map((x) => { const g = flotante(x); return `<div class="al-fila"><div class="al-txt"><b>${esc(x.sym)}</b> ${x.side === 'buy' ? 'COMPRA' : 'VENTA'} ${x.lots} @ ${x.entry.toFixed(pr(x.sym))}
+                    <br><small>${precios[x.sym] != null ? `ahora ${precios[x.sym].toFixed(pr(x.sym))}` : 'sin precio'}${x.sl != null ? ` · SL ${x.sl}` : ''}${x.tp != null ? ` · TP ${x.tp}` : ''}</small></div>
+                    <b style="color:${g >= 0 ? '#22C55E' : '#EF4444'}">${g >= 0 ? '+' : ''}${dinero(g)}</b>
+                    <button type="button" data-pp="editar" data-id="${esc(x.id)}" title="Cambiar SL/TP" aria-label="Cambiar SL y TP"><i class="ph ph-pencil-simple"></i></button>
+                    <button type="button" data-pp="cerrar" data-id="${esc(x.id)}" title="Cerrar posición" aria-label="Cerrar posición"><i class="ph ph-x-circle"></i></button></div>`; }).join('') || '<p class="mc-nota">No hay posiciones abiertas.</p>';
+            } else if (tab === 'ord') {
+                cuerpo = cuenta.ordenes.map((o) => `<div class="al-fila"><div class="al-txt"><b>${esc(o.sym)}</b> ${o.side === 'buy' ? 'COMPRA' : 'VENTA'} ${esc(o.type.toUpperCase())} ${o.lots} @ ${o.price.toFixed(pr(o.sym))}<br><small>${o.sl != null ? `SL ${o.sl} ` : ''}${o.tp != null ? `TP ${o.tp}` : ''}</small></div>
+                    <button type="button" data-pp="cancelar" data-id="${esc(o.id)}" title="Cancelar orden" aria-label="Cancelar orden"><i class="ph ph-trash"></i></button></div>`).join('') || '<p class="mc-nota">No hay órdenes pendientes.</p>';
+            } else {
+                const h = cuenta.historial, ganadas = h.filter((x) => x.pnl > 0).length, total = h.reduce((a, x) => a + x.pnl, 0);
+                cuerpo = `${h.length ? `<p class="mc-nota">${h.length} operaciones · ${Math.round((ganadas / h.length) * 100)}% ganadoras · resultado ${dinero(total)}</p>` : ''}` +
+                    (h.slice(0, 40).map((x) => `<div class="al-fila"><div class="al-txt"><b>${esc(x.sym)}</b> ${x.side === 'buy' ? 'COMPRA' : 'VENTA'} ${x.lots}<br><small>${x.entry.toFixed(pr(x.sym))} → ${x.exit.toFixed(pr(x.sym))} · ${esc(x.motivo)}</small></div>
+                    <b style="color:${x.pnl >= 0 ? '#22C55E' : '#EF4444'}">${x.pnl >= 0 ? '+' : ''}${dinero(x.pnl)}</b></div>`).join('') || '<p class="mc-nota">Todavía no cerraste operaciones.</p>');
+            }
+            pop.innerHTML = `${cab}<div class="pp-cuerpo">${cuerpo}</div><div class="al-fila2" style="margin-top:10px"><button type="button" data-pp="reiniciar" class="mc-d">Reiniciar cuenta…</button></div>
+                <p class="mc-nota">Práctica con dinero virtual: no usa tu cuenta real. Se evalúa con el precio cada 5 s mientras NLT Charts está abierto.</p>`;
+        }
+        const posicionar = () => { const r = btn.getBoundingClientRect(); pop.style.top = `${r.bottom + 6}px`; pop.style.left = `${Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8))}px`; };
+        async function abrir(tabNueva) {
+            document.querySelectorAll('.mc-menu').forEach((m) => { m.hidden = true; });
+            if (tabNueva) tab = tabNueva;
+            pintar(); pop.hidden = false; posicionar(); programar();
+            await actualizar(); posicionar();
+        }
+        btn.addEventListener('click', (e) => { e.stopPropagation(); if (!pop.hidden) { pop.hidden = true; programar(); return; } mensaje = ''; abrir(); });
+        document.addEventListener('click', (e) => { const ruta = e.composedPath(); if (!pop.hidden && !ruta.includes(pop) && !ruta.includes(btn)) { pop.hidden = true; programar(); } });
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !pop.hidden) { pop.hidden = true; programar(); } });
+        pop.addEventListener('click', (e) => {
+            const t = e.target.closest('[data-tab]');
+            if (t) { tab = t.dataset.tab; mensaje = ''; pintar(); posicionar(); return; }
+            const a = e.target.closest('[data-pp]'); if (!a) return;
+            const id = a.dataset.id, acc = a.dataset.pp;
+            if (acc === 'cerrar') { const x = cuenta.posiciones.find((q) => q.id === id); if (x && precios[x.sym] != null) { cerrar(x, precios[x.sym], 'Manual'); guardar(); pintarLineas(); programar(); } else mensaje = 'Sin precio para cerrar todavía.'; }
+            if (acc === 'cancelar') { cuenta.ordenes = cuenta.ordenes.filter((o) => o.id !== id); guardar(); pintarLineas(); programar(); }
+            if (acc === 'editar') {
+                const x = cuenta.posiciones.find((q) => q.id === id); if (!x) return;
+                const sl = window.prompt('Stop loss (vacío = sin stop):', x.sl != null ? x.sl : ''); if (sl === null) return;
+                const tp = window.prompt('Take profit (vacío = sin take profit):', x.tp != null ? x.tp : ''); if (tp === null) return;
+                const nuevo = { ...x, sl: sl.trim() === '' ? null : numero(sl), tp: tp.trim() === '' ? null : numero(tp) };
+                const err = validar({ side: x.side, type: 'market', lots: x.lots, price: x.entry, sl: nuevo.sl, tp: nuevo.tp }, x.entry);
+                if (err) mensaje = err; else { x.sl = nuevo.sl; x.tp = nuevo.tp; guardar(); pintarLineas(); mensaje = ''; }
+            }
+            if (acc === 'reiniciar') {
+                const v = window.prompt('Reiniciar la cuenta virtual. Se borran posiciones, órdenes e historial. Saldo inicial:', cuenta.inicial);
+                const n = v === null ? null : numero(v);
+                if (n != null && n >= 100 && n <= 1e9) { cuenta = { v: 1, inicial: n, saldo: n, posiciones: [], ordenes: [], historial: [] }; guardar(); pintarLineas(); programar(); mensaje = 'Cuenta reiniciada.'; } else if (v !== null) mensaje = 'Saldo inválido (mínimo 100).';
+            }
+            pintar(); posicionar();
+        });
+        pop.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const side = (e.submitter && e.submitter.dataset.side) || 'buy';
+            const f = new FormData(e.target), type = f.get('type');
+            const t = { side, type, lots: numero(f.get('lots')), price: numero(f.get('price')), sl: numero(f.get('sl')), tp: numero(f.get('tp')) };
+            const err = enviar(t);
+            mensaje = err || (type === 'market' ? 'Orden ejecutada.' : 'Orden pendiente creada.');
+            if (!err) { prefill = null; tab = type === 'market' ? 'pos' : 'ord'; }
+            pintar(); posicionar();
+        });
+
+        const ancla = document.getElementById('chBtnConfig');
+        if (ancla) ancla.before(btn);
+        programar();
+        if (cuenta.posiciones.length || cuenta.ordenes.length) actualizar();
+        return {
+            cambioSimbolo: () => { pintarLineas(); if (!pop.hidden) actualizar(); },
+            // Long/Short dibujado -> ticket ya cargado (lotes = unidades de la posición / tamaño del contrato)
+            desdePosicion(o) {
+                if (!o) return;
+                const sym = getSymbol(), px = precios[sym];
+                const lots = o.cantidad ? Math.max(0.01, Math.round((o.cantidad / tam(sym)) * 100) / 100) : 0.1;
+                const cerca = px != null && Math.abs(o.entrada - px) / px < 0.0003;
+                prefill = { type: cerca ? 'market' : (o.lado === 'BUY' ? (o.entrada < (px || o.entrada) ? 'limit' : 'stop') : (o.entrada > (px || o.entrada) ? 'limit' : 'stop')), lots, price: cerca ? null : o.entrada, sl: o.sl, tp: o.tp };
+                mensaje = `Posición ${o.lado === 'BUY' ? 'de compra' : 'de venta'} cargada: elegí COMPRAR o VENDER para confirmar.`;
+                abrir('ticket');
+            },
+            estado: () => cuenta,
+        };
+    }
+
+    window.NLTCharts = window.NLTCharts || {};
+    window.NLTCharts.paper = { montar, pnl, convUSD, llenaOrden, cierraPosicion, validar, contrato };
+})();
