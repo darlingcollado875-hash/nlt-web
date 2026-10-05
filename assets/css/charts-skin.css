@@ -289,7 +289,7 @@ body.ch-full .ch-toolbar { padding-left: 16px; }
 @media (prefers-reduced-motion: reduce) { .ch-histcarga::before { animation: none; } }
 
 /* ── Panel «Trade» estilo MT5: posiciones y ganancia/pérdida en vivo, pegado abajo del gráfico ── */
-.tp { flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; max-height: min(52vh, 460px); background: linear-gradient(180deg, rgba(16, 20, 28, .94), rgba(8, 10, 15, .98)); border-top: 1px solid var(--nlt-hair, rgba(255,255,255,.08));
+.tp { position: relative; z-index: 40; flex: 0 0 auto; display: flex; flex-direction: column; min-height: 0; background: linear-gradient(180deg, rgba(16, 20, 28, .94), rgba(8, 10, 15, .98)); border-top: 1px solid var(--nlt-hair, rgba(255,255,255,.08));
   -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); box-shadow: 0 -10px 30px rgba(0, 0, 0, .35); font-family: 'Inter', system-ui, sans-serif; }
 .tp[hidden] { display: none; }
 .tp-barra { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 46px; padding: 6px 16px calc(6px + env(safe-area-inset-bottom)); background: none; border: 0; color: #fff; cursor: pointer; text-align: left; flex: 0 0 auto; }
@@ -305,7 +305,9 @@ body.tp-on .ch-tools { padding-bottom: 6px; }
 .gan { color: #22c55e; } .per { color: #ef4444; }
 .tp-flecha { font-size: 15px; color: #8fb1ff; transition: transform .25s cubic-bezier(.2, .8, .2, 1); }
 .tp.abierto .tp-flecha { transform: rotate(180deg); }
-.tp-cuerpo { display: flex; flex-direction: column; min-height: 0; padding: 4px 14px calc(12px + env(safe-area-inset-bottom)); gap: 10px; overflow: hidden; animation: tpSube .28s cubic-bezier(.2, .8, .2, 1) both; }
+.tp-cuerpo { position: absolute; left: 0; right: 0; bottom: 100%; display: flex; flex-direction: column; min-height: 0; max-height: min(58vh, 520px); padding: 12px 14px 12px; gap: 10px; overflow: hidden;
+  background: linear-gradient(180deg, rgb(17, 21, 30), rgb(10, 12, 18)); border-top: 1px solid rgba(67, 120, 255, .35); border-radius: 20px 20px 0 0; box-shadow: 0 -18px 40px rgba(0, 0, 0, .5);
+  -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); animation: tpSube .28s cubic-bezier(.2, .8, .2, 1) both; }
 @keyframes tpSube { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 .tp-cab { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .tp-etq { font-size: 11px; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: #8fb1ff; }
@@ -342,4 +344,8 @@ body.tp-on .ch-tools { padding-bottom: 6px; }
 .tp-acc .tp-cerrar:hover { border-color: rgba(239, 68, 68, .6); } .tp-acc .tp-cerrar.armado { background: #dc2626; border-color: #dc2626; color: #fff; }
 .tp-vacio { margin: 10px 0; text-align: center; font-size: 13px; color: #9ca3af; } .tp-vacio span { font-size: 12px; color: #6b7280; }
 @media (prefers-reduced-motion: reduce) { .tp-cuerpo { animation: none; } .tp-flecha { transition: none; } }
-@media (min-width: 900px) { .tp { max-height: min(44vh, 400px); } .tp-res { grid-template-columns: repeat(6, 1fr); } .tp-cel { padding: 7px 11px; } .tp-cel b { font-size: 14px; } }
+@media (min-width: 900px) { .tp-cuerpo { max-height: min(50vh, 440px); } .tp-res { grid-template-columns: repeat(6, 1fr); } .tp-cel { padding: 7px 11px; } .tp-cel b { font-size: 14px; } }
+
+/* equity en la barra (solo si hay ancho) */
+.tp-eq { display: none; flex-direction: column; gap: 1px; line-height: 1.1; } .tp-eq small { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b7280; font-weight: 600; } .tp-eq b { font-size: 14px; font-variant-numeric: tabular-nums; }
+@media (min-width: 480px) { .tp-eq { display: flex; } }
