@@ -174,6 +174,17 @@
                 });
             } catch (e) { console.warn('[NLT Charts] multi-gráfico no disponible', e); }
         }
+        if (NLTCharts.alerts) {
+            try {
+                alertas = NLTCharts.alerts.montar({ chart: motor.chart, getSymbol: () => symbol, getUltimoPrecio: () => { const l = motor.chart.getDataList(); return l.length ? l[l.length - 1].close : null; } });
+            } catch (e) { console.warn('[NLT Charts] alertas no disponibles', e); }
+        }
+        if (NLTCharts.paper) {
+            try { paper = NLTCharts.paper.montar({ chart: motor.chart, simbolos: catalogo.symbols, getSymbol: () => symbol }); } catch (e) { console.warn('[NLT Charts] simulador no disponible', e); }
+        }
+        if (NLTCharts.screener) {
+            try { NLTCharts.screener.montar({ simbolos: catalogo.symbols, getSymbol: () => symbol, getTimeframe: () => timeframe, onAbrir: (s, tf) => window.NLTCharts.app.irA(s, tf) }); } catch (e) { console.warn('[NLT Charts] screener no disponible', e); }
+        }
         if (NLTCharts.ratings) { try { NLTCharts.ratings.montar({ chart: motor.chart, getSymbol: () => symbol, getTimeframe: () => timeframe }); } catch (e) { console.warn('[NLT Charts] análisis técnico no disponible', e); } }
         pro.iniciar();
         nltAi.iniciar();
