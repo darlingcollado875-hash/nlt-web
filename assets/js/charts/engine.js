@@ -8,7 +8,7 @@
     const C = {
         up: '#22C55E', down: '#EF4444', neutral: '#6B7280',
         grid: 'rgba(255,255,255,0.035)', axis: 'rgba(255,255,255,0.08)', text: '#6B7280',
-        cross: 'rgba(255,255,255,0.28)', crossBg: '#1F2937', accent: '#22D3EE',
+        cross: 'rgba(255,255,255,0.28)', crossBg: '#1F2937', accent: '#4378ff',
     };
     const FUENTE = 'Inter, system-ui, sans-serif';
 

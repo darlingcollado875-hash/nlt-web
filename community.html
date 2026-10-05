@@ -282,7 +282,7 @@
                 <i class="ph ph-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-gray-500"></i>
                 <input id="buscarPersonasInput" type="search" autocomplete="off" maxlength="40" placeholder="Buscar personas por nombre o @usuario" aria-label="Buscar personas" class="post-input pl-11 w-full">
             </div>
-            <div id="buscarPersonasRes" class="hidden glass-card mt-2 p-2 space-y-1 absolute left-0 right-0 z-30 max-h-80 overflow-y-auto" role="listbox"></div>
+            <div id="buscarPersonasRes" class="hidden glass-card mt-2 p-2 absolute left-0 right-0 z-30 max-h-80 overflow-y-auto" style="box-shadow:0 28px 70px -18px rgba(0,0,0,.85);border-color:rgba(67,120,255,.28);border-radius:20px" role="listbox"></div>
         </div>
 
         <!-- Perfil view -->
@@ -1103,8 +1103,8 @@
                 const lista = r.scripts || [];
                 if (!lista.length) return;
                 const precio = (t) => t.price_usd ? `US$${Number(t.price_usd).toFixed(2)}${t.billing === 'one_time' ? ' · pago único' : ' / mes'}` : 'Gratis';
-                box.innerHTML = `<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3"><i class="ph ph-code"></i> Indicadores de ${esc(perfil.display_name)} (${lista.length})</p>
-                    <div class="space-y-2">${lista.map(t => `<a href="charts.html?tienda=${encodeURIComponent('@' + perfil.username)}" class="block rounded-xl bg-white/5 hover:bg-white/10 p-3 transition-colors">
+                box.innerHTML = `<p class="text-[10px] font-extrabold text-nlt-accent uppercase mb-3" style="letter-spacing:.18em"><i class="ph ph-code"></i> Indicadores de ${esc(perfil.display_name)} (${lista.length})</p>
+                    <div class="space-y-2">${lista.map(t => `<a href="charts.html?tienda=${encodeURIComponent('@' + perfil.username)}" class="block rounded-xl bg-white/5 hover:bg-white/10 p-3 transition-colors" style="border:1px solid rgba(255,255,255,.05)">
                         <p class="text-sm font-semibold text-white">${esc(t.name)} <span class="text-[11px] font-normal text-gray-400">· ${esc(precio(t))}</span></p>
                         <p class="text-xs text-gray-400 mt-0.5">${esc(t.description || '')}</p></a>`).join('')}</div>
                     <p class="text-[11px] text-gray-600 mt-3">Se abren en NLT Charts → Scripts → Tienda.</p>`;
@@ -2171,7 +2171,7 @@
                     try {
                         const r = await NLT_API.communityBuscarPersonas(q);
                         if (mia !== ultima) return;   // llegó una respuesta vieja
-                        res.innerHTML = r.users.length ? r.users.map(u => `<a href="community.html?u=${encodeURIComponent(u.username)}" role="option" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5">
+                        res.innerHTML = r.users.length ? r.users.map(u => `<a href="community.html?u=${encodeURIComponent(u.username)}" role="option" class="flex items-center gap-3 p-2 rounded-xl hover:bg-white/5" style="transition:background .25s cubic-bezier(.16,1,.3,1)">
                                 <div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden shrink-0">${u.avatar_url ? `<img loading="lazy" src="${esc(u.avatar_url)}" class="w-full h-full object-cover">` : iniciales(u.display_name)}</div>
                                 <div class="min-w-0"><p class="text-sm font-semibold text-white truncate">${esc(u.display_name)}${u.verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-[11px] font-normal text-gray-500">@${esc(u.username)}</span></p>
                                 ${u.bio ? `<p class="text-[11px] text-gray-500 truncate">${esc(u.bio)}</p>` : ''}</div></a>`).join('')

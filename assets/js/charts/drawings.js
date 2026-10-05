@@ -59,14 +59,14 @@
     const BASE = [
         {
             id: 'hline', overlay: 'nltHLine', pasos: 2, icono: 'ph-minus', label: 'Línea horizontal', ayuda: 'Tocá el precio donde va la línea',
-            inputs: [...linea({ color: col('#22D3EE', 0) }),
+            inputs: [...linea({ color: col('#4378ff', 0) }),
                 { id: 'mostrarPrecio', tipo: 'bool', def: true, titulo: 'Mostrar precio', grupo: 'Etiqueta', tab: 'Estilo', recalc: false },
                 ...textoIn()],
             coords: ['Precio'],
         },
         {
             id: 'trend', overlay: 'nltTrend', pasos: 3, icono: 'ph-line-segment', label: 'Línea de tendencia', ayuda: 'Tocá el punto inicial y después el final',
-            inputs: [...linea({ color: col('#22D3EE', 0), grosor: 2 }),
+            inputs: [...linea({ color: col('#4378ff', 0), grosor: 2 }),
                 { id: 'extIzq', tipo: 'bool', def: false, titulo: 'Extender a la izquierda', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
                 { id: 'extDer', tipo: 'bool', def: false, titulo: 'Extender a la derecha', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
                 ...textoIn()],
@@ -74,7 +74,7 @@
         },
         {
             id: 'ray', overlay: 'nltTrend', pasos: 3, icono: 'ph-arrow-up-right', label: 'Rayo', ayuda: 'Tocá el origen y después la dirección',
-            inputs: [...linea({ color: col('#22D3EE', 0), grosor: 2 }),
+            inputs: [...linea({ color: col('#4378ff', 0), grosor: 2 }),
                 { id: 'extIzq', tipo: 'bool', def: false, titulo: 'Extender a la izquierda', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
                 { id: 'extDer', tipo: 'bool', def: true, titulo: 'Extender a la derecha', grupo: 'Extensión', tab: 'Estilo', inline: 'e', recalc: false },
                 ...textoIn()],
@@ -83,10 +83,10 @@
         {
             id: 'rect', overlay: 'nltRect', pasos: 3, icono: 'ph-rectangle', label: 'Rectángulo', ayuda: 'Tocá una esquina y después la opuesta',
             inputs: [
-                { id: 'color', tipo: 'color', def: col('#22D3EE', 0), titulo: 'Borde', grupo: 'Borde', tab: 'Estilo', inline: 'b', recalc: false },
+                { id: 'color', tipo: 'color', def: col('#4378ff', 0), titulo: 'Borde', grupo: 'Borde', tab: 'Estilo', inline: 'b', recalc: false },
                 { id: 'grosor', tipo: 'int', def: 1, titulo: 'Grosor', grupo: 'Borde', tab: 'Estilo', inline: 'b', min: 1, max: 6, recalc: false },
                 { id: 'estiloLinea', tipo: 'string', def: 'solid', titulo: 'Tipo', grupo: 'Borde', tab: 'Estilo', opciones: ESTILOS_LINEA, recalc: false },
-                { id: 'relleno', tipo: 'color', def: col('#22D3EE', 88), titulo: 'Relleno', grupo: 'Fondo', tab: 'Estilo', recalc: false },
+                { id: 'relleno', tipo: 'color', def: col('#4378ff', 88), titulo: 'Relleno', grupo: 'Fondo', tab: 'Estilo', recalc: false },
                 { id: 'extDer', tipo: 'bool', def: false, titulo: 'Extender a la derecha', grupo: 'Extensión', tab: 'Estilo', recalc: false },
                 ...textoIn()],
             coords: ['Precio superior', 'Precio inferior'],
@@ -95,7 +95,7 @@
             id: 'fib', overlay: 'nltFib', pasos: 3, icono: 'ph-chart-bar-horizontal', label: 'Fibonacci', ayuda: 'Tocá el inicio del impulso y después el final',
             inputs: [...linea({ color: col('#9CA3AF', 0) }),
                 ...NIVELES_FIB.map((n, k) => ({ id: `n${k}`, tipo: 'bool', def: NIVELES_ON.includes(n), titulo: String(n), grupo: 'Niveles', tab: 'Estilo', inline: `n${Math.floor(k / 3)}`, recalc: false })),
-                { id: 'relleno', tipo: 'color', def: col('#22D3EE', 94), titulo: 'Relleno entre niveles', grupo: 'Fondo', tab: 'Estilo', recalc: false },
+                { id: 'relleno', tipo: 'color', def: col('#4378ff', 94), titulo: 'Relleno entre niveles', grupo: 'Fondo', tab: 'Estilo', recalc: false },
                 { id: 'mostrarPrecios', tipo: 'bool', def: true, titulo: 'Mostrar precios', grupo: 'Etiquetas', tab: 'Estilo', inline: 'et', recalc: false },
                 { id: 'extDer', tipo: 'bool', def: false, titulo: 'Extender a la derecha', grupo: 'Etiquetas', tab: 'Estilo', inline: 'et', recalc: false }],
             coords: ['Precio 1 (nivel 1)', 'Precio 2 (nivel 0)'],
@@ -411,7 +411,7 @@
 
         chart.setStyles({
             overlay: {
-                point: { color: '#22D3EE', borderColor: 'rgba(34,211,238,0.35)', activeColor: '#22D3EE', activeBorderColor: 'rgba(34,211,238,0.35)', radius: 5, activeRadius: 6 },
+                point: { color: '#4378ff', borderColor: 'rgba(67,120,255,0.35)', activeColor: '#4378ff', activeBorderColor: 'rgba(67,120,255,0.35)', radius: 5, activeRadius: 6 },
                 text: { family: FUENTE, size: 11 },
             },
         });

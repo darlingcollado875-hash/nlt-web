@@ -48,7 +48,7 @@
         const cuadro = (id, def, titulo, grupo, extra = {}) => ({ id, tipo: 'bool', def, titulo, grupo, tab: 'Estilo', recalc: false, ...extra });
         const ext = (izq, der) => [bool('extIzq', izq, 'Extender a la izquierda', 'Extensión', 'e'), bool('extDer', der, 'Extender a la derecha', 'Extensión', 'e')];
         const info = (def = true) => [bool('mostrarInfo', def, 'Mostrar medidas', 'Etiquetas', 'i')];
-        const T = (def = '#22D3EE', t = 0, g = 2) => linea({ color: col(def, t), grosor: g });
+        const T = (def = '#4378ff', t = 0, g = 2) => linea({ color: col(def, t), grosor: g });
         const nivelesFib = (lista, on, grupo = 'Niveles') => lista.map((n, k) => cuadro(`n${k}`, on.includes(n), String(n), grupo, { inline: `n${Math.floor(k / 3)}` }));
 
         const herramientas = [
@@ -56,15 +56,15 @@
             { id: 'extline', cat: 'lineas', overlay: 'nltTrend', pasos: 3, icono: 'ph-arrows-horizontal', label: 'Línea extendida', ayuda: 'Tocá dos puntos: la línea se extiende hacia los dos lados',
                 inputs: [...T(), ...ext(true, true), ...textoIn()], coords: ['Precio 1', 'Precio 2'] },
             { id: 'hray', cat: 'lineas', overlay: 'nltHRay', pasos: 2, icono: 'ph-arrow-line-right', label: 'Rayo horizontal', ayuda: 'Tocá el precio: la línea sale hacia la derecha',
-                inputs: [...T('#22D3EE', 0, 1), bool('mostrarPrecio', true, 'Mostrar precio', 'Etiqueta'), ...textoIn()], coords: ['Precio'] },
+                inputs: [...T('#4378ff', 0, 1), bool('mostrarPrecio', true, 'Mostrar precio', 'Etiqueta'), ...textoIn()], coords: ['Precio'] },
             { id: 'vline', cat: 'lineas', overlay: 'nltVLine', pasos: 2, icono: 'ph-arrows-vertical', label: 'Línea vertical', ayuda: 'Tocá la vela donde va la línea',
-                inputs: [...T('#22D3EE', 0, 1), ...textoIn()], coords: ['Precio'] },
+                inputs: [...T('#4378ff', 0, 1), ...textoIn()], coords: ['Precio'] },
             { id: 'cross', cat: 'lineas', overlay: 'nltCross', pasos: 2, icono: 'ph-crosshair-simple', label: 'Línea cruzada', ayuda: 'Tocá el punto de cruce',
-                inputs: [...T('#22D3EE', 0, 1), ...textoIn()], coords: ['Precio'] },
+                inputs: [...T('#4378ff', 0, 1), ...textoIn()], coords: ['Precio'] },
             { id: 'infoline', cat: 'lineas', overlay: 'nltInfo', pasos: 3, icono: 'ph-line-segment', label: 'Línea con medidas', ayuda: 'Tocá dos puntos: mide precio, % y velas',
                 inputs: [...T(), ...ext(false, false), ...info(), ...textoIn()], coords: ['Precio 1', 'Precio 2'] },
             { id: 'channel', cat: 'lineas', overlay: 'nltChannel', pasos: 4, icono: 'ph-equals', label: 'Canal paralelo', ayuda: 'Tocá dos puntos de la línea y después el ancho del canal',
-                inputs: [...T(), relleno('#22D3EE', 92), bool('mediana', true, 'Línea media', 'Canal'), ...ext(false, false)], coords: ['Precio 1', 'Precio 2', 'Precio 3 (ancho)'] },
+                inputs: [...T(), relleno('#4378ff', 92), bool('mediana', true, 'Línea media', 'Canal'), ...ext(false, false)], coords: ['Precio 1', 'Precio 2', 'Precio 3 (ancho)'] },
             { id: 'fork', cat: 'lineas', overlay: 'nltFork', pasos: 4, icono: 'ph-git-fork', label: 'Horquilla de Andrews', ayuda: 'Tocá el punto 1 y después los dos extremos (2 y 3)',
                 inputs: [...T('#A78BFA'), relleno('#A78BFA', 92), bool('mediana', true, 'Línea media', 'Horquilla')], coords: ['Punto 1', 'Punto 2', 'Punto 3'] },
 
@@ -83,7 +83,7 @@
         Object.entries(PATRONES).forEach(([id, p]) => {
             herramientas.push({ id: `pat_${id}`, cat: 'patrones', overlay: `nltPatron${p.n}`, pasos: p.n + 1, icono: p.icono, label: p.label, patron: id,
                 ayuda: `Tocá los ${p.n} puntos del patrón en orden`,
-                inputs: [...T('#22D3EE'), relleno('#22D3EE', 90), bool('mostrarEtiquetas', true, 'Mostrar etiquetas', 'Etiquetas', 'p'), ...(p.ratios.length ? [bool('mostrarRatios', true, 'Mostrar proporciones', 'Etiquetas', 'p')] : [])],
+                inputs: [...T('#4378ff'), relleno('#4378ff', 90), bool('mostrarEtiquetas', true, 'Mostrar etiquetas', 'Etiquetas', 'p'), ...(p.ratios.length ? [bool('mostrarRatios', true, 'Mostrar proporciones', 'Etiquetas', 'p')] : [])],
                 coords: p.et.map((e, k) => `Punto ${k + 1}${e ? ` (${e})` : ''}`) });
         });
 
@@ -114,14 +114,14 @@
 
             // ── Formas ──
             { id: 'ellipse', cat: 'formas', overlay: 'nltElipse', pasos: 3, icono: 'ph-circle-dashed', label: 'Elipse', ayuda: 'Tocá dos esquinas del rectángulo que la contiene',
-                inputs: [...T('#22D3EE', 0, 1), relleno('#22D3EE', 90), ...textoIn()], coords: ['Precio 1', 'Precio 2'] },
+                inputs: [...T('#4378ff', 0, 1), relleno('#4378ff', 90), ...textoIn()], coords: ['Precio 1', 'Precio 2'] },
             { id: 'circle', cat: 'formas', overlay: 'nltCirculo', pasos: 3, icono: 'ph-circle', label: 'Círculo', ayuda: 'Tocá el centro y un punto del borde',
-                inputs: [...T('#22D3EE', 0, 1), relleno('#22D3EE', 90), ...textoIn()], coords: ['Centro', 'Borde'] },
+                inputs: [...T('#4378ff', 0, 1), relleno('#4378ff', 90), ...textoIn()], coords: ['Centro', 'Borde'] },
             { id: 'triangle', cat: 'formas', overlay: 'nltTriangulo', pasos: 4, icono: 'ph-triangle', label: 'Triángulo', ayuda: 'Tocá los 3 vértices',
-                inputs: [...T('#22D3EE', 0, 1), relleno('#22D3EE', 90), ...textoIn()], coords: ['Vértice 1', 'Vértice 2', 'Vértice 3'] },
+                inputs: [...T('#4378ff', 0, 1), relleno('#4378ff', 90), ...textoIn()], coords: ['Vértice 1', 'Vértice 2', 'Vértice 3'] },
 
             { id: 'brush', cat: 'formas', overlay: 'nltBrush', pasos: 2, continuo: true, icono: 'ph-paint-brush', label: 'Pincel', ayuda: 'Mantené apretado y dibujá a mano alzada',
-                inputs: [{ id: 'color', tipo: 'color', def: col('#22D3EE', 0), titulo: 'Color', grupo: 'Trazo', tab: 'Estilo', inline: 'l', recalc: false },
+                inputs: [{ id: 'color', tipo: 'color', def: col('#4378ff', 0), titulo: 'Color', grupo: 'Trazo', tab: 'Estilo', inline: 'l', recalc: false },
                     { id: 'grosor', tipo: 'int', def: 3, titulo: 'Grosor', grupo: 'Trazo', tab: 'Estilo', inline: 'l', min: 1, max: 40, recalc: false }], coords: [] },
             { id: 'highlighter', cat: 'formas', overlay: 'nltBrush', pasos: 2, continuo: true, icono: 'ph-highlighter', label: 'Resaltador', ayuda: 'Mantené apretado y pasá sobre lo que querés resaltar',
                 inputs: [{ id: 'color', tipo: 'color', def: col('#FACC15', 62), titulo: 'Color', grupo: 'Trazo', tab: 'Estilo', inline: 'l', recalc: false },
@@ -133,10 +133,10 @@
                     { id: 'tamano', tipo: 'int', def: 12, titulo: 'Tamaño', grupo: 'Nota', tab: 'Estilo', min: 8, max: 40, recalc: false },
                     { id: 'texto', tipo: 'texto', def: 'Nota', titulo: 'Texto', grupo: '', tab: 'Texto', max: 200, multilinea: true, recalc: false }], coords: ['Precio'] },
             { id: 'callout', cat: 'notas', overlay: 'nltCallout', pasos: 3, icono: 'ph-chat-text', label: 'Globo de texto', ayuda: 'Tocá lo que señalás y después donde va el globo',
-                inputs: [...T('#22D3EE', 0, 1), { id: 'tamano', tipo: 'int', def: 12, titulo: 'Tamaño', grupo: 'Texto', tab: 'Estilo', min: 8, max: 40, recalc: false },
+                inputs: [...T('#4378ff', 0, 1), { id: 'tamano', tipo: 'int', def: 12, titulo: 'Tamaño', grupo: 'Texto', tab: 'Estilo', min: 8, max: 40, recalc: false },
                     { id: 'texto', tipo: 'texto', def: 'Texto', titulo: 'Texto', grupo: '', tab: 'Texto', max: 200, multilinea: true, recalc: false }], coords: ['Señala', 'Globo'] },
             { id: 'pricelabel', cat: 'notas', overlay: 'nltEtiquetaPrecio', pasos: 2, icono: 'ph-tag', label: 'Etiqueta de precio', ayuda: 'Tocá el precio que querés etiquetar',
-                inputs: [...T('#22D3EE', 0, 1)], coords: ['Precio'] },
+                inputs: [...T('#4378ff', 0, 1)], coords: ['Precio'] },
             { id: 'arrowup', cat: 'notas', overlay: 'nltFlecha', pasos: 2, icono: 'ph-arrow-fat-up', label: 'Flecha arriba', dir: 'up', ayuda: 'Tocá donde apunta la flecha',
                 inputs: [{ id: 'color', tipo: 'color', def: col('#22C55E', 0), titulo: 'Color', grupo: 'Flecha', tab: 'Estilo', inline: 'f', recalc: false },
                     { id: 'tamano', tipo: 'int', def: 26, titulo: 'Tamaño', grupo: 'Flecha', tab: 'Estilo', inline: 'f', min: 12, max: 80, recalc: false }, ...textoIn()], coords: ['Precio'] },

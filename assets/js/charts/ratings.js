@@ -67,7 +67,7 @@
     function montar({ chart, getSymbol, getTimeframe }) {
         const esc = NLTCharts.ui.esc;
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnAnalisis'; btn.className = 'ch-btn'; btn.title = 'Análisis técnico'; btn.setAttribute('aria-label', 'Análisis técnico');
+        btn.type = 'button'; btn.id = 'chBtnAnalisis'; btn.className = 'ch-btn ch-herr'; btn.title = 'Análisis técnico'; btn.setAttribute('aria-label', 'Análisis técnico');
         btn.innerHTML = '<i class="ph ph-gauge"></i><span class="ch-btn-label">Análisis</span>';
         const pop = document.createElement('div');
         pop.className = 'mc-menu an-pop'; pop.id = 'chAnalisis'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Análisis técnico');

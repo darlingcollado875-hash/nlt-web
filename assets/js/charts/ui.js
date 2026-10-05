@@ -50,9 +50,9 @@
             </div>
             <button type="button" id="chBtnInd" class="ch-btn"><i class="ph ph-function"></i><span class="ch-btn-label">Indicadores</span></button>
             <button type="button" id="chBtnWatch" class="ch-btn" title="Watchlist" aria-label="Watchlist"><i class="ph ph-list-star"></i><span class="ch-btn-label">Watchlist</span></button>
-            <button type="button" id="chBtnHistoria" class="ch-btn" title="Ir a fecha / año (Alt+G)" aria-label="Ir a fecha"><i class="ph ph-calendar-blank"></i><span class="ch-btn-label">Ir a fecha</span></button>
-            <button type="button" id="chBtnReplay" class="ch-btn ch-lab-btn" title="NLT Bar Replay" aria-label="NLT Bar Replay"><i class="ph ph-clock-counter-clockwise"></i><span class="ch-btn-label">Replay</span></button>
-            <button type="button" id="chBtnLab" class="ch-btn ch-lab-btn" title="NLT Backtest Lab" aria-label="NLT Backtest Lab"><i class="ph ph-flask"></i><span class="ch-btn-label">Backtest Lab</span></button>
+            <button type="button" id="chBtnHistoria" class="ch-herr ch-btn" title="Ir a fecha / año (Alt+G)" aria-label="Ir a fecha"><i class="ph ph-calendar-blank"></i><span class="ch-btn-label">Ir a fecha</span></button>
+            <button type="button" id="chBtnReplay" class="ch-herr ch-btn ch-lab-btn" title="NLT Bar Replay" aria-label="NLT Bar Replay"><i class="ph ph-clock-counter-clockwise"></i><span class="ch-btn-label">Replay</span></button>
+            <button type="button" id="chBtnLab" class="ch-herr ch-btn ch-lab-btn" title="NLT Backtest Lab" aria-label="NLT Backtest Lab"><i class="ph ph-flask"></i><span class="ch-btn-label">Backtest Lab</span></button>
             <button type="button" id="chBtnConfig" class="ch-btn" title="Configuración del gráfico" aria-label="Configuración del gráfico"><i class="ph ph-gear-six"></i></button>`;
 
         const sel = el.querySelector('#chSymbol');

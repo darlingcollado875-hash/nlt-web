@@ -68,11 +68,11 @@
         const state = NLTCharts.state, esc = NLTCharts.ui.esc;
         const ejecutor = crearEjecutor();
         const activos = new Map();          // id -> { id, nombre, codigo, inputs, ind (nombre en el gráfico), res, firma, errores }
-        let busca = { q: '', sort: 'recent', creator: '', page: 0 }, hayMas = false, tienePlan = false, miUsuario = null, ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
+        let cargandoTienda = false, busca = { q: '', sort: 'recent', creator: '', page: 0 }, hayMas = false, tienePlan = false, miUsuario = null, ganancias = null, admin = null, comisionPct = 20, compraEnCurso = null, compartidos = [], tienda = [], accesos = [], vista = 'mis', lista = [], max = 50, acceso = null /* null = sin saber, true/false */, motivo = '';
         let sel = null /* script abierto: { id|null, nombre, codigo } */, sucio = false, mensaje = '', erroresVivos = [], timerValida = null;
 
         const btn = document.createElement('button');
-        btn.type = 'button'; btn.id = 'chBtnScripts'; btn.className = 'ch-btn'; btn.title = 'NLT Script: tus indicadores'; btn.setAttribute('aria-label', 'NLT Script');
+        btn.type = 'button'; btn.id = 'chBtnScripts'; btn.className = 'ch-btn ch-herr'; btn.title = 'NLT Script: tus indicadores'; btn.setAttribute('aria-label', 'NLT Script');
         btn.innerHTML = '<i class="ph ph-code"></i><span class="ch-btn-label">Scripts</span>';
         const modal = document.createElement('div');
         modal.className = 'sc-modal'; modal.id = 'chScripts'; modal.hidden = true; modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-label', 'NLT Script');
@@ -234,9 +234,11 @@
             try { compartidos = (await NLT_API.chartsScriptsCompartidos()).scripts || []; } catch (_) { compartidos = []; }
         }
         async function cargarTienda() {
+            cargandoTienda = true;
             try { const r = await NLT_API.chartsScriptsTienda(busca); tienda = (busca.page ? tienda : []).concat(r.scripts || []); hayMas = !!r.more; if (r.commission_pct != null) comisionPct = r.commission_pct; } catch (e) { tienda = []; mensaje = e.message || 'No se pudo cargar la tienda.'; }
             if (tienePlan) { try { ganancias = await NLT_API.chartsScriptGanancias(); } catch (_) { ganancias = null; } }
             try { admin = await NLT_API.chartsScriptAdmin(); } catch (_) { admin = null; }   // 403 = no eres admin: el panel simplemente no aparece
+            cargandoTienda = false;
         }
         async function cargarAccesos() {
             accesos = [];
@@ -367,6 +369,7 @@
                     <select class="sc-ej" name="sort" aria-label="Ordenar"><option value="recent" ${busca.sort === 'recent' ? 'selected' : ''}>Más recientes</option><option value="name" ${busca.sort === 'name' ? 'selected' : ''}>Nombre A–Z</option><option value="price_asc" ${busca.sort === 'price_asc' ? 'selected' : ''}>Precio: menor a mayor</option><option value="price_desc" ${busca.sort === 'price_desc' ? 'selected' : ''}>Precio: mayor a menor</option></select></form>
                 ${busca.creator ? `<p class="sc-peq">Mostrando los de <b>@${esc(busca.creator)}</b> <button class="sc-link" data-a="quitar-creador">Ver todos</button></p>` : ''}`;
             return `<div class="sc-sub">Tienda de indicadores</div>${barra}${mensaje ? `<div class="sc-estado"><div class="sc-msg">${esc(mensaje)}</div></div>` : ''}${gan}${panelAdmin}
+                ${cargandoTienda && !tienda.length ? '<div class="sc-skel"></div><div class="sc-skel"></div><div class="sc-skel"></div>' : ''}
                 ${tienda.length ? tienda.map((t) => {
                     const enGrafico = activos.has(t.id);
                     const accion = t.owned
@@ -374,7 +377,7 @@
                         : `<button class="sc-b on" data-a="comprar" data-id="${esc(t.id)}" ${compraEnCurso ? 'disabled' : ''}>Comprar ${esc(precioTxt(t))}</button>`;
                     return `<div class="sc-tienda"><div><b>${esc(t.name)}</b><span class="sc-peq"> · ${t.creator_username ? `<a class="sc-link" href="community.html?u=${encodeURIComponent(t.creator_username)}" title="Ver perfil">${esc(t.creator)}${t.creator_verified ? ' ✔' : ''} @${esc(t.creator_username)}</a> <button class="sc-link" data-a="por-creador" data-u="${esc(t.creator_username)}">sus indicadores</button>` : esc(t.creator)} · ${esc(precioTxt(t))} · ${t.open_source ? 'código abierto' : '🔒 protegido'}</span><p>${esc(t.description)}</p>
                         ${t.mine ? '<span class="sc-peq">Es tuyo</span>' : `<button class="sc-link" data-a="reportar" data-id="${esc(t.id)}">Reportar</button>`}</div>${t.mine ? '' : accion}</div>`;
-                }).join('') : `<p class="sc-peq">${busca.q || busca.creator ? 'No encontramos indicadores con esa búsqueda.' : 'Todavía no hay indicadores publicados.'}</p>`}
+                }).join('') : (cargandoTienda ? '' : `<p class="sc-peq">${busca.q || busca.creator ? 'No encontramos indicadores con esa búsqueda.' : 'Todavía no hay indicadores publicados.'}</p>`)}
                 ${hayMas ? '<button class="sc-b" data-a="mas-tienda">Ver más</button>' : ''}
                 <p class="sc-peq">Los indicadores de la tienda los publican otros usuarios y salen sin revisión previa. Úsalos bajo tu criterio; NLT no los garantiza ni son recomendación de inversión. Los de pago se cobran con tarjeta por Whop; el acceso se activa al confirmarse el pago y dura mientras la suscripción esté vigente (o para siempre si fue pago único). Si algo está mal, usa Reportar.</p>`;
         }
@@ -422,12 +425,12 @@
                 const item = (s, ajeno) => `<button class="sc-item${vista === 'mis' && sel && sel.id === s.id && !!sel.ajeno === ajeno ? ' sel' : ''}" data-id="${esc(s.id)}" ${ajeno ? 'data-ajeno="1"' : ''}><span>${esc(s.name)}</span>${activos.has(s.id) ? '<em>en gráfico</em>' : ''}</button>`;
                 cuerpo = `<div class="sc-cols"><aside class="sc-lista">
                         ${puedeCrear ? `<button class="sc-b on" data-a="nuevo" ${lista.length >= max ? 'disabled' : ''}>+ Nuevo script</button>
-                        <select class="sc-ej" data-a="ejemplo" aria-label="Empezar desde un ejemplo"><option value="">Empezar desde un ejemplo…</option>${ej}</select>
+                        <select class="sc-ej" data-a="ejemplo" aria-label="Empezar desde un ejemplo"><option value="">Ejemplos…</option>${ej}</select>
                         <div class="sc-sub">Mis scripts</div><div class="sc-items">${lista.length ? lista.map((s) => item(s, false)).join('') : '<p class="sc-peq">Todavía no tienes scripts guardados.</p>'}</div>
                         <p class="sc-peq">${lista.length}/${max} scripts${tienePlan ? '' : ' · gratis'}</p>` : ''}
                         ${miUsuario ? `<a class="sc-link" href="community.html?u=${encodeURIComponent(miUsuario)}">Ver mi perfil público (@${esc(miUsuario)})</a>` : ''}
                         ${compartidos.length ? `<div class="sc-sub">Compartidos conmigo</div><div class="sc-items">${compartidos.map((s) => item(s, true)).join('')}</div>` : ''}
-                        <button class="sc-b${vista === 'tienda' ? ' on' : ''}" data-a="tienda"><i class="ph ph-storefront"></i> Tienda de indicadores</button>
+                        <button class="sc-b${vista === 'tienda' ? ' on' : ''}" data-a="tienda"><i class="ph ph-storefront"></i> Tienda</button>
                         <details class="sc-ayuda"><summary>Guía rápida</summary><p class="sc-peq">Empieza con <code>indicator("Nombre", overlay=true)</code> (overlay = sobre las velas). Usa <code>close</code>, <code>high</code>, <code>low</code>, <code>open</code>, <code>volume</code>; funciones como <code>ta.sma</code>, <code>ta.ema</code>, <code>ta.rsi</code>, <code>ta.atr</code>, <code>ta.crossover</code>; dibuja con <code>plot</code>, <code>hline</code>, <code>bgcolor</code>, <code>plotshape</code>; los ajustes con <code>input.int</code>/<code>input.float</code>. Los bloques (<code>if</code>, <code>for</code>) se indentan con 4 espacios. <code>x[1]</code> es el valor de la vela anterior.</p></details>
                     </aside><section class="sc-ed">${htmlEditor()}</section></div>`;
             }
@@ -595,7 +598,7 @@
             else if (a === 'guardar') guardar();
             else if (a === 'grafico') alternarEnGrafico();
             else if (a === 'borrar') borrar();
-            else if (a === 'tienda') { vista = 'tienda'; mensaje = ''; pintar(); cargarTienda().then(pintar); }
+            else if (a === 'tienda') { vista = 'tienda'; mensaje = ''; tienda = []; cargandoTienda = true; pintar(); cargarTienda().then(pintar); }
             else if (a === 'usar') usarDeTienda(acc.dataset.id);
             else if (a === 'comprar') comprar(acc.dataset.id);
             else if (a === 'copiar-ajeno') copiarAjeno();
