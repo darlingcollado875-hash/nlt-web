@@ -219,5 +219,10 @@ plot(b55, "e55 1h")`;
     const r = run('//@version=5\nindicator("t")\nf() =>\n    float a = 1.0, float b = 2.0, int c = 3\n    x = 4, y = 5\n    a + b + c + x + y\nvar float p = 1.0, float q = 2.0\nplot(f() + p + q)');
     afirmar(r.ok && r.plots[0].valores[n - 1] === 18, 'declaraciones con comas');
 }
+// time(timeframe, session)
+{
+    const r = run('//@version=6\nindicator("t")\nd = time("D")\nplot(d)\nplot(time(timeframe.period, "0000-2359"))', { chart: { tf: '15m', tfMs: 900000 } });
+    afirmar(r.ok && r.plots[0].valores[n - 1] != null && r.plots[1].valores[n - 1] != null && r.plots[1].valores[n - 1] <= velas.t[n - 1], 'función time()');
+}
 console.log(`${ok} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);

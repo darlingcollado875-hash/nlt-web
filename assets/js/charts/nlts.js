@@ -1075,6 +1075,25 @@
         def('timestamp', (nd, a) => { const v = a.length === 1 && typeof a[0] === 'string' ? Date.parse(a[0]) : Date.UTC(a[0], (a[1] || 1) - 1, a[2] || 1, a[3] || 0, a[4] || 0, a[5] || 0); return Number.isFinite(v) ? v : NA; });
         FECHA_PARTES.concat(['dayofweek']).forEach((nm) => def(nm, (nd, a) => fechaParte(nm, a.length ? a[0] : velas.t[barra])));
         def('timeframe.in_seconds', (nd, a) => { const id = a[0] == null || a[0] === '' ? chart.tf : TF_ALIAS[String(a[0])]; return id && TF_MS[id] ? TF_MS[id] / 1000 : NA; });
+        // time(timeframe, session): hora de apertura de la vela del marco pedido (UTC); con sesión «HHMM-HHMM» devuelve na fuera de ella.
+        def('time', (nd, a) => {
+            const t = velas.t[barra], tf = a[0] == null || a[0] === '' || a[0] === 'period' ? null : String(a[0]);
+            let ini = t;
+            if (tf === 'M' || tf === '1M') { const d = new Date(t); ini = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); }
+            else {
+                const id = tf == null ? chart.tf : TF_ALIAS[tf], ms = id && TF_MS[id];
+                if (!ms) return NA;
+                ini = id === '1W' ? Math.floor((t - 345600000) / ms) * ms + 345600000 : Math.floor(t / ms) * ms;
+            }
+            const ses = a[1];
+            if (typeof ses === 'string' && /^\d{4}-\d{4}/.test(ses)) {
+                const d = new Date(t), m = d.getUTCHours() * 60 + d.getUTCMinutes();
+                const x = ses.slice(0, 9), d1 = Number(x.slice(0, 2)) * 60 + Number(x.slice(2, 4)), d2 = Number(x.slice(5, 7)) * 60 + Number(x.slice(7, 9));
+                const dentro = d1 <= d2 ? (m >= d1 && m < d2) : (m >= d1 || m < d2);
+                if (!dentro) return NA;
+            }
+            return ini;
+        });
         def('timeframe.change', (nd, a) => { const id = a[0] == null || a[0] === '' ? chart.tf : TF_ALIAS[String(a[0])]; const ms = id && TF_MS[id]; if (!ms || barra === 0) return barra === 0; return Math.floor(velas.t[barra] / ms) !== Math.floor(velas.t[barra - 1] / ms); });
         def('timeframe.from_seconds', (nd, a) => { const id = Object.keys(TF_MS).find((k) => TF_MS[k] === a[0] * 1000); return id ? TF_PINE[id] : String(a[0]); });
 
