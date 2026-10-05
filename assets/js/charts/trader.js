@@ -124,7 +124,7 @@
             cargando = true;
             try { vivo = await NLT_API.chartsTraderEnVivo(cuentaId); errorVivo = ''; } catch (e) { errorVivo = e.message || 'No se pudo leer la cuenta.'; }
             cargando = false;
-            chips.actualizar(); if (!pop.hidden) pintar(); programar();
+            chips.actualizar(); if (!pop.hidden) NLTCharts.ui.conservar(pop, pintar); programar();
         }
         function programar() {
             const necesita = est && est.has_access && cuentaId && (!pop.hidden || vivo.positions.length || (vivo.orders || []).length);
@@ -135,7 +135,7 @@
         async function cargarMapa() {
             if (!cuentaId) return;
             try { mapa = await NLT_API.chartsTraderSimbolos(cuentaId); } catch (e) { msg = e.message || 'No se pudieron leer los símbolos de la cuenta.'; }
-            if (!pop.hidden) { pintar(); posicionar(); }
+            if (!pop.hidden) { NLTCharts.ui.conservar(pop, pintar); posicionar(); }
         }
         // ── panel ──
         function pintar() {

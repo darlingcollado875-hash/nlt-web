@@ -138,7 +138,7 @@
             chart, grupo: GRUPO, precision: () => pr(getSymbol()),
             fuente: {
                 descripciones,
-                alCambiar: () => { programar(); if (!pop.hidden) pintar(); },
+                alCambiar: () => { programar(); if (!pop.hidden) NLTCharts.ui.conservar(pop, pintar); },
                 textoArrastre(d, v) {
                     const p = cuenta.posiciones.find((x) => x.id === d.id);
                     if (p && (d.tipo === 'sl' || d.tipo === 'tp')) { const g = pnl(p.side, p.entry, v, p.lots, tam(p.sym), convUSD(p.sym, v)); return `${d.tipo.toUpperCase()} ${g >= 0 ? '+' : ''}${dinero(g)} · ${v.toFixed(pr(p.sym))}`; }
@@ -230,7 +230,7 @@
             });
             if (!alguno) return;
             ultimoChequeo = Date.now();
-            evaluar(); pintarLineas(); if (!pop.hidden) pintar();
+            evaluar(); pintarLineas(); if (!pop.hidden) NLTCharts.ui.conservar(pop, pintar);
         }
         let cadenciaActual = 0;
         function programar() {

@@ -146,5 +146,28 @@
     };
 
     window.NLTCharts = window.NLTCharts || {};
-    window.NLTCharts.ui = { montarToolbar, esc, tablero };
+    /** Vuelve a dibujar una ventana (cada pocos segundos con precios nuevos) SIN borrar lo que la persona está escribiendo:
+     *  guarda lo que cambió en cada campo, redibuja, lo devuelve y deja el cursor donde estaba. */
+    function conservar(cont, redibujar) {
+        const editado = new Map();
+        cont.querySelectorAll('input[name], select[name], textarea[name]').forEach((e) => {
+            if (e.type === 'password' || e.type === 'file') return;
+            if (e.type === 'checkbox' || e.type === 'radio') { if (e.checked !== e.defaultChecked) editado.set(e.name + (e.type === 'radio' ? '=' + e.value : ''), { e: e.type, v: e.checked, val: e.value }); }
+            else if (e.tagName === 'SELECT') { const d = [...e.options].findIndex((o) => o.defaultSelected); if (e.selectedIndex !== Math.max(0, d)) editado.set(e.name, { e: 'select', v: e.value }); }
+            else if (e.value !== e.defaultValue) editado.set(e.name, { e: 'text', v: e.value });
+        });
+        const fo = document.activeElement, nombreFoco = fo && cont.contains(fo) ? fo.getAttribute('name') : null;
+        let ini = null, fin = null; try { ini = fo.selectionStart; fin = fo.selectionEnd; } catch (_) { /* no es un campo de texto */ }
+        const alto = cont.scrollTop;
+        redibujar();
+        const buscar = (n) => cont.querySelector(`[name="${String(n).replace(/"/g, '\\"')}"]`);
+        editado.forEach((d, clave) => {
+            if (d.e === 'radio') { const r = cont.querySelector(`[name="${clave.split('=')[0]}"][value="${d.val}"]`); if (r) r.checked = d.v; return; }
+            const e = buscar(clave); if (!e) return;
+            if (d.e === 'checkbox') e.checked = d.v; else e.value = d.v;
+        });
+        cont.scrollTop = alto;
+        if (nombreFoco) { const e = buscar(nombreFoco); if (e) { e.focus(); try { if (ini != null) e.setSelectionRange(ini, fin); } catch (_) { /* number/select */ } } }
+    }
+    window.NLTCharts.ui = { montarToolbar, esc, tablero, conservar };
 })();
