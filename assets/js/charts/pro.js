@@ -29,7 +29,7 @@
     const REFRESCO_CERRADO_MS = 300000;
     const espera = () => (NLTCharts.market.estado() === 'cerrado' ? REFRESCO_CERRADO_MS : REFRESCO_MS);
     const PREF = 'nlt_charts_pro_ver_v1';
-    const ZONA_IDS = ['zoneTop', 'zoneBot', 'zoneIsOB', 'zoneIsBull'];
+    const ZONA_IDS = ['zoneTop', 'zoneBot', 'zoneIsOB', 'zoneIsBull', 'zoneFrom'];
     const POOL = 500;   // max_labels_count / max_lines_count de V13.3.3
     const TAM_FORMA = { tiny: 7, small: 9, normal: 11, large: 15 };
 
@@ -351,16 +351,22 @@
         }
         function guardarZona(sym, z) {
             const todas = { ...(state.prefs().zeZonas || {}) };
-            if (z) todas[sym] = { top: z.top, bottom: z.bottom, esOB: !!z.esOB, alcista: !!z.alcista }; else delete todas[sym];
+            if (z) todas[sym] = { top: z.top, bottom: z.bottom, esOB: !!z.esOB, alcista: !!z.alcista, desde: z.desde > 0 ? z.desde : 0 }; else delete todas[sym];
             state.savePrefs({ zeZonas: todas });
         }
         const zonaDeValores = (v) => (v.zoneTop > 0 && v.zoneBot > 0 && v.zoneTop > v.zoneBot
             ? { top: v.zoneTop, bottom: v.zoneBot, esOB: v.zoneIsOB, alcista: v.zoneIsBull } : null);
+        // La zona existe DESDE donde empieza el rectángulo (o desde la última vela si la escribiste a mano): el motor no la
+        // evalúa sobre la historia anterior a dibujarla (antes cualquier cierre lejano la daba por INVALIDADA).
+        const ultimaVelaTs = () => { const dl = chart.getDataList(); return dl.length ? dl[dl.length - 1].timestamp : 0; };
+        const desdeValido = (ms) => (ms > 0 ? Math.min(ms, ultimaVelaTs() || ms) : 0);
         // Valores vigentes: configuración (o vista previa) + la zona del símbolo actual.
         function valores() {
-            if (previa) return previa;
+            const z0 = zonaDe(getSymbol());
+            if (previa) return { ...previa, zoneFrom: z0 ? desdeValido(z0.desde) : 0 };
             const v = { ...S.valores(ZE) };
-            const z = zonaDe(getSymbol());
+            const z = z0;
+            v.zoneFrom = z ? desdeValido(z.desde) : 0;
             v.zoneTop = z ? z.top : 0; v.zoneBot = z ? z.bottom : 0;
             v.zoneIsOB = z ? z.esOB : true; v.zoneIsBull = z ? z.alcista : true;
             return v;
@@ -369,7 +375,8 @@
         function entradasCalculo(v) {
             const out = {};
             if (esquema) esquema.forEach((e) => { if ((e.rol === 'calc' || e.rol === 'zona') && v[e.id] !== undefined) out[e.id] = v[e.id]; });
-            else ZONA_IDS.forEach((k) => { out[k] = v[k]; });
+            else ZONA_IDS.forEach((k) => { if (v[k] !== undefined) out[k] = v[k]; });
+            if (v.zoneFrom > 0) out.zoneFrom = v.zoneFrom;      // desde qué vela existe la zona manual (no es una entrada de V13.4)
             return out;
         }
         const defsEstilo = Object.fromEntries(inputsEstilo().map((e) => [e.id, e.def]));
@@ -498,8 +505,8 @@
                 // el rectángulo manda sobre los precios de la zona (el usuario lo movió)
                 const zr = dibujos.rectanguloComoZona(rect.id);
                 const actual = zonaDe(getSymbol());
-                if (zr && (!actual || actual.top !== zr.top || actual.bottom !== zr.bottom)) {
-                    guardarZona(getSymbol(), { top: zr.top, bottom: zr.bottom, esOB: rect.extendData.zonaNLT.esOB, alcista: rect.extendData.zonaNLT.alcista });
+                if (zr && (!actual || actual.top !== zr.top || actual.bottom !== zr.bottom || actual.desde !== zr.desde)) {
+                    guardarZona(getSymbol(), { top: zr.top, bottom: zr.bottom, esOB: rect.extendData.zonaNLT.esOB, alcista: rect.extendData.zonaNLT.alcista, desde: zr.desde });
                 }
             }
             const n = ++seq;
@@ -553,6 +560,11 @@
                     ZONA_IDS.forEach((k) => delete soloConfig[k]);
                     S.guardar(ZE, soloConfig);
                     const z = zonaDeValores(vals);
+                    if (z) {
+                        const previaZ = zonaDe(getSymbol()), mismaZona = previaZ && previaZ.top === z.top && previaZ.bottom === z.bottom;
+                        const rz = rectId ? dibujos.rectanguloComoZona(rectId) : null;
+                        z.desde = rz ? rz.desde : (mismaZona && previaZ.desde > 0 ? previaZ.desde : ultimaVelaTs());
+                    }
                     guardarZona(getSymbol(), z);
                     // zona editada con un rectángulo conectado: el rectángulo acompaña
                     if (rectId) {
@@ -591,7 +603,7 @@
                     dibujos.zonasConectadas().forEach((o) => { if (o.id !== id) dibujos.marcarZona(o.id, null); });
                     if (z.top !== r.top || z.bottom !== r.bottom) dibujos.fijarPrecios(id, z.top, z.bottom);
                     dibujos.marcarZona(id, { esOB: z.esOB, alcista: z.alcista });
-                    guardarZona(getSymbol(), z);
+                    guardarZona(getSymbol(), { ...z, desde: r.desde });
                     rectId = id; rectVisto = true;
                     ver = true; guardarPref(true);
                     refrescar();

@@ -349,3 +349,11 @@ body.tp-on .ch-tools { padding-bottom: 6px; }
 /* equity en la barra (solo si hay ancho) */
 .tp-eq { display: none; flex-direction: column; gap: 1px; line-height: 1.1; } .tp-eq small { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: #6b7280; font-weight: 600; } .tp-eq b { font-size: 14px; font-variant-numeric: tabular-nums; }
 @media (min-width: 480px) { .tp-eq { display: flex; } }
+
+/* NLT AI: botones del panel y enlace del visor de reportes */
+.ze-btns { display: flex; gap: 6px; }
+.ze-btn { flex: 1; height: 28px; border-radius: 9px; border: 1px solid rgba(255, 255, 255, .12); background: rgba(255, 255, 255, .06); color: #e5e7eb; font: 600 11.5px 'Inter', system-ui, sans-serif; cursor: pointer; transition: all .18s ease; }
+.ze-btn:hover:not(:disabled) { border-color: rgba(67, 120, 255, .6); color: #fff; }
+.ze-btn.on { background: rgba(67, 120, 255, .85); border-color: rgb(67, 120, 255); color: #fff; }
+.ze-btn:disabled { opacity: .55; cursor: default; }
+.air-enlace { text-decoration: none; }
