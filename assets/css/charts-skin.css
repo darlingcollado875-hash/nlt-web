@@ -197,3 +197,15 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .ud-esq[data-pos="Bottom Center"] { bottom: 8px; left: 50%; transform: translateX(-50%); align-items: center; }
 .sc-tbl { border-collapse: collapse; border-radius: 10px; overflow: hidden; font-family: Inter, system-ui, sans-serif; box-shadow: 0 10px 30px -14px rgba(0, 0, 0, .7); }
 .sc-tbl td { padding: 4px 9px; line-height: 1.35; font-weight: 600; white-space: pre-line; font-variant-numeric: tabular-nums; }
+
+/* interruptor de confirmación (panel Operar) y botón de la barra de dibujo */
+.tr-sw { display: flex; gap: 12px; align-items: flex-start; margin: 12px 0 4px; padding: 12px 14px; border-radius: 16px; background: rgba(255, 255, 255, .035); border: 1px solid var(--nlt-hair); cursor: pointer; }
+.tr-sw input { appearance: none; -webkit-appearance: none; flex: none; width: 38px; height: 22px; border-radius: 999px; background: rgba(255, 255, 255, .14); position: relative; cursor: pointer; transition: background .3s var(--nlt-ease); margin-top: 2px; }
+.tr-sw input::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: transform .3s var(--nlt-ease); box-shadow: 0 1px 4px rgba(0, 0, 0, .4); }
+.tr-sw input:checked { background: linear-gradient(180deg, #5b8bff, #3a68ee); box-shadow: 0 0 16px rgba(67, 120, 255, .45); }
+.tr-sw input:checked::after { transform: translateX(16px); }
+.tr-sw input:focus-visible { outline: 2px solid #78a0ff; outline-offset: 3px; }
+.tr-sw-t { font-size: 12.5px; line-height: 1.45; color: #cdd3dd; } .tr-sw-t b { color: #fff; font-weight: 600; } .tr-sw-t small { display: block; margin-top: 3px; font-size: 11.5px; color: #8a94a6; }
+.dw-btn.dw-ico { padding-left: 8px; padding-right: 8px; }
+.dw-btn.dw-ico:not(.on) { color: #fbbf24; }
+@media (prefers-reduced-motion: reduce) { .tr-sw input, .tr-sw input::after { transition: none; } }
