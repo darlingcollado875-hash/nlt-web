@@ -159,8 +159,19 @@
             NLTCharts.unified.setContexto({ symbol, pricePrecision: porSimbolo[symbol].price_precision });
             NLTCharts.drawings.setPrecision(porSimbolo[symbol].price_precision);
             motor.cargar(porSimbolo[symbol], timeframe);
+            if (multi) multi.cambioPrincipal();
         }
+        let multi = null;
         cargar();
+        if (NLTCharts.multi) {
+            try {
+                multi = NLTCharts.multi.montar({
+                    stage: document.querySelector('.ch-stage'), principalEl: document.getElementById('chart'),
+                    principal: { chart: motor.chart, symbol: () => symbol, timeframe: () => timeframe },
+                    simbolos: catalogo.symbols, timeframes: catalogo.timeframes, estilos: NLTCharts.engine.ESTILOS,
+                });
+            } catch (e) { console.warn('[NLT Charts] multi-gráfico no disponible', e); }
+        }
         pro.iniciar();
         nltAi.iniciar();
         window.NLTCharts.motor = motor; // para depurar desde la consola
@@ -174,7 +185,7 @@
                 }
                 if (s !== symbol) cambiarSimbolo(s); else cargar();
             },
-            simbolo: () => symbol, timeframe: () => timeframe,
+            simbolo: () => symbol, timeframe: () => timeframe, multi: () => multi,
         };   // favoritos PRO, consola y Backtest Lab
         NLTCharts.replay && NLTCharts.replay.montar({ el: document.getElementById('chReplay'), boton: document.getElementById('chBtnReplay') });
         NLTCharts.historia && NLTCharts.historia.montar({ el: document.getElementById('chHistoria'), boton: document.getElementById('chBtnHistoria') });

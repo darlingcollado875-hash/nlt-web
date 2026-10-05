@@ -53,6 +53,30 @@
         .ch-conn[data-estado="desconectado"] i { background: #EF4444; }
         .ch-demo { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: rgb(234,179,8); background: rgba(234,179,8,0.1); border: 1px solid rgba(234,179,8,0.3); padding: 4px 8px; border-radius: 999px; white-space: nowrap; flex-shrink: 0; cursor: help; }
 
+        /* Multi-gráfico y Comparar */
+        .ch-stage.mc-multi #chart.mc-principal { right: auto; bottom: auto; border: 1px solid var(--ch-line); border-radius: 6px; overflow: hidden; }
+        .ch-stage.mc-multi .ch-cd { right: calc(var(--mc-der, 0px) + 3px); }
+        .mc-cell { position: absolute; border: 1px solid var(--ch-line); border-radius: 6px; overflow: hidden; background: #0A0D12; }
+        .mc-cab { position: absolute; left: 0; right: 0; top: 0; height: 26px; display: flex; gap: 6px; align-items: center; padding: 0 6px; background: #0D1016; border-bottom: 1px solid var(--ch-line); z-index: 2; }
+        .mc-body { position: absolute; left: 0; right: 0; top: 26px; bottom: 0; }
+        .mc-msg { position: absolute; left: 0; right: 0; top: 26px; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #6B7280; pointer-events: none; z-index: 1; }
+        .mc-sel { background: #151A22; color: #E5E7EB; border: 1px solid var(--ch-line); border-radius: 6px; font-size: 12px; padding: 2px 6px; height: 22px; }
+        .mc-sel:disabled { opacity: .5; }
+        .mc-cruz { position: absolute; width: 0; border-left: 1px dashed rgba(255,255,255,.35); pointer-events: none; z-index: 3; }
+        .mc-menu { position: fixed; z-index: 80; width: 280px; max-width: calc(100vw - 16px); background: #0D1016; border: 1px solid var(--ch-line); border-radius: 14px; padding: 12px 14px; box-shadow: 0 12px 40px rgba(0,0,0,.55); }
+        .mc-menu[hidden] { display: none; }
+        .mc-tit { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: #6B7280; margin: 4px 0 8px; }
+        .mc-dis { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+        .mc-d { background: #151A22; color: #D1D5DB; border: 1px solid var(--ch-line); border-radius: 8px; font-size: 12px; padding: 7px 8px; cursor: pointer; }
+        .mc-d.on { background: rgba(34,211,238,.14); border-color: #22D3EE; color: #67E8F9; }
+        .mc-chk { display: flex; gap: 8px; align-items: center; font-size: 13px; color: #D1D5DB; padding: 5px 0; }
+        .mc-nota { font-size: 11px; color: #6B7280; margin: 8px 0 0; line-height: 1.4; }
+        .mc-fila { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #E5E7EB; padding: 5px 0; }
+        .mc-fila i { width: 10px; height: 10px; border-radius: 3px; flex: none; }
+        .mc-fila b { flex: 1; font-weight: 600; }
+        .mc-fila .sube { color: #34D399; } .mc-fila .baja { color: #F87171; }
+        .mc-fila button { background: none; border: 0; color: #6B7280; cursor: pointer; font-size: 13px; }
+        .mc-add { display: flex; gap: 8px; margin-top: 8px; } .mc-add .mc-sel { flex: 1; height: 30px; }
         .ch-body { flex: 1; min-height: 0; display: flex; flex-direction: column; }
         .ch-stage { position: relative; flex: 1; min-height: 0; min-width: 0; }
         #chart { position: absolute; inset: 0; }
@@ -384,7 +408,7 @@
     <script src="assets/js/charts/state.js?v=5597f4b7"></script>
     <script src="assets/js/charts/market-data.js?v=876142a0"></script>
     <script src="assets/js/charts/countdown.js?v=7674285f"></script>
-    <script src="assets/js/charts/engine.js?v=f81ee63a"></script>
+    <script src="assets/js/charts/engine.js?v=7709bdc2"></script>
     <script src="assets/js/charts/ui.js?v=9c4690f3"></script>
     <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
@@ -400,6 +424,7 @@
     <script src="assets/js/charts/replay.js?v=85f63c39"></script>
     <script src="assets/js/charts/historia.js?v=cf46a5bd"></script>
     <script src="assets/js/charts/backtest.js?v=38be954c"></script>
-    <script src="assets/js/charts/app.js?v=d3aaebfc"></script>
+    <script src="assets/js/charts/multichart.js?v=30710351"></script>
+    <script src="assets/js/charts/app.js?v=99c3d289"></script>
 </body>
 </html>
