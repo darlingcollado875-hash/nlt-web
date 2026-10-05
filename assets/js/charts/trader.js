@@ -284,6 +284,29 @@
             cambioSimbolo: () => chips.actualizar(),
             puedeOperar,
             // Long/Short dibujado -> ticket con el lote, SL y TP ya cargados (se confirma a mano).
+            /** Long/Short dibujado -> orden real AL INSTANTE (ya confirmada con el segundo toque del botón): lote, entrada, SL y TP salen de la herramienta.
+             *  Si no hay plan/cuenta/lote, abre el panel con lo que se pueda para completarlo. */
+            async ejecutarPosicion(pos) {
+                const avisar = (t, tipo) => (NLTCharts.ui && NLTCharts.ui.toast ? NLTCharts.ui.toast(t, tipo) : null);
+                if (!pos) return;
+                if (!est || !puedeOperar()) await cargarEstado();     // por si acaba de activarse el plan o de conectar la cuenta
+                if (!puedeOperar() || !(pos.lotes > 0)) {
+                    api.desdePosicion(pos);
+                    avisar(!(est && est.has_access) ? 'Necesitas el plan Charts Trader para operar con tu cuenta.' : !cuentaActual() ? 'Conecta una cuenta MT5 para operar (empieza con una DEMO).' : !est.execution_enabled ? 'La ejecución de órdenes todavía no está activada.' : 'No pude calcular el lote: pon el tamaño de tu cuenta y el riesgo en la herramienta, o elige los lotes aquí.');
+                    return;
+                }
+                const sym = pos.simbolo || getSymbol(), dec = decimales(sym), r = (x) => (x == null ? null : Number(Number(x).toFixed(dec)));
+                const px = ultimoPrecio();
+                let tipo = 'market';
+                if (px != null && pos.entrada && Math.abs(pos.entrada - px) / px > 0.0003) tipo = pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop');
+                const orden = { symbol: sym, side: pos.lado === 'BUY' ? 'buy' : 'sell', volume: pos.lotes, type: tipo, price: tipo === 'market' ? null : r(pos.entrada), stop_loss: r(pos.sl), take_profit: r(pos.tp), client_id: idUnico() };
+                avisar(`Enviando ${pos.lado === 'BUY' ? 'compra' : 'venta'} de ${pos.lotes} lotes de ${sym}…`);
+                try {
+                    const resp = await NLT_API.chartsTraderOrden(cuentaId, orden);
+                    avisar(resp.status === 'duplicate' ? 'Esa orden ya se había enviado.' : tipo === 'market' ? `✓ ${orden.side === 'buy' ? 'Compra' : 'Venta'} enviada: ${pos.lotes} lotes de ${sym}${orden.stop_loss ? ' · SL ' + orden.stop_loss : ''}${orden.take_profit ? ' · TP ' + orden.take_profit : ''}` : `✓ Orden pendiente (${tipo === 'limit' ? 'límite' : 'stop'}) creada en ${orden.price}`, 'ok');
+                    await refrescar(); if (!pop.hidden) { pintar(); posicionar(); }
+                } catch (err) { avisar(err.message || 'El broker rechazó la orden.', 'error'); }
+            },
             desdePosicion(pos) {
                 if (!pos) return;
                 const px = ultimoPrecio();
