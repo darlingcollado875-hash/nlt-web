@@ -108,7 +108,7 @@
     // Tableros (las tablas que los indicadores de TradingView dibujan con table.new) sobre el
     // panel de velas, en cuatro esquinas. Cada indicador escribe SOLO en su espacio (slot):
     // dos tablas en la misma esquina se apilan en vez de taparse.
-    const POSICIONES = ['Top Left', 'Top Right', 'Bottom Left', 'Bottom Right'];
+    const POSICIONES = ['Top Left', 'Top Center', 'Top Right', 'Middle Left', 'Middle Center', 'Middle Right', 'Bottom Left', 'Bottom Center', 'Bottom Right'];
     let host = null, cajaActual = '';
     function hostTableros() {
         if (host && document.body.contains(host)) return host;
