@@ -117,6 +117,14 @@
         .an-dos { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; border-top: 1px solid var(--ch-line); }
         .an-pop details { border-top: 1px solid var(--ch-line); padding: 6px 0; } .an-pop summary { cursor: pointer; font-size: 12px; font-weight: 600; color: #D1D5DB; }
         .an-tab { width: 100%; font-size: 12px; margin-top: 6px; border-collapse: collapse; } .an-tab td { padding: 3px 2px; color: #D1D5DB; } .an-tab td:nth-child(2) { color: #9CA3AF; text-align: right; } .an-tab td:last-child { text-align: right; font-weight: 600; }
+        .sc { position: fixed; inset: 56px 12px 12px 12px; z-index: 78; background: #0D1016; border: 1px solid var(--ch-line); border-radius: 14px; padding: 12px 14px; display: flex; flex-direction: column; box-shadow: 0 16px 60px rgba(0,0,0,.6); }
+        .sc[hidden] { display: none; }
+        .sc-cab { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; font-size: 12px; color: #9CA3AF; } .sc-cab > b { color: #fff; font-size: 14px; margin-right: 6px; }
+        .sc-cab label { display: flex; gap: 6px; align-items: center; } .sc-cab .mc-sel { height: 28px; } .sc-cab .ch-tool { margin-left: auto; }
+        .sc-tabla { flex: 1; min-height: 0; overflow: auto; }
+        .sc table { width: 100%; border-collapse: collapse; font-size: 13px; min-width: 860px; } .sc th { position: sticky; top: 0; background: #0D1016; text-align: left; font-size: 11px; color: #6B7280; text-transform: uppercase; letter-spacing: .04em; padding: 8px 6px; cursor: pointer; white-space: nowrap; border-bottom: 1px solid var(--ch-line); } .sc th.on { color: #22D3EE; }
+        .sc td { padding: 9px 6px; border-bottom: 1px solid rgba(255,255,255,.04); color: #E5E7EB; white-space: nowrap; } .sc tbody tr { cursor: pointer; } .sc tbody tr:hover { background: rgba(255,255,255,.04); }
+        .sc-sym small { display: block; color: #6B7280; font-size: 11px; } .sc-rat { text-align: center; font-weight: 600; } .sc-tend { color: #9CA3AF; font-size: 12px; } .sc-vacio { text-align: center; color: #6B7280; padding: 24px; }
         .ch-tool-sep { width: 1px; height: 24px; align-self: center; background: var(--ch-line); margin: 0 4px; flex-shrink: 0; }
         .ch-hint { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); font-size: 12px; color: #E5E7EB; background: rgba(13,16,22,0.92); border: 1px solid var(--ch-line); border-radius: 999px; padding: 6px 12px; pointer-events: none; white-space: nowrap; z-index: 5; }
 
@@ -456,6 +464,7 @@
     <script src="assets/js/charts/multichart.js?v=c083b3da"></script>
     <script src="assets/js/charts/ratings.js?v=55503b92"></script>
     <script src="assets/js/charts/alerts.js?v=db12e9c2"></script>
+    <script src="assets/js/charts/screener.js?v=13010bdb"></script>
     <script src="assets/js/charts/app.js?v=715f9186"></script>
 </body>
 </html>
