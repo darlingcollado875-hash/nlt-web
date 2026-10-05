@@ -176,3 +176,15 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 @media (prefers-reduced-motion: reduce) { .nsel-list { animation: none; } .nsel-btn i, .nsel-it i { transition: none; } }
 
 .sc-aviso { background: rgba(var(--nlt-b), .07); border-color: rgba(var(--nlt-b), .25); color: #b9c8ee; font-size: 12px; line-height: 1.5; }
+
+/* aviso breve (toast) */
+.nlt-toast { position: fixed; left: 50%; bottom: calc(28px + env(safe-area-inset-bottom)); z-index: 500; max-width: min(92vw, 520px); padding: 12px 18px; border-radius: 16px; font-size: 13px; line-height: 1.45; color: #e5e7eb; text-align: center;
+    background: var(--nlt-glass); border: 1px solid var(--nlt-hair); box-shadow: var(--nlt-shadow); opacity: 0; transform: translate(-50%, 14px); pointer-events: none; transition: opacity .3s var(--nlt-ease), transform .45s var(--nlt-ease); }
+.nlt-toast.visible { opacity: 1; transform: translate(-50%, 0); }
+.nlt-toast[data-tipo="ok"] { border-color: rgba(34, 197, 94, .45); color: #bbf7d0; }
+.nlt-toast[data-tipo="error"] { border-color: rgba(239, 68, 68, .5); color: #fecaca; }
+@media (prefers-reduced-motion: reduce) { .nlt-toast { transition: none; } }
+/* botón BUY/SELL armado (segundo toque envía) */
+.dw-btn.armado { background: linear-gradient(180deg, #5b8bff, #3a68ee) !important; color: #fff !important; border-color: transparent !important; box-shadow: 0 0 22px rgba(67, 120, 255, .55); animation: nltLate .9s ease-in-out infinite; }
+@keyframes nltLate { 50% { box-shadow: 0 0 34px rgba(67, 120, 255, .85); } }
+@media (prefers-reduced-motion: reduce) { .dw-btn.armado { animation: none; } }

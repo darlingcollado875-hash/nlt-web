@@ -664,7 +664,7 @@
                 ${h.inputs.some((x) => x.id === 'estiloLinea') ? `<select class="dw-sel" data-dw="estiloLinea" title="Tipo de línea">${ESTILOS_LINEA.map((x) => `<option value="${x.v}"${x.v === v.estiloLinea ? ' selected' : ''}>${x.t}</option>`).join('')}</select>` : ''}` : ''}
                 ${h.inputs.some((x) => x.id === 'texto') ? `<button type="button" class="dw-btn" data-dw="texto" title="Editar el texto" aria-label="Editar el texto"><i class="ph ph-text-aa"></i></button>` : ''}
                 ${esRect && puedeZonaNLT && puedeZonaNLT() ? `<button type="button" class="dw-btn${zona ? ' on' : ''}" data-dw="zona" title="${zona ? 'Zona conectada al NLT Zone Engine' : 'Enviar esta zona al NLT Zone Engine'}"><i class="ph ph-lightning"></i><span>NLT Engine</span></button>` : ''}
-                ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? 'Operar esta posición con tu cuenta MT5 (se confirma antes de enviar)' : 'Operar con tu cuenta todavía no está disponible'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
+                ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? 'Operar esta posición con tu cuenta MT5: toca una vez para armar y otra para enviar' : 'Operar con tu cuenta todavía no está disponible'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
                 ${esPos && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper() ? `<button type="button" class="dw-btn" data-dw="sim" title="Practicar esta posición en el Simulador (dinero virtual)"><i class="ph ph-game-controller"></i><span>Simular</span></button>` : ''}
                 <button type="button" class="dw-btn" data-dw="config" title="Configuración" aria-label="Configuración"><i class="ph ph-gear-six"></i></button>
                 <button type="button" class="dw-btn" data-dw="duplicar" title="Duplicar" aria-label="Duplicar"><i class="ph ph-copy"></i></button>
@@ -694,9 +694,16 @@
             if (el.dataset.dw === 'grosor') actualizarEstilo(seleccionado, { grosor: parseInt(el.value, 10) });
             if (el.dataset.dw === 'estiloLinea') actualizarEstilo(seleccionado, { estiloLinea: el.value });
         });
+        let ordenArmada = null;     // { id, hasta, timer }: el botón BUY/SELL pide un segundo toque antes de mandar dinero real
+        function desarmar(btn) {
+            if (ordenArmada) { clearTimeout(ordenArmada.timer); ordenArmada = null; }
+            if (btn && btn.isConnected) { btn.classList.remove('armado'); btn.innerHTML = btn.dataset.html || btn.innerHTML; }
+        }
         barraEl.addEventListener('click', (ev) => {
             const el = ev.target.closest('button[data-dw]');
             if (!el || !seleccionado) return;
+            // Esta barra vive fuera de las ventanas (Simulador/Operar): sin esto, el clic "de fuera" las cerraba al instante de abrirlas
+            ev.stopPropagation();
             const id = seleccionado;
             const acc = el.dataset.dw;
             if (acc === 'borrar') { chart.removeOverlay({ id }); deseleccionar(); }
@@ -706,7 +713,20 @@
             if (acc === 'bloquear') { const o = overlay(id); chart.overrideOverlay({ id, lock: !o.lock }); guardar(); pintarBarra(); }
             if (acc === 'sim' && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper()) NLTCharts.app.paper().desdePosicion(api.posicionComoOrden(id));
             if (acc === 'zona' && onEnviarZona) onEnviarZona(id);
-            if (acc === 'orden' && NLTCharts.trading) NLTCharts.trading.enviar(api.posicionComoOrden(id)).catch((err) => { if (NLTCharts.ui.toast) NLTCharts.ui.toast(err.message); });
+            if (acc === 'orden' && NLTCharts.trading) {
+                const pos = api.posicionComoOrden(id);
+                if (!pos) return;
+                if (!(ordenArmada && ordenArmada.id === id)) {
+                    // 1er toque: queda armado 4 s y muestra exactamente qué se va a mandar
+                    desarmar(el);
+                    el.dataset.html = el.innerHTML; el.classList.add('armado');
+                    el.innerHTML = `<i class="ph ph-check-circle"></i><span>${pos.lotes ? `${pos.lado === 'BUY' ? 'Comprar' : 'Vender'} ${formatearLotes(pos.lotes)} · tocar otra vez` : `${pos.lado === 'BUY' ? 'Comprar' : 'Vender'} · tocar otra vez`}</span>`;
+                    ordenArmada = { id, timer: setTimeout(() => desarmar(el), 4000) };
+                    return;
+                }
+                desarmar(el);
+                NLTCharts.trading.enviar(pos).catch((err) => { if (NLTCharts.ui.toast) NLTCharts.ui.toast(err.message, 'error'); });
+            }
         });
 
         function duplicar(id) {

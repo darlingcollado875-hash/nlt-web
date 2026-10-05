@@ -25,8 +25,8 @@
         if (!window.NLTCharts || !NLTCharts.traderApi) throw new Error('Operar con tu cuenta todavía no está disponible.');
         const orden = ordenDesdePosicion(pos);
         if (!orden || !ACCIONES.includes(orden.action)) throw new Error('Orden inválida');
-        NLTCharts.traderApi.desdePosicion(pos);
-        return { opened: true };
+        await NLTCharts.traderApi.ejecutarPosicion(pos);
+        return { sent: true };
     }
 
     window.NLTCharts = window.NLTCharts || {};

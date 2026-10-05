@@ -169,5 +169,19 @@
         cont.scrollTop = alto;
         if (nombreFoco) { const e = buscar(nombreFoco); if (e) { e.focus(); try { if (ini != null) e.setSelectionRange(ini, fin); } catch (_) { /* number/select */ } } }
     }
-    window.NLTCharts.ui = { montarToolbar, esc, tablero, conservar };
+    /** Aviso breve abajo en el centro (no tapa el gráfico, se va solo). tipo: 'ok' | 'error' | undefined */
+    let toastEl = null, toastTimer = null;
+    function toast(texto, tipo) {
+        if (!toastEl) {
+            toastEl = document.createElement('div');
+            toastEl.className = 'nlt-toast'; toastEl.setAttribute('role', 'status'); toastEl.setAttribute('aria-live', 'polite');
+            document.body.appendChild(toastEl);
+        }
+        toastEl.textContent = String(texto || '');
+        toastEl.dataset.tipo = tipo || '';
+        toastEl.classList.remove('visible'); void toastEl.offsetWidth; toastEl.classList.add('visible');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toastEl && toastEl.classList.remove('visible'), tipo === 'error' ? 6500 : 4200);
+    }
+    window.NLTCharts.ui = { montarToolbar, esc, tablero, conservar, toast };
 })();
