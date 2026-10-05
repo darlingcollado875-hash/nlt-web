@@ -439,5 +439,5 @@
 
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.indicators = { montar, FREE, GRUPOS };
-    window.NLTCharts.leyenda = { features };
+    window.NLTCharts.leyenda = { features, feature, ICONO: { ...ICONO, codigo: '\ue1bc' } };
 })();
