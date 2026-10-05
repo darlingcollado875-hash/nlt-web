@@ -214,5 +214,10 @@ plot(b55, "e55 1h")`;
     const r = run('//@version=5\nindicator("t", overlay=true)\nvar line[] ls = array.new_line()\nfloat[] fa = array.new_float(0)\narray.push(fa, close)\nvar line rl = na\nif bar_index % 20 == 0\n    rl := line.new(x1 = bar_index - 3, y1 = close, x2 = bar_index, y2 = close, color = color.red)\n    array.push(ls, rl)\nif not na(rl)\n    line.set_extend(rl, extend = extend.none)\nplot(array.size(fa))');
     afirmar(r.ok && r.lineas.length > 0, 'tipos con [] y line.new con kwargs');
 }
+// Declaraciones encadenadas con comas
+{
+    const r = run('//@version=5\nindicator("t")\nf() =>\n    float a = 1.0, float b = 2.0, int c = 3\n    x = 4, y = 5\n    a + b + c + x + y\nvar float p = 1.0, float q = 2.0\nplot(f() + p + q)');
+    afirmar(r.ok && r.plots[0].valores[n - 1] === 18, 'declaraciones con comas');
+}
 console.log(`${ok} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);

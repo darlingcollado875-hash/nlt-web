@@ -139,15 +139,14 @@
             esperar('INDENT', undefined, 'El bloque debe ir indentado.');
             const out = [];
             saltarNL();
-            while (!es('DEDENT') && !es('EOF')) { out.push(sentencia()); saltarNL(); }
+            while (!es('DEDENT') && !es('EOF')) { out.push(...sentencias()); saltarNL(); }
             esperar('DEDENT');
             return out;
         }
         // Cuerpo de if/for/función: en la misma línea (una expresión) o un bloque indentado.
         function cuerpo() {
             if (es('NEWLINE')) return bloque();
-            const s = sentencia(true);
-            return [s];
+            return sentencias(true);
         }
         const CALIFICADORES = new Set(['series', 'simple', 'const', 'input']);
         /** Cuántos tokens ocupa un tipo escrito antes de un nombre («float», «series int», «array<float>»…); 0 si no hay tipo. */
@@ -165,6 +164,9 @@
             while (T[k].tipo === 'OP' && T[k].valor === '[' && T[k + 1].tipo === 'OP' && T[k + 1].valor === ']') k += 2;   // float[], line[]
             return T[k].tipo === 'ID' ? k - k0 : 0;
         }
+        let cola = [];
+        /** Una sentencia (o varias si la línea declara con comas: «float a = 0.0, float b = 1.0»). */
+        function sentencias(enLinea) { cola = []; const r = sentencia(enLinea); const extra = cola; cola = []; return [r, ...extra]; }
         function sentencia(enLinea) {
             const t = ver(), linea = t.linea;
             let r;
@@ -202,6 +204,13 @@
                 const nombre = sig().valor, o = sig().valor;
                 r = nodo('Decl', linea, { nombre, valor: expr(), persistente: false });
             } else r = nodo('Expr', linea, { expr: expr() });
+            // declaraciones encadenadas con comas
+            while (r.tipo === 'Decl' && op(',')) {
+                const k = p + 1, n = tokensDeTipo(k), j = k + n;
+                if (!(T[j].tipo === 'ID' && T[j + 1].tipo === 'OP' && T[j + 1].valor === '=')) break;
+                p = j; const nombre = sig().valor; sig();
+                cola.push(nodo('Decl', linea, { nombre, valor: expr(), persistente: r.persistente }));
+            }
             // if/for/while/función ya consumieron su cuerpo (en bloque o en la misma línea) y con él su fin de línea
             const cerroBloque = (T[p - 1] && T[p - 1].tipo === 'DEDENT') || ['If', 'For', 'ForIn', 'While', 'DefFuncion'].includes(r.tipo);
             if (!cerroBloque && (!enLinea || es('NEWLINE'))) { if (es('NEWLINE')) sig(); else if (!es('EOF') && !es('DEDENT')) throw new ErrorNLTS(`No entiendo «${T[p].valor == null ? T[p].tipo : T[p].valor}» aquí.`, T[p].linea); }
@@ -330,7 +339,7 @@
         saltarNL();
         while (!es('EOF')) {
             if (es('INDENT')) throw new ErrorNLTS('Indentación inesperada.', ver().linea);
-            prog.push(sentencia()); saltarNL();
+            prog.push(...sentencias()); saltarNL();
         }
         return prog;
     }
