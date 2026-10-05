@@ -209,5 +209,10 @@ plot(b55, "e55 1h")`;
     afirmar(k.ok && k.plots[2].valores[5] === 7 && k.hlines.length === 1 && k.alerts.length === 1 && k.shapes.length > 0, 'argumentos con nombre (series=, source=, length=, price=, condition=…)');
 }
 
+// Tipos con corchetes: float[], line[] (var y declaración normal)
+{
+    const r = run('//@version=5\nindicator("t", overlay=true)\nvar line[] ls = array.new_line()\nfloat[] fa = array.new_float(0)\narray.push(fa, close)\nvar line rl = na\nif bar_index % 20 == 0\n    rl := line.new(x1 = bar_index - 3, y1 = close, x2 = bar_index, y2 = close, color = color.red)\n    array.push(ls, rl)\nif not na(rl)\n    line.set_extend(rl, extend = extend.none)\nplot(array.size(fa))');
+    afirmar(r.ok && r.lineas.length > 0, 'tipos con [] y line.new con kwargs');
+}
 console.log(`${ok} bien, ${mal} mal`);
 process.exit(mal ? 1 : 0);
