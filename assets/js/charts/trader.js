@@ -21,15 +21,38 @@
         let cuentaId = state.prefs().traderCuenta || null;
         let vivo = { summary: null, positions: [], orders: [] };
         let mapa = null;            // /symbols de la cuenta: { map, suggested, broker_symbols, nlt_symbols }
+        let hist = null, histDias = 30, cargandoHist = false, errorHist = '';
         let tab = 'operar', msg = '', mostrarConexion = false, pendiente = null, prefill = null, cargando = false, timer = null, errorVivo = '';
 
         const btn = document.createElement('button');
         btn.type = 'button'; btn.id = 'chBtnTrader'; btn.className = 'ch-btn ch-herr'; btn.title = 'Operar con tu cuenta MT5'; btn.setAttribute('aria-label', 'Operar con tu cuenta MT5');
         btn.innerHTML = '<i class="ph ph-currency-circle-dollar"></i><span class="ch-btn-label">Operar</span>';
+        const saldoEl = document.createElement('span'); saldoEl.className = 'tr-saldo'; saldoEl.hidden = true; btn.appendChild(saldoEl);
+        /** Saldo de la cuenta conectada, siempre visible arriba en el botón Operar. */
+        function pintarSaldo() {
+            const c = cuentaActual(), b = vivo.summary && vivo.summary.balance != null ? vivo.summary.balance : (c ? c.balance : null);
+            saldoEl.hidden = !(c && b != null);
+            btn.classList.toggle('con-saldo', !saldoEl.hidden);
+            if (saldoEl.hidden) { btn.title = 'Operar con tu cuenta MT5'; return; }
+            saldoEl.textContent = dinero(b);
+            btn.title = `Cuenta #${c.login} · saldo ${dinero(b)}${vivo.summary && vivo.summary.equity != null ? ' · equity ' + dinero(vivo.summary.equity) : ''}`;
+        }
         const pop = document.createElement('div');
         pop.className = 'mc-menu pp-pop tr-pop'; pop.id = 'chTrader'; pop.hidden = true; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Operar con tu cuenta MT5');
         document.body.appendChild(pop);
 
+        /** Tipo con el que sale una posición dibujada: el que elegiste en la barra, o (auto) pendiente en tu entrada. */
+        function tipoDeOrden(pos, px) {
+            if (pos.tipo === 'market' || pos.tipo === 'limit' || pos.tipo === 'stop') return pos.tipo;
+            return px == null ? 'limit' : (pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop'));
+        }
+        function tipoInvalido(tipo, lado, entrada, px) {
+            if (px == null) return null;
+            const compra = lado === 'BUY';
+            if (tipo === 'limit' && (compra ? entrada > px : entrada < px)) return compra ? 'Una compra límite va POR DEBAJO del precio actual: elige Stop o A mercado.' : 'Una venta límite va POR ENCIMA del precio actual: elige Stop o A mercado.';
+            if (tipo === 'stop' && (compra ? entrada < px : entrada > px)) return compra ? 'Una compra stop va POR ENCIMA del precio actual: elige Límite o A mercado.' : 'Una venta stop va POR DEBAJO del precio actual: elige Límite o A mercado.';
+            return null;
+        }
         const puedeOperar = () => !!(est && est.has_access && est.execution_enabled && cuentaActual());
         const cuentaActual = () => (est && est.accounts || []).find((c) => c.id === cuentaId) || null;
         const esDelSimbolo = (x) => (x.nlt_symbol ? x.nlt_symbol === getSymbol() : norm(x.symbol).startsWith(norm(getSymbol())));
@@ -118,18 +141,51 @@
             try { est = await NLT_API.chartsTraderEstado(); } catch (e) { est = est || { has_access: false, accounts: [], reason: e.message }; }
             if (est.accounts && est.accounts.length && !est.accounts.some((c) => c.id === cuentaId)) { cuentaId = est.accounts[0].id; state.savePrefs({ traderCuenta: cuentaId }); }
             if (!est.accounts || !est.accounts.length) cuentaId = null;
+            pintarSaldo();
         }
         async function refrescar() {
             if (!est || !est.has_access || !cuentaId || cargando) return;
             cargando = true;
             try { vivo = await NLT_API.chartsTraderEnVivo(cuentaId); errorVivo = ''; } catch (e) { errorVivo = e.message || 'No se pudo leer la cuenta.'; }
             cargando = false;
-            chips.actualizar(); if (!pop.hidden) NLTCharts.ui.conservar(pop, pintar); programar();
+            pintarSaldo(); chips.actualizar(); if (!pop.hidden) NLTCharts.ui.conservar(pop, pintar); programar();
         }
         function programar() {
-            const necesita = est && est.has_access && cuentaId && (!pop.hidden || vivo.positions.length || (vivo.orders || []).length);
+            const necesita = est && est.has_access && cuentaId && (!pop.hidden || vivo.positions.length || (vivo.orders || []).length || cuentaActual());
             if (necesita && !timer) timer = setInterval(() => { if (!document.hidden) refrescar(); }, REFRESCO_MS);
             if (!necesita && timer) { clearInterval(timer); timer = null; }
+        }
+
+        async function cargarHistorial() {
+            if (!cuentaId || cargandoHist) return;
+            cargandoHist = true; errorHist = '';
+            try { hist = await NLT_API.chartsTraderHistorial(cuentaId, histDias); } catch (e) { errorHist = e.message || 'No se pudo cargar el historial.'; }
+            cargandoHist = false;
+            if (!pop.hidden) { pintar(); posicionar(); }
+        }
+        const fechaCorta = (iso) => { if (!iso) return ''; const d = new Date(iso); return Number.isNaN(d.getTime()) ? '' : d.toLocaleString('es', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }); };
+        const diaDe = (iso) => { const d = iso ? new Date(iso) : null; return d && !Number.isNaN(d.getTime()) ? d.toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }) : 'Sin fecha'; };
+        function htmlHistorial(c) {
+            const rangos = [[7, '7 días'], [30, '30 días'], [90, '90 días']];
+            const barra = `<div class="tr-rango">${rangos.map(([d, t]) => `<button type="button" data-tr="rango" data-dias="${d}" class="${histDias === d ? 'on' : ''}">${t}</button>`).join('')}<button type="button" data-tr="hist-recargar" title="Actualizar" aria-label="Actualizar historial"><i class="ph ph-arrows-clockwise"></i></button></div>`;
+            if (errorHist) return `${barra}<p class="al-msg">${esc(errorHist)}</p>`;
+            if (!hist) return `${barra}<p class="mc-nota">Cargando el historial de tu cuenta…</p>`;
+            const r = hist.summary || {}, ops = hist.trades || [];
+            const pct = r.count ? Math.round((r.wins / r.count) * 100) : 0, fp = r.gross_loss > 0 ? (r.gross_win / r.gross_loss).toFixed(2) : (r.gross_win > 0 ? '∞' : '—');
+            const resumen = `<div class="pp-cuenta tr-hist-res"><div><small>Resultado neto</small><b style="color:${(r.net || 0) >= 0 ? '#22C55E' : '#EF4444'}">${(r.net || 0) >= 0 ? '+' : ''}${dinero(r.net || 0)}</b></div><div><small>Operaciones</small><b>${r.count || 0}</b></div>
+                <div><small>Ganadas</small><b>${pct}%</b></div><div><small>Factor de beneficio</small><b>${fp}</b></div></div>`;
+            if (!ops.length) return `${barra}${resumen}<p class="mc-nota">${esc(hist.note || 'No hay operaciones cerradas en este periodo. Cuando cierres operaciones en esta cuenta aparecerán aquí.')}</p>`;
+            let dia = '', filas = '';
+            ops.forEach((o) => {
+                const d = diaDe(o.close_time);
+                if (d !== dia) { dia = d; filas += `<div class="tr-dia">${esc(d)}</div>`; }
+                const g = Number(o.net) || 0, nom = o.nlt_symbol || o.symbol, dec = decimales(o.nlt_symbol || getSymbol());
+                const px = (v) => (v == null ? '—' : Number(v).toFixed(Math.min(6, dec)));
+                filas += `<div class="tr-op"><span class="tr-lado ${o.side === 'buy' ? 'compra' : 'venta'}"><i class="ph-fill ${o.side === 'buy' ? 'ph-arrow-up-right' : 'ph-arrow-down-right'}"></i></span>
+                    <div class="tr-op-txt"><b>${esc(nom)}</b> <span>${o.side === 'buy' ? 'Compra' : 'Venta'} · ${esc(o.volume)} lotes</span><small>${px(o.open_price)} → ${px(o.close_price)}${o.close_time ? ' · ' + esc(fechaCorta(o.close_time)) : ''}</small></div>
+                    <div class="tr-op-pl" style="color:${g >= 0 ? '#22C55E' : '#EF4444'}"><b>${g >= 0 ? '+' : ''}${dinero(g)}</b>${o.commission || o.swap ? `<small>com. ${dinero((o.commission || 0) + (o.swap || 0))}</small>` : ''}</div></div>`;
+            });
+            return `${barra}${resumen}<div class="tr-hist">${filas}</div>`;
         }
 
         async function cargarMapa() {
@@ -158,7 +214,7 @@
                     <button type="button" data-tr="mas" class="mc-d" title="Conectar otra cuenta">+</button><button type="button" data-tr="desconectar" class="mc-d" title="Desconectar esta cuenta">Quitar</button></div>` : '';
                 const resumen = c ? `<div class="pp-cuenta"><div><small>Balance</small><b>${s.balance != null ? dinero(s.balance) : dinero(c.balance)}</b></div><div><small>Equity</small><b>${s.equity != null ? dinero(s.equity) : '—'}</b></div>
                     <div><small>G/P abierta</small><b style="color:${(Number(s.profit) || 0) >= 0 ? '#22C55E' : '#EF4444'}">${s.profit != null ? dinero(s.profit) : '—'}</b></div><div><small>Posiciones</small><b>${vivo.positions.length}</b></div></div>` : '';
-                const tabs = c ? `<div class="pp-tabs"><button type="button" data-tab="operar" class="${tab === 'operar' ? 'on' : ''}">Operar</button><button type="button" data-tab="pos" class="${tab === 'pos' ? 'on' : ''}">Posiciones (${vivo.positions.length})</button><button type="button" data-tab="ord" class="${tab === 'ord' ? 'on' : ''}">Órdenes (${(vivo.orders || []).length})</button><button type="button" data-tab="sym" class="${tab === 'sym' ? 'on' : ''}">Símbolos</button></div>` : '';
+                const tabs = c ? `<div class="pp-tabs"><button type="button" data-tab="operar" class="${tab === 'operar' ? 'on' : ''}">Operar</button><button type="button" data-tab="pos" class="${tab === 'pos' ? 'on' : ''}">Posiciones (${vivo.positions.length})</button><button type="button" data-tab="ord" class="${tab === 'ord' ? 'on' : ''}">Órdenes (${(vivo.orders || []).length})</button><button type="button" data-tab="hist" class="${tab === 'hist' ? 'on' : ''}">Historial</button><button type="button" data-tab="sym" class="${tab === 'sym' ? 'on' : ''}">Símbolos</button></div>` : '';
                 let panel = '';
                 if (c && tab === 'operar') {
                     const pf = prefill || {};
@@ -176,6 +232,8 @@
                 } else if (c && tab === 'ord') {
                     panel = (vivo.orders || []).map((o) => `<div class="al-fila"><div class="al-txt"><b>${esc(o.symbol)}</b> ${o.side === 'buy' ? 'COMPRA' : 'VENTA'} ${esc(String(o.type || '').toUpperCase())} ${esc(o.volume)} @ ${esc(o.price)}<br><small>${o.stop_loss ? `SL ${esc(o.stop_loss)}` : 'sin SL'} · ${o.take_profit ? `TP ${esc(o.take_profit)}` : 'sin TP'}</small></div>
                         <button type="button" data-tr="cancelar-orden" data-ticket="${esc(o.ticket)}" title="Cancelar orden" aria-label="Cancelar orden"><i class="ph ph-trash"></i></button></div>`).join('') || '<p class="mc-nota">No hay órdenes pendientes. Crea una desde la pestaña Operar (Límite o Stop).</p>';
+                } else if (c && tab === 'hist') {
+                    panel = htmlHistorial(c);
                 } else if (c && tab === 'sym') {
                     panel = !mapa ? '<p class="mc-nota">Cargando los símbolos de tu cuenta…</p>' : `<p class="mc-nota">Cada broker nombra distinto los símbolos (por ejemplo <b>GOLD</b> en vez de XAUUSD, o <b>EURUSD.m</b>). NLT los empareja solo; corrige aquí lo que haga falta.</p>
                         <datalist id="trBrokerSyms">${mapa.broker_symbols.map((b) => `<option value="${esc(b)}">`).join('')}</datalist>
@@ -208,11 +266,13 @@
         let cierreArmado = null;
         pop.addEventListener('click', async (e) => {
             const t = e.target.closest('[data-tab]');
-            if (t) { tab = t.dataset.tab; msg = ''; pendiente = null; pintar(); posicionar(); if (tab === 'sym' && !mapa) cargarMapa(); return; }
+            if (t) { tab = t.dataset.tab; msg = ''; pendiente = null; pintar(); posicionar(); if (tab === 'sym' && !mapa) cargarMapa(); if (tab === 'hist') cargarHistorial(); return; }
             const a = e.target.closest('[data-tr]'); if (!a) return;
             const acc = a.dataset.tr;
             if (acc === 'mas') { mostrarConexion = !mostrarConexion; pintar(); posicionar(); return; }
             if (acc === 'cancelar') { pendiente = null; pintar(); posicionar(); return; }
+            if (acc === 'rango') { histDias = Number(a.dataset.dias) || 30; hist = null; pintar(); posicionar(); cargarHistorial(); return; }
+            if (acc === 'hist-recargar') { hist = null; pintar(); posicionar(); cargarHistorial(); return; }
             try {
                 if (acc === 'desconectar') {
                     if (!window.confirm('¿Desconectar esta cuenta de NLT Charts? No cierra tus operaciones en el broker.')) return;
@@ -245,7 +305,7 @@
                 pintar(); posicionar();
                 return;
             }
-            if (e.target.matches('[data-tr-cuenta]')) { cuentaId = e.target.value; state.savePrefs({ traderCuenta: cuentaId }); mapa = null; vivo = { summary: null, positions: [], orders: [] }; pintar(); await refrescar(); posicionar(); }
+            if (e.target.matches('[data-tr-cuenta]')) { cuentaId = e.target.value; state.savePrefs({ traderCuenta: cuentaId }); mapa = null; hist = null; vivo = { summary: null, positions: [], orders: [] }; pintarSaldo(); pintar(); await refrescar(); posicionar(); }
         });
         pop.addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -312,21 +372,23 @@
                 }
                 const sym = pos.simbolo || getSymbol(), dec = decimales(sym), r = (x) => (x == null ? null : Number(Number(x).toFixed(dec)));
                 const px = ultimoPrecio();
-                // Siempre PENDIENTE en la entrada exacta que dibujaste: límite si el precio debe venir a buscarla, stop si debe romperla
-                const tipo = px == null ? 'limit' : (pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop'));
-                const orden = { symbol: sym, side: pos.lado === 'BUY' ? 'buy' : 'sell', volume: pos.lotes, type: tipo, price: r(pos.entrada), stop_loss: r(pos.sl), take_profit: r(pos.tp), client_id: idUnico() };
+                // Auto: PENDIENTE en la entrada exacta que dibujaste (límite si el precio debe venir a buscarla, stop si debe romperla). También puedes forzar mercado, límite o stop.
+                const tipo = tipoDeOrden(pos, px);
+                const malo = tipo !== 'market' ? tipoInvalido(tipo, pos.lado, pos.entrada, px) : null;
+                if (malo) { avisar(malo, 'error'); return; }
+                const orden = { symbol: sym, side: pos.lado === 'BUY' ? 'buy' : 'sell', volume: pos.lotes, type: tipo, ...(tipo === 'market' ? {} : { price: r(pos.entrada) }), stop_loss: r(pos.sl), take_profit: r(pos.tp), client_id: idUnico() };
                 avisar(`Enviando ${pos.lado === 'BUY' ? 'compra' : 'venta'} de ${pos.lotes} lotes de ${sym}…`);
                 try {
                     const resp = await NLT_API.chartsTraderOrden(cuentaId, orden);
-                    avisar(resp.status === 'duplicate' ? 'Esa orden ya se había enviado.' : `✓ ${orden.side === 'buy' ? 'Compra' : 'Venta'} ${tipo === 'limit' ? 'límite' : 'stop'} puesta en ${orden.price}: ${pos.lotes} lotes de ${sym}${orden.stop_loss ? ' · SL ' + orden.stop_loss : ''}${orden.take_profit ? ' · TP ' + orden.take_profit : ''}`, 'ok');
+                    avisar(resp.status === 'duplicate' ? 'Esa orden ya se había enviado.' : `✓ ${orden.side === 'buy' ? 'Compra' : 'Venta'} ${tipo === 'market' ? 'a mercado ejecutada' : (tipo === 'limit' ? 'límite' : 'stop') + ' puesta en ' + orden.price}: ${pos.lotes} lotes de ${sym}${orden.stop_loss ? ' · SL ' + orden.stop_loss : ''}${orden.take_profit ? ' · TP ' + orden.take_profit : ''}`, 'ok');
                     await refrescar(); if (!pop.hidden) { pintar(); posicionar(); }
                 } catch (err) { avisar(err.message || 'El broker rechazó la orden.', 'error'); }
             },
             desdePosicion(pos) {
                 if (!pos) return;
                 const px = ultimoPrecio();
-                const tipo = px == null ? 'limit' : (pos.lado === 'BUY' ? (pos.entrada < px ? 'limit' : 'stop') : (pos.entrada > px ? 'limit' : 'stop'));
-                prefill = { volume: pos.lotes || null, sl: pos.sl, tp: pos.tp, type: tipo, price: pos.entrada };
+                const tipo = tipoDeOrden(pos, px);
+                prefill = { volume: pos.lotes || null, sl: pos.sl, tp: pos.tp, type: tipo, price: tipo === 'market' ? null : pos.entrada };
                 pendiente = null; tab = 'operar'; msg = pos.lado === 'BUY' ? 'Compra cargada desde tu posición: revisa y elige COMPRAR.' : 'Venta cargada desde tu posición: revisa y elige VENDER.';
                 abrir('operar');
             },

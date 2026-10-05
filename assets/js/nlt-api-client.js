@@ -977,6 +977,7 @@
         chartsScriptBorrar: (id) => request(`/charts/scripts/${encodeURIComponent(id)}`, { method: 'DELETE', intentos: 1 }),
         chartsTraderEstado: () => request('/charts/trader/status'),
         chartsTraderConectar: (datos) => request('/charts/trader/accounts', { method: 'POST', body: JSON.stringify(datos), lento: true }),
+        chartsTraderHistorial: (id, dias) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/history?days=${encodeURIComponent(dias || 30)}`, { timeoutMs: 30000 }),
         chartsTraderReconectar: (id, password) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/reconnect`, { method: 'POST', body: JSON.stringify(password ? { password } : {}), lento: true, intentos: 1 }),
         chartsTraderDesconectar: (id) => request(`/charts/trader/accounts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
         chartsTraderSimbolos: (id) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/symbols`, { timeoutMs: 30000 }),
