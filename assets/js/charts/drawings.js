@@ -501,6 +501,7 @@
                 <select class="dw-sel" data-dw="estiloLinea" title="Tipo de línea">${ESTILOS_LINEA.map((x) => `<option value="${x.v}"${x.v === v.estiloLinea ? ' selected' : ''}>${x.t}</option>`).join('')}</select>` : ''}
                 ${esRect && puedeZonaNLT && puedeZonaNLT() ? `<button type="button" class="dw-btn${zona ? ' on' : ''}" data-dw="zona" title="${zona ? 'Zona conectada al NLT Zone Engine' : 'Enviar esta zona al NLT Zone Engine'}"><i class="ph ph-lightning"></i><span>NLT Engine</span></button>` : ''}
                 ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? 'Enviar la orden' : 'Ejecución real todavía no activada'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
+                ${esPos && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper() ? `<button type="button" class="dw-btn" data-dw="sim" title="Practicar esta posición en el Simulador (dinero virtual)"><i class="ph ph-game-controller"></i><span>Simular</span></button>` : ''}
                 <button type="button" class="dw-btn" data-dw="config" title="Configuración" aria-label="Configuración"><i class="ph ph-gear-six"></i></button>
                 <button type="button" class="dw-btn" data-dw="duplicar" title="Duplicar" aria-label="Duplicar"><i class="ph ph-copy"></i></button>
                 <button type="button" class="dw-btn${o.lock ? ' on' : ''}" data-dw="bloquear" title="${o.lock ? 'Desbloquear' : 'Bloquear'}" aria-label="Bloquear"><i class="ph ${o.lock ? 'ph-lock-simple' : 'ph-lock-simple-open'}"></i></button>
@@ -534,6 +535,7 @@
             if (acc === 'config') abrirPropiedades(id);
             if (acc === 'duplicar') duplicar(id);
             if (acc === 'bloquear') { const o = overlay(id); chart.overrideOverlay({ id, lock: !o.lock }); guardar(); pintarBarra(); }
+            if (acc === 'sim' && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper()) NLTCharts.app.paper().desdePosicion(api.posicionComoOrden(id));
             if (acc === 'zona' && onEnviarZona) onEnviarZona(id);
             if (acc === 'orden' && NLTCharts.trading) NLTCharts.trading.enviar(api.posicionComoOrden(id)).catch((err) => { if (NLTCharts.ui.toast) NLTCharts.ui.toast(err.message); });
         });

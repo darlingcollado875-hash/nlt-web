@@ -161,8 +161,9 @@
             motor.cargar(porSimbolo[symbol], timeframe);
             if (multi) multi.cambioPrincipal();
             if (alertas) setTimeout(() => alertas.cambioSimbolo(), 1200);
+            if (paper) setTimeout(() => paper.cambioSimbolo(), 1200);
         }
-        let multi = null, alertas = null;
+        let multi = null, alertas = null, paper = null;
         cargar();
         if (NLTCharts.multi) {
             try {
@@ -179,7 +180,7 @@
         window.NLTCharts.motor = motor; // para depurar desde la consola
         window.NLTCharts.app = {
             activarIndicador: (id) => ind.activar(id), desactivarIndicador: (id) => ind.desactivar(id), indicadoresActivos: () => ind.activos(),
-            pro, nltAi, dibujos: dib, motor,
+            pro, nltAi, dibujos: dib, motor, paper: () => paper,
             // NLT Backtest Lab: lleva el gráfico a un símbolo/timeframe por el mismo camino que la barra
             irA(s, tf) {
                 if (tf && tf !== timeframe && catalogo.timeframes.includes(tf)) {
