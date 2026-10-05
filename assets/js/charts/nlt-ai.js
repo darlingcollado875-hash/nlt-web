@@ -37,6 +37,7 @@
         S.registrar(ID, { titulo: '🌐 NLT AI', inputs: INPUTS });
         let ver = !!state.prefs().nltAiVer;
         let datos = null, error = '', seq = 0, timer = null, firma = '';
+        let pidiendo = false, pidiendoT = null;      // pidiendo: el usuario tocó «Analizar» y aún no hay resultado (feedback inmediato)
         let vistoId = null, pidioAnalisis = 0;       // vistoId: último análisis ya visto (null = aún no se leyó nada); pidioAnalisis: hora en que el usuario pidió uno
 
         const hora = (ms) => new Date(ms).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -68,6 +69,14 @@
                 error = err.message;
             }
             enCurso = false;
+            if (pidiendo) {
+                if (error) { finPedido(); avisoError(error); }
+                else if (datos && !['waiting', 'sent'].includes(datos.status)) {
+                    finPedido();
+                    const st = ESTADOS[datos.status];
+                    avisoError(datos.status === 'invalid' ? 'El análisis no se pudo completar. Inténtalo de nuevo en un momento.' : (st && st[2]) || 'No se pudo analizar la zona.');
+                }
+            }
             pintar();
             revisarAviso();
             onCambio && onCambio();
@@ -86,7 +95,7 @@
             const z = pro.zonaActual();
             const an = datos && datos.analysis;
             const res = an && R ? R.resumen(an) : null;
-            const analizando = datos && datos.status === 'sent' && !res;
+            const analizando = (datos && datos.status === 'sent' && !res) || pidiendo;
             const f = NLTCharts.drawings.formatear;
             const estado = error ? 'ERROR' : analizando ? 'ANALIZANDO…' : res ? res.titulo.toUpperCase() : st ? st[1] : 'cargando…';
             const colorEstado = error ? '#F85149' : res ? res.color : st ? st[0] : '#9CA3AF';
@@ -180,12 +189,12 @@
             const a = datos && datos.analysis;
             if (a && a.analysis_id) {
                 if (vistoId === null) { vistoId = a.analysis_id; return; }
-                if (a.analysis_id !== vistoId) { vistoId = a.analysis_id; pidioAnalisis = 0; avisoResumen(a); return; }
+                if (a.analysis_id !== vistoId) { vistoId = a.analysis_id; pidioAnalisis = 0; finPedido(); avisoResumen(a); return; }
             } else if (vistoId === null && datos) vistoId = '';
             if (datos && datos.status === 'sent' && !(a && a.analysis_id !== undefined && a.analysis_id === vistoId && vistoId !== '')) {
                 const reciente = (datos.last_sent && Date.now() - datos.last_sent.at < 150000) || (pidioAnalisis && Date.now() - pidioAnalisis < 150000);
                 if (reciente && !(aviso && aviso.classList.contains('on') && !aviso.classList.contains('cargando'))) avisoAnalizando();
-            } else if (aviso && aviso.classList.contains('cargando') && !(datos && datos.status === 'sent')) cerrarAviso();
+            } else if (aviso && aviso.classList.contains('cargando') && !pidiendo && !(datos && datos.status === 'sent')) cerrarAviso();
         }
 
         // ───────────── Reportes: visor dentro del gráfico (lista + reporte completo) ─────────────
@@ -231,7 +240,18 @@
             ver ? refrescar() : pintar();
             onCambio && onCambio();
         }
+        function finPedido() { pidiendo = false; clearTimeout(pidiendoT); }
+        function avisoError(msg) {
+            const el = elAviso(); if (!el) return;
+            el.classList.remove('cargando'); el.style.setProperty('--air-c', '#F85149'); el.dataset.id = '';
+            el.innerHTML = `<span class="air-ico"><i class="ph ph-warning-circle"></i></span><div class="air-pop-t"><b>No se pudo analizar</b><span>${esc(msg)}</span></div>
+                <div class="air-pop-a"><button type="button" class="air-pop-x" data-air="x" aria-label="Cerrar"><i class="ph ph-x"></i></button></div>`;
+            requestAnimationFrame(() => { el.classList.add('on'); programarCierre(9000); });
+        }
         function pedirNuevo() {
+            pidiendo = true; clearTimeout(pidiendoT);
+            pidiendoT = setTimeout(() => { if (pidiendo) { finPedido(); pintar(); avisoError('La IA tardó demasiado en responder. Inténtalo de nuevo.'); } }, 90000);
+            avisoAnalizando(); pintar();
             pidioAnalisis = Date.now();
             state.savePrefs({ nltAiNonce: { ...(state.prefs().nltAiNonce || {}), [getSymbol()]: nonce() + 1 } });
             refrescar();
