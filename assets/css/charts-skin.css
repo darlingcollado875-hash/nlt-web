@@ -217,3 +217,12 @@ option, optgroup { background: #0d1016; color: #e5e7eb; }   /* respaldo: si el s
 .sc-desc::placeholder { color: #6f7a8b; }
 .sc-desc-n { position: absolute; right: 12px; bottom: 7px; font-size: 10.5px; color: #6f7a8b; pointer-events: none; }
 @media (max-width: 720px) { .sc-desc { font-size: 16px; } }
+
+/* Botón para plegar la lista de indicadores */
+.ch-leyenda-btn { position: absolute; z-index: 6; left: 8px; top: 6px; display: inline-flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 7px; border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.10); background: rgba(14, 16, 22, 0.72); color: #9ca3af; font: 600 11px/1 'Inter', system-ui, sans-serif; cursor: pointer;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); transition: color .18s ease, border-color .18s ease, background .18s ease; }
+.ch-leyenda-btn:hover { color: #fff; border-color: rgba(67, 120, 255, 0.55); background: rgba(67, 120, 255, 0.16); }
+.ch-leyenda-btn i { font-size: 12px; transition: transform .2s ease; }
+.ch-leyenda-btn.plegada i { transform: rotate(-90deg); }
+.ch-leyenda-btn b { font-weight: 700; color: #cfe0ff; background: rgba(67, 120, 255, 0.22); border-radius: 999px; padding: 2px 6px; font-size: 10px; }
