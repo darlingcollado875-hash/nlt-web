@@ -341,12 +341,28 @@
         });
 
         const CATS = EXTRA_MOD ? EXTRA_MOD.CATEGORIAS : [];
-        const botonTool = (h) => `<button type="button" class="ch-tool" data-tool="${esc(h.id)}" title="${esc(h.label)}" aria-label="${esc(h.label)}"><i class="ph ${esc(h.icono)}"></i></button>`;
-        toolsEl.innerHTML = HERRAMIENTAS.filter((h) => !h.cat).map(botonTool).join('') +
+        let pila = [], pos = -1, deshaciendo = false;   // deshacer/rehacer: fotos de los dibujos del símbolo
+        const ATAJOS = { t: 'trend', h: 'hline', v: 'vline', f: 'fib', r: 'rect', c: 'channel', x: 'pat_xabcd', m: 'ruler', p: 'vpfr', b: 'brush', n: 'note' };
+        const ATAJO_DE = Object.fromEntries(Object.entries(ATAJOS).map(([k, id]) => [id, k.toUpperCase()]));
+        let favs = (state.prefs().dibujoFavs || []).filter((id) => POR_ID[id] && POR_ID[id].cat);
+        let iman = ['normal', 'weak_magnet', 'strong_magnet'].includes(state.prefs().dibujoIman) ? state.prefs().dibujoIman : 'normal';
+        let mantener = !!state.prefs().dibujoMantener;
+        let todosOcultos = false;
+        const botonTool = (h) => `<button type="button" class="ch-tool" data-tool="${esc(h.id)}" title="${esc(h.label)}${ATAJO_DE[h.id] ? ` (Alt+${ATAJO_DE[h.id]})` : ''}" aria-label="${esc(h.label)}"><i class="ph ${esc(h.icono)}"></i></button>`;
+        const NOMBRE_IMAN = { normal: 'Imán apagado', weak_magnet: 'Imán suave: se acerca a máximos y mínimos', strong_magnet: 'Imán fuerte: se pega a máximos y mínimos' };
+        function pintarHerramientas() {
+            toolsEl.innerHTML = HERRAMIENTAS.filter((h) => !h.cat || favs.includes(h.id)).map(botonTool).join('') +
             CATS.map((c) => `<button type="button" class="ch-tool ch-cat" data-cat="${esc(c.id)}" title="${esc(c.label)}" aria-label="${esc(c.label)}" aria-haspopup="true" aria-expanded="false"><i class="ph ${esc(c.icono)}"></i></button>`).join('') +
             `<span class="ch-tool-sep" aria-hidden="true"></span>
+             <button type="button" class="ch-tool${iman !== 'normal' ? ' on' : ''}${iman === 'strong_magnet' ? ' fuerte' : ''}" data-accion="iman" title="${NOMBRE_IMAN[iman]}" aria-label="${NOMBRE_IMAN[iman]}" aria-pressed="${iman !== 'normal'}"><i class="ph ph-magnet"></i></button>
+             <button type="button" class="ch-tool${mantener ? ' on' : ''}" data-accion="mantener" title="${mantener ? 'Mantener la herramienta: activado' : 'Mantener la herramienta después de dibujar'}" aria-label="Mantener la herramienta" aria-pressed="${mantener}"><i class="ph ph-push-pin"></i></button>
+             <button type="button" class="ch-tool${todosOcultos ? ' on' : ''}" data-accion="ocultar" title="${todosOcultos ? 'Mostrar los dibujos' : 'Ocultar todos los dibujos'}" aria-label="Ocultar o mostrar los dibujos" aria-pressed="${todosOcultos}"><i class="ph ph-${todosOcultos ? 'eye-slash' : 'eye'}"></i></button>
+             <button type="button" class="ch-tool" data-accion="deshacer" title="Deshacer (Ctrl+Z)" aria-label="Deshacer" ${pos > 0 ? '' : 'disabled'}><i class="ph ph-arrow-u-up-left"></i></button>
+             <button type="button" class="ch-tool" data-accion="rehacer" title="Rehacer (Ctrl+Y)" aria-label="Rehacer" ${pos < pila.length - 1 ? '' : 'disabled'}><i class="ph ph-arrow-u-up-right"></i></button>
              <button type="button" class="ch-tool" data-accion="borrar" title="Borrar un dibujo" aria-label="Borrar un dibujo"><i class="ph ph-eraser"></i></button>
              <button type="button" class="ch-tool peligro" data-accion="limpiar" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos"><i class="ph ph-trash"></i></button>`;
+            marcarBotones();
+        }
 
         function ayuda(texto) { hintEl.hidden = !texto; hintEl.textContent = texto || ''; }
         // Menú de cada categoría (se abre junto al botón; en el celular, encima de la barra).
@@ -360,7 +376,7 @@
             cerrarMenu();
             catAbierta = cat; boton.setAttribute('aria-expanded', 'true');
             volador.innerHTML = HERRAMIENTAS.filter((h) => h.cat === cat).map((h) =>
-                `<button type="button" role="menuitem" class="ch-fly-it${h.id === activa ? ' on' : ''}" data-tool="${esc(h.id)}"><i class="ph ${esc(h.icono)}"></i><span>${esc(h.label)}</span></button>`).join('');
+                `<div class="ch-fly-fila"><button type="button" role="menuitem" class="ch-fly-it${h.id === activa ? ' on' : ''}" data-tool="${esc(h.id)}"><i class="ph ${esc(h.icono)}"></i><span>${esc(h.label)}</span>${ATAJO_DE[h.id] ? `<kbd>Alt+${ATAJO_DE[h.id]}</kbd>` : ''}</button><button type="button" class="ch-fly-fav${favs.includes(h.id) ? ' on' : ''}" data-fav="${esc(h.id)}" title="${favs.includes(h.id) ? 'Quitar de la barra' : 'Fijar en la barra'}" aria-label="${favs.includes(h.id) ? 'Quitar de la barra' : 'Fijar en la barra'}"><i class="${favs.includes(h.id) ? 'ph-fill' : 'ph'} ph-star"></i></button></div>`).join('');
             volador.hidden = false;
             const r = boton.getBoundingClientRect();
             const ancho = window.innerWidth >= 900;
@@ -370,10 +386,20 @@
             volador.style.top = `${Math.max(8, Math.min(ancho ? r.top : r.top - h - 6, window.innerHeight - h - 8))}px`;
         }
         volador.addEventListener('click', (ev) => {
+            const f = ev.target.closest('[data-fav]');
+            if (f) {
+                const id = f.dataset.fav, cat = catAbierta;
+                favs = favs.includes(id) ? favs.filter((x) => x !== id) : [...favs, id];
+                state.savePrefs({ dibujoFavs: favs });
+                pintarHerramientas();
+                const btnCat = toolsEl.querySelector(`[data-cat="${cat}"]`);
+                catAbierta = null; if (btnCat) abrirMenu(cat, btnCat);   // se repinta el menú con la estrella cambiada
+                return;
+            }
             const b = ev.target.closest('[data-tool]');
             if (b) { cerrarMenu(); elegirHerramienta(b.dataset.tool); }
         });
-        document.addEventListener('click', (ev) => { if (catAbierta && !ev.target.closest('.ch-fly') && !ev.target.closest('.ch-cat')) cerrarMenu(); });
+        document.addEventListener('click', (ev) => { const ruta = ev.composedPath(); if (catAbierta && !ruta.includes(volador) && !ruta.some((n) => n.classList && n.classList.contains('ch-cat'))) cerrarMenu(); });
         window.addEventListener('resize', cerrarMenu);
         function marcarBotones() {
             toolsEl.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === activa));
@@ -386,6 +412,7 @@
             });
             toolsEl.querySelector('[data-accion="borrar"]').classList.toggle('on', modoBorrar);
         }
+        pintarHerramientas();
         const overlay = (id) => chart.getOverlays({ id })[0] || null;
 
         // ── persistencia: cada cambio guarda (nunca recalcula nada) ──
@@ -408,7 +435,56 @@
         function guardar() {
             if (restaurando) return;
             clearTimeout(tGuardar);
-            tGuardar = setTimeout(() => state.saveDrawings(getSymbol(), dibujosActuales()), 60);
+            tGuardar = setTimeout(() => { state.saveDrawings(getSymbol(), dibujosActuales()); registrarFoto(); }, 60);
+        }
+
+        // ── deshacer / rehacer: fotos de los dibujos de este símbolo (hasta 60 pasos) ──
+        const foto = () => JSON.stringify(dibujosActuales());
+        function actualizarDeshacer() {
+            const u = toolsEl.querySelector('[data-accion="deshacer"]'), r = toolsEl.querySelector('[data-accion="rehacer"]');
+            if (u) u.disabled = pos <= 0;
+            if (r) r.disabled = pos >= pila.length - 1;
+        }
+        function registrarFoto() {
+            if (deshaciendo) return;
+            const f = foto();
+            if (pila[pos] === f) return;
+            pila = pila.slice(0, pos + 1); pila.push(f);
+            if (pila.length > 60) pila.shift();
+            pos = pila.length - 1;
+            actualizarDeshacer();
+        }
+        function crearDesdeGuardado(d) {
+            if (!Array.isArray(d.points)) return;
+            const extra = { points: d.points, extendData: d.extendData || undefined, lock: !!d.lock };
+            if (d.panel) {
+                const ind = chart.getIndicators({ name: d.panel })[0];
+                if (ind) extra.paneId = ind.paneId;
+            }
+            const h = d.extendData && d.extendData.estilo && POR_ID[d.extendData.estilo.herramienta];
+            if (h && h.continuo) extra.drawingMode = 'continuous';
+            crear(d.name, extra);
+        }
+        function irAFoto(nueva) {
+            if (nueva < 0 || nueva >= pila.length) return;
+            cancelarEnCurso(); salirDeHerramienta();
+            deshaciendo = true; restaurando = true;
+            chart.removeOverlay({ groupId: GRUPO }); deseleccionar();
+            JSON.parse(pila[nueva]).forEach(crearDesdeGuardado);
+            restaurando = false; deshaciendo = false;
+            pos = nueva;
+            if (todosOcultos) chart.overrideOverlay({ groupId: GRUPO, visible: false });
+            state.saveDrawings(getSymbol(), dibujosActuales());
+            actualizarDeshacer();
+        }
+        const deshacer = () => irAFoto(pos - 1), rehacer = () => irAFoto(pos + 1);
+
+        // Los trazos a mano alzada pueden traer cientos de puntos: se aligeran (se conserva la forma) para no pesar al guardar.
+        function aligerar(o) {
+            const MAX = 160;
+            if (o.points.length <= MAX) return;
+            const paso = (o.points.length - 1) / (MAX - 1);
+            chart.overrideOverlay({ id: o.id, points: Array.from({ length: MAX }, (_, i) => o.points[Math.round(i * paso)]) });
         }
 
         function eventos() {
@@ -416,6 +492,15 @@
                 onDrawEnd: (e) => {
                     const o = e.overlay;
                     if (o.name === 'nltPosition') completarPosicion(o);
+                    if (o.drawingMode === 'continuous') aligerar(o);
+                    const seguir = mantener && activa && POR_ID[activa] && !['nltText', 'nltNota', 'nltCallout'].includes(o.name);
+                    if (seguir) {
+                        // Mantener la herramienta: se puede seguir dibujando lo mismo sin volver a elegirla.
+                        const h = POR_ID[activa];
+                        guardar();
+                        setTimeout(() => { if (activa === h.id) crear(h.overlay, { extendData: { estilo: { herramienta: h.id } }, ...(h.continuo ? { drawingMode: 'continuous' } : {}) }); }, 0);
+                        return;
+                    }
                     salirDeHerramienta();
                     guardar();
                     seleccionar(o.id);
@@ -455,7 +540,7 @@
         }
 
         function crear(name, extra = {}) {
-            return chart.createOverlay({ name, groupId: GRUPO, ...extra, ...eventos() });
+            return chart.createOverlay({ name, groupId: GRUPO, mode: iman, ...extra, ...eventos() });
         }
 
         function salirDeHerramienta() { activa = null; ayuda(''); marcarBotones(); }
@@ -497,8 +582,10 @@
             barraEl.innerHTML = `
                 <span class="dw-nombre">${esc(h.label)}</span>
                 <label class="dw-color" title="Color"><input type="color" data-dw="color" value="${esc(v.color.hex)}"><span style="background:${css({ ...v.color, t: 0 })}"></span></label>
-                ${tieneLinea ? `<select class="dw-sel" data-dw="grosor" title="Grosor">${[1, 2, 3, 4].map((g) => `<option value="${g}"${g === v.grosor ? ' selected' : ''}>${g}px</option>`).join('')}</select>
-                <select class="dw-sel" data-dw="estiloLinea" title="Tipo de línea">${ESTILOS_LINEA.map((x) => `<option value="${x.v}"${x.v === v.estiloLinea ? ' selected' : ''}>${x.t}</option>`).join('')}</select>` : ''}
+                ${h.inputs.some((x) => x.id === 'relleno') ? `<label class="dw-color" title="Relleno"><input type="color" data-dw="relleno" value="${esc(v.relleno.hex)}"><span style="background:${css({ ...v.relleno, t: Math.min(v.relleno.t, 50) })}"></span></label>` : ''}
+                ${tieneLinea ? `<select class="dw-sel" data-dw="grosor" title="Grosor">${[...new Set([1, 2, 3, 4, 6, 8, 12, 16, 24, 32, v.grosor])].sort((a, b) => a - b).map((g) => `<option value="${g}"${g === v.grosor ? ' selected' : ''}>${g}px</option>`).join('')}</select>
+                ${h.inputs.some((x) => x.id === 'estiloLinea') ? `<select class="dw-sel" data-dw="estiloLinea" title="Tipo de línea">${ESTILOS_LINEA.map((x) => `<option value="${x.v}"${x.v === v.estiloLinea ? ' selected' : ''}>${x.t}</option>`).join('')}</select>` : ''}` : ''}
+                ${h.inputs.some((x) => x.id === 'texto') ? `<button type="button" class="dw-btn" data-dw="texto" title="Editar el texto" aria-label="Editar el texto"><i class="ph ph-text-aa"></i></button>` : ''}
                 ${esRect && puedeZonaNLT && puedeZonaNLT() ? `<button type="button" class="dw-btn${zona ? ' on' : ''}" data-dw="zona" title="${zona ? 'Zona conectada al NLT Zone Engine' : 'Enviar esta zona al NLT Zone Engine'}"><i class="ph ph-lightning"></i><span>NLT Engine</span></button>` : ''}
                 ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? 'Enviar la orden' : 'Ejecución real todavía no activada'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
                 ${esPos && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper() ? `<button type="button" class="dw-btn" data-dw="sim" title="Practicar esta posición en el Simulador (dinero virtual)"><i class="ph ph-game-controller"></i><span>Simular</span></button>` : ''}
@@ -515,6 +602,10 @@
             const o = overlay(seleccionado);
             if (!o) return;
             const { v } = estiloDe(o);
+            if (el.dataset.dw === 'relleno') {
+                actualizarEstilo(seleccionado, { relleno: { hex: el.value.toUpperCase(), t: v.relleno.t } });
+                const sw = el.parentElement.querySelector('span'); if (sw) sw.style.background = el.value;
+            }
             if (el.dataset.dw === 'color') {
                 actualizarEstilo(seleccionado, { color: { hex: el.value.toUpperCase(), t: v.color.t } });
                 const sw = barraEl.querySelector('.dw-color span'); if (sw) sw.style.background = el.value;
@@ -533,6 +624,7 @@
             const acc = el.dataset.dw;
             if (acc === 'borrar') { chart.removeOverlay({ id }); deseleccionar(); }
             if (acc === 'config') abrirPropiedades(id);
+            if (acc === 'texto') abrirPropiedades(id, 'Texto');
             if (acc === 'duplicar') duplicar(id);
             if (acc === 'bloquear') { const o = overlay(id); chart.overrideOverlay({ id, lock: !o.lock }); guardar(); pintarBarra(); }
             if (acc === 'sim' && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper()) NLTCharts.app.paper().desdePosicion(api.posicionComoOrden(id));
@@ -602,7 +694,8 @@
             const h = POR_ID[id];
             if (!h) return;
             activa = h.id;
-            crear(h.overlay, { extendData: { estilo: { herramienta: h.id } } });
+            if (todosOcultos) { todosOcultos = false; chart.overrideOverlay({ groupId: GRUPO, visible: true }); pintarHerramientas(); }
+            crear(h.overlay, { extendData: { estilo: { herramienta: h.id } }, ...(h.continuo ? { drawingMode: 'continuous' } : {}) });
             ayuda(h.ayuda);
             marcarBotones();
         }
@@ -621,6 +714,22 @@
                 modoBorrar = !modoBorrar;
                 ayuda(modoBorrar ? 'Tocá un dibujo para borrarlo' : '');
                 marcarBotones();
+            } else if (b.dataset.accion === 'iman') {
+                iman = iman === 'normal' ? 'weak_magnet' : iman === 'weak_magnet' ? 'strong_magnet' : 'normal';
+                state.savePrefs({ dibujoIman: iman });
+                chart.getOverlays({ groupId: GRUPO }).filter((o) => o.currentStep !== -1).forEach((o) => chart.overrideOverlay({ id: o.id, mode: iman }));
+                pintarHerramientas(); ayuda(NOMBRE_IMAN[iman]); setTimeout(() => { if (!activa) ayuda(''); }, 1800);
+            } else if (b.dataset.accion === 'mantener') {
+                mantener = !mantener; state.savePrefs({ dibujoMantener: mantener });
+                pintarHerramientas(); ayuda(mantener ? 'La herramienta queda activa después de cada dibujo (Esc para salir)' : ''); setTimeout(() => { if (!activa) ayuda(''); }, 2200);
+            } else if (b.dataset.accion === 'ocultar') {
+                todosOcultos = !todosOcultos; chart.overrideOverlay({ groupId: GRUPO, visible: !todosOcultos });
+                if (todosOcultos) deseleccionar();
+                pintarHerramientas();
+            } else if (b.dataset.accion === 'deshacer') {
+                deshacer();
+            } else if (b.dataset.accion === 'rehacer') {
+                rehacer();
             } else if (b.dataset.accion === 'limpiar') {
                 if (!dibujosActuales().length) return;
                 if (!window.confirm('¿Borrar todos los dibujos de ' + getSymbol() + '?')) return;
@@ -641,6 +750,9 @@
             if (ev.key === 'Escape') { cancelarEnCurso(); modoBorrar = false; salirDeHerramienta(); deseleccionar(); }
             if ((ev.key === 'Delete' || ev.key === 'Backspace') && seleccionado) { chart.removeOverlay({ id: seleccionado }); deseleccionar(); }
             if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'd' && seleccionado) { ev.preventDefault(); duplicar(seleccionado); }
+            if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 'z' && !ev.shiftKey) { ev.preventDefault(); deshacer(); }
+            if ((ev.ctrlKey || ev.metaKey) && (ev.key.toLowerCase() === 'y' || (ev.key.toLowerCase() === 'z' && ev.shiftKey))) { ev.preventDefault(); rehacer(); }
+            if (ev.altKey && !ev.ctrlKey && !ev.metaKey && ATAJOS[ev.key.toLowerCase()]) { ev.preventDefault(); elegirHerramienta(ATAJOS[ev.key.toLowerCase()]); }
         });
 
         const api = {
@@ -693,16 +805,10 @@
                 restaurando = true;
                 chart.removeOverlay({ groupId: GRUPO });
                 deseleccionar();
-                state.drawings(getSymbol()).map(migrar).filter(Boolean).forEach((d) => {
-                    if (!Array.isArray(d.points)) return;
-                    const extra = { points: d.points, extendData: d.extendData || undefined, lock: !!d.lock };
-                    if (d.panel) {
-                        const ind = chart.getIndicators({ name: d.panel })[0];
-                        if (ind) extra.paneId = ind.paneId;
-                    }
-                    crear(d.name, extra);
-                });
+                state.drawings(getSymbol()).map(migrar).filter(Boolean).forEach(crearDesdeGuardado);
+                if (todosOcultos) chart.overrideOverlay({ groupId: GRUPO, visible: false });
                 restaurando = false;
+                pila = [foto()]; pos = 0; actualizarDeshacer();
                 salirDeHerramienta();
                 modoBorrar = false;
                 marcarBotones();

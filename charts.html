@@ -92,6 +92,11 @@
         .ch-tool.peligro:hover { color: rgb(248,113,113); }
         .ch-fly { position: fixed; z-index: 75; min-width: 230px; max-width: calc(100vw - 16px); overflow-y: auto; background: #0D1016; border: 1px solid var(--ch-line); border-radius: 12px; padding: 6px; box-shadow: 0 12px 40px rgba(0,0,0,.55); }
         .ch-fly[hidden] { display: none; }
+        .ch-fly-fila { display: flex; align-items: center; } .ch-fly-fila .ch-fly-it { flex: 1; min-width: 0; }
+        .ch-fly-it kbd { margin-left: auto; font: 10px/1 ui-monospace, monospace; color: #6B7280; border: 1px solid var(--ch-line); border-radius: 4px; padding: 2px 4px; }
+        .ch-fly-fav { width: 34px; height: 34px; flex: none; border-radius: 8px; color: #4B5563; cursor: pointer; } .ch-fly-fav:hover { color: #FACC15; background: rgba(255,255,255,.06); } .ch-fly-fav.on { color: #FACC15; }
+        .ch-tool:disabled { opacity: .3; cursor: default; } .ch-tool.fuerte { box-shadow: inset 0 -2px 0 rgb(var(--ch-accent)); }
+        @media (pointer: coarse) { .ch-fly-it { padding: 12px 10px; } .ch-fly-fav { width: 44px; height: 44px; } .ch-tool { width: 44px; height: 44px; } }
         .ch-fly-it { width: 100%; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: #D1D5DB; font-size: 13px; text-align: left; cursor: pointer; }
         .ch-fly-it i { font-size: 18px; color: #9CA3AF; flex: none; }
         .ch-fly-it:hover { background: rgba(255,255,255,.06); color: #fff; }
@@ -452,8 +457,8 @@
     <script src="assets/js/charts/pine.js?v=29ae3cd1"></script>
     <script src="assets/js/charts/settings.js?v=9e35b0a9"></script>
     <script src="assets/js/charts/layout.js?v=263b6cdb"></script>
-    <script src="assets/js/charts/drawings-extra.js?v=3926ed5e"></script>
-    <script src="assets/js/charts/drawings.js?v=eaa3dbcd"></script>
+    <script src="assets/js/charts/drawings-extra.js?v=5a795ce4"></script>
+    <script src="assets/js/charts/drawings.js?v=b566b9c7"></script>
     <script src="assets/js/charts/trading.js?v=c5c388f9"></script>
     <script src="assets/js/charts/watchlist.js?v=7aa1a4ae"></script>
     <script src="assets/js/charts/indicators-free.js?v=c3ae9a50"></script>
