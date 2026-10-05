@@ -55,7 +55,7 @@
         { id: 'mostrarPct', tipo: 'bool', def: true, titulo: 'Porcentaje', grupo: 'Etiquetas', tab: 'Estilo', inline: 't2', recalc: false },
     ];
 
-    const HERRAMIENTAS = [
+    const BASE = [
         {
             id: 'hline', overlay: 'nltHLine', pasos: 2, icono: 'ph-minus', label: 'Línea horizontal', ayuda: 'Tocá el precio donde va la línea',
             inputs: [...linea({ color: col('#22D3EE', 0) }),
@@ -118,6 +118,9 @@
             inputs: posicion(), coords: ['Entrada', 'Objetivo (TP)', 'Stop (SL)'],
         },
     ];
+    // Herramientas adicionales (canales, Fibonacci/Gann, patrones, medición, formas, notas): ver drawings-extra.js
+    const EXTRA_MOD = NLTCharts.drawingsExtra || null;
+    const HERRAMIENTAS = BASE.concat(EXTRA_MOD ? EXTRA_MOD.definir({ col, linea, textoIn, ESTILOS_LINEA }) : []);
     const POR_ID = Object.fromEntries(HERRAMIENTAS.map((h) => [h.id, h]));
     const NOMBRES = new Set(HERRAMIENTAS.map((h) => h.overlay));
     const claveDef = (hid) => `DIBUJO_${hid}`;
@@ -154,6 +157,7 @@
         if (registrados) return;
         registrados = true;
         HERRAMIENTAS.forEach((h) => NLTCharts.settings.registrar(claveDef(h.id), { titulo: h.label, inputs: h.inputs }));
+        if (EXTRA_MOD) EXTRA_MOD.registrar({ estiloDe, css, lineaEstilo, extender, etiqueta, FUENTE, guiones });
 
         klinecharts.registerOverlay({
             name: 'nltHLine', totalStep: 2, needDefaultPointFigure: true, needDefaultYAxisFigure: true,
@@ -336,15 +340,50 @@
             },
         });
 
-        toolsEl.innerHTML = HERRAMIENTAS.map((h) =>
-            `<button type="button" class="ch-tool" data-tool="${esc(h.id)}" title="${esc(h.label)}" aria-label="${esc(h.label)}"><i class="ph ${esc(h.icono)}"></i></button>`).join('') +
+        const CATS = EXTRA_MOD ? EXTRA_MOD.CATEGORIAS : [];
+        const botonTool = (h) => `<button type="button" class="ch-tool" data-tool="${esc(h.id)}" title="${esc(h.label)}" aria-label="${esc(h.label)}"><i class="ph ${esc(h.icono)}"></i></button>`;
+        toolsEl.innerHTML = HERRAMIENTAS.filter((h) => !h.cat).map(botonTool).join('') +
+            CATS.map((c) => `<button type="button" class="ch-tool ch-cat" data-cat="${esc(c.id)}" title="${esc(c.label)}" aria-label="${esc(c.label)}" aria-haspopup="true" aria-expanded="false"><i class="ph ${esc(c.icono)}"></i></button>`).join('') +
             `<span class="ch-tool-sep" aria-hidden="true"></span>
              <button type="button" class="ch-tool" data-accion="borrar" title="Borrar un dibujo" aria-label="Borrar un dibujo"><i class="ph ph-eraser"></i></button>
              <button type="button" class="ch-tool peligro" data-accion="limpiar" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos"><i class="ph ph-trash"></i></button>`;
 
         function ayuda(texto) { hintEl.hidden = !texto; hintEl.textContent = texto || ''; }
+        // Menú de cada categoría (se abre junto al botón; en el celular, encima de la barra).
+        const volador = document.createElement('div');
+        volador.className = 'ch-fly'; volador.hidden = true; volador.setAttribute('role', 'menu');
+        document.body.appendChild(volador);
+        let catAbierta = null;
+        function cerrarMenu() { volador.hidden = true; if (catAbierta) { const b = toolsEl.querySelector(`[data-cat="${catAbierta}"]`); if (b) b.setAttribute('aria-expanded', 'false'); } catAbierta = null; }
+        function abrirMenu(cat, boton) {
+            if (catAbierta === cat) { cerrarMenu(); return; }
+            cerrarMenu();
+            catAbierta = cat; boton.setAttribute('aria-expanded', 'true');
+            volador.innerHTML = HERRAMIENTAS.filter((h) => h.cat === cat).map((h) =>
+                `<button type="button" role="menuitem" class="ch-fly-it${h.id === activa ? ' on' : ''}" data-tool="${esc(h.id)}"><i class="ph ${esc(h.icono)}"></i><span>${esc(h.label)}</span></button>`).join('');
+            volador.hidden = false;
+            const r = boton.getBoundingClientRect();
+            const ancho = window.innerWidth >= 900;
+            volador.style.maxHeight = `${Math.max(160, (ancho ? window.innerHeight - 24 : r.top - 12))}px`;
+            const w = volador.offsetWidth, h = volador.offsetHeight;
+            volador.style.left = `${Math.max(8, Math.min(ancho ? r.right + 6 : r.left, window.innerWidth - w - 8))}px`;
+            volador.style.top = `${Math.max(8, Math.min(ancho ? r.top : r.top - h - 6, window.innerHeight - h - 8))}px`;
+        }
+        volador.addEventListener('click', (ev) => {
+            const b = ev.target.closest('[data-tool]');
+            if (b) { cerrarMenu(); elegirHerramienta(b.dataset.tool); }
+        });
+        document.addEventListener('click', (ev) => { if (catAbierta && !ev.target.closest('.ch-fly') && !ev.target.closest('.ch-cat')) cerrarMenu(); });
+        window.addEventListener('resize', cerrarMenu);
         function marcarBotones() {
             toolsEl.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === activa));
+            const hAct = activa && POR_ID[activa];
+            toolsEl.querySelectorAll('[data-cat]').forEach((b) => {
+                const dentro = !!(hAct && hAct.cat === b.dataset.cat);
+                b.classList.toggle('on', dentro);
+                const ic = b.querySelector('i'); const c = CATS.find((x) => x.id === b.dataset.cat);
+                if (ic && c) ic.className = `ph ${dentro ? hAct.icono : c.icono}`;
+            });
             toolsEl.querySelector('[data-accion="borrar"]').classList.toggle('on', modoBorrar);
         }
         const overlay = (id) => chart.getOverlays({ id })[0] || null;
@@ -553,19 +592,26 @@
             });
         }
 
+        function elegirHerramienta(id) {
+            cancelarEnCurso();
+            modoBorrar = false;
+            deseleccionar();
+            if (activa === id) { salirDeHerramienta(); return; }
+            const h = POR_ID[id];
+            if (!h) return;
+            activa = h.id;
+            crear(h.overlay, { extendData: { estilo: { herramienta: h.id } } });
+            ayuda(h.ayuda);
+            marcarBotones();
+        }
+
         toolsEl.addEventListener('click', (ev) => {
             const b = ev.target.closest('button');
             if (!b) return;
+            if (b.dataset.cat) { abrirMenu(b.dataset.cat, b); return; }
+            cerrarMenu();
             if (b.dataset.tool) {
-                cancelarEnCurso();
-                modoBorrar = false;
-                deseleccionar();
-                if (activa === b.dataset.tool) { salirDeHerramienta(); return; }
-                const h = POR_ID[b.dataset.tool];
-                activa = h.id;
-                crear(h.overlay, { extendData: { estilo: { herramienta: h.id } } });
-                ayuda(h.ayuda);
-                marcarBotones();
+                elegirHerramienta(b.dataset.tool);
             } else if (b.dataset.accion === 'borrar') {
                 cancelarEnCurso();
                 activa = null;
