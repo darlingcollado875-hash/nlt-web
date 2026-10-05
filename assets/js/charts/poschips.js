@@ -50,7 +50,7 @@
         const desplazamientoY = () => (dom ? dom.getBoundingClientRect().top - stage.getBoundingClientRect().top : 0);
 
         function htmlFicha(d) {
-            const grip = d.tipo === 'entrada' ? '' : '<i class="pp-grip" title="Arrastrá para mover" aria-hidden="true"></i>';
+            const grip = d.tipo === 'entrada' ? '' : '<i class="pp-grip" title="Arrastra para mover" aria-hidden="true"></i>';
             const fant = (d.fantasmas || []).map((k) => `<button type="button" class="pp-fant" data-a="add${k}" title="Agregar ${k === 'sl' ? 'stop loss' : 'take profit'}">+ ${k.toUpperCase()}</button>`).join('');
             const armado = armadoCierre && armadoCierre.clave === d.clave && Date.now() - armadoCierre.t < 3000;
             const x = d.tipo === 'entrada' ? `<button type="button" class="pp-x${armado ? ' listo' : ''}" data-a="cerrar" title="Cerrar la posición" aria-label="Cerrar la posición">${armado ? 'Cerrar' : '✕'}</button>`

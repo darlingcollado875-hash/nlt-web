@@ -28,3 +28,14 @@
 # de bug silencioso que ya motivó el mismo header para los .html.
 /sw.js
   Cache-Control: no-cache
+
+# --- Velocidad: JS/CSS versionados ------------------------------------------------------------------
+# Todo <script>/<link> de assets/js y assets/css lleva ?v=<hash del contenido> (python3 tools/stamp_versions.py): si el
+# archivo cambia, cambia la URL. El navegador los reutiliza un día sin preguntar nada al servidor (visitas siguientes:
+# cero esperas); pasado el día revalida con ETag (respuesta 304, casi gratis). No se usa "immutable" a propósito: así un
+# sello olvidado nunca deja a nadie con código viejo más de un día. El worker de NLT Script hereda el ?v= de nlts.js.
+/assets/js/*
+  Cache-Control: public, max-age=86400
+
+/assets/css/*
+  Cache-Control: public, max-age=86400

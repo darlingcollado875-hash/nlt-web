@@ -7,12 +7,13 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Community</title>
     <meta name="description" content="Where NLT traders learn, share and grow together.">
     <link rel="canonical" href="https://nltnextlevel.uk/community">
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=f1156d08">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -310,7 +311,7 @@
             <div id="joinBanner" class="hidden glass-card p-6 mb-6 text-center">
                 <i class="ph-fill ph-users-three text-2xl text-nlt-accent mb-2"></i>
                 <p class="font-bold text-white mb-1">Join the NLT Community</p>
-                <p class="text-xs text-gray-500 mb-4">Entrá gratis con tu cuenta de Google para publicar, comentar, reaccionar y usar el chat y los mensajes privados.</p>
+                <p class="text-xs text-gray-500 mb-4">Entra gratis con tu cuenta de Google para publicar, comentar, reaccionar y usar el chat y los mensajes privados.</p>
                 <button id="btn-become-member" class="px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Entrar gratis</button>
             </div>
 
@@ -361,7 +362,7 @@
             <div id="chatSinAcceso" class="hidden glass-card p-10 text-center">
                 <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
                 <p class="font-bold text-white mb-1">Necesitas un producto NLT activo</p>
-                <p class="text-xs text-gray-500 mb-4">Iniciá sesión gratis para participar en el chat.</p>
+                <p class="text-xs text-gray-500 mb-4">Inicia sesión gratis para participar en el chat.</p>
                 <button type="button" onclick="document.getElementById('headerLoginBtn')?.click()" class="inline-block px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Entrar gratis</button>
             </div>
 
@@ -392,7 +393,7 @@
             <div id="dmSinAcceso" class="hidden glass-card p-10 text-center">
                 <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
                 <p class="font-bold text-white mb-1">Necesitas un producto NLT activo</p>
-                <p class="text-xs text-gray-500 mb-4">Iniciá sesión gratis para usar la mensajería privada.</p>
+                <p class="text-xs text-gray-500 mb-4">Inicia sesión gratis para usar la mensajería privada.</p>
                 <button type="button" onclick="document.getElementById('headerLoginBtn')?.click()" class="inline-block px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Entrar gratis</button>
             </div>
 
@@ -448,12 +449,12 @@
     <div id="emojiPicker" class="hidden"></div>
     <div id="lightboxModal" class="hidden">
         <div class="btn-cerrar-lightbox" id="btn-cerrar-lightbox" role="button" tabindex="0" aria-label="Cerrar imagen"><i class="ph ph-x" aria-hidden="true"></i></div>
-        <img id="lightboxImg" src="" alt="Imagen">
+        <img id="lightboxImg" alt="Imagen">
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=2efe53c3"></script>
+    <script src="assets/js/nlt-shared.js?v=5a05efc3"></script>
+    <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -739,7 +740,7 @@
         function wirePostCards(container) {
             container.querySelectorAll('.btn-react').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', async () => {
-                    if (!esMiembro) { alert('Iniciá sesión (gratis) para reaccionar.'); return; }
+                    if (!esMiembro) { alert('Inicia sesión (gratis) para reaccionar.'); return; }
                     const postId = btn.getAttribute('data-post-id');
                     const tipo = btn.getAttribute('data-tipo');
                     const reaccion = REACCIONES.find(r => r.tipo === tipo);
@@ -1196,7 +1197,7 @@
                     }
                     const btnSeguir = document.getElementById('btn-seguir');
                     btnSeguir.addEventListener('click', async () => {
-                        if (!esMiembro) { alert('Iniciá sesión (gratis) para seguir a otros usuarios.'); return; }
+                        if (!esMiembro) { alert('Inicia sesión (gratis) para seguir a otros usuarios.'); return; }
                         const siguiendoAntes = btnSeguir.getAttribute('data-siguiendo') === 'true';
                         const nuevoEstado = !siguiendoAntes;
                         const contador = document.getElementById('statSeguidores');

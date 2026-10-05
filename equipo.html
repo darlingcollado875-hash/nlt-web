@@ -8,10 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT | Equipo</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=f1156d08">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -151,7 +152,7 @@
             <div id="vistaSinAcceso" class="hidden glass-card p-10 text-center">
                 <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
                 <p class="font-bold text-white mb-1">Este apartado es exclusivo del equipo interno de NLT</p>
-                <p class="text-xs text-gray-500">Si creés que deberías tener acceso, contactá al administrador.</p>
+                <p class="text-xs text-gray-500">Si crees que deberías tener acceso, contacta al administrador.</p>
             </div>
 
             <div id="vistaEquipo" class="hidden space-y-10">
@@ -254,8 +255,8 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=b16dbfcb"></script>
+    <script src="assets/js/nlt-shared.js?v=5a05efc3"></script>
+    <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
     <script>
         function esc(texto) {
             return String(texto ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -293,7 +294,7 @@
                             <button class="btn-revisar-acuerdo btn-primario btn-sm" data-version-id="${v.id}" data-firmado="${v.mi_estado === 'FIRMADO' ? '1' : '0'}">${v.mi_estado === 'FIRMADO' ? 'Ver' : 'Revisar y firmar'}</button>
                         </div>
                     </div>
-                `).join('') : '<p class="text-sm text-gray-500 glass-card p-6 text-center">No tenés acuerdos asignados todavía.</p>';
+                `).join('') : '<p class="text-sm text-gray-500 glass-card p-6 text-center">No tienes acuerdos asignados todavía.</p>';
                 box.querySelectorAll('.btn-revisar-acuerdo').forEach(b => b.addEventListener('click', () => abrirModalAcuerdo(b.getAttribute('data-version-id'))));
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger glass-card p-6">Error: ${esc(err.message)}</p>`;
@@ -609,7 +610,7 @@
 
         document.getElementById('btn-nueva-version').addEventListener('click', async () => {
             const familias = await NLT_API.agreementsListar();
-            if (!familias.length) { alert('Primero necesitás un acuerdo (familia) creado.'); return; }
+            if (!familias.length) { alert('Primero necesitas un acuerdo (familia) creado.'); return; }
             // El backend ya devuelve solo las familias que este admin puede
             // ver (Founder solo con agreements.founder/Super Admin) -- acá
             // solo se deja elegir entre lo que YA vino filtrado, nunca se
@@ -617,7 +618,7 @@
             let agreementId = familias[0].id;
             if (familias.length > 1) {
                 const opciones = familias.map((f, i) => `${i + 1}. ${f.title} (${f.agreement_type})`).join('\n');
-                const elegido = prompt(`¿Para qué acuerdo es la nueva versión?\n${opciones}\n\nEscribí el número:`);
+                const elegido = prompt(`¿Para qué acuerdo es la nueva versión?\n${opciones}\n\nEscribe el número:`);
                 const idx = parseInt(elegido, 10) - 1;
                 if (!(idx >= 0 && idx < familias.length)) return;
                 agreementId = familias[idx].id;

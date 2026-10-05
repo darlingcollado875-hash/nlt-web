@@ -8,10 +8,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://unpkg.com">
     <link rel="preconnect" href="https://cdn.jsdelivr.net">
+    <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Trading Copier | Configuración</title>
-    <link rel="stylesheet" href="assets/css/tailwind.css?v=6b8092e6">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=d5b3b1af">
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=f1156d08">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
@@ -82,7 +83,7 @@
 
             <div class="glass-card p-8">
                 <h3 class="text-lg font-bold mb-2 text-white flex items-center gap-2"><i class="ph-fill ph-bell-ringing"></i> Notificaciones</h3>
-                <p class="text-xs text-gray-500 mb-6">Recibí avisos en este dispositivo (PC o celular) para: señales nuevas de Elite Signals, pago confirmado, operaciones copiadas y mensajes de comunidad -- incluso con NLT cerrado.</p>
+                <p class="text-xs text-gray-500 mb-6">Recibe avisos en este dispositivo (PC o celular) para: señales nuevas de Elite Signals, pago confirmado, operaciones copiadas y mensajes de comunidad -- incluso con NLT cerrado.</p>
                 <button id="btnPushToggle" type="button" class="px-6 py-3 rounded-xl bg-nlt-accent/10 border border-nlt-accent/25 text-nlt-accent text-sm font-semibold hover:bg-nlt-accent/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Activar notificaciones</button>
             </div>
 
@@ -98,8 +99,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=4e227e14"></script>
-    <script src="assets/js/nlt-api-client.js?v=b16dbfcb"></script>
+    <script src="assets/js/nlt-shared.js?v=5a05efc3"></script>
+    <script src="assets/js/nlt-api-client.js?v=b859f2f0"></script>
     <script>
         async function cargarDatosPerfil() {
             const session = await NLT.requireSession();

@@ -3634,7 +3634,7 @@
             el.textContent = {
                 'suscrito': 'Desactivar notificaciones',
                 'no-suscrito': 'Activar notificaciones',
-                'denegado': 'Notificaciones bloqueadas (revisá el navegador)',
+                'denegado': 'Notificaciones bloqueadas (revisa el navegador)',
                 'sin-soporte': 'Tu navegador no soporta notificaciones',
             }[estado] || 'Activar notificaciones';
         };

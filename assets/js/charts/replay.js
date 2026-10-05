@@ -209,7 +209,7 @@
                     <input type="date" data-k="fecha" value="${esc(st.fecha)}" aria-label="Fecha">
                     <input type="time" data-k="hora" value="${esc(st.hora)}" step="60" aria-label="Hora">
                     <button type="button" class="rp-b rp-play" data-a="ir" ${st.cargando ? 'disabled' : ''}><i class="ph ph-clock-counter-clockwise"></i><span>${st.cargando ? 'Cargando…' : 'Ir a esa vela'}</span></button>
-                    <button type="button" class="rp-b ${st.eligiendo ? 'on' : ''}" data-a="elegir" title="Tocá una vela del gráfico"><i class="ph ph-crosshair"></i><span>${st.eligiendo ? 'Tocá una vela…' : 'Elegir en el gráfico'}</span></button>
+                    <button type="button" class="rp-b ${st.eligiendo ? 'on' : ''}" data-a="elegir" title="Toca una vela del gráfico"><i class="ph ph-crosshair"></i><span>${st.eligiendo ? 'Toca una vela…' : 'Elegir en el gráfico'}</span></button>
                     <button type="button" class="rp-b rp-x" data-a="cerrar" aria-label="Cerrar"><i class="ph ph-x"></i></button>`}
                 ${st.error ? `<span class="rp-err">${esc(st.error)}</span>` : ''}`;
         }

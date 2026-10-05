@@ -29,8 +29,8 @@
     ];
     const ESTADOS = {
         coming_soon: ['#9CA3AF', 'PRÓXIMAMENTE', 'El análisis con IA llega con NLT Indicator AI.'],
-        no_access: ['#9CA3AF', 'SIN ACCESO', 'Necesitás NLT Indicator AI (o análisis gratis).'],
-        no_zone: ['#D29922', 'SIN ZONA', 'Marcá una zona manual en el NLT Zone Engine.'],
+        no_access: ['#9CA3AF', 'SIN ACCESO', 'Necesitas NLT Indicator AI (o análisis gratis).'],
+        no_zone: ['#D29922', 'SIN ZONA', 'Marca una zona manual en el NLT Zone Engine.'],
         waiting: ['#3FB950', '● LIVE · zona enviada', ''],
         sent: ['#4378FF', '⇧ ENVIADO', 'Analizando…'],
         pipeline_unavailable: ['#D29922', 'EVENTO LISTO', 'El análisis con IA todavía no está activo.'],
@@ -55,7 +55,7 @@
             if (!ver) { pintar(); return; }
             if (NLTCharts.market.enReplay && NLTCharts.market.enReplay()) { datos = null; error = 'NLT AI está en pausa durante el Bar Replay.'; pintar(); return; }
             if (NLTCharts.market.enHistorico && NLTCharts.market.enHistorico()) { datos = null; error = 'NLT AI analiza el mercado en vivo: en pausa mientras mirás el histórico.'; pintar(); return; }
-            if (!pro.tieneAcceso()) { datos = null; error = 'NLT AI recibe los eventos del NLT Zone Engine: activalo primero.'; pintar(); return; }
+            if (!pro.tieneAcceso()) { datos = null; error = 'NLT AI recibe los eventos del NLT Zone Engine: actívalo primero.'; pintar(); return; }
             if (enCurso) { otraVez = true; return; }
             enCurso = true;
             const n = ++seq;
@@ -91,7 +91,7 @@
             const env = datos && datos.last_sent;
             const f = NLTCharts.drawings.formatear;
             return `<table class="ze-tabla ze-nlt${minimizado() ? ' ze-min' : ''}">
-                <tr class="ze-hdr" data-nltai="minimizar" title="Tocá para minimizar o expandir" style="background:rgba(67,120,255,.12)"><td style="color:#fff">🌐 NLT AI</td>
+                <tr class="ze-hdr" data-nltai="minimizar" title="Toca para minimizar o expandir" style="background:rgba(67,120,255,.12)"><td style="color:#fff">🌐 NLT AI</td>
                     <td style="color:${st ? st[0] : '#9CA3AF'}">${esc(error ? 'ERROR' : st ? st[1] : 'cargando…')}</td></tr>
                 ${fila('Zona', z ? `${z.esOB ? 'OB' : 'FVG'} · ${z.alcista ? 'LONG' : 'SHORT'}` : '—', z ? (z.alcista ? '#3FB950' : '#F85149') : '#6B7280')}
                 ${z ? fila('Precio', `${f(z.top)} → ${f(z.bottom)}`) : ''}

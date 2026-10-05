@@ -69,7 +69,7 @@
             const push = window.NLT && NLT.pushEstado ? await NLT.pushEstado() : 'sin-soporte';
             const aviso = push === 'suscrito' ? '' : push === 'sin-soporte' ? '<p class="mc-nota">Este navegador no admite notificaciones push: las alertas se guardan pero no podrán avisarte.</p>'
                 : push === 'denegado' ? '<p class="mc-nota">Bloqueaste las notificaciones en este navegador: activalas en los ajustes del sitio para recibir las alertas.</p>'
-                : '<div class="al-push"><span>Activá los avisos en este dispositivo para recibir las alertas con la página cerrada.</span><button type="button" data-al="push" class="mc-d on">Activar avisos</button></div>';
+                : '<div class="al-push"><span>Activa los avisos en este dispositivo para recibir las alertas con la página cerrada.</span><button type="button" data-al="push" class="mc-d on">Activar avisos</button></div>';
             const filas = alertas.map((a) => `<div class="al-fila${a.active ? '' : ' off'}">
                 <div class="al-txt"><b>${esc(a.symbol)}</b> ${esc(TEXTO[a.condition] || '')} <b>${esc(a.level)}</b>${a.note ? `<br><small>${esc(a.note)}</small>` : ''}
                 <br><small>${a.active ? (a.trigger === 'every_time' ? 'Activa · cada vez' : 'Activa · una vez') : a.triggered_count ? `Disparada ${esc(fecha(a.last_triggered_at))}` : 'Pausada'}${a.triggered_count && a.active ? ` · ${a.triggered_count} aviso(s)` : ''}</small></div>

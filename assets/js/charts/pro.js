@@ -291,7 +291,7 @@
         const filas = p.filas.filter((f) => f.m === 's' || (f.m === 'x' && exp) || (f.m === 'c' && !exp) || (f.m === 'd' && diag));
         const div = (bg) => `<tr class="ze-div" style="background:${col(bg)}"><td>──────────────────</td><td>──────────</td></tr>`;
         return `<table class="ze-tabla${minimizado ? ' ze-min' : ''}">
-            <tr class="ze-hdr" data-ze="minimizar" title="Tocá para minimizar o expandir" style="background:${col(p.hdr.bg)}">
+            <tr class="ze-hdr" data-ze="minimizar" title="Toca para minimizar o expandir" style="background:${col(p.hdr.bg)}">
                 <td style="color:${col(p.hdr.lc)}">${esc(p.hdr.l)}</td><td class="ze-v" style="color:${col(p.hdr.c)}">${esc(p.hdr.v)}</td></tr>
             ${div(p.div0)}
             ${filas.map((f) => (f.div ? div(f.bg) :
@@ -618,7 +618,7 @@
                         <span><span class="ch-ind-name block">Mostrar en el gráfico</span><span class="ch-ind-desc">${origen}</span></span>
                     </label>
                     <div class="ch-pro-manual">
-                        <p class="ch-ind-desc" style="margin-bottom:6px">Zona manual: dibujá un rectángulo y tocá <strong>NLT Engine</strong> en su barra, o cargala en la configuración.</p>
+                        <p class="ch-ind-desc" style="margin-bottom:6px">Zona manual: dibuja un rectángulo y toca <strong>NLT Engine</strong> en su barra, o cargala en la configuración.</p>
                         ${z ? `<p class="ch-ind-desc" style="color:#E5E7EB">${z.esOB ? 'OB' : 'FVG'} ${z.alcista ? 'alcista' : 'bajista'} · ${esc(NLTCharts.drawings.formatear(z.bottom))} – ${esc(NLTCharts.drawings.formatear(z.top))}${rectId ? ' · conectada a un rectángulo' : ''}</p>` : ''}
                         ${m ? `<p class="ch-ind-desc" style="margin-top:4px; color:#E5E7EB">Estado: <strong>${esc(m.status)}</strong> · Setup Quality ${esc(m.quality)}% (${esc(m.grade)}) · ${esc(m.validity)} · ${esc(m.touches)} toques</p>` : ''}
                     </div>`;

@@ -66,7 +66,7 @@
             el.innerHTML = `
                 <div class="wl-head"><span>Watchlist</span><button type="button" class="ch-tool" data-wl="cerrar" aria-label="Cerrar watchlist"><i class="ph ph-x"></i></button></div>
                 <p class="wl-sec"><i class="ph-fill ph-star"></i> Favoritos</p>
-                <div class="wl-lista" data-lista="favs">${favs.length ? favs.map(filaFav).join('') : '<p class="wl-vacio">Tocá ☆ en un instrumento para agregarlo.</p>'}</div>
+                <div class="wl-lista" data-lista="favs">${favs.length ? favs.map(filaFav).join('') : '<p class="wl-vacio">Toca ☆ en un instrumento para agregarlo.</p>'}</div>
                 <p class="wl-sec">Instrumentos</p>
                 <input type="search" class="wl-buscar" placeholder="Buscar símbolo" value="${esc(filtro)}" aria-label="Buscar símbolo">
                 <div class="wl-lista">${todos.map(filaTodos).join('') + nd.map(filaNoDisponible).join('') || '<p class="wl-vacio">Sin resultados.</p>'}</div>`;
