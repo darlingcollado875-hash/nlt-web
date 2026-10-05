@@ -251,12 +251,19 @@
         // [2] stop (los dos en el borde derecho: se arrastran juntos en X).
         klinecharts.registerOverlay({
             name: 'nltPosition', totalStep: 2, needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true,
-            createPointFigures: ({ overlay, coordinates }) => {
+            createPointFigures: ({ chart, overlay, coordinates }) => {
                 if (coordinates.length < 3 || overlay.points.length < 3) return [];
                 const { h, v } = estiloDe(overlay);
                 const [ce, ct, cs] = coordinates;
-                const x1 = Math.min(ce.x, ct.x), x2 = Math.max(ce.x, ct.x, x1 + 8);
+                const x1 = Math.min(ce.x, ct.x);
+                let x2 = Math.max(ce.x, ct.x, x1 + 8);
                 const m = calcularPosicion(h.lado, overlay.points.map((pt) => pt.value), v, simboloFn());
+                // La operación SE CIERRA cuando el mercado toca el objetivo o el stop: la caja termina en esa vela y marca el resultado.
+                const res = resultadoPosicion(chart, overlay.id, h.lado, overlay.points[0].timestamp, m.entrada, m.tp, m.sl);
+                let xHit = null;
+                if (res) {
+                    try { const px = chart.convertToPixel({ timestamp: res.ts }, { paneId: 'candle_pane' }); if (px && Number.isFinite(px.x)) { xHit = px.x; x2 = Math.max(x1 + 8, px.x); } } catch (_) { /* sin conversión: queda el ancho elegido */ }
+                }
                 const caja = (y1, y2, c) => ({ type: 'polygon', attrs: { coordinates: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }] }, styles: { style: 'fill', color: css(c) } });
                 const fig = [caja(ce.y, ct.y, v.ganancia), caja(ce.y, cs.y, v.perdida),
                     { type: 'line', attrs: { coordinates: [{ x: x1, y: ce.y }, { x: x2, y: ce.y }] }, styles: lineaEstilo(v) }];
@@ -269,6 +276,14 @@
                 fig.push(txt(arribaEsTP ? ct.y - 4 : ct.y + 4, `Objetivo: ${f(m.tp)} · ${detalle(m.distTP, m.pctTP, m.plTP)}`, css({ ...v.ganancia, t: 15 }), arribaEsTP ? 'bottom' : 'top'));
                 fig.push(txt(arribaEsTP ? cs.y + 4 : cs.y - 4, `Stop: ${f(m.sl)} · ${detalle(m.distSL, m.pctSL, m.plSL)}`, css({ ...v.perdida, t: 15 }), arribaEsTP ? 'top' : 'bottom'));
                 fig.push(txt(ce.y, `${h.lado === 'long' ? 'Long' : 'Short'} · R/R ${m.rr === null ? '—' : m.rr.toFixed(2)}${m.lotes ? ` · ${formatearLotes(m.lotes)} ${m.lotes === 1 ? 'lote' : 'lotes'}${m.excede ? ' ⚠' : ''}` : ''}`, 'rgba(17,24,39,.88)', 'middle'));
+                if (res && xHit != null) {
+                    const yNivel = res.estado === 'tp' ? ct.y : cs.y, ok = res.estado === 'tp';
+                    const pl = ok ? m.plTP : m.plSL;
+                    fig.push({ type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: xHit, y: ce.y }, { x: xHit, y: yNivel }] }, styles: { style: 'solid', size: 2, color: ok ? '#22C55E' : '#EF4444' } });
+                    fig.push({ type: 'circle', ignoreEvent: true, attrs: { x: xHit, y: yNivel, r: 5 }, styles: { style: 'fill', color: ok ? '#22C55E' : '#EF4444' } });
+                    fig.push({ type: 'text', ignoreEvent: true, attrs: { x: xHit, y: yNivel + (ok === (ct.y < cs.y) ? -10 : 10), text: `${ok ? '✓ Objetivo alcanzado' : '✗ Stop alcanzado'}${m.lotes ? ` · ${dinero(pl)}` : ''}`, align: 'center', baseline: ok === (ct.y < cs.y) ? 'bottom' : 'top' },
+                        styles: { color: '#fff', backgroundColor: ok ? 'rgba(21,128,61,.95)' : 'rgba(185,28,28,.95)', size: 11, family: FUENTE, weight: 700, paddingLeft: 7, paddingRight: 7, paddingTop: 3, paddingBottom: 3, borderRadius: 4 } });
+                }
                 if (m.lotes && v.mostrarEtiquetas) {
                     // Panel de tamaño: lo que hay que poner en la plataforma para arriesgar lo planeado.
                     const dineroPos = (n) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -298,6 +313,30 @@
                 }];
             },
         });
+    }
+
+    // ¿El mercado ya tocó el objetivo o el stop de esta posición? Mira las velas POSTERIORES a la de la entrada; si en una misma vela
+    // se tocan los dos no se sabe cuál fue primero y gana el stop (lo conservador). Se calcula una vez por cambio de datos (caché).
+    const cachePosicion = new Map();
+    function resultadoPosicion(chart, id, lado, t0, entrada, tp, sl) {
+        const datos = chart.getDataList(); const n = datos.length;
+        if (!n || !(t0 > 0)) return null;
+        const ult = datos[n - 1];
+        const clave = `${t0}|${entrada}|${tp}|${sl}|${n}|${datos[0].timestamp}|${ult.high}|${ult.low}`;
+        const previo = cachePosicion.get(id);
+        if (previo && previo.clave === clave) return previo.r;
+        let a = 0, b = n;
+        while (a < b) { const mid = (a + b) >> 1; if (datos[mid].timestamp > t0) b = mid; else a = mid + 1; }
+        let r = null;
+        const largo = lado === 'long';
+        for (let i = a; i < n; i++) {
+            const d = datos[i];
+            if (largo ? d.low <= sl : d.high >= sl) { r = { estado: 'sl', ts: d.timestamp }; break; }
+            if (largo ? d.high >= tp : d.low <= tp) { r = { estado: 'tp', ts: d.timestamp }; break; }
+        }
+        if (cachePosicion.size > 60) cachePosicion.clear();
+        cachePosicion.set(id, { clave, r });
+        return r;
     }
 
     // ── tamaño de la posición en LOTES ──
