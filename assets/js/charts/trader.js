@@ -187,8 +187,10 @@
                         <b style="color:${g >= 0 ? '#22C55E' : '#EF4444'}">${g >= 0 ? '+' : ''}${dinero(g)}</b>
                         <button type="button" data-tr="cerrar" data-ticket="${esc(p.ticket)}" title="Cerrar posición (dos toques)" aria-label="Cerrar posición"><i class="ph ph-x-circle"></i></button></div>`; }).join('') || '<p class="mc-nota">No hay posiciones abiertas en esta cuenta.</p>';
                 }
+                const confirmaOn = state.prefs().confirmarOrden !== false;
+                const interruptor = c ? `<label class="tr-sw" title="Afecta al botón BUY/SELL de las posiciones que dibujas en el gráfico"><input type="checkbox" data-tr-confirmar ${confirmaOn ? 'checked' : ''}><span class="tr-sw-t"><b>Pedir confirmación</b> en el botón BUY/SELL de mis posiciones<small>${confirmaOn ? 'Activado: un primer toque arma el botón y el segundo envía la orden.' : 'Desactivado: un solo toque envía la orden real al instante.'}</small></span></label>` : '';
                 cuerpo = `${modo}${sel}${errorVivo ? `<p class="al-msg">${esc(errorVivo)}</p>` : ''}${form}${resumen}${tabs}${msg ? `<p class="al-msg">${esc(msg)}</p>` : ''}${panel}
-                    <p class="mc-nota">Operar con dinero real implica riesgo de pérdida. Las posiciones, SL y TP se ven y se mueven también directo en el gráfico.</p>`;
+                    ${interruptor}<p class="mc-nota">Operar con dinero real implica riesgo de pérdida. Las posiciones, SL y TP se ven y se mueven también directo en el gráfico.</p>`;
             }
             pop.innerHTML = `<div class="mc-tit">Operar · cuenta real</div>${cuerpo}`;
         }
@@ -236,6 +238,13 @@
             pintar(); posicionar(); chips.actualizar();
         });
         pop.addEventListener('change', async (e) => {
+            if (e.target.matches('[data-tr-confirmar]')) {
+                if (!e.target.checked && !window.confirm('Con un solo toque, el botón BUY/SELL enviará la orden REAL al instante. ¿Quieres desactivar la confirmación?')) { e.target.checked = true; return; }
+                state.savePrefs({ confirmarOrden: e.target.checked });
+                if (NLTCharts.ui.toast) NLTCharts.ui.toast(e.target.checked ? 'Confirmación activada: BUY/SELL pide un segundo toque.' : 'Un solo toque: BUY/SELL envía la orden al instante.', e.target.checked ? 'ok' : '');
+                pintar(); posicionar();
+                return;
+            }
             if (e.target.matches('[data-tr-cuenta]')) { cuentaId = e.target.value; state.savePrefs({ traderCuenta: cuentaId }); mapa = null; vivo = { summary: null, positions: [], orders: [] }; pintar(); await refrescar(); posicionar(); }
         });
         pop.addEventListener('submit', async (e) => {

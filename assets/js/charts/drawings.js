@@ -403,6 +403,8 @@
         registrar();
         simboloFn = getSymbol;
         const state = NLTCharts.state;
+        // Preferencia del usuario: pedir un segundo toque antes de mandar dinero real con el botón BUY/SELL (por defecto, SÍ)
+        const pideConfirmar = () => state.prefs().confirmarOrden !== false;
         const esc = NLTCharts.ui.esc;
         let activa = null;       // herramienta en curso
         let modoBorrar = false;
@@ -664,7 +666,8 @@
                 ${h.inputs.some((x) => x.id === 'estiloLinea') ? `<select class="dw-sel" data-dw="estiloLinea" title="Tipo de línea">${ESTILOS_LINEA.map((x) => `<option value="${x.v}"${x.v === v.estiloLinea ? ' selected' : ''}>${x.t}</option>`).join('')}</select>` : ''}` : ''}
                 ${h.inputs.some((x) => x.id === 'texto') ? `<button type="button" class="dw-btn" data-dw="texto" title="Editar el texto" aria-label="Editar el texto"><i class="ph ph-text-aa"></i></button>` : ''}
                 ${esRect && puedeZonaNLT && puedeZonaNLT() ? `<button type="button" class="dw-btn${zona ? ' on' : ''}" data-dw="zona" title="${zona ? 'Zona conectada al NLT Zone Engine' : 'Enviar esta zona al NLT Zone Engine'}"><i class="ph ph-lightning"></i><span>NLT Engine</span></button>` : ''}
-                ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? 'Operar esta posición con tu cuenta MT5: toca una vez para armar y otra para enviar' : 'Operar con tu cuenta todavía no está disponible'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
+                ${esPos ? `<button type="button" class="dw-btn" data-dw="orden" ${tr && tr.activo() ? '' : 'disabled'} title="${tr && tr.activo() ? (pideConfirmar() ? 'Operar esta posición con tu cuenta MT5: toca una vez para armar y otra para enviar' : 'Operar esta posición con tu cuenta MT5: un toque envía la orden') : 'Operar con tu cuenta todavía no está disponible'}"><i class="ph ph-paper-plane-tilt"></i><span>${h.lado === 'long' ? 'BUY' : 'SELL'}</span></button>` : ''}
+                ${esPos && tr && tr.activo() ? (() => { const c = pideConfirmar(); return `<button type="button" class="dw-btn dw-ico${c ? ' on' : ''}" data-dw="confirmar" aria-pressed="${c}" title="${c ? 'Confirmación activada: BUY/SELL pide un segundo toque. Toca para enviar con un solo toque.' : 'Un solo toque: BUY/SELL envía la orden al instante. Toca para volver a pedir confirmación.'}" aria-label="Confirmación del botón BUY/SELL"><i class="ph ${c ? 'ph-shield-check' : 'ph-lightning'}"></i></button>`; })() : ''}
                 ${esPos && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper() ? `<button type="button" class="dw-btn" data-dw="sim" title="Practicar esta posición en el Simulador (dinero virtual)"><i class="ph ph-game-controller"></i><span>Simular</span></button>` : ''}
                 <button type="button" class="dw-btn" data-dw="config" title="Configuración" aria-label="Configuración"><i class="ph ph-gear-six"></i></button>
                 <button type="button" class="dw-btn" data-dw="duplicar" title="Duplicar" aria-label="Duplicar"><i class="ph ph-copy"></i></button>
@@ -713,10 +716,22 @@
             if (acc === 'bloquear') { const o = overlay(id); chart.overrideOverlay({ id, lock: !o.lock }); guardar(); pintarBarra(); }
             if (acc === 'sim' && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper()) NLTCharts.app.paper().desdePosicion(api.posicionComoOrden(id));
             if (acc === 'zona' && onEnviarZona) onEnviarZona(id);
+            if (acc === 'confirmar') {
+                if (pideConfirmar()) {
+                    if (!window.confirm('Con un solo toque, el botón BUY/SELL enviará la orden REAL al instante, con el lote, el SL y el TP de la herramienta. ¿Quieres desactivar la confirmación?')) return;
+                    state.savePrefs({ confirmarOrden: false });
+                    if (NLTCharts.ui.toast) NLTCharts.ui.toast('Un solo toque: BUY/SELL envía la orden al instante.');
+                } else {
+                    state.savePrefs({ confirmarOrden: true });
+                    if (NLTCharts.ui.toast) NLTCharts.ui.toast('Confirmación activada: BUY/SELL pide un segundo toque.', 'ok');
+                }
+                desarmar(); pintarBarra();
+                return;
+            }
             if (acc === 'orden' && NLTCharts.trading) {
                 const pos = api.posicionComoOrden(id);
                 if (!pos) return;
-                if (!(ordenArmada && ordenArmada.id === id)) {
+                if (pideConfirmar() && !(ordenArmada && ordenArmada.id === id)) {
                     // 1er toque: queda armado 4 s y muestra exactamente qué se va a mandar
                     desarmar(el);
                     el.dataset.html = el.innerHTML; el.classList.add('armado');
