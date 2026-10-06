@@ -1486,8 +1486,8 @@
                     <p id="seMsg" class="text-xs mb-2 hidden"></p>
                     <div class="overflow-x-auto">
                         <table class="w-full text-xs">
-                            <thead><tr class="text-left text-gray-500"><th class="py-1.5 pr-3">Hora</th><th class="pr-3">Activo</th><th class="pr-3">TF</th><th class="pr-3">Evento</th><th class="pr-3">Dir.</th><th class="pr-3">Setup</th><th class="pr-3">Q</th><th class="pr-3">Entrada</th><th class="pr-3">SL</th><th class="pr-3">TP2</th><th>Modo</th></tr></thead>
-                            <tbody id="seEventos"><tr><td colspan="11" class="py-2 text-gray-500">Cargando…</td></tr></tbody>
+                            <thead><tr class="text-left text-gray-500"><th class="py-1.5 pr-3">Hora</th><th class="pr-3">Activo</th><th class="pr-3">TF</th><th class="pr-3">Evento</th><th class="pr-3">Dir.</th><th class="pr-3">Setup</th><th class="pr-3">Q</th><th class="pr-3">Entrada</th><th class="pr-3">SL</th><th class="pr-3">TP2</th><th class="pr-3">Modo</th><th>Resultado</th></tr></thead>
+                            <tbody id="seEventos"><tr><td colspan="12" class="py-2 text-gray-500">Cargando…</td></tr></tbody>
                         </table>
                     </div>
                     <style>.se-modo-btn.on { background: rgba(67,120,255,.18); border-color: rgba(67,120,255,.5); color: #fff; }</style>
@@ -5358,8 +5358,9 @@
                         <td class="pr-3 font-semibold text-white">${esc(e.symbol)}</td><td class="pr-3">${esc(e.timeframe)}</td>
                         <td class="pr-3">${esc(e.evento)}</td><td class="pr-3">${esc(e.direccion)}</td><td class="pr-3">${esc(e.setup || '')}</td>
                         <td class="pr-3">${e.quality ?? ''}</td><td class="pr-3">${e.entry ?? ''}</td><td class="pr-3">${e.sl ?? ''}</td><td class="pr-3">${e.tp2 ?? ''}</td>
-                        <td>${esc(e.modo)}</td>
-                    </tr>`).join('') : '<tr><td colspan="11" class="py-2 text-gray-500">Todavía no hay señales detectadas. En cuanto cierre una vela con setup válido aparecerá aquí.</td></tr>';
+                        <td class="pr-3">${esc(e.modo)}</td>
+                        <td class="${(e.resultado || '').includes('ERROR') ? 'text-nlt-danger' : 'text-gray-400'}">${esc(e.resultado || '')}</td>
+                    </tr>`).join('') : '<tr><td colspan="12" class="py-2 text-gray-500">Todavía no hay señales detectadas. En cuanto cierre una vela con setup válido aparecerá aquí.</td></tr>';
             } catch (err) {
                 document.getElementById('seResumen').textContent = 'No se pudo leer el estado del motor: ' + err.message;
             }
