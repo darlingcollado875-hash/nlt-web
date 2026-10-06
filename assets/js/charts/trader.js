@@ -100,37 +100,51 @@
                 },
                 async mover(d, nuevo) {
                     if (!puedeOperar()) return { error: avisoNoOperar() };
+                    // Optimista: el cambio se ve YA en el gráfico; el broker lo confirma en segundo plano y, si lo rechaza, vuelve al valor anterior.
                     if (d.tipo === 'orden') {
-                        try { await NLT_API.chartsTraderModificarOrden(cuentaId, d.id, { price: nuevo }); } catch (e) { return { error: e.message || 'El broker rechazó el cambio.' }; }
-                        await refrescar(); return { aviso: `Orden movida a ${nuevo.toFixed(decimales(getSymbol()))}.` };
+                        const o = (vivo.orders || []).find((x) => String(x.ticket) === d.id), antes = o ? o.price : null;
+                        if (o) { o.price = nuevo; chips.actualizar(); }
+                        try { await NLT_API.chartsTraderModificarOrden(cuentaId, d.id, { price: nuevo }); } catch (e) { if (o) { o.price = antes; chips.actualizar(); } sonido('error'); return { error: e.message || 'El broker rechazó el cambio.' }; }
+                        sonido('sltp'); confirmarEnSegundoPlano(); return { aviso: `Orden movida a ${nuevo.toFixed(decimales(getSymbol()))}.` };
                     }
                     const campo = d.tipo === 'sl' ? 'stop_loss' : 'take_profit';
-                    try { await NLT_API.chartsTraderModificar(cuentaId, d.id, { [campo]: nuevo }); } catch (e) { return { error: e.message || 'El broker rechazó el cambio.' }; }
-                    await refrescar(); return { aviso: `${d.tipo === 'sl' ? 'Stop loss' : 'Take profit'} actualizado en ${nuevo.toFixed(decimales(getSymbol()))}.` };
+                    const pos = vivo.positions.find((x) => String(x.ticket) === d.id), previo = pos ? pos[campo] : null;
+                    if (pos) { pos[campo] = nuevo; chips.actualizar(); }
+                    try { await NLT_API.chartsTraderModificar(cuentaId, d.id, { [campo]: nuevo }); } catch (e) { if (pos) { pos[campo] = previo; chips.actualizar(); } sonido('error'); return { error: e.message || 'El broker rechazó el cambio.' }; }
+                    sonido('sltp'); confirmarEnSegundoPlano(); return { aviso: `${d.tipo === 'sl' ? 'Stop loss' : 'Take profit'} actualizado en ${nuevo.toFixed(decimales(getSymbol()))}.` };
                 },
                 async accion(d, a) {
                     if (!puedeOperar()) return { error: avisoNoOperar() };
                     if (a === 'cancelar' && d.tipo === 'orden') {
-                        try { await NLT_API.chartsTraderCancelarOrden(cuentaId, d.id); } catch (e) { return { error: e.message || 'El broker rechazó la cancelación.' }; }
-                        await refrescar(); return { aviso: 'Orden cancelada.' };
+                        try { await NLT_API.chartsTraderCancelarOrden(cuentaId, d.id); } catch (e) { sonido('error'); return { error: e.message || 'El broker rechazó la cancelación.' }; }
+                        sonido('cancelar'); vivo.orders = (vivo.orders || []).filter((o) => String(o.ticket) !== String(d.id)); chips.actualizar(); confirmarEnSegundoPlano(); return { aviso: 'Orden cancelada.' };
                     }
                     const p = vivo.positions.find((x) => String(x.ticket) === d.id);
                     if (!p) return { error: 'Esa posición ya no está abierta.' };
                     try {
                         if (a === 'cerrar') {
                             const g = Number(p.profit) || 0;
-                            await NLT_API.chartsTraderCerrar(cuentaId, p.ticket); await refrescar();
+                            await NLT_API.chartsTraderCerrar(cuentaId, p.ticket);
+                            propios.set(String(p.ticket), Date.now() + 10000); sonido(g > 0.005 ? 'ganancia' : g < -0.005 ? 'perdida' : 'cerrar');
+                            vivo.positions = vivo.positions.filter((x) => String(x.ticket) !== String(p.ticket)); chips.actualizar(); pintarSaldo(); confirmarEnSegundoPlano();
                             return { aviso: `Posición cerrada (${g >= 0 ? '+' : ''}${dinero(g)} aprox.)` };
                         }
-                        if (a === 'quitar') { await NLT_API.chartsTraderModificar(cuentaId, p.ticket, { [d.tipo === 'sl' ? 'stop_loss' : 'take_profit']: null }); await refrescar(); return {}; }
+                        if (a === 'quitar') {
+                            const campoQ = d.tipo === 'sl' ? 'stop_loss' : 'take_profit', previoQ = p[campoQ];
+                            p[campoQ] = null; chips.actualizar();
+                            try { await NLT_API.chartsTraderModificar(cuentaId, p.ticket, { [campoQ]: null }); } catch (e) { p[campoQ] = previoQ; chips.actualizar(); throw e; }
+                            sonido('sltp'); confirmarEnSegundoPlano(); return {};
+                        }
                         if (a === 'addsl' || a === 'addtp') {
                             const base = chips.sugerirDistancia(), dist = base > 0 ? base : Math.abs(p.open_price) * 0.005, signo = p.side === 'buy' ? 1 : -1;
                             const px = Number(p.current_price) || p.open_price, dec = decimales(getSymbol());
                             const nivel = a === 'addsl' ? px - signo * dist : px + signo * dist * 2;
-                            await NLT_API.chartsTraderModificar(cuentaId, p.ticket, { [a === 'addsl' ? 'stop_loss' : 'take_profit']: Number(nivel.toFixed(dec)) });
-                            await refrescar(); return { aviso: `${a === 'addsl' ? 'Stop loss' : 'Take profit'} agregado: arrastralo para ajustarlo.` };
+                            const campoA = a === 'addsl' ? 'stop_loss' : 'take_profit', valorA = Number(nivel.toFixed(dec));
+                            p[campoA] = valorA; chips.actualizar();
+                            try { await NLT_API.chartsTraderModificar(cuentaId, p.ticket, { [campoA]: valorA }); } catch (e) { p[campoA] = null; chips.actualizar(); throw e; }
+                            sonido('sltp'); confirmarEnSegundoPlano(); return { aviso: `${a === 'addsl' ? 'Stop loss' : 'Take profit'} agregado: arrastralo para ajustarlo.` };
                         }
-                    } catch (e) { return { error: e.message || 'El broker rechazó la operación.' }; }
+                    } catch (e) { sonido('error'); return { error: e.message || 'El broker rechazó la operación.' }; }
                     return {};
                 },
             },
@@ -148,12 +162,63 @@
             if (!est.accounts || !est.accounts.length) cuentaId = null;
             pintarSaldo(); avisarPanel();
         }
+        // ── respuesta inmediata: lo que el usuario acaba de hacer se pinta YA (y suena); la lectura real lo confirma después ──
+        const sonido = (n) => { if (NLTCharts.sonidos) NLTCharts.sonidos.reproducir(n); };
+        const optimistas = [];                 // { tipo: 'pos'|'ord', dato, hasta }: entradas locales hasta que la lectura real las incluya
+        const propios = new Map();             // ticket -> hasta: cambios que hizo el usuario aquí (no suenan dos veces al confirmarse)
+        const esPropio = (t) => { const h = propios.get(String(t)); if (h && h > Date.now()) return true; propios.delete(String(t)); return false; };
+        let primeraLectura = true;
+        function mezclarOptimistas() {
+            const ahora = Date.now();
+            for (let i = optimistas.length - 1; i >= 0; i--) {
+                const o = optimistas[i];
+                const lista = o.tipo === 'pos' ? vivo.positions : (vivo.orders = vivo.orders || []);
+                if (o.hasta < ahora || lista.some((x) => String(x.ticket) === String(o.dato.ticket))) { optimistas.splice(i, 1); continue; }
+                lista.push(o.dato);
+            }
+        }
+        // Compara la lectura anterior con la nueva: una posición que aparece o desaparece SIN que el usuario la haya tocado aquí
+        // (se llenó una pendiente, saltó el SL/TP, la cerró otra plataforma) también avisa con su sonido.
+        function sonidosPorCambios(antes, ahora) {
+            if (primeraLectura) { primeraLectura = false; return; }
+            const nuevos = new Set(ahora.positions.map((p) => String(p.ticket)));
+            antes.positions.forEach((p) => {
+                if (nuevos.has(String(p.ticket)) || esPropio(p.ticket)) return;
+                const g = Number(p.profit) || 0;
+                sonido(Math.abs(g) < 0.005 ? 'cerrar' : g > 0 ? 'ganancia' : 'perdida');
+            });
+            const previos = new Set(antes.positions.map((p) => String(p.ticket)));
+            ahora.positions.forEach((p) => { if (!previos.has(String(p.ticket)) && !esPropio(p.ticket)) sonido('abrir'); });
+        }
         async function refrescar() {
             if (!est || !est.has_access || !cuentaId || cargando) return;
             cargando = true;
-            try { vivo = await NLT_API.chartsTraderEnVivo(cuentaId); errorVivo = ''; } catch (e) { errorVivo = e.message || 'No se pudo leer la cuenta.'; }
+            const antes = vivo;
+            try { vivo = await NLT_API.chartsTraderEnVivo(cuentaId); errorVivo = ''; sonidosPorCambios(antes, vivo); mezclarOptimistas(); } catch (e) { errorVivo = e.message || 'No se pudo leer la cuenta.'; }
             cargando = false;
             pintarSaldo(); chips.actualizar(); if (!pop.hidden) NLTCharts.ui.conservar(pop, pintar); programar();
+        }
+        const confirmarEnSegundoPlano = () => { setTimeout(refrescar, 1100); };
+        // Pinta ya la operación que el broker acaba de aceptar (con el ticket real que devolvió) y suena.
+        function aperturaLocal(orden, resp) {
+            if (!resp || resp.status === 'duplicate') return;
+            const res = resp.result || {}, ticket = res.ticket;
+            if (ticket == null) {          // el broker no devolvió el número de la operación: no se inventa una entrada local (saldría repetida); suena y se lee ya
+                sonido(orden.type === 'market' ? 'abrir' : 'pendiente'); setTimeout(refrescar, 300); return;
+            }
+            const px = Number(res.price) || ultimoPrecio() || 0, sim = getSymbol();
+            vivo.orders = vivo.orders || [];
+            if (orden.type === 'market') {
+                const dato = { ticket, symbol: orden.symbol || sim, nlt_symbol: orden.symbol || sim, side: orden.side, volume: orden.volume, open_price: px, current_price: px, stop_loss: orden.stop_loss || null, take_profit: orden.take_profit || null, profit: 0 };
+                vivo.positions.push(dato); optimistas.push({ tipo: 'pos', dato, hasta: Date.now() + 6000 }); propios.set(String(ticket), Date.now() + 8000);
+                sonido('abrir');
+            } else {
+                const dato = { ticket, symbol: orden.symbol || sim, nlt_symbol: orden.symbol || sim, side: orden.side, type: orden.type, volume: orden.volume, price: orden.price, stop_loss: orden.stop_loss || null, take_profit: orden.take_profit || null };
+                vivo.orders.push(dato); optimistas.push({ tipo: 'ord', dato, hasta: Date.now() + 6000 });
+                sonido('pendiente');
+            }
+            chips.actualizar(); pintarSaldo(); if (!pop.hidden) { pintar(); posicionar(); }
+            confirmarEnSegundoPlano();
         }
         function programar() {
             const necesita = est && est.has_access && cuentaId && (!pop.hidden || vivo.positions.length || (vivo.orders || []).length || cuentaActual());
@@ -251,7 +316,7 @@
                         <button type="button" data-tr="cerrar" data-ticket="${esc(p.ticket)}" title="Cerrar posición (dos toques)" aria-label="Cerrar posición"><i class="ph ph-x-circle"></i></button></div>`; }).join('') || '<p class="mc-nota">No hay posiciones abiertas en esta cuenta.</p>';
                 }
                 const confirmaOn = state.prefs().confirmarOrden !== false;
-                const interruptor = c ? `<label class="tr-sw" title="Afecta al botón BUY/SELL de las posiciones que dibujas en el gráfico"><input type="checkbox" data-tr-confirmar ${confirmaOn ? 'checked' : ''}><span class="tr-sw-t"><b>Pedir confirmación</b> en el botón BUY/SELL de mis posiciones<small>${confirmaOn ? 'Activado: un primer toque arma el botón y el segundo envía la orden.' : 'Desactivado: un solo toque envía la orden real al instante.'}</small></span></label>` : '';
+                const interruptor = c ? `<label class="tr-sw" title="Afecta al botón BUY/SELL de las posiciones que dibujas en el gráfico"><input type="checkbox" data-tr-confirmar ${confirmaOn ? 'checked' : ''}><span class="tr-sw-t"><b>Pedir confirmación</b> en el botón BUY/SELL de mis posiciones<small>${confirmaOn ? 'Activado: un primer toque arma el botón y el segundo envía la orden.' : 'Desactivado: un solo toque envía la orden real al instante.'}</small></span></label>` + `<label class="tr-sw"><input type="checkbox" data-tr-sonido ${NLTCharts.sonidos && NLTCharts.sonidos.activo() ? 'checked' : ''}><span class="tr-sw-t"><b>Sonidos de NLT Charts</b> al abrir, cerrar y mover operaciones<small>Tonos cortos y suaves. Puedes apagarlos aquí cuando quieras.</small></span></label>` : '';
                 cuerpo = `${modo}${sel}${errorVivo ? `<p class="al-msg">${esc(errorVivo)}</p>${c ? `<form data-tr-reconectar class="al-fila2"><input name="password" class="mc-sel" type="password" autocomplete="off" placeholder="${c.auto_reconnect ? 'Contraseña (opcional)' : 'Contraseña de trading'}"${c.auto_reconnect ? '' : ' required'}><button type="submit" class="mc-d on">Reconectar</button></form>` : ''}` : ''}${form}${resumen}${tabs}${msg ? `<p class="al-msg">${esc(msg)}</p>` : ''}${panel}
                     ${interruptor}<p class="mc-nota">Operar con dinero real implica riesgo de pérdida. Las posiciones, SL y TP se ven y se mueven también directo en el gráfico.</p>`;
             }
@@ -286,23 +351,30 @@
                     const orden = pendiente; pendiente = null;
                     try {
                         const r = await NLT_API.chartsTraderOrden(cuentaId, orden);
-                        msg = r.status === 'duplicate' ? 'Esa orden ya se había enviado.' : (orden.type === 'market' ? 'Orden enviada al broker.' : 'Orden pendiente creada.');
-                        prefill = null; tab = orden.type === 'market' ? 'pos' : 'ord'; await refrescar();
-                    } catch (err) { msg = err.message || 'El broker rechazó la orden.'; }
+                        msg = r.status === 'duplicate' ? 'Esa orden ya se había enviado.' : (orden.type === 'market' ? 'Orden ejecutada.' : 'Orden pendiente creada.');
+                        prefill = null; tab = orden.type === 'market' ? 'pos' : 'ord'; aperturaLocal(orden, r);
+                    } catch (err) { msg = err.message || 'El broker rechazó la orden.'; sonido('error'); }
                 } else if (acc === 'cancelar-orden') {
-                    await NLT_API.chartsTraderCancelarOrden(cuentaId, a.dataset.ticket); msg = 'Orden cancelada.'; await refrescar();
+                    const tk = a.dataset.ticket;
+                    await NLT_API.chartsTraderCancelarOrden(cuentaId, tk); msg = 'Orden cancelada.'; sonido('cancelar');
+                    vivo.orders = (vivo.orders || []).filter((o) => String(o.ticket) !== String(tk)); chips.actualizar(); confirmarEnSegundoPlano();
                 } else if (acc === 'sugeridos' && mapa) {
                     mapa.map = { ...mapa.suggested }; msg = 'Sugeridos cargados: pulsa Guardar.';
                 } else if (acc === 'cerrar') {
                     const ticket = a.dataset.ticket;
                     if (cierreArmado !== ticket) { cierreArmado = ticket; a.innerHTML = '<span style="font-size:11px;font-weight:700;color:#fff;background:#DC2626;border-radius:6px;padding:4px 6px">Cerrar</span>'; setTimeout(() => { if (cierreArmado === ticket) { cierreArmado = null; pintar(); } }, 3000); return; }
                     cierreArmado = null;
-                    await NLT_API.chartsTraderCerrar(cuentaId, ticket); msg = 'Posición cerrada.'; await refrescar();
+                    const cerrada = vivo.positions.find((x) => String(x.ticket) === String(ticket));
+                    await NLT_API.chartsTraderCerrar(cuentaId, ticket); msg = 'Posición cerrada.';
+                    propios.set(String(ticket), Date.now() + 10000);
+                    const gcierre = cerrada ? Number(cerrada.profit) || 0 : 0; sonido(gcierre > 0.005 ? 'ganancia' : gcierre < -0.005 ? 'perdida' : 'cerrar');
+                    vivo.positions = vivo.positions.filter((x) => String(x.ticket) !== String(ticket)); chips.actualizar(); pintarSaldo(); confirmarEnSegundoPlano();
                 }
             } catch (err) { msg = err.message || 'No se pudo completar.'; }
             pintar(); posicionar(); chips.actualizar();
         });
         pop.addEventListener('change', async (e) => {
+            if (e.target.matches('[data-tr-sonido]')) { if (NLTCharts.sonidos) NLTCharts.sonidos.alternar(e.target.checked); return; }
             if (e.target.matches('[data-tr-confirmar]')) {
                 if (!e.target.checked && !window.confirm('Con un solo toque, el botón BUY/SELL enviará la orden REAL al instante. ¿Quieres desactivar la confirmación?')) { e.target.checked = true; return; }
                 state.savePrefs({ confirmarOrden: e.target.checked });
@@ -402,8 +474,8 @@
                 try {
                     const resp = await NLT_API.chartsTraderOrden(cuentaId, orden);
                     avisar(resp.status === 'duplicate' ? 'Esa orden ya se había enviado.' : `✓ ${orden.side === 'buy' ? 'Compra' : 'Venta'} ${tipo === 'market' ? 'a mercado ejecutada' : (tipo === 'limit' ? 'límite' : 'stop') + ' puesta en ' + orden.price}: ${pos.lotes} lotes de ${sym}${orden.stop_loss ? ' · SL ' + orden.stop_loss : ''}${orden.take_profit ? ' · TP ' + orden.take_profit : ''}`, 'ok');
-                    await refrescar(); if (!pop.hidden) { pintar(); posicionar(); }
-                } catch (err) { avisar(err.message || 'El broker rechazó la orden.', 'error'); }
+                    aperturaLocal(orden, resp);
+                } catch (err) { avisar(err.message || 'El broker rechazó la orden.', 'error'); sonido('error'); }
             },
             desdePosicion(pos) {
                 if (!pos) return;
