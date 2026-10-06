@@ -105,7 +105,9 @@
         document.querySelectorAll('#chSymbol optgroup').forEach((g) => g.querySelectorAll('option').forEach((o) => { categoriaDe[o.value] = g.label; }));
         barra = document.createElement('div'); barra.id = 'chPestanas'; barra.className = 'pt-bar';
         barra.innerHTML = '<div class="pt-cinta" role="tablist" aria-label="Pestañas del gráfico"></div><button type="button" class="pt-mas" title="Nueva pestaña" aria-label="Nueva pestaña"><i class="ph ph-plus"></i></button><div class="pt-pop" hidden></div>';
-        cuerpo.parentNode.insertBefore(barra, cuerpo);
+        // Arriba de todo, encima de la barra de símbolo / temporalidad / opciones (como las pestañas de un navegador).
+        const ref = document.querySelector('.ch-tbwrap') || document.getElementById('chToolbar') || cuerpo;
+        ref.parentNode.insertBefore(barra, ref);
         cinta = barra.querySelector('.pt-cinta'); popover = barra.querySelector('.pt-pop');
 
         let guardadas = null;

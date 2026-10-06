@@ -38,4 +38,6 @@
     .pt-x { opacity: 1; }
     .pt-pop { left: 8px; top: 38px; }
 }
+@media (max-width: 767px) { .pt-bar { padding-left: 68px; } }   /* el botón del menú lateral flota arriba a la izquierda */
 @media (prefers-reduced-motion: reduce) { .pt-pop, .pt-tab { transition: none; } }
+body.ch-full .pt-bar { padding-left: 12px; }
