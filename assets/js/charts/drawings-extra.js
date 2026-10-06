@@ -158,7 +158,7 @@
 
     // ───────────────────────────── dibujo ─────────────────────────────
     function registrar(H) {
-        const { estiloDe, css, lineaEstilo, extender, etiqueta, FUENTE, guiones } = H;
+        const { estiloDe, css, lineaEstilo, extender, etiqueta, FUENTE, guiones, registrarOverlay } = H;
         const pr = (x) => NLTCharts.drawings.formatear(x);
         const MS = { second: 1000, minute: 60000, hour: 3600000, day: 86400000, week: 604800000, month: 2592000000, year: 31536000000 };
         const sig = (n) => (n >= 0 ? '+' : '−');
@@ -208,7 +208,7 @@
             }
             return () => (cs[0] ? cs[0].y : 0);
         }
-        const reg = (def) => klinecharts.registerOverlay({ needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true, ...def });
+        const reg = (def) => (registrarOverlay || klinecharts.registerOverlay)({ needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true, ...def });
 
         // ── líneas ──
         reg({ name: 'nltHRay', totalStep: 2, needDefaultXAxisFigure: false,
