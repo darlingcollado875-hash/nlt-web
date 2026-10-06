@@ -1871,8 +1871,8 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="assets/js/nlt-shared.js?v=d0d3c148"></script>
-    <script src="assets/js/nlt-api-client.js?v=bbe4ac5a"></script>
+    <script src="assets/js/nlt-shared.js?v=91441add"></script>
+    <script src="assets/js/nlt-api-client.js?v=443ac46b"></script>
     <script src="assets/js/nlt-certificate.js?v=f29013df"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -5267,10 +5267,25 @@
                                 <option value="SL_HIT">SL alcanzado</option>
                                 <option value="CANCELLED">Cancelada</option>
                             </select>
-                        ` : '--'}
+                        ` : '<span class="text-gray-600">--</span>'}
+                        <button type="button" data-signal-borrar="${s.id}" data-signal-nombre="${esc(s.symbol)} ${esc(s.direction)}" class="ml-2 px-2 py-1 rounded-lg text-xs text-nlt-danger border border-nlt-danger/30 hover:bg-nlt-danger/10" title="Eliminar esta señal"><i class="ph ph-trash"></i> Eliminar</button>
                     </td>
                 </tr>
             `).join('') : '<tr><td colspan="8" class="px-5 py-3 text-gray-500">Sin señales todavía.</td></tr>';
+
+            document.querySelectorAll('[data-signal-borrar]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    if (!confirm('¿Eliminar la señal ' + btn.getAttribute('data-signal-nombre') + '? Es definitivo y también borra sus avisos. Para cerrar una señal real usa «Cerrar como…».')) return;
+                    btn.disabled = true;
+                    try {
+                        await NLT_API.adminSignalsEliminar(btn.getAttribute('data-signal-borrar'));
+                        await cargarSignalsTodo();
+                    } catch (err) {
+                        alert('Error: ' + err.message);
+                        btn.disabled = false;
+                    }
+                });
+            });
 
             document.querySelectorAll('.signal-status-select').forEach((sel) => {
                 sel.addEventListener('change', async () => {
