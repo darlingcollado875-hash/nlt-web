@@ -53,7 +53,13 @@
         .cal-count { font-size: 9px; color: #6B7280; }
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 80; align-items: center; justify-content: center; padding: 16px; }
         .modal-overlay:not(.hidden) { display: flex; }
-        .modal-card { max-height: 90vh; overflow-y: auto; }
+        /* 100vh en el celular incluye las barras del navegador: el final de la página y los botones de los modales quedaban fuera de pantalla.
+           dvh = la altura visible de verdad. */
+        body.h-screen { height: 100vh; height: 100dvh; }
+        .modal-card { max-height: 90vh; max-height: 92dvh; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
+        .modal-footer { position: sticky; bottom: -1px; z-index: 2; margin-left: -1.5rem; margin-right: -1.5rem; margin-bottom: -1.5rem; padding: 12px 1.5rem calc(12px + env(safe-area-inset-bottom)); background: rgba(14,16,22,0.96); backdrop-filter: blur(6px); }
+        @media (min-width: 768px) { .modal-footer { margin-left: -2rem; margin-right: -2rem; margin-bottom: -2rem; padding-left: 2rem; padding-right: 2rem; } }
+        .j-busy { opacity: .6; pointer-events: none; }
         .thumb-del { position: absolute; top: -6px; right: -6px; width: 18px; height: 18px; border-radius: 999px; background: #EF4444; color: #fff; font-size: 11px; line-height: 18px; text-align: center; cursor: pointer; }
         .bar-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.05); overflow: hidden; }
         .bar-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #4378FF, #6C93FF); }
@@ -435,7 +441,7 @@
                 </div>
             </div>
 
-            <div class="flex items-center justify-between mt-6 pt-4 border-t border-white/5">
+            <div class="modal-footer flex items-center justify-between mt-6 pt-4 border-t border-white/5">
                 <button id="btnDeleteTrade" class="hidden px-4 py-2 rounded-lg border border-nlt-danger/30 text-nlt-danger text-xs font-semibold cursor-pointer">Delete Trade</button>
                 <div class="flex items-center gap-2 ml-auto">
                     <button id="btnCancelTrade" class="px-4 py-2 rounded-lg border border-white/10 text-gray-400 text-xs font-semibold cursor-pointer">Cancel</button>
@@ -447,7 +453,7 @@
 
     <!-- ===================== MODAL: New / Edit Playbook ===================== -->
     <div id="modalPlaybook" class="modal-overlay hidden">
-        <div class="glass-card w-full max-w-lg p-6 space-y-3">
+        <div class="glass-card modal-card w-full max-w-lg p-6 space-y-3">
             <div class="flex items-center justify-between">
                 <h2 id="modalPlaybookTitle" class="text-lg font-bold text-white">New Playbook</h2>
                 <button id="btnClosePlaybook" class="text-gray-500 hover:text-white cursor-pointer text-xl leading-none">&times;</button>
@@ -606,7 +612,7 @@
             const filas = await NLT_API.journalListarTrades({ ...tradesFiltros, limit: TRADES_LIMIT, offset: tradesOffset });
             document.getElementById('tablaTrades').innerHTML = filas.length ? filas.map((t) => `
                 <tr class="border-b border-white/5 hover:bg-white/5 cursor-pointer" data-id="${t.id}">
-                    <td class="py-2 px-3 text-gray-400">${new Date(t.opened_at).toLocaleDateString()}</td>
+                    <td class="py-2 px-3 text-gray-400">${t.opened_at ? new Date(t.opened_at).toLocaleDateString() : '--'}</td>
                     <td class="py-2 px-3 text-white font-semibold">${esc(t.symbol)}</td>
                     <td class="py-2 px-3 capitalize">${esc(t.direction)}</td>
                     <td class="py-2 px-3 capitalize">${esc(t.result)}</td>
@@ -617,7 +623,7 @@
                 </tr>
             `).join('') : '<tr><td colspan="8" class="py-6 text-center text-gray-600">No trades yet -- click "+ New Trade" to log your first one.</td></tr>';
             document.querySelectorAll('#tablaTrades tr[data-id]').forEach((tr) => tr.addEventListener('click', () => abrirModalTrade(tr.dataset.id)));
-            document.getElementById('tradesPageLabel').textContent = `Showing ${tradesOffset + 1}-${tradesOffset + filas.length}`;
+            document.getElementById('tradesPageLabel').textContent = filas.length ? `Showing ${tradesOffset + 1}-${tradesOffset + filas.length}` : 'No trades';
             document.getElementById('btnTradesPrev').disabled = tradesOffset === 0;
             document.getElementById('btnTradesNext').disabled = filas.length < TRADES_LIMIT;
         }
@@ -653,7 +659,8 @@
             document.querySelectorAll('#calGrid [data-tiene="1"]').forEach((el) => el.addEventListener('click', () => verTradesDelDia(el.dataset.fecha)));
         }
         async function verTradesDelDia(fecha) {
-            const trades = await NLT_API.journalTradesDelDia(fecha);
+            let trades;
+            try { trades = await NLT_API.journalTradesDelDia(fecha); } catch (err) { toast(err.message, 'error'); return; }
             document.getElementById('calDayTitle').textContent = `Trades on ${fecha}`;
             document.getElementById('calDayList').innerHTML = trades.map((t) => `
                 <div class="glass-item p-3 flex items-center justify-between cursor-pointer" data-id="${t.id}">
@@ -735,7 +742,7 @@
             document.querySelectorAll('[data-edit]').forEach((b) => b.addEventListener('click', () => abrirModalPlaybook(b.dataset.edit)));
             document.querySelectorAll('[data-del]').forEach((b) => b.addEventListener('click', async () => {
                 if (!confirm('Delete this playbook?')) return;
-                await NLT_API.journalBorrarPlaybook(b.dataset.del);
+                try { await NLT_API.journalBorrarPlaybook(b.dataset.del); } catch (err) { toast(err.message, 'error'); return; }
                 toast('Playbook deleted');
                 cargarPlaybooks();
             }));
@@ -776,7 +783,8 @@
         document.getElementById('btnVerInsights').addEventListener('click', async () => {
             const box = document.getElementById('reviewInsightsBox');
             if (!box.classList.contains('hidden')) { box.classList.add('hidden'); return; }
-            const ins = await NLT_API.journalReviewInsights();
+            let ins;
+            try { ins = await NLT_API.journalReviewInsights(); } catch (err) { toast(err.message, 'error'); return; }
             box.innerHTML = `
                 <p><span class="text-gray-500">Trades analyzed:</span> <span class="text-white font-semibold">${ins.trades_analyzed}</span></p>
                 ${ins.best_setup ? `<p><span class="text-gray-500">Best setup:</span> <span class="text-nlt-success font-semibold">${esc(ins.best_setup.label)}</span></p>` : ''}
@@ -823,6 +831,16 @@
         document.getElementById('btnCloseModalTrade').addEventListener('click', cerrarModalTrade);
         document.getElementById('btnCancelTrade').addEventListener('click', cerrarModalTrade);
         function cerrarModalTrade() { document.getElementById('modalTrade').classList.add('hidden'); }
+        // Cerrar también con Escape o tocando fuera de la tarjeta (antes solo con la X o Cancel, que en el celular quedaban lejos).
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            cerrarModalTrade();
+            document.getElementById('modalPlaybook').classList.add('hidden');
+        });
+        ['modalTrade', 'modalPlaybook'].forEach((id) => {
+            const ov = document.getElementById(id);
+            ov.addEventListener('click', (e) => { if (e.target === ov) ov.classList.add('hidden'); });
+        });
 
         function toDatetimeLocal(iso) {
             if (!iso) return '';
@@ -925,7 +943,9 @@
                 document.getElementById('modalTradeTitle').textContent = 'Edit Trade';
                 document.getElementById('screenshotsSection').classList.remove('hidden');
                 document.getElementById('btnDeleteTrade').classList.remove('hidden');
-                const t = await NLT_API.journalObtenerTrade(tradeId);
+                let t;
+                try { t = await NLT_API.journalObtenerTrade(tradeId); }
+                catch (err) { toast('No se pudo abrir el trade: ' + err.message, 'error'); return; }
                 llenarFormularioTrade(t);
                 renderScreenshots(t.screenshots);
             } else {
@@ -944,24 +964,23 @@
             box.classList.remove('hidden');
         }
         document.getElementById('btnSaveTrade').addEventListener('click', async () => {
+            const btn = document.getElementById('btnSaveTrade');
+            if (btn.dataset.busy) return;                          // un segundo toque no debe crear el trade dos veces
             const datos = leerFormularioTrade();
             if (!datos.symbol) { toast('Symbol is required', 'error'); return; }
+            btn.dataset.busy = '1'; btn.classList.add('j-busy'); const textoBtn = btn.textContent; btn.textContent = 'Saving...';
             try {
                 if (editingTradeId) {
-                    const resp = await NLT_API.journalActualizarTrade(editingTradeId, datos);
-                    mostrarWarnings(resp.warnings);
+                    await NLT_API.journalActualizarTrade(editingTradeId, datos);
                     toast('Trade updated');
                 } else {
-                    const resp = await NLT_API.journalCrearTrade(datos);
-                    editingTradeId = resp.id;
-                    mostrarWarnings(resp.warnings);
-                    document.getElementById('modalTradeTitle').textContent = 'Edit Trade';
-                    document.getElementById('screenshotsSection').classList.remove('hidden');
-                    document.getElementById('btnDeleteTrade').classList.remove('hidden');
-                    toast('Trade created -- add screenshots below or close');
+                    await NLT_API.journalCrearTrade(datos);
+                    toast('Trade saved -- open it from the list to add screenshots');
                 }
+                cerrarModalTrade();
                 refrescarTabActual();
             } catch (err) { toast(err.message, 'error'); }
+            finally { delete btn.dataset.busy; btn.classList.remove('j-busy'); btn.textContent = textoBtn; }
         });
         document.getElementById('btnDeleteTrade').addEventListener('click', async () => {
             if (!editingTradeId) return;
@@ -986,9 +1005,11 @@
                 `).join('');
             });
             document.querySelectorAll('.thumb-del').forEach((btn) => btn.addEventListener('click', async () => {
-                await NLT_API.journalBorrarScreenshot(btn.dataset.id);
-                const t = await NLT_API.journalObtenerTrade(editingTradeId);
-                renderScreenshots(t.screenshots);
+                try {
+                    await NLT_API.journalBorrarScreenshot(btn.dataset.id);
+                    const t = await NLT_API.journalObtenerTrade(editingTradeId);
+                    renderScreenshots(t.screenshots);
+                } catch (err) { toast(err.message, 'error'); }
             }));
         }
         ['before', 'during', 'after'].forEach((stage) => {
@@ -1012,9 +1033,10 @@
             await NLT.mountSidebar(session, { activo: 'journal', seccion: 'cfd' });
             playbooksCache = await NLT_API.journalListarPlaybooks().catch(() => []);
             llenarSelectPlaybooks();
-            await cargarDashboard();
+            try { await cargarDashboard(); }
+            catch (err) { toast('No se pudo cargar el Journal: ' + err.message + ' -- usa el botón Dashboard para reintentar.', 'error'); }
         }
-        init();
+        init().catch((err) => toast('Error al iniciar el Journal: ' + err.message, 'error'));
     </script>
 </body>
 </html>
