@@ -215,8 +215,9 @@
         borrarCuenta: (id) => request(`/accounts/${id}`, { method: 'DELETE' }),
         reconectarCuenta: (id) => request(`/accounts/${id}/reconnect`, { method: 'POST' }),
         // TickerAll enfría la sesión con el tiempo (status=CONNECTED pero hot=false)
-        // y no guardamos la contraseña -- hace falta pedirla de nuevo para reconectar.
-        reconectarTickerAll: (id, password) => request(`/tickerall/accounts/${id}/reconnect`, { method: 'POST', body: JSON.stringify({ password }) }),
+        // y la contraseña se guarda CIFRADA: sin `password` se reconecta con la guardada (un clic); si no hay o ya no sirve, el API pide escribirla.
+        reconectarTickerAll: (id, password, guardar) => request(`/tickerall/accounts/${id}/reconnect`, { method: 'POST', body: JSON.stringify(password ? { password, guardar_password: guardar !== false } : {}), lento: true, intentos: 1 }),
+        olvidarPasswordTickerAll: (id) => request(`/tickerall/accounts/${id}/password`, { method: 'DELETE' }),
 
         // --- datos (funcionan para cualquier proveedor, leen de las mismas tablas) ---
         datosDeCuenta: (id) => request(`/accounts/${id}/data`),
