@@ -153,15 +153,55 @@
     // Zona conectada al NLT Zone Engine: estado que vuelve del servidor (pro.js lo actualiza).
     const ESTADO_ZONA = { 'ARMED': ['#3B82F6', 'ARMED'], 'IN ZONE': ['#EAB308', 'IN ZONE'], 'MITIGATED': ['#22C55E', 'MITIGATED'], 'INVALIDATED': ['#EF4444', 'INVALIDATED'] };
 
+    // Las figuras de ÁREA (cajas de Long/Short, rectángulos, rangos...) cubren media pantalla: si arrastrarlas moviera el dibujo,
+    // cualquier deslizamiento del dedo sobre ellas lo "teletransportaba" en vez de mover el gráfico. Ahora el área solo se arrastra
+    // cuando el dibujo está SELECCIONADO (un toque lo selecciona); sin selección, el deslizamiento mueve el gráfico como siempre.
+    let idSeleccionado = null;
+    const TIPOS_AREA = new Set(['polygon', 'rect', 'circle', 'arc']);
+    const SOLO_SI_SELECCIONADO = ['onPressedMoveStart', 'onPressedMoving', 'onPressedMoveEnd'];
+    function protegerArea(def) {
+        const orig = def.createPointFigures;
+        if (typeof orig !== 'function') return def;
+        return {
+            ...def,
+            createPointFigures: (a) => {
+                const figs = orig(a);
+                if (!a.overlay || a.overlay.currentStep !== -1 || a.overlay.id === idSeleccionado) return figs;
+                const gate = (f) => (f && TIPOS_AREA.has(f.type) && f.ignoreEvent === undefined ? { ...f, ignoreEvent: SOLO_SI_SELECCIONADO } : f);
+                const lista = (Array.isArray(figs) ? figs : [figs]).map(gate);
+                // KLineChart solo "agarra" una línea a 2 px: con el dedo era casi imposible moverlas. Cada línea recibe una franja
+                // transparente más ancha (mismos eventos) que hace de zona de agarre.
+                const mitad = window.matchMedia && matchMedia('(pointer: coarse)').matches ? 14 : 7;
+                const franjas = [];
+                lista.forEach((f) => {
+                    if (!f || f.type !== 'line' || f.ignoreEvent === true || !f.attrs) return;
+                    const polis = [];
+                    [].concat(f.attrs).forEach((at) => {
+                        const c = at.coordinates || [];
+                        for (let i = 1; i < c.length; i++) {
+                            const dx = c[i].x - c[i - 1].x, dy = c[i].y - c[i - 1].y, len = Math.hypot(dx, dy);
+                            if (!(len > 0) || !Number.isFinite(len)) continue;
+                            const nx = (-dy / len) * mitad, ny = (dx / len) * mitad;
+                            polis.push({ coordinates: [{ x: c[i - 1].x + nx, y: c[i - 1].y + ny }, { x: c[i].x + nx, y: c[i].y + ny }, { x: c[i].x - nx, y: c[i].y - ny }, { x: c[i - 1].x - nx, y: c[i - 1].y - ny }] });
+                        }
+                    });
+                    if (polis.length) franjas.push({ type: 'polygon', attrs: polis, styles: { style: 'fill', color: 'rgba(0,0,0,0.004)' } });
+                });
+                return franjas.length ? lista.concat(franjas) : lista;
+            },
+        };
+    }
+    const registrarOverlay = (def) => klinecharts.registerOverlay(protegerArea(def));
+
     let simboloFn = () => '';   // lo fija montar(): el símbolo en pantalla (para el tamaño del contrato)
     let registrados = false;
     function registrar() {
         if (registrados) return;
         registrados = true;
         HERRAMIENTAS.forEach((h) => NLTCharts.settings.registrar(claveDef(h.id), { titulo: h.label, inputs: h.inputs }));
-        if (EXTRA_MOD) EXTRA_MOD.registrar({ estiloDe, css, lineaEstilo, extender, etiqueta, FUENTE, guiones });
+        if (EXTRA_MOD) EXTRA_MOD.registrar({ estiloDe, css, lineaEstilo, extender, etiqueta, FUENTE, guiones, registrarOverlay });
 
-        klinecharts.registerOverlay({
+        registrarOverlay({
             name: 'nltHLine', totalStep: 2, needDefaultPointFigure: true, needDefaultYAxisFigure: true,
             createPointFigures: ({ overlay, coordinates, bounding }) => {
                 if (!coordinates.length) return [];
@@ -180,7 +220,7 @@
             },
         });
 
-        klinecharts.registerOverlay({
+        registrarOverlay({
             name: 'nltTrend', totalStep: 3, needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true,
             createPointFigures: ({ overlay, coordinates, bounding }) => {
                 if (coordinates.length < 2) return [];
@@ -192,7 +232,7 @@
             },
         });
 
-        klinecharts.registerOverlay({
+        registrarOverlay({
             name: 'nltRect', totalStep: 3, needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true,
             createPointFigures: ({ overlay, coordinates, bounding }) => {
                 if (coordinates.length < 2) return [];
@@ -219,7 +259,7 @@
             },
         });
 
-        klinecharts.registerOverlay({
+        registrarOverlay({
             name: 'nltFib', totalStep: 3, needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true,
             createPointFigures: ({ overlay, coordinates, bounding }) => {
                 if (coordinates.length < 2 || overlay.points.length < 2) return [];
@@ -249,7 +289,7 @@
 
         // Long/Short Position. Puntos: [0] entrada (borde izquierdo), [1] objetivo y
         // [2] stop (los dos en el borde derecho: se arrastran juntos en X).
-        klinecharts.registerOverlay({
+        registrarOverlay({
             name: 'nltPosition', totalStep: 2, needDefaultPointFigure: true, needDefaultXAxisFigure: true, needDefaultYAxisFigure: true,
             createPointFigures: ({ chart, overlay, coordinates }) => {
                 if (coordinates.length < 3 || overlay.points.length < 3) return [];
@@ -301,7 +341,7 @@
             },
         });
 
-        klinecharts.registerOverlay({
+        registrarOverlay({
             name: 'nltText', totalStep: 2, needDefaultPointFigure: true,
             createPointFigures: ({ overlay, coordinates }) => {
                 if (!coordinates.length) return [];
@@ -416,7 +456,7 @@
 
         chart.setStyles({
             overlay: {
-                point: { color: '#4378ff', borderColor: 'rgba(67,120,255,0.35)', activeColor: '#4378ff', activeBorderColor: 'rgba(67,120,255,0.35)', radius: 5, activeRadius: 6 },
+                point: { color: '#4378ff', borderColor: 'rgba(67,120,255,0.35)', activeColor: '#4378ff', activeBorderColor: 'rgba(67,120,255,0.35)', ...(window.matchMedia && matchMedia('(pointer: coarse)').matches ? { radius: 7, activeRadius: 9, borderSize: 12, activeBorderSize: 14 } : { radius: 5, activeRadius: 6, borderSize: 4, activeBorderSize: 6 }) },
                 text: { family: FUENTE, size: 11 },
             },
         });
@@ -633,12 +673,17 @@
 
         // ── selección y barra flotante ──
         let dialogoAbierto = false;
+        const redibujar = (id) => { if (id && overlay(id)) { try { chart.overrideOverlay({ id }); } catch (_) { /* ya no existe */ } } };
         function seleccionar(id) {
-            seleccionado = id;
+            const antes = seleccionado;
+            seleccionado = id; idSeleccionado = id;
+            if (antes !== id) { redibujar(antes); redibujar(id); }
             pintarBarra();
         }
         function deseleccionar() {
-            seleccionado = null;
+            const antes = seleccionado;
+            seleccionado = null; idSeleccionado = null;
+            redibujar(antes);
             barraEl.hidden = true;
         }
 
