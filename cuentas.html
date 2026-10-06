@@ -87,6 +87,7 @@
                     <input type="password" id="password" required placeholder="Contraseña" class="md:col-span-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
                     <input type="text" id="server" list="mt5Servers" required autocomplete="off" placeholder="Servidor" class="md:col-span-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-sm focus:border-nlt-accent outline-none">
                     <button type="submit" class="md:col-span-1 w-full py-3 rounded-xl bg-nlt-accent font-semibold text-sm hover:bg-blue-500 transition-all">Conectar</button>
+                    <label class="md:col-span-full col-span-full flex items-start gap-2 text-[11px] text-gray-400 leading-snug cursor-pointer"><input type="checkbox" id="guardarPass" checked class="mt-0.5 accent-blue-500"><span>Guardar mi contraseña <b class="text-gray-300">cifrada</b> para reconectar con un solo clic si la sesión se enfría (puedes borrarla cuando quieras). Aplica a conexiones vía TickerAll.</span></label>
                 </form>
                 <p id="formMsg" class="mt-3 text-xs hidden p-3 rounded-lg"></p>
             </div>
@@ -99,7 +100,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="assets/js/nlt-shared.js?v=5a05efc3"></script>
-    <script src="assets/js/nlt-api-client.js?v=e5f94279"></script>
+    <script src="assets/js/nlt-api-client.js?v=bbe4ac5a"></script>
     <script>
         async function cargarCuentas() {
             const container = document.getElementById('listaCuentas');
@@ -131,21 +132,23 @@
                         </div>
                         <div class="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
                             ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
-                                <button onclick="mostrarReconexion('${c.id}')" id="btnReconectar-${c.id}" class="text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer flex items-center gap-2">
+                                <button onclick="clicReconectar('${c.id}', ${c.password_guardada ? 'true' : 'false'})" id="btnReconectar-${c.id}" class="text-xs font-semibold text-orange-400 hover:text-orange-300 transition-colors cursor-pointer flex items-center gap-2">
                                     <i class="ph-bold ph-arrows-clockwise"></i> Reconectar
                                 </button>
                             ` : '<span></span>'}
+                            ${c.proveedor === 'TICKERALL' && c.password_guardada ? `<button onclick="olvidarPassword('${c.id}')" title="Borrar la contraseña que tenemos guardada (cifrada) de esta cuenta" class="text-[11px] text-gray-500 hover:text-gray-300 transition-colors cursor-pointer flex items-center gap-1"><i class="ph-bold ph-key"></i> Olvidar contraseña</button>` : ''}
                             <button onclick="borrar('${c.id}')" class="text-xs font-semibold text-nlt-danger hover:text-red-300 transition-colors cursor-pointer flex items-center gap-2">
                                 <i class="ph-bold ph-trash"></i> Desvincular
                             </button>
                         </div>
                         ${c.proveedor === 'TICKERALL' && (c.estado === 'SESION_FRIA' || c.estado === 'DESCONECTADA') ? `
                             <div id="reconexion-${c.id}" class="hidden mt-3 pt-3 border-t border-white/5">
-                                <p class="text-[11px] text-gray-500 mb-2">La sesión se enfrió del lado de TickerAll -- ingresa la contraseña para reconectarla:</p>
+                                <p id="avisoReconexion-${c.id}" class="text-[11px] text-gray-500 mb-2">La sesión se enfrió del lado de TickerAll -- escribe la contraseña una vez y la guardamos cifrada para que la próxima vez baste un clic:</p>
                                 <div class="flex gap-2">
                                     <input type="password" id="passReconexion-${c.id}" placeholder="Contraseña" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-xs focus:border-orange-500 outline-none">
                                     <button onclick="reconectarTickerAll('${c.id}')" class="px-3 py-2 rounded-lg bg-orange-500/20 text-orange-400 text-xs font-semibold hover:bg-orange-500/30 transition-all">Confirmar</button>
                                 </div>
+                                <label class="flex items-center gap-2 mt-2 text-[11px] text-gray-400 cursor-pointer"><input type="checkbox" id="guardarReconexion-${c.id}" checked class="accent-orange-500"> Guardarla cifrada (reconexión a un clic)</label>
                                 <p id="msgReconexion-${c.id}" class="text-[11px] mt-2 hidden"></p>
                             </div>
                         ` : ''}
@@ -174,6 +177,30 @@
             document.getElementById(`passReconexion-${id}`).focus();
         }
 
+
+        // Reconexión a un clic: si ya hay contraseña guardada (cifrada) se usa esa; si no hay o dejó de servir, se pide una vez.
+        async function clicReconectar(id, guardada) {
+            if (!guardada) { mostrarReconexion(id); return; }
+            const btn = document.getElementById(`btnReconectar-${id}`);
+            const html = btn.innerHTML;
+            btn.disabled = true; btn.innerHTML = '<i class="ph-bold ph-circle-notch animate-spin"></i> Reconectando…';
+            try {
+                await NLT_API.reconectarTickerAll(id);
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> ¡Reconectada!';
+                setTimeout(() => location.reload(), 700);
+            } catch (err) {
+                btn.disabled = false; btn.innerHTML = html;
+                mostrarReconexion(id);
+                const aviso = document.getElementById(`avisoReconexion-${id}`);
+                if (aviso) { aviso.className = 'text-[11px] text-orange-300 mb-2'; aviso.textContent = err.message; }
+            }
+        }
+
+        async function olvidarPassword(id) {
+            if (!confirm('¿Borrar la contraseña guardada de esta cuenta? La próxima reconexión te la pedirá de nuevo.')) return;
+            try { await NLT_API.olvidarPasswordTickerAll(id); location.reload(); } catch (err) { alert('No se pudo borrar: ' + err.message); }
+        }
+
         async function reconectarTickerAll(id) {
             const input = document.getElementById(`passReconexion-${id}`);
             const msg = document.getElementById(`msgReconexion-${id}`);
@@ -188,7 +215,7 @@
             msg.className = 'text-[11px] mt-2 text-gray-400';
             msg.textContent = 'Reconectando...';
             try {
-                await NLT_API.reconectarTickerAll(id, password);
+                await NLT_API.reconectarTickerAll(id, password, (document.getElementById(`guardarReconexion-${id}`) || {}).checked !== false);
                 msg.className = 'text-[11px] mt-2 text-nlt-success';
                 msg.textContent = '¡Cuenta reconectada!';
                 setTimeout(() => location.reload(), 800);
@@ -216,7 +243,7 @@
 
             try {
                 if (proveedor === 'tickerall') {
-                    await NLT_API.crearCuentaTickerAll(datos);
+                    await NLT_API.crearCuentaTickerAll({ ...datos, guardar_password: document.getElementById('guardarPass').checked });
                 } else {
                     await NLT_API.crearCuentaLocal(datos);
                 }
