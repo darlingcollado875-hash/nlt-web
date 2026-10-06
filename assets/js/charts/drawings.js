@@ -385,7 +385,8 @@
         const s = String(sym || '').toUpperCase();
         if (s === 'XAUUSD') return 100;
         if (s === 'XAGUSD') return 5000;
-        if (/^(BTC|ETH|LTC|XRP|SOL|DXY|US30|US100|US500|NAS|SPX|GER|DAX|UK)/.test(s)) return 1;
+        if (s === 'USOIL' || s === 'UKOIL') return 1000;                                 // petróleo: 1.000 barriles por lote
+        if (/^(BTC|ETH|LTC|XRP|SOL|DXY|US30|US100|US500|NAS|SPX|GER|DAX|UK|JP225|AUS200|FRA40|HK50)/.test(s)) return 1;
         return /^[A-Z]{6}$/.test(s) ? 100000 : 1;
     }
     // Factor para pasar la moneda de cotización a USD (en pares USDxxx se divide por el precio; en cruces sin USD es aproximado).
@@ -393,8 +394,10 @@
         const s = String(sym || '').toUpperCase();
         if (s.endsWith('USD')) return 1;
         if (s.startsWith('USD') && precio) return 1 / precio;
+        if (/^[A-Z]{6}$/.test(s)) return COTIZA_EN_USD[s.slice(3)] || 1;   // cruces sin USD (EURJPY, GBPAUD...): valor APROXIMADO de la moneda cotizada
         return 1;
     }
+    const COTIZA_EN_USD = { JPY: 0.0066, CAD: 0.73, CHF: 1.13, GBP: 1.27, AUD: 0.65, NZD: 0.60, EUR: 1.08 };
     const formatearLotes = (n) => (n >= 10 ? n.toFixed(1) : n >= 1 ? n.toFixed(2) : n.toFixed(2)).replace(/(\.\d*?)0+$/, '$1').replace(/\.$/, '') || '0';
 
     // Números de una posición: distancias, %, R/R y, con la cuenta y el riesgo elegidos, el LOTE que hay que operar
