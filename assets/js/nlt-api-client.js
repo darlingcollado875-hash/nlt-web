@@ -801,6 +801,8 @@
         // --- admin: NLT Elite Signals ---
         adminSignalsListar: () => request('/admin/signals'),
         adminSignalsCrear: (datos) => request('/admin/signals', { method: 'POST', body: JSON.stringify(datos) }),
+        adminSignalEngineEstado: () => request('/admin/signal-engine/estado'),
+        adminSignalEngineModo: (modo) => request('/admin/signal-engine/modo', { method: 'PUT', body: JSON.stringify({ modo }) }),
         adminSignalsEliminar: (signalId) => request(`/admin/signals/${signalId}`, { method: 'DELETE' }),
         adminSignalsActualizarStatus: (signalId, status) => request(`/admin/signals/${signalId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 

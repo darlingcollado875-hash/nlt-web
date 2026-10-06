@@ -17,3 +17,12 @@ create table if not exists public.signal_engine_eventos (
 );
 alter table public.signal_engine_eventos enable row level security;
 create index if not exists idx_signal_engine_eventos_created on public.signal_engine_eventos (created_at desc);
+
+-- Modo del motor elegido desde el panel de admin (una sola fila). Si no hay fila manda SIGNAL_ENGINE_MODO.
+create table if not exists public.signal_engine_config (
+    id int primary key default 1 check (id = 1),
+    modo text not null check (modo in ('apagado','sombra','activo')),
+    actualizado_por text,
+    updated_at timestamptz not null default now()
+);
+alter table public.signal_engine_config enable row level security;
