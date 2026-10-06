@@ -801,6 +801,7 @@
         // --- admin: NLT Elite Signals ---
         adminSignalsListar: () => request('/admin/signals'),
         adminSignalsCrear: (datos) => request('/admin/signals', { method: 'POST', body: JSON.stringify(datos) }),
+        adminSignalsEliminar: (signalId) => request(`/admin/signals/${signalId}`, { method: 'DELETE' }),
         adminSignalsActualizarStatus: (signalId, status) => request(`/admin/signals/${signalId}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
 
         // --- NLT Bot Supreme (Fase 4/5, ver RATIFIED INTEGRATION CONTRACT v1) ---

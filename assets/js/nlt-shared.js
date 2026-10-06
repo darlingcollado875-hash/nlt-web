@@ -2584,7 +2584,7 @@
     const _NOTIF_ICONOS = {
         comment: 'ph-chat-circle', reply: 'ph-arrow-bend-up-left', reaction: 'ph-heart',
         mention: 'ph-at', announcement: 'ph-megaphone', certificate: 'ph-certificate',
-        new_dm: 'ph-envelope-simple-open', elite_signal_new: 'ph-chart-line-up', elite_signal_teaser: 'ph-lock-key', elite_signal_tp: 'ph-target',
+        new_dm: 'ph-envelope-simple-open', elite_signal_new: 'ph-chart-line-up', elite_signal_tp: 'ph-target',
         elite_signal_sl: 'ph-warning-octagon', elite_signal_cancelled: 'ph-x-circle', elite_signal_expired: 'ph-clock-countdown',
         academy_lesson_completed: 'ph-check-circle', academy_certificate: 'ph-certificate',
         payment_confirmed: 'ph-credit-card', payment_failed: 'ph-credit-card',
@@ -2601,7 +2601,7 @@
         comment: 'community.html', reply: 'community.html', reaction: 'community.html', mention: 'community.html',
         announcement: 'community.html', certificate: 'academy-dashboard.html',
         new_dm: 'community.html?vista=mensajes',
-        elite_signal_new: 'signals-dashboard.html', elite_signal_teaser: 'signals.html', elite_signal_tp: 'signals-dashboard.html',
+        elite_signal_new: 'signals-dashboard.html', elite_signal_tp: 'signals-dashboard.html',
         elite_signal_sl: 'signals-dashboard.html', elite_signal_cancelled: 'signals-dashboard.html', elite_signal_expired: 'signals-dashboard.html',
         academy_lesson_completed: 'academy-dashboard.html', academy_certificate: 'academy-dashboard.html',
         payment_confirmed: 'suscripcion.html', payment_failed: 'suscripcion.html',
