@@ -34,6 +34,14 @@
         #chMain { flex: 1; min-width: 0; display: flex; flex-direction: column; height: 100%; }
         .ch-toolbar { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--ch-line); min-height: 56px; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
         .ch-toolbar::-webkit-scrollbar { display: none; }
+        .ch-tbwrap { position: relative; flex: none; min-width: 0; }
+        .ch-toolbar.arrastrando { cursor: grabbing; user-select: none; }
+        .ch-tbflecha { position: absolute; top: 0; bottom: 0; width: 34px; z-index: 5; border: 0; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+        .ch-tbflecha[hidden] { display: none; }
+        .ch-tbflecha.izq { left: 0; background: linear-gradient(90deg, rgba(8,10,15,.97) 55%, rgba(8,10,15,0)); justify-content: flex-start; padding-left: 8px; }
+        .ch-tbflecha.der { right: 0; background: linear-gradient(270deg, rgba(8,10,15,.97) 55%, rgba(8,10,15,0)); justify-content: flex-end; padding-right: 8px; }
+        .ch-tbflecha:hover { color: rgb(var(--ch-accent)); }
+        @media (hover: none) { .ch-tbflecha { display: none; } }
         .ch-select { background: rgba(255,255,255,0.04); border: 1px solid var(--ch-line); border-radius: 10px; color: #fff; font-size: 13px; font-weight: 600; padding: 7px 10px; flex-shrink: 0; }
         .ch-select:focus { outline: none; border-color: rgb(var(--ch-accent)); }
         .ch-select option, .ch-select optgroup { background: #0D1016; }
@@ -541,6 +549,7 @@
     <script src="assets/js/charts/state.js?v=7e92c3b7"></script>
     <script src="assets/js/charts/market-data.js?v=7b64d274"></script>
     <script src="assets/js/charts/leyenda-plegable.js?v=499c2e6f"></script>
+    <script src="assets/js/charts/barra-desplazable.js?v=a84c614d"></script>
     <script src="assets/js/charts/pantalla-completa.js?v=b14cc0a3"></script>
     <script src="assets/js/charts/trade-panel.js?v=fb68a28f"></script>
     <script src="assets/js/charts/countdown.js?v=1b92948a"></script>
