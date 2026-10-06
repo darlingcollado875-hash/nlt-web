@@ -2318,6 +2318,9 @@
                 <button type="button" data-nlt-palette class="w-full flex items-center gap-3 px-4 py-2.5 mb-2 rounded-2xl text-sm text-gray-500 bg-white/[0.03] border border-white/[0.07] hover:border-white/20 hover:text-gray-300 transition-all cursor-pointer">
                     <i class="ph ph-magnifying-glass text-lg"></i><span class="flex-1 text-left">Buscar…</span><span class="nlt-kbd">${/Mac|iPhone|iPad/.test(navigator.platform || '') ? '⌘K' : 'Ctrl K'}</span>
                 </button>
+                ${seccion === 'charts' ? `<a href="dashboard.html" id="nav-volver-dashboard" class="flex items-center gap-3 px-4 py-3 mb-2 rounded-2xl font-semibold text-sm transition-all text-white bg-white/[0.06] border border-white/10 hover:bg-white/10">
+                    <i class="ph-bold ph-arrow-left text-lg text-nlt-accent"></i> Volver al Dashboard
+                </a>` : ''}
                 <a href="ecosystem.html" class="flex items-center gap-3 px-4 py-3 ${seccion === 'charts' ? 'mb-2 pb-4 border-b border-white/5' : ''} rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
                     <i class="ph ph-compass text-lg"></i> Ecosistema
                 </a>
