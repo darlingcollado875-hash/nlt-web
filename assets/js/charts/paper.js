@@ -15,6 +15,8 @@
     const SALDO_DEF = 10000;
     const GRUPO = 'nlt-paper';
 
+    const sonar = (n) => { if (window.NLTCharts && NLTCharts.sonidos) NLTCharts.sonidos.reproducir(n); };
+
     // Tamaño del contrato por 1 lote.
     function contrato(sym, categoria) {
         if (categoria === 'forex') return 100000;
@@ -193,6 +195,7 @@
         function cerrar(p, precio, motivo) {
             const ganancia = pnl(p.side, p.entry, precio, p.lots, tam(p.sym), convUSD(p.sym, precios[p.sym] || precio));
             cuenta.saldo += ganancia;
+            sonar(ganancia > 0.005 ? 'ganancia' : ganancia < -0.005 ? 'perdida' : 'cerrar');
             cuenta.posiciones = cuenta.posiciones.filter((x) => x.id !== p.id);
             cuenta.historial.unshift({ id: p.id, sym: p.sym, side: p.side, lots: p.lots, entry: p.entry, exit: precio, pnl: ganancia, motivo, abierta: p.abierta, cerrada: Date.now() });
             cuenta.historial = cuenta.historial.slice(0, MAX_HISTORIAL);
@@ -205,6 +208,7 @@
                 const entrada = llenaOrden(o, px, alto, bajo);
                 if (entrada == null) return;
                 cuenta.ordenes = cuenta.ordenes.filter((x) => x.id !== o.id);
+                if (cuenta.posiciones.length < MAX_POSICIONES) sonar('abrir');
                 if (cuenta.posiciones.length < MAX_POSICIONES) cuenta.posiciones.push({ id: o.id, sym: o.sym, side: o.side, lots: o.lots, entry: entrada, sl: o.sl, tp: o.tp, abierta: Date.now() });
                 cambio = true;
             });
@@ -261,9 +265,11 @@
                 if (cuenta.posiciones.length >= MAX_POSICIONES) return `Máximo ${MAX_POSICIONES} posiciones abiertas.`;
                 const nuevaMargen = (t.lots * tam(sym) * px * convUSD(sym, px)) / APALANCAMIENTO;
                 if (nuevaMargen > equity() - margenUsado()) return `Margen insuficiente: necesitas ${dinero(nuevaMargen)} y tienes libre ${dinero(equity() - margenUsado())}.`;
+                sonar('abrir');
                 cuenta.posiciones.push({ id: uid(), sym, side: t.side, lots: t.lots, entry: px, sl: t.sl, tp: t.tp, abierta: Date.now() });
             } else {
                 if (cuenta.ordenes.length >= MAX_ORDENES) return `Máximo ${MAX_ORDENES} órdenes pendientes.`;
+                sonar('pendiente');
                 cuenta.ordenes.push({ id: uid(), sym, side: t.side, type: t.type, lots: t.lots, price: t.price, sl: t.sl, tp: t.tp, creada: Date.now() });
             }
             guardar(); pintarLineas(); programar();

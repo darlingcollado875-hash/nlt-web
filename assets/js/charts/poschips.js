@@ -147,19 +147,28 @@
             arrastre = { clave: f.desc.clave, f, id: e.pointerId, valor: f.desc.valor };
             ficha.classList.add('arrastrando');
         });
-        capa.addEventListener('pointermove', (e) => {
-            if (!arrastre || e.pointerId !== arrastre.id) return;
+        // Un solo repintado por cuadro de pantalla (el ratón/dedo manda 100+ eventos por segundo y cada uno redibujaba la línea)
+        let rafArr = null, ultimoEv = null;
+        function pasoArrastre() {
+            rafArr = null;
+            if (!arrastre || !ultimoEv) return;
             const r = stage.getBoundingClientRect();
-            const y = e.clientY - r.top - desplazamientoY();
+            const y = ultimoEv.clientY - r.top - desplazamientoY();
             const v = valorDe(y); if (v == null) return;
             const f = arrastre.f, d = f.desc;
             arrastre.valor = v; f.yFija = Math.max(0, Math.min(dom.clientHeight, y));
             const tt = f.el.querySelector('.pp-t'); if (tt) tt.textContent = fuente.textoArrastre(d, v);
             try { chart.overrideOverlay({ id: `${grupo}-${d.clave}`, points: [{ timestamp: chart.getDataList().slice(-1)[0].timestamp, value: v }] }); } catch (_) { /* sin línea */ }
             colocar(f);
+        }
+        capa.addEventListener('pointermove', (e) => {
+            if (!arrastre || e.pointerId !== arrastre.id) return;
+            ultimoEv = e;
+            if (!rafArr) rafArr = requestAnimationFrame(pasoArrastre);
         });
         function terminarArrastre(e, confirmar) {
             if (!arrastre || (e && e.pointerId !== arrastre.id)) return;
+            if (rafArr) { cancelAnimationFrame(rafArr); pasoArrastre(); }
             const { f, valor } = arrastre, d = f.desc;
             f.el.classList.remove('arrastrando');
             arrastre = null;
