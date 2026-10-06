@@ -1546,7 +1546,7 @@
                 <div class="glass-card overflow-x-auto">
                     <table class="w-full text-left text-sm">
                         <thead class="bg-white/5 text-xs uppercase text-gray-400 border-b border-white/5">
-                            <tr><th class="px-5 py-3 font-semibold">Símbolo</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Quality Score</th><th class="px-5 py-3 font-semibold">Nivel</th><th class="px-5 py-3 font-semibold">Origen</th><th class="px-5 py-3 font-semibold">Estado</th><th class="px-5 py-3 font-semibold">Creada</th><th class="px-5 py-3 font-semibold">Acciones</th></tr>
+                            <tr><th class="px-3 py-3 font-semibold">Acciones</th><th class="px-5 py-3 font-semibold">Símbolo</th><th class="px-5 py-3 font-semibold">Dirección</th><th class="px-5 py-3 font-semibold">Quality Score</th><th class="px-5 py-3 font-semibold">Nivel</th><th class="px-5 py-3 font-semibold">Origen</th><th class="px-5 py-3 font-semibold">Estado</th><th class="px-5 py-3 font-semibold">Creada</th></tr>
                         </thead>
                         <tbody id="tablaSignals" class="divide-y divide-white/5 text-gray-300"><tr><td colspan="8" class="px-5 py-3 text-gray-500">Cargando...</td></tr></tbody>
                     </table>
@@ -5277,6 +5277,17 @@
         function renderTablaSignals(signals) {
             document.getElementById('tablaSignals').innerHTML = signals.length ? signals.map((s) => `
                 <tr>
+                    <td class="px-3 py-3 whitespace-nowrap">
+                        <button type="button" data-signal-borrar="${s.id}" data-signal-nombre="${esc(s.symbol)} ${esc(s.direction)}" class="px-2.5 py-2 rounded-lg text-nlt-danger border border-nlt-danger/30 hover:bg-nlt-danger/10" title="Eliminar esta señal" aria-label="Eliminar esta señal"><i class="ph ph-trash text-base"></i></button>
+                        ${s.status === 'ACTIVE' ? `
+                            <select data-signal-id="${s.id}" class="signal-status-select bg-black/20 border border-white/5 rounded-lg px-2 py-2 text-xs ml-1">
+                                <option value="">Cerrar como...</option>
+                                <option value="TP_HIT">TP alcanzado</option>
+                                <option value="SL_HIT">SL alcanzado</option>
+                                <option value="CANCELLED">Cancelada</option>
+                            </select>
+                        ` : ''}
+                    </td>
                     <td class="px-5 py-3 font-semibold text-white">${esc(s.symbol)}</td>
                     <td class="px-5 py-3">${esc(s.direction)}</td>
                     <td class="px-5 py-3">${s.quality_score}%</td>
@@ -5284,17 +5295,6 @@
                     <td class="px-5 py-3 text-xs font-semibold ${SIGNAL_ORIGEN_CLS[s.origen] || 'text-gray-400'}">${esc(s.origen)}</td>
                     <td class="px-5 py-3">${esc(SIGNAL_ESTADO_LABEL[s.status] || s.status)}</td>
                     <td class="px-5 py-3 text-xs text-gray-500">${new Date(s.created_at).toLocaleString('es')}</td>
-                    <td class="px-5 py-3">
-                        ${s.status === 'ACTIVE' ? `
-                            <select data-signal-id="${s.id}" class="signal-status-select bg-black/20 border border-white/5 rounded-lg px-2 py-1 text-xs">
-                                <option value="">Cerrar como...</option>
-                                <option value="TP_HIT">TP alcanzado</option>
-                                <option value="SL_HIT">SL alcanzado</option>
-                                <option value="CANCELLED">Cancelada</option>
-                            </select>
-                        ` : '<span class="text-gray-600">--</span>'}
-                        <button type="button" data-signal-borrar="${s.id}" data-signal-nombre="${esc(s.symbol)} ${esc(s.direction)}" class="ml-2 px-2 py-1 rounded-lg text-xs text-nlt-danger border border-nlt-danger/30 hover:bg-nlt-danger/10" title="Eliminar esta señal"><i class="ph ph-trash"></i> Eliminar</button>
-                    </td>
                 </tr>
             `).join('') : '<tr><td colspan="8" class="px-5 py-3 text-gray-500">Sin señales todavía.</td></tr>';
 
