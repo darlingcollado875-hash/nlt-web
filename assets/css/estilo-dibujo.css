@@ -1,0 +1,44 @@
+/* Panel de estilo rápido de los dibujos (estilo-dibujo.js): vidrio oscuro + azul NLT. */
+.ed-pop { position: absolute; z-index: 8; left: 50%; top: 56px; transform: translate(-50%, -6px); width: min(340px, calc(100% - 16px)); max-height: calc(100% - 72px); display: flex; flex-direction: column; background: rgba(15, 18, 26, .94); -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px); border: 1px solid rgba(255, 255, 255, .09); border-radius: 16px; box-shadow: 0 18px 50px rgba(0, 0, 0, .55), 0 0 0 1px rgba(67, 120, 255, .08); color: #e5e7eb; opacity: 0; pointer-events: none; transition: opacity .16s ease, transform .16s ease; font-size: 12px; }
+.ed-pop.on { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+.ed-pop[hidden] { display: none; }
+.ed-pop header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 8px; font-size: 13px; }
+.ed-x { width: 28px; height: 28px; border-radius: 8px; color: #9ca3af; display: grid; place-items: center; cursor: pointer; }
+.ed-x:hover { background: rgba(255, 255, 255, .08); color: #fff; }
+.ed-cuerpo { overflow-y: auto; padding: 0 14px 6px; overscroll-behavior: contain; scrollbar-width: thin; }
+.ed-sec { padding: 10px 0; border-top: 1px solid rgba(255, 255, 255, .06); }
+.ed-sec:first-child { border-top: 0; }
+.ed-t { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; color: #9ca3af; font-weight: 600; letter-spacing: .02em; }
+.ed-t b { color: #fff; font-variant-numeric: tabular-nums; }
+.ed-paleta { display: grid; grid-template-columns: repeat(7, 1fr); gap: 7px; }
+.ed-sw { aspect-ratio: 1; min-height: 26px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, .22); cursor: pointer; position: relative; transition: transform .1s; }
+.ed-sw:hover { transform: scale(1.08); }
+.ed-sw.on { outline: 2px solid #4378ff; outline-offset: 2px; }
+.ed-otro { display: grid; place-items: center; background: conic-gradient(#ef4444, #eab308, #22c55e, #06b6d4, #4378ff, #ec4899, #ef4444); overflow: hidden; }
+.ed-otro i { color: #fff; font-size: 12px; filter: drop-shadow(0 0 2px #000); }
+.ed-otro input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.ed-op { display: flex; align-items: center; gap: 10px; margin-top: 10px; color: #9ca3af; }
+.ed-op input { flex: 1; accent-color: #4378ff; height: 28px; }
+.ed-seg { display: flex; gap: 6px; flex-wrap: wrap; }
+.ed-seg button { flex: 1; min-width: 38px; min-height: 36px; padding: 4px 8px; border-radius: 9px; background: rgba(255, 255, 255, .05); border: 1px solid transparent; color: #d1d5db; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+.ed-seg button i { display: block; width: 22px; background: currentColor; border-radius: 2px; }
+.ed-seg button em { font-style: normal; font-size: 10px; opacity: .75; }
+.ed-seg button.on { background: rgba(67, 120, 255, .16); border-color: rgba(67, 120, 255, .6); color: #fff; }
+.ed-plantillas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.ed-plantillas em { color: #6b7280; font-style: normal; }
+.ed-chip { display: inline-flex; align-items: center; background: rgba(67, 120, 255, .12); border: 1px solid rgba(67, 120, 255, .35); border-radius: 999px; overflow: hidden; }
+.ed-chip button { padding: 6px 10px; color: #dbe6ff; cursor: pointer; }
+.ed-chip button + button { padding: 6px 8px 6px 2px; color: #93a8d8; }
+.ed-chip button:hover { color: #fff; }
+.ed-nueva { display: flex; gap: 6px; }
+.ed-nueva input { flex: 1; min-width: 0; background: rgba(0, 0, 0, .3); border: 1px solid rgba(255, 255, 255, .1); border-radius: 9px; padding: 8px 10px; color: #fff; font-size: 16px; }
+.ed-nueva input:focus { outline: none; border-color: #4378ff; }
+.ed-nueva button { padding: 0 12px; border-radius: 9px; background: #4378ff; color: #fff; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.ed-pop footer { display: flex; gap: 6px; flex-wrap: wrap; padding: 10px 14px 12px; border-top: 1px solid rgba(255, 255, 255, .06); }
+.ed-pop footer button { flex: 1 1 auto; padding: 8px 10px; border-radius: 9px; background: rgba(255, 255, 255, .06); color: #e5e7eb; font-weight: 600; cursor: pointer; font-size: 11.5px; }
+.ed-pop footer button:hover { background: rgba(255, 255, 255, .12); }
+@media (max-width: 700px) {
+    .ed-pop { top: auto !important; bottom: 8px; left: 8px; right: 8px; width: auto; transform: translateY(12px); max-height: 70%; }
+    .ed-pop.on { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) { .ed-pop { transition: none; } }

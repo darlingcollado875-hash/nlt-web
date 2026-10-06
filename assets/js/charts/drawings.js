@@ -676,12 +676,14 @@
         const redibujar = (id) => { if (id && overlay(id)) { try { chart.overrideOverlay({ id }); } catch (_) { /* ya no existe */ } } };
         function seleccionar(id) {
             const antes = seleccionado;
+            if (antes !== id && window.NLTEstiloDibujo) NLTEstiloDibujo.cerrar();
             seleccionado = id; idSeleccionado = id;
             if (antes !== id) { redibujar(antes); redibujar(id); }
             pintarBarra();
         }
         function deseleccionar() {
             const antes = seleccionado;
+            if (window.NLTEstiloDibujo) NLTEstiloDibujo.cerrar();
             seleccionado = null; idSeleccionado = null;
             redibujar(antes);
             barraEl.hidden = true;
@@ -694,6 +696,33 @@
             const estilo = { ...(ext.estilo || {}), ...parcial };
             chart.overrideOverlay({ id, extendData: { ...ext, estilo } });   // solo redibujo
             guardar();
+        }
+
+        // Lo que necesita el panel de estilo rápido (estilo-dibujo.js) para leer y cambiar el dibujo.
+        function contextoEstilo(id) {
+            const visuales = (h) => h.inputs.filter((i) => i.tipo === 'color' || i.id === 'grosor' || i.id === 'estiloLinea').map((i) => i.id);
+            return {
+                leer: () => estiloDe(overlay(id)),
+                aplicar: (parcial) => { actualizarEstilo(id, parcial); },
+                aplicarATodos: (estilo) => {
+                    const { h } = estiloDe(overlay(id));
+                    let n = 0;
+                    chart.getOverlays({ groupId: GRUPO }).forEach((o) => {
+                        if (o.currentStep !== -1 || !NOMBRES.has(o.name)) return;
+                        if (estiloDe(o).h.id !== h.id) return;
+                        const ext = o.extendData || {};
+                        chart.overrideOverlay({ id: o.id, extendData: { ...ext, estilo: { ...(ext.estilo || {}), ...estilo } } }); n++;
+                    });
+                    guardar(); return n;
+                },
+                predeterminado: (estilo) => { const { h } = estiloDe(overlay(id)); NLTCharts.settings.guardar(claveDef(h.id), { ...NLTCharts.settings.valores(claveDef(h.id)), ...estilo }); },
+                restablecer: () => {
+                    // KLineChart fusiona extendData (no se pueden borrar claves): se vuelve al predeterminado actual de la herramienta.
+                    const o = overlay(id), { h } = estiloDe(o), def = NLTCharts.settings.mezclar(h.inputs, NLTCharts.settings.valores(claveDef(h.id))), nuevo = {};
+                    visuales(h).forEach((k) => { nuevo[k] = JSON.parse(JSON.stringify(def[k])); });
+                    actualizarEstilo(id, nuevo);
+                },
+            };
         }
 
         function pintarBarra() {
@@ -718,6 +747,7 @@
                 ${esPos && tr && tr.activo() ? (() => { const c = pideConfirmar(); return `<button type="button" class="dw-btn dw-ico${c ? ' on' : ''}" data-dw="confirmar" aria-pressed="${c}" title="${c ? 'Confirmación activada: BUY/SELL pide un segundo toque. Toca para enviar con un solo toque.' : 'Un solo toque: BUY/SELL envía la orden al instante. Toca para volver a pedir confirmación.'}" aria-label="Confirmación del botón BUY/SELL"><i class="ph ${c ? 'ph-shield-check' : 'ph-lightning'}"></i></button>`; })() : ''}
                 ${esPos && ((tr && tr.activo()) || (NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper())) ? `<select class="dw-sel" data-dw="tipoEj" title="Cómo se ejecuta al tocar BUY/SELL o Simular" aria-label="Tipo de ejecución">${TIPOS_EJ.map((x) => `<option value="${x[0]}"${x[0] === tipoEj() ? ' selected' : ''}>${x[1]}</option>`).join('')}</select>` : ''}
                 ${esPos && NLTCharts.app && NLTCharts.app.paper && NLTCharts.app.paper() ? `<button type="button" class="dw-btn" data-dw="sim" title="Practicar esta posición en el Simulador (dinero virtual)"><i class="ph ph-game-controller"></i><span>Simular</span></button>` : ''}
+                <button type="button" class="dw-btn${window.NLTEstiloDibujo && NLTEstiloDibujo.abierto() ? ' on' : ''}" data-dw="estilo" title="Estilo: colores, opacidad, grosor y plantillas" aria-label="Estilo"><i class="ph ph-palette"></i></button>
                 <button type="button" class="dw-btn" data-dw="config" title="Configuración" aria-label="Configuración"><i class="ph ph-gear-six"></i></button>
                 <button type="button" class="dw-btn" data-dw="duplicar" title="Duplicar" aria-label="Duplicar"><i class="ph ph-copy"></i></button>
                 <button type="button" class="dw-btn${o.lock ? ' on' : ''}" data-dw="bloquear" title="${o.lock ? 'Desbloquear' : 'Bloquear'}" aria-label="Bloquear"><i class="ph ${o.lock ? 'ph-lock-simple' : 'ph-lock-simple-open'}"></i></button>
@@ -761,6 +791,7 @@
             const acc = el.dataset.dw;
             if (acc === 'borrar') { chart.removeOverlay({ id }); deseleccionar(); }
             if (acc === 'config') abrirPropiedades(id);
+            if (acc === 'estilo' && window.NLTEstiloDibujo) { NLTEstiloDibujo.abrir(contextoEstilo(id)); setTimeout(pintarBarra, 0); }
             if (acc === 'texto') abrirPropiedades(id, 'Texto');
             if (acc === 'duplicar') duplicar(id);
             if (acc === 'bloquear') { const o = overlay(id); chart.overrideOverlay({ id, lock: !o.lock }); guardar(); pintarBarra(); }
