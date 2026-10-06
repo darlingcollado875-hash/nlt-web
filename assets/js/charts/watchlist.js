@@ -46,7 +46,7 @@
             const fav = favs.includes(s.symbol);
             return `<div class="wl-fila${s.symbol === getSymbol() ? ' on' : ''}" data-sym="${esc(s.symbol)}">
                 <span class="wl-sym"><b>${esc(s.symbol)}</b><small>${esc(s.display_name)}</small></span>
-                <span class="wl-cat">${esc({ forex: 'Forex', metals: 'Metales', crypto: 'Cripto', indices: 'Índices' }[s.category] || s.category)}</span>
+                <span class="wl-cat">${esc({ forex: 'Forex', metals: 'Metales', energy: 'Energía', crypto: 'Cripto', indices: 'Índices' }[s.category] || s.category)}</span>
                 <button type="button" class="wl-star${fav ? ' on' : ''}" data-fav="${esc(s.symbol)}" title="${fav ? 'Quitar de favoritos' : 'Agregar a favoritos'}" aria-label="${fav ? 'Quitar' : 'Agregar'} ${esc(s.symbol)}"><i class="${fav ? 'ph-fill' : 'ph'} ph-star"></i></button>
             </div>`;
         }

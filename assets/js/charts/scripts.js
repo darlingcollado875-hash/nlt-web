@@ -72,7 +72,7 @@
         /** Datos del gráfico que el script puede leer (syminfo.*, timeframe.*) y temporalidades que NLT Charts sabe pedir. */
         function infoGrafico() {
             const sym = getSymbol(), tf = getTimeframe ? getTimeframe() : '15m', i = infoSimbolo[sym] || {};
-            return { symbol: sym, tf, tfMs: MS_TF[tf] || 0, precision: i.price_precision, tipo: i.category === 'metals' ? 'commodity' : i.category === 'crypto' ? 'crypto' : i.category === 'indices' ? 'index' : 'forex', tfs: timeframes || ['1m', '5m', '15m', '30m', '1H', '4H', '1D'] };
+            return { symbol: sym, tf, tfMs: MS_TF[tf] || 0, precision: i.price_precision, tipo: i.category === 'metals' || i.category === 'energy' ? 'commodity' : i.category === 'crypto' ? 'crypto' : i.category === 'indices' ? 'index' : 'forex', tfs: timeframes || ['1m', '5m', '15m', '30m', '1H', '4H', '1D'] };
         }
 
         // ── datos de OTRAS temporalidades (request.security): se piden al servidor y se guardan unos segundos ──

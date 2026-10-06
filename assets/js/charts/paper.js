@@ -19,6 +19,8 @@
     function contrato(sym, categoria) {
         if (categoria === 'forex') return 100000;
         if (sym === 'XAUUSD') return 100;
+        if (sym === 'XAGUSD') return 5000;
+        if (categoria === 'energy') return 1000;
         return 1;
     }
     const dinero = (n) => `${n < 0 ? '−' : ''}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -32,6 +34,7 @@
     function convUSD(sym, precio) {
         if (sym.endsWith('USD')) return 1;
         if (sym.startsWith('USD') && precio) return 1 / precio;
+        if (/^[A-Z]{6}$/.test(sym)) return ({ JPY: 0.0066, CAD: 0.73, CHF: 1.13, GBP: 1.27, AUD: 0.65, NZD: 0.60, EUR: 1.08 })[sym.slice(3)] || 1;   // cruces sin USD: aproximado
         return 1;
     }
 
