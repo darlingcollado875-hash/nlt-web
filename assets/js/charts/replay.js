@@ -84,7 +84,9 @@
             st.cargando = true; st.error = ''; pintar();
             let r;
             try {
-                r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs);
+                // si el servidor de precios tarda de más con una fecha lejana, un segundo intento suele salir de la caché que dejó el primero
+                try { r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs, 60000); }
+                catch (e1) { if (mio !== op || !/tard[óo] demasiado/i.test(e1.message || '')) throw e1; r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs, 90000); }
             } catch (err) { if (mio === op) { st.error = err.message; st.cargando = false; pintar(); } return; }
             if (mio !== op) { NLT_API.chartsReplayCerrar(r.id).catch(() => {}); return; }   // ya no la quiere nadie
             if (st.ses && st.ses.id !== r.id) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});

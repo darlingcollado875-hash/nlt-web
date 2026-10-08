@@ -99,7 +99,10 @@
                     velas_servidor_pedidas: pedidos.reduce((a, x) => a + (x.prov || 0), 0), hit: pedidos.every((x) => x.hit) };
                 return st.ultimo;
             } catch (err) {
-                st.error = err.message;
+                st.reintento = ms;
+                st.error = /tard[óo] demasiado/i.test(err.message || '')
+                    ? 'El servidor de precios tardó demasiado con esa fecha. Volviste al gráfico en vivo; pulsa Reintentar (a veces el servidor ya lo tiene listo en el segundo intento).'
+                    : err.message;
                 return null;
             } finally {
                 st.cargando = false; st.prog = null;
@@ -124,7 +127,7 @@
                 ${v && !st.cargando ? `<span class="rp-cur" title="Tramo del pasado: no son precios en vivo">Histórico · hasta ${esc(v.fin ? fmt(v.fin) : '…')}</span>` : ''}
                 ${u && !st.cargando ? `<span class="rp-cur" title="Último salto">${esc(u.modo === 'cache' ? 'ya cargada' : u.modo === 'contiguo' ? 'completado' : 'ventana')} · ${seg(u.total_ms)}${u.pedidos ? ` · ${u.pedidos} pedidos${u.hit ? ' (caché)' : ''}` : ''}</span>` : ''}
                 ${st.disp && st.disp.earliest_status !== 'AVAILABLE' ? '<span class="rp-cur" title="La fuente no informó dónde empieza su historia: los años más viejos pueden no tener datos">inicio de la historia: sin comprobar</span>' : ''}
-                ${st.error ? `<span class="rp-err">${esc(st.error)}</span>` : ''}`;
+                ${st.error ? `<span class="rp-err">${esc(st.error)}${st.reintento ? ' <button type="button" class="rp-b" data-a="reintentar" style="margin-left:6px"><i class="ph ph-arrow-clockwise"></i><span>Reintentar</span></button>' : ''}</span>` : ''}`;
         }
         el.addEventListener('click', (ev) => {
             const anio = ev.target.closest('[data-anio]');
@@ -133,6 +136,7 @@
             if (!a) return;
             ({
                 ir: () => ir(new Date(`${st.fecha}T${st.hora || '00:00'}`).getTime()),
+                reintentar: () => { if (st.reintento) ir(st.reintento); },
                 presente: () => { motor.volverAlPresente(); },
                 cerrar: () => { st.abierto = false; pintar(); },
             }[a.dataset.a] || (() => {}))();
