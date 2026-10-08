@@ -145,7 +145,7 @@
                 st.zeVisible = ze && ze.length ? ze[0].visible !== false : null;
                 if (st.zeVisible) chart.overrideIndicator({ name: 'NLT_PRO_ZONES', visible: false });   // las zonas en vivo no son del backtest
             }
-            motor.modoExterno({ velas: klines }, false);
+            motor.modoExterno({ velas: klines, conHistoria: true }, false);
             app.irA(r.symbol, r.timeframe);
             if (mismo) chart.resetData();
             st.enGrafico = true;
