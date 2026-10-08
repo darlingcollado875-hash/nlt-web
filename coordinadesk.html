@@ -135,6 +135,10 @@
         .cd-toast { padding: 12px 18px; border-radius: 14px; background: #11151C; border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; box-shadow: 0 10px 40px rgba(0,0,0,.5); max-width: 360px; }
         .cd-toast.err { border-color: rgba(248,113,113,.5); color: #fca5a5; }
         .cd-toast.ok { border-color: rgba(34,197,94,.4); }
+        .cd-pick { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; padding: 12px 14px; border-radius: 14px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); color: #fff; cursor: pointer; margin-top: 8px; }
+        .cd-pick:hover { border-color: #4378FF; background: rgba(67,120,255,.08); }
+        .cd-pick .cd-when { width: 76px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: #9CA3AF; line-height: 1.35; }
+        .cd-pay-list { min-height: 120px; }
         .cd-detail { white-space: pre-wrap; font-size: 13px; color: #D1D5DB; line-height: 1.55; }
         @media (max-width: 767px) {
             .cd-form { grid-template-columns: 1fr; }
@@ -218,7 +222,7 @@
         // ------------------------------------------------------------------
         // Estado
         // ------------------------------------------------------------------
-        const S = { team: [], items: [], affiliates: [], meetings: [], contracts: [], payments: [], publications: [], launches: [], devChanges: [], academyClasses: [], reports: [] };
+        const S = { team: [], items: [], affiliates: [], clients: [], meetings: [], contracts: [], payments: [], publications: [], launches: [], devChanges: [], academyClasses: [], reports: [] };
         const PAGE = 100;   // filas visibles por lista: con miles de registros, pintarlas todas congelaba la página
         const UI = { tab: 'daily', q: '', status: 'all', dept: 'all', type: 'all', date: hoy(), agendaView: 'day', month: hoy().slice(0, 7), limit: PAGE };
         let SESSION = null;
@@ -236,6 +240,7 @@
         const mname = (id) => (member(id) ? member(id).name : '—');
         const memberOpts = () => S.team.filter((m) => m.active !== false).map((m) => ({ v: m.id, l: m.name }));
         const affiliateOpts = () => S.affiliates.map((a) => ({ v: a.id, l: `${a.affiliateCode || ''} · ${a.fullName}` }));
+        const clientOpts = () => S.clients.map((c) => ({ v: c.id, l: `${c.fullName}${c.email ? ' · ' + c.email : ''}` }));
         const initials = (name) => String(name || '?').trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join('').toUpperCase();
 
         // ------------------------------------------------------------------
@@ -253,6 +258,8 @@
         const PRIO_ITEM = O([['high', 'Alta', 'bad'], ['medium', 'Media', 'warn'], ['normal', 'Normal', 'mute']]);
         const TYPE_ITEM = O([['task', 'Tarea'], ['meeting', 'Reunión'], ['reminder', 'Recordatorio']]);
         const LEAD = O([['none', 'Sin recordatorio'], ['at_time', 'A la hora'], ['15_min', '15 min antes'], ['30_min', '30 min antes'], ['1_hour', '1 hora antes'], ['2_hours', '2 horas antes'], ['1_day', '1 día antes']]);
+        const REPEAT = O([['none', 'No se repite'], ['daily', 'Todos los días'], ['weekdays', 'Lunes a viernes'], ['weekly', 'Cada semana'], ['biweekly', 'Cada 2 semanas'], ['monthly', 'Cada mes'], ['yearly', 'Cada año']]);
+        const ST_CLIENT = O([['activo', 'Activo', 'ok'], ['por_vencer', 'Por vencer', 'warn'], ['vencido', 'Vencido', 'bad'], ['pendiente', 'Sin plan', 'mute'], ['cancelado', 'Cancelado', 'mute']]);
         const LEAD_MIN = { at_time: 0, '15_min': 15, '30_min': 30, '1_hour': 60, '2_hours': 120, '1_day': 1440 };
 
         // Estado efectivo de un contrato: rescindido manda; si no, se calcula por fechas.
@@ -262,6 +269,26 @@
             const d = diasHasta(c.endDate);
             return d < 0 ? 'vencido' : d <= 30 ? 'por_vencer' : 'vigente';
         }
+
+        // Estado efectivo de un cliente: cancelado manda; si no, se calcula con los vencimientos de sus planes.
+        const planesDe = (p) => ((p && p.plans) || []).filter((x) => x.name);
+        function estadoCliente(c) {
+            if (c.status === 'cancelado') return 'cancelado';
+            const planes = planesDe(c);
+            if (!planes.length) return 'pendiente';
+            const vivos = planes.filter((x) => !x.expiryDate || diasHasta(x.expiryDate) >= 0);
+            if (!vivos.length) return 'vencido';
+            const dias = vivos.filter((x) => x.expiryDate).map((x) => diasHasta(x.expiryDate));
+            return dias.length && Math.min(...dias) <= 7 ? 'por_vencer' : 'activo';
+        }
+        const ultimoPago = (p) => planesDe(p).map((x) => x.paidDate).filter(Boolean).sort().pop() || '';
+        const proximoVenc = (p) => {
+            const v = planesDe(p).map((x) => x.expiryDate).filter(Boolean);
+            const vivos = v.filter((f) => diasHasta(f) >= 0).sort();
+            return vivos[0] || v.sort().pop() || '';
+        };
+        const venceTxt = (f) => { if (!f) return '—'; const d = diasHasta(f); return `${fmtDate(f)}<div class="cd-sub ${d < 0 ? 'cd-tone-bad' : d <= 7 ? 'cd-tone-warn' : ''}">${d < 0 ? 'Venció hace ' + (-d) + ' d' : d === 0 ? 'Vence hoy' : 'En ' + d + ' d'}</div>`; };
+        const botonPagar = (tipo) => (r) => `<button class="cd-btn sm" data-act="pay" data-tipo="${tipo}" data-id="${esc(r.id)}" title="Registrar pago"><i class="ph ph-currency-dollar"></i></button>`;
 
         const MODS = {
             daily: { label: 'Agenda', icon: 'ph-calendar-check', custom: true },
@@ -291,39 +318,70 @@
                     { k: 'communityGroup', l: 'Comunidad / grupo', t: 'text' }, { k: 'discountCode', l: 'Código de descuento', t: 'text' },
                     { k: 'commissionRate', l: 'Comisión acordada', t: 'text', ph: 'Ej: 15% por venta neta' }, { k: 'paymentMethod', l: 'Método de cobro', t: 'text', ph: 'SPEI, PayPal, Stripe…' },
                     { k: 'paidAmount', l: 'Pagado (USD)', t: 'number', def: 0 }, { k: 'pendingAmount', l: 'Pendiente (USD)', t: 'number', def: 0 },
-                    { k: 'plans', l: 'Planes contratados', t: 'rows', full: 1, add: 'Añadir plan', sub: [{ k: 'name', l: 'Plan', t: 'text' }, { k: 'price', l: 'Precio', t: 'number' }], grid: '1fr 110px' },
+                    { k: 'plans', l: 'Planes contratados', t: 'rows', full: 1, add: 'Añadir plan', sub: [{ k: 'name', l: 'Plan', t: 'text' }, { k: 'price', l: 'Precio', t: 'number' }, { k: 'paidDate', l: 'Pagó', t: 'date' }, { k: 'expiryDate', l: 'Vence', t: 'date' }], grid: '1fr 90px 135px 135px' },
                     { k: 'agreedConditions', l: 'Condiciones acordadas', t: 'textarea', full: 1 },
                     { k: 'contractUrl', l: 'Enlace al contrato firmado (Drive)', t: 'url', full: 1 },
                     { k: 'observations', l: 'Observaciones', t: 'textarea', full: 1 },
                 ],
                 statusKey: 'status', statusOpts: ST_AFF, search: ['fullName', 'email', 'affiliateCode', 'communityGroup'],
-                cols: [['Afiliado', (r) => `<b>${esc(r.fullName)}</b><div class="cd-sub">${esc(r.affiliateCode || '')} · ${esc(r.email || '')}</div>`], ['Estado', 'badge:status'], ['Comisión', (r) => esc(r.commissionRate || '—')], ['Ingreso', (r) => fmtDate(r.joinDate)], ['Pagado', (r) => money(r.paidAmount)], ['Pendiente', (r) => `<span class="${r.pendingAmount > 0 ? 'cd-tone-warn' : ''}">${money(r.pendingAmount)}</span>`]],
+                cols: [['Afiliado', (r) => `<b>${esc(r.fullName)}</b><div class="cd-sub">${esc(r.affiliateCode || '')} · ${esc(r.email || '')}</div>`], ['Estado', 'badge:status'], ['Comisión', (r) => esc(r.commissionRate || '—')], ['Ingreso', (r) => fmtDate(r.joinDate)], ['Pagado', (r) => money(r.paidAmount)], ['Pendiente', (r) => `<span class="${r.pendingAmount > 0 ? 'cd-tone-warn' : ''}">${money(r.pendingAmount)}</span>`], ['Plan vence', (r) => venceTxt(proximoVenc(r))]],
+                rowActions: botonPagar('affiliate'),
                 kpis: (r) => [['Afiliados', r.length], ['Activos', r.filter((a) => a.status === 'active').length, 'ok'], ['Pagado', money(r.reduce((s, a) => s + (a.paidAmount || 0), 0)), 'ok'], ['Pendiente', money(r.reduce((s, a) => s + (a.pendingAmount || 0), 0)), 'warn']],
                 sort: (a, b) => lower(a.fullName).localeCompare(lower(b.fullName)),
-                before: (r) => { r.plans = (r.plans || []).filter((p) => p.name); r.totalPlansValue = r.plans.reduce((s, p) => s + (p.price || 0), 0); r.contractedPlans = r.plans.map((p) => p.name); },
-                detail: (r) => [['Código', r.affiliateCode], ['Correo', r.email], ['Teléfono', r.phone], ['Ingreso', fmtDate(r.joinDate)], ['Comunidad', r.communityGroup], ['Código descuento', r.discountCode], ['Comisión', r.commissionRate], ['Método de cobro', r.paymentMethod], ['Planes', (r.plans || []).map((p) => `${p.name} (${money(p.price)})`).join(', ')], ['Valor total planes', money(r.totalPlansValue)], ['Pagado', money(r.paidAmount)], ['Pendiente', money(r.pendingAmount)], ['Condiciones', r.agreedConditions], ['Contrato', r.contractUrl], ['Observaciones', r.observations]],
+                before: (r) => { r.plans = (r.plans || []).filter((p) => p.name); r.totalPlansValue = r.plans.reduce((s, p) => s + (p.price || 0), 0); r.contractedPlans = r.plans.map((p) => p.name); r.lastPaymentDate = ultimoPago(r); r.nextExpiry = proximoVenc(r); },
+                detail: (r) => [['Código', r.affiliateCode], ['Correo', r.email], ['Teléfono', r.phone], ['Ingreso', fmtDate(r.joinDate)], ['Comunidad', r.communityGroup], ['Código descuento', r.discountCode], ['Comisión', r.commissionRate], ['Método de cobro', r.paymentMethod], ['Planes', (r.plans || []).map((p) => `${p.name} (${money(p.price)})${p.paidDate ? ' · pagó ' + fmtDate(p.paidDate) : ''}${p.expiryDate ? ' · vence ' + fmtDate(p.expiryDate) : ''}`).join('\n')], ['Valor total planes', money(r.totalPlansValue)], ['Pagado', money(r.paidAmount)], ['Pendiente', money(r.pendingAmount)], ['Condiciones', r.agreedConditions], ['Contrato', r.contractUrl], ['Observaciones', r.observations]],
                 report: { date: 'joinDate', status: 'status', sums: [['Pagado', 'paidAmount'], ['Pendiente', 'pendingAmount']], cols: [['Código', 'affiliateCode'], ['Nombre', 'fullName'], ['Correo', 'email'], ['Estado', 'status'], ['Ingreso', 'joinDate'], ['Comisión', 'commissionRate'], ['Pagado', 'paidAmount'], ['Pendiente', 'pendingAmount']] },
+            },
+
+            clients: {
+                label: 'Clientes', icon: 'ph-user-circle', col: 'clients', singular: 'cliente', newLabel: 'Nuevo cliente', empty: 'Aún no hay clientes registrados.',
+                fields: [
+                    { k: 'fullName', l: 'Nombre completo', t: 'text', req: 1 }, { k: 'email', l: 'Correo', t: 'email', req: 1 },
+                    { k: 'phone', l: 'Teléfono', t: 'tel' }, { k: 'joinDate', l: 'Cliente desde', t: 'date', def: () => hoy() },
+                    { k: 'discountCode', l: 'Código de descuento usado', t: 'text' }, { k: 'referredById', l: 'Referido por (afiliado)', t: 'affiliate' },
+                    { k: 'status', l: 'Estado manual', t: 'select', opts: O([['activo', 'Automático (por vencimientos)'], ['cancelado', 'Cancelado']]), def: 'activo' },
+                    { k: 'plans', l: 'Planes contratados', t: 'rows', full: 1, add: 'Añadir plan', sub: [{ k: 'name', l: 'Plan', t: 'text' }, { k: 'price', l: 'Precio', t: 'number' }, { k: 'paidDate', l: 'Fecha de pago', t: 'date' }, { k: 'expiryDate', l: 'Vence', t: 'date' }], grid: '1fr 90px 135px 135px' },
+                    { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
+                ],
+                statusKey: 'status', statusFn: estadoCliente, statusOpts: ST_CLIENT, search: ['fullName', 'email', 'discountCode', 'phone'],
+                cols: [['Cliente', (r) => `<b>${esc(r.fullName)}</b><div class="cd-sub">${esc(r.email || '')}</div>`], ['Estado', 'badge:status'], ['Planes', (r) => esc(planesDe(r).map((p) => p.name).join(', ') || '—')], ['Descuento', (r) => esc(r.discountCode || '—')], ['Último pago', (r) => fmtDate(ultimoPago(r))], ['Vence', (r) => venceTxt(proximoVenc(r))]],
+                rowActions: botonPagar('client'),
+                kpis: (r) => [['Clientes', r.length], ['Activos', r.filter((c) => estadoCliente(c) === 'activo').length, 'ok'], ['Por vencer (7 d)', r.filter((c) => estadoCliente(c) === 'por_vencer').length, 'warn'], ['Vencidos', r.filter((c) => estadoCliente(c) === 'vencido').length, 'bad']],
+                sort: (a, b) => lower(a.fullName).localeCompare(lower(b.fullName)),
+                before: (r) => { r.plans = (r.plans || []).filter((p) => p.name); r.contractedPlans = r.plans.map((p) => p.name); r.lastPaymentDate = ultimoPago(r); r.nextExpiry = proximoVenc(r); },
+                validate: (r, base) => { const e = lower(r.email).trim(); return e && S.clients.some((c) => c.id !== base.id && lower(c.email).trim() === e) ? 'Ya existe un cliente con ese correo.' : ''; },
+                detail: (r) => [['Correo', r.email], ['Teléfono', r.phone], ['Cliente desde', fmtDate(r.joinDate)], ['Código de descuento', r.discountCode], ['Referido por', (S.affiliates.find((a) => a.id === r.referredById) || {}).fullName], ['Planes', planesDe(r).map((p) => `${p.name} (${money(p.price)})${p.paidDate ? ' · pagó ' + fmtDate(p.paidDate) : ''}${p.expiryDate ? ' · vence ' + fmtDate(p.expiryDate) : ''}`).join('\n')], ['Pagos registrados', String(S.payments.filter((p) => p.clientId === r.id).length)], ['Notas', r.notes]],
+                report: { date: 'joinDate', status: (r) => estadoCliente(r), sums: [], cols: [['Nombre', 'fullName'], ['Correo', 'email'], ['Teléfono', 'phone'], ['Estado', (r) => estadoCliente(r)], ['Planes', (r) => planesDe(r).map((p) => p.name).join('; ')], ['Código descuento', 'discountCode'], ['Último pago', 'lastPaymentDate'], ['Próximo vencimiento', 'nextExpiry'], ['Cliente desde', 'joinDate']] },
             },
 
             finance: {
                 label: 'Finanzas', icon: 'ph-currency-dollar', col: 'payments', singular: 'pago', newLabel: 'Registrar pago', empty: 'Aún no hay pagos ni comisiones registrados.',
+                // El formulario es propio (openPagoForm: elige cliente o afiliado, su plan y actualiza sus fechas); estos campos sirven para leer, etiquetar y reportar.
                 fields: [
-                    { k: 'affiliateId', l: 'Afiliado', t: 'affiliate', req: 1 }, { k: 'concept', l: 'Concepto', t: 'text', req: 1 },
-                    { k: 'paymentType', l: 'Tipo', t: 'select', opts: O([['commission', 'Comisión'], ['bonus', 'Bono'], ['plan_payment', 'Pago de plan'], ['adjustment', 'Ajuste']]), def: 'commission' },
-                    { k: 'status', l: 'Estado', t: 'select', opts: ST_PAY, def: 'pending' },
-                    { k: 'commissionRate', l: 'Tasa', t: 'text', ph: 'Ej: 18%' }, { k: 'paymentMethod', l: 'Método de pago', t: 'text' },
-                    { k: 'salesCount', l: 'Ventas referidas', t: 'number' }, { k: 'salesVolume', l: 'Volumen de ventas (USD)', t: 'number' },
-                    { k: 'commissionEarned', l: 'Comisión generada', t: 'number', def: 0 }, { k: 'amountPaid', l: 'Pagado', t: 'number', def: 0 },
-                    { k: 'amountPending', l: 'Pendiente', t: 'number', def: 0 }, { k: 'transactionRef', l: 'Referencia / comprobante', t: 'text' },
-                    { k: 'dueDate', l: 'Fecha de corte', t: 'date' }, { k: 'paymentDate', l: 'Fecha de pago', t: 'date' },
+                    { k: 'payerType', l: 'Pagador', t: 'select', opts: O([['client', 'Cliente'], ['affiliate', 'Afiliado']]), def: 'client' },
+                    { k: 'affiliateId', l: 'Afiliado', t: 'affiliate' }, { k: 'clientId', l: 'Cliente', t: 'client' },
+                    { k: 'planName', l: 'Plan', t: 'text' }, { k: 'concept', l: 'Concepto', t: 'text', req: 1 },
+                    { k: 'paymentType', l: 'Tipo', t: 'select', opts: O([['plan_payment', 'Pago de plan'], ['commission', 'Comisión'], ['bonus', 'Bono'], ['adjustment', 'Ajuste']]), def: 'plan_payment' },
+                    { k: 'status', l: 'Estado', t: 'select', opts: ST_PAY, def: 'paid' },
+                    { k: 'amountPaid', l: 'Monto pagado (USD)', t: 'number', def: 0 }, { k: 'paymentMethod', l: 'Método de pago', t: 'text' },
+                    { k: 'transactionRef', l: 'Referencia / comprobante', t: 'text' }, { k: 'discountCode', l: 'Código de descuento usado', t: 'text' },
+                    { k: 'paymentDate', l: 'Fecha de pago', t: 'date' }, { k: 'expiryDate', l: 'Fecha de vencimiento', t: 'date' },
+                    { k: 'commissionRate', l: 'Tasa', t: 'text', ph: 'Ej: 18%' }, { k: 'salesCount', l: 'Ventas referidas', t: 'number' }, { k: 'salesVolume', l: 'Volumen de ventas (USD)', t: 'number' },
+                    { k: 'commissionEarned', l: 'Comisión generada', t: 'number', def: 0 }, { k: 'amountPending', l: 'Pendiente', t: 'number', def: 0 },
+                    { k: 'dueDate', l: 'Fecha de corte', t: 'date' },
+                    { k: 'recordatorioAgenda', l: 'Crear recordatorio en la agenda para el vencimiento', t: 'check', def: true, dflt: true },
                     { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
                 ],
-                statusKey: 'status', statusOpts: ST_PAY, search: ['affiliateName', 'affiliateCode', 'concept', 'transactionRef'],
-                cols: [['Afiliado', (r) => `<b>${esc(r.affiliateName || '—')}</b><div class="cd-sub">${esc(r.affiliateCode || '')}</div>`], ['Concepto', (r) => esc(r.concept)], ['Estado', 'badge:status'], ['Generada', (r) => money(r.commissionEarned)], ['Pagado', (r) => money(r.amountPaid)], ['Pendiente', (r) => `<span class="${r.amountPending > 0 ? 'cd-tone-warn' : ''}">${money(r.amountPending)}</span>`], ['Corte', (r) => fmtDate(r.dueDate)]],
+                statusKey: 'status', statusOpts: ST_PAY, search: ['payerName', 'affiliateName', 'affiliateCode', 'concept', 'planName', 'transactionRef', 'discountCode'],
+                cols: [['Pagador', (r) => `<b>${esc(r.payerName || r.affiliateName || '—')}</b><div class="cd-sub">${r.payerType === 'client' ? 'Cliente' : 'Afiliado'}${r.payerCode ? ' · ' + esc(r.payerCode) : ''}</div>`], ['Concepto', (r) => `${esc(r.concept)}${r.planName ? '<div class="cd-sub">Plan: ' + esc(r.planName) + '</div>' : ''}`], ['Estado', 'badge:status'], ['Pagado', (r) => money(r.amountPaid)], ['Pendiente', (r) => `<span class="${r.amountPending > 0 ? 'cd-tone-warn' : ''}">${money(r.amountPending)}</span>`], ['Fecha de pago', (r) => fmtDate(r.paymentDate)], ['Vence / corte', (r) => fmtDate(r.expiryDate || r.dueDate)]],
                 kpis: (r) => [['Pagos', r.length], ['Generado', money(r.reduce((s, p) => s + (p.commissionEarned || 0), 0))], ['Pagado', money(r.reduce((s, p) => s + (p.amountPaid || 0), 0)), 'ok'], ['Pendiente', money(r.reduce((s, p) => s + (p.amountPending || 0), 0)), 'warn']],
-                sort: (a, b) => String(b.dueDate || b.createdAt || '').localeCompare(String(a.dueDate || a.createdAt || '')),
-                before: (r) => { const a = S.affiliates.find((x) => x.id === r.affiliateId); if (a) { r.affiliateName = a.fullName; r.affiliateCode = a.affiliateCode; r.joinDate = a.joinDate; } },
-                report: { date: 'dueDate', status: 'status', sums: [['Generado', 'commissionEarned'], ['Pagado', 'amountPaid'], ['Pendiente', 'amountPending']], cols: [['Afiliado', 'affiliateName'], ['Código', 'affiliateCode'], ['Concepto', 'concept'], ['Tipo', 'paymentType'], ['Estado', 'status'], ['Generada', 'commissionEarned'], ['Pagado', 'amountPaid'], ['Pendiente', 'amountPending'], ['Corte', 'dueDate'], ['Pago', 'paymentDate'], ['Referencia', 'transactionRef']] },
+                sort: (a, b) => String(b.paymentDate || b.dueDate || b.createdAt || '').localeCompare(String(a.paymentDate || a.dueDate || a.createdAt || '')),
+                before: (r) => {
+                    const p = r.payerType === 'client' ? S.clients.find((x) => x.id === r.clientId) : S.affiliates.find((x) => x.id === r.affiliateId);
+                    if (p) { r.payerName = p.fullName; r.payerCode = r.payerType === 'client' ? (p.email || '') : (p.affiliateCode || ''); r.affiliateName = p.fullName; r.affiliateCode = r.payerType === 'client' ? '' : p.affiliateCode; r.joinDate = p.joinDate; }
+                    r.renewalTitle = `${r.payerName || ''}${r.planName ? ' · ' + r.planName : ''}`.trim();
+                },
+                report: { date: 'paymentDate', status: 'status', sums: [['Pagado', 'amountPaid'], ['Generado', 'commissionEarned'], ['Pendiente', 'amountPending']], cols: [['Pagador', (r) => r.payerName || r.affiliateName || ''], ['Tipo de pagador', (r) => (r.payerType === 'client' ? 'Cliente' : 'Afiliado')], ['Plan', 'planName'], ['Concepto', 'concept'], ['Tipo', 'paymentType'], ['Estado', 'status'], ['Pagado', 'amountPaid'], ['Generada', 'commissionEarned'], ['Pendiente', 'amountPending'], ['Código descuento', 'discountCode'], ['Fecha de pago', 'paymentDate'], ['Vence', 'expiryDate'], ['Corte', 'dueDate'], ['Referencia', 'transactionRef']] },
             },
 
             contracts: {
@@ -350,7 +408,7 @@
             },
 
             meetings: {
-                label: 'Reuniones', icon: 'ph-notebook', col: 'meetings', singular: 'minuta', view: 'cards', newLabel: 'Nueva minuta', empty: 'Aún no hay minutas de reuniones.',
+                label: 'Reuniones', icon: 'ph-notebook', col: 'meetings', singular: 'minuta', view: 'cards', newLabel: 'Agregar minuta', empty: 'Aún no hay minutas de reuniones.',
                 fields: [
                     { k: 'topic', l: 'Tema de la reunión', t: 'text', req: 1, full: 1 }, { k: 'date', l: 'Fecha', t: 'date', req: 1, def: () => hoy() },
                     { k: 'time', l: 'Hora', t: 'time' }, { k: 'durationMinutes', l: 'Duración (min)', t: 'number' },
@@ -364,7 +422,7 @@
                 search: ['topic', 'summary', 'keyDecisions'],
                 kpis: (r) => { const ai = r.flatMap((m) => m.actionItems || []); return [['Minutas', r.length], ['Tareas abiertas', ai.filter((a) => !a.completed).length, 'warn'], ['Tareas hechas', ai.filter((a) => a.completed).length, 'ok'], ['Próximas', r.filter((m) => m.nextScheduled && m.nextDate >= hoy()).length, 'info']]; },
                 sort: (a, b) => String(b.date || '').localeCompare(String(a.date || '')),
-                card: (r) => { const ai = r.actionItems || []; const hechas = ai.filter((a) => a.completed).length; return { title: r.topic, sub: `${fmtDate(r.date)}${r.time ? ' · ' + r.time : ''}${r.durationMinutes ? ' · ' + r.durationMinutes + ' min' : ''}`, lines: [(r.attendees || []).length ? 'Asistentes: ' + (r.attendees || []).map(mname).join(', ') : '', r.summary ? String(r.summary).slice(0, 140) + (r.summary.length > 140 ? '…' : '') : ''].filter(Boolean), badge: ai.length ? [`${hechas}/${ai.length} tareas`, hechas === ai.length ? 'ok' : 'warn'] : null }; },
+                card: (r) => { const ai = r.actionItems || []; const programada = !!r.agendaItemId; const hechas = ai.filter((a) => a.completed).length; return { title: r.topic, sub: `${fmtDate(r.date)}${r.time ? ' · ' + r.time : ''}${r.durationMinutes ? ' · ' + r.durationMinutes + ' min' : ''}`, lines: [(r.attendees || []).length ? 'Asistentes: ' + (r.attendees || []).map(mname).join(', ') : '', r.summary ? String(r.summary).slice(0, 140) + (r.summary.length > 140 ? '…' : '') : ''].filter(Boolean), badge: ai.length ? [`${hechas}/${ai.length} tareas`, hechas === ai.length ? 'ok' : 'warn'] : (programada ? ['De la agenda', 'info'] : ['No programada', 'mute']) }; },
                 detail: (r) => [['Fecha', `${fmtDate(r.date)} ${r.time || ''}`], ['Asistentes', (r.attendees || []).map(mname).join(', ')], ['Resumen', r.summary], ['Decisiones clave', r.keyDecisions], ['Tareas y acuerdos', (r.actionItems || []).map((a) => `${a.completed ? '☑' : '☐'} ${a.task} — ${mname(a.assigneeId)}${a.dueDate ? ' (' + fmtDate(a.dueDate) + ')' : ''}`).join('\n')], ['Próxima reunión', r.nextScheduled ? `${fmtDate(r.nextDate)} ${r.nextTime || ''} — ${r.nextObjective || ''}` : '']],
                 before: (r) => { r.actionItems = (r.actionItems || []).filter((a) => a.task); },
                 report: { date: 'date', cols: [['Tema', 'topic'], ['Fecha', 'date'], ['Hora', 'time'], ['Asistentes', (r) => (r.attendees || []).map(mname).join('; ')], ['Tareas', (r) => (r.actionItems || []).length], ['Tareas hechas', (r) => (r.actionItems || []).filter((a) => a.completed).length], ['Decisiones', 'keyDecisions']] },
@@ -451,7 +509,7 @@
             activity: { label: 'Actividad', icon: 'ph-clock-counter-clockwise', custom: true },
             settings: { label: 'Ajustes', icon: 'ph-gear', custom: true },
         };
-        const ORDER = ['daily', 'team', 'affiliates', 'finance', 'contracts', 'meetings', 'marketing', 'academy', 'development', 'launches', 'reports', 'activity', 'settings'];
+        const ORDER = ['daily', 'team', 'affiliates', 'clients', 'finance', 'contracts', 'meetings', 'marketing', 'academy', 'development', 'launches', 'reports', 'activity', 'settings'];
 
         // Estado efectivo (con statusFn si el módulo calcula el estado)
         const statusOf = (m, r) => (m.statusFn ? m.statusFn(r) : r[m.statusKey]);
@@ -542,8 +600,8 @@
                 case 'email': case 'tel': case 'url': return `<input class="cd-input" type="${f.t}" ${n} value="${esc(v)}" ${f.ph ? `placeholder="${esc(f.ph)}"` : ''}>`;
                 case 'tags': return `<input class="cd-input" type="text" ${n} value="${esc(Array.isArray(val) ? val.join(', ') : v)}">`;
                 case 'check': return `<label class="cd-checkrow"><input type="checkbox" ${n} ${val ? 'checked' : ''}> ${esc(f.l)}</label>`;
-                case 'select': case 'dept': case 'member': case 'affiliate': {
-                    const opts = f.t === 'dept' ? deptOpts() : f.t === 'member' ? memberOpts() : f.t === 'affiliate' ? affiliateOpts() : f.opts;
+                case 'select': case 'dept': case 'member': case 'affiliate': case 'client': {
+                    const opts = f.t === 'dept' ? deptOpts() : f.t === 'member' ? memberOpts() : f.t === 'affiliate' ? affiliateOpts() : f.t === 'client' ? clientOpts() : f.opts;
                     const lista = opts.slice();
                     if (v && !lista.some((o) => o.v === v)) lista.push({ v, l: v + ' (actual)' });
                     return `<select class="cd-select" ${n}>${f.t === 'select' ? '' : '<option value="">— Sin asignar —</option>'}${lista.map((o) => `<option value="${esc(o.v)}" ${o.v === v ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select>`;
@@ -562,8 +620,9 @@
             return `<div class="cd-subrow" style="grid-template-columns:${f.grid} auto">${cells}<button type="button" class="cd-btn sm danger" data-act="row-del" title="Quitar">✕</button></div>`;
         }
 
-        function formHTML(m, rec) {
+        function formHTML(m, rec, nuevo) {
             return m.fields.map((f) => {
+                if (f.onlyNew && nuevo === false) return '';
                 const val = rec[f.k];
                 const full = f.full || f.t === 'rows' || f.t === 'textarea' || f.t === 'members' ? ' full' : '';
                 if (f.t === 'check') return `<div class="cd-field${full}">${fieldInput(f, f.dflt ? val !== false : val, f.k)}</div>`;
@@ -586,9 +645,10 @@
             return el.value.trim();
         }
 
-        function collect(m, form, base) {
+        function collect(m, form, base, nuevo) {
             const rec = { ...base };
             for (const f of m.fields) {
+                if (f.onlyNew && nuevo === false) continue;
                 if (f.t === 'rows') {
                     rec[f.k] = Array.from(form.querySelectorAll(`[data-rows="${f.k}"] .cd-subrow`)).map((row) => {
                         const o = {};
@@ -600,32 +660,173 @@
             return rec;
         }
 
-        function openForm(modId, rec, presets) {
+        function openForm(modId, rec, presets, ctx) {
+            if (modId === 'finance') return openPagoForm(rec, presets, ctx);
             const m = MODS[modId];
             const nuevo = !rec;
             const base = rec ? clone(rec) : { id: uid(m.col.slice(0, 3)), createdAt: new Date().toISOString() };
             if (nuevo) for (const f of m.fields) if (f.def !== undefined) base[f.k] = typeof f.def === 'function' ? f.def() : f.def;
-            if (nuevo && presets) Object.assign(base, presets);
+            if (presets) Object.assign(base, presets);
+            const it = ctx && ctx.agendaItem;
+            const aviso = it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha y quedará enlazada con este registro.</p>` : (rec && rec.series ? `<p class="cd-sub" style="margin-top:6px">🔁 Esta actividad se repite (${esc((optOf(REPEAT, rec.series.rule) || {}).l || '')}). Los cambios aplican solo a esta fecha.</p>` : '');
             openModal(`
-                <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>
-                <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base)}</div>
-                    <div class="cd-foot"><button type="button" class="cd-btn" data-act="close">Cancelar</button><button type="submit" class="cd-btn primary"><i class="ph-bold ph-check"></i> Guardar</button></div>
+                <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>${aviso}
+                <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base, nuevo)}</div>
+                    <div class="cd-foot"><button type="button" class="cd-btn" data-act="close">Cancelar</button>${it ? `<button type="button" class="cd-btn" data-act="skip-done" data-id="${esc(it.id)}">Solo marcar como hecha</button>` : ''}<button type="submit" class="cd-btn primary"><i class="ph-bold ph-check"></i> Guardar</button></div>
                 </form>`, true);
             const form = document.getElementById('cdForm');
             form.addEventListener('input', () => { formDirty = true; });
             form.addEventListener('change', () => { formDirty = true; });
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                let out = collect(m, form, base);
+                let out = collect(m, form, base, nuevo);
                 for (const f of m.fields) {
                     if (f.req && (out[f.k] == null || out[f.k] === '')) { toast(`Falta: ${f.l}`, 'err'); form.querySelector(`[name="${f.k}"]`)?.focus(); return; }
                 }
+                const err = m.validate && m.validate(out, base, nuevo);
+                if (err) { toast(err, 'err'); return; }
                 if (m.before) m.before(out);
                 const btn = form.querySelector('button[type=submit]'); btn.disabled = true;
                 const ok = await guardar(m.col, out);
                 if (ok && AUTO[m.col]) await sincronizarRecordatorio(m.col, out);   // publicación / reunión / lanzamiento -> recordatorio en la agenda
+                if (ok && m.after) await m.after(out, nuevo);
+                if (ok && it) await marcarHecho(it.id, { col: m.col, id: out.id });   // la actividad de la agenda queda hecha y enlazada
                 if (ok) { closeModal(); toast(nuevo ? 'Creado' : 'Guardado', 'ok'); render(); } else btn.disabled = false;
             });
+        }
+
+        // ------------------------------------------------------------------
+        // Agenda <-> secciones: marcar hecha abre el formulario de la sección; minutas desde reuniones programadas
+        // ------------------------------------------------------------------
+        const SECCION_DE_DEPTO = { 'dept-reuniones': 'meetings', 'dept-marketing': 'marketing', 'dept-programacion': 'development', 'dept-academia': 'academy', 'dept-finanzas': 'finance' };
+        const destinoDeItem = (it) => (it.type === 'meeting' ? 'meetings' : SECCION_DE_DEPTO[it.departmentId] || null);
+
+        // Lo que ya se sabe de la actividad, para que solo falte "terminar de rellenar" el formulario de la sección.
+        function presetsDesdeItem(modId, it) {
+            const link = { agendaItemId: it.id };
+            if (modId === 'meetings') return { ...link, topic: it.title, date: it.date, time: it.time || '', durationMinutes: it.durationMinutes, attendees: it.assigneeId ? [it.assigneeId] : [], summary: it.description || '', recordatorioAgenda: false };
+            if (modId === 'marketing') return { ...link, title: it.title, scheduledDate: it.date, scheduledTime: it.time || '', assigneeId: it.assigneeId || '', contentDescription: it.description || '', status: 'publicado', publishedDate: hoy(), recordatorioAgenda: false };
+            if (modId === 'development') return { ...link, title: it.title, changeDate: it.date, changeTime: it.time || '', responsibleDevId: it.assigneeId || '', status: 'resuelto', resolvedDate: hoy(), notes: it.description || '' };
+            if (modId === 'academy') return { ...link, title: it.title, recordedById: it.assigneeId || '', notes: it.description || '' };
+            if (modId === 'finance') return { ...link, concept: it.title, notes: it.description || '', paymentDate: hoy(), status: 'paid' };
+            return link;
+        }
+
+        async function marcarHecho(itemId, linked) {
+            const it = S.items.find((x) => x.id === itemId);
+            if (!it) return false;
+            const n = { ...it, status: 'completed', completedAt: new Date().toISOString() };
+            if (linked) n.linked = linked;
+            return guardar('items', n);
+        }
+
+        async function alternarHecha(it) {
+            if (it.status === 'completed') {   // reabrir: sin formulario
+                const n = { ...it, status: 'pending' }; delete n.completedAt;
+                return (await guardar('items', n)) && render();
+            }
+            if (!it.linked) {
+                if (it.autoSource && S[it.autoSource.col]) {   // recordatorio creado desde un registro: se completa ese registro
+                    const col = it.autoSource.col;
+                    const modId = Object.keys(MODS).find((k) => MODS[k].col === col);
+                    const rec = S[col].find((x) => x.id === it.autoSource.id);
+                    if (col === 'payments' && rec) {   // recordatorio de renovación: se registra el NUEVO pago del mismo cliente/plan
+                        return openForm('finance', null, { payerType: rec.payerType, clientId: rec.clientId || '', affiliateId: rec.affiliateId || '', planName: rec.planName || '', discountCode: rec.discountCode || '', paymentMethod: rec.paymentMethod || '', paymentType: 'plan_payment', status: 'paid' }, { agendaItem: it });
+                    }
+                    if (modId && rec) return openForm(modId, rec, col === 'publications' ? { status: 'publicado', publishedDate: hoy() } : col === 'launches' ? { status: 'lanzado' } : null, { agendaItem: it });
+                }
+                const destino = destinoDeItem(it);
+                if (destino) return openForm(destino, null, presetsDesdeItem(destino, it), { agendaItem: it });
+            }
+            if (await marcarHecho(it.id)) render();
+        }
+
+        // --- Minuta: elegir una reunión programada de la agenda (o crear la de una reunión no programada) ---
+        function reunionesProgramadas(q) {
+            const vinculadas = new Set(S.meetings.map((m) => m.agendaItemId).filter(Boolean));
+            const desde = addDays(hoy(), -60);
+            const t = lower(q).trim();
+            return S.items.filter((i) => i.type === 'meeting' && !i.autoSource && !i.linked && !vinculadas.has(i.id) && i.date >= desde)
+                .filter((i) => !t || lower(`${i.title} ${i.description || ''}`).includes(t))
+                .sort((a, b) => {
+                    const fa = a.date >= hoy(), fb = b.date >= hoy();
+                    if (fa !== fb) return fa ? -1 : 1;
+                    const k = (String(a.date) + (a.time || '')).localeCompare(String(b.date) + (b.time || ''));
+                    return fa ? k : -k;
+                });
+        }
+        const cuando = (i) => { const d = diasHasta(i.date); return d === 0 ? 'Hoy' : d === 1 ? 'Mañana' : d === -1 ? 'Ayer' : d > 0 ? `En ${d} d` : `Hace ${-d} d`; };
+        function pickListHTML(q) {
+            const lista = reunionesProgramadas(q);
+            if (!lista.length) return `<div class="cd-empty" style="padding:26px 10px"><i class="ph ph-calendar-blank"></i>${q ? 'Ninguna reunión de la agenda coincide.' : 'No hay reuniones programadas en la agenda sin minuta.'}</div>`;
+            return lista.slice(0, 40).map((i) => `<button type="button" class="cd-pick" data-act="pick-meeting" data-id="${esc(i.id)}"><span class="cd-when">${fmtDate(i.date).slice(0, 5)}<br>${esc(i.time || '—')}</span><span style="flex:1;min-width:0"><b>${esc(i.title)}</b><div class="cd-sub">${cuando(i)}${i.assigneeId ? ' · ' + esc(mname(i.assigneeId)) : ''}${i.status === 'completed' ? ' · hecha' : ''}</div></span><i class="ph ph-caret-right"></i></button>`).join('');
+        }
+        function abrirPickerMinuta() {
+            openModal(`<h2>Agregar minuta</h2>
+                <p class="cd-sub" style="margin:6px 0 14px">Busca la reunión que programaste en la agenda y selecciónala, o crea la minuta de una reunión que no estaba programada.</p>
+                <input class="cd-input" id="cdPickQ" type="search" placeholder="Buscar reunión programada…" autocomplete="off">
+                <div id="cdPickList" style="max-height:46vh;overflow-y:auto;margin-top:6px">${pickListHTML('')}</div>
+                <div class="cd-foot" style="margin-top:16px"><button type="button" class="cd-btn" data-act="close">Cancelar</button><button type="button" class="cd-btn primary" data-act="pick-blank"><i class="ph-bold ph-plus"></i> Reunión no programada</button></div>`);
+        }
+
+        // --- Repetición: tareas, recordatorios y reuniones que se repiten (diario, semanal, mensual…) ---
+        const HORIZONTE_DIAS = { daily: 45, weekdays: 45, weekly: 140, biweekly: 140, monthly: 400, yearly: 1100 };
+        const MAX_NUEVAS = 400;
+        function sumarMeses(f, n) {
+            const d = parseYmd(f), dia = d.getDate();
+            d.setDate(1); d.setMonth(d.getMonth() + n);
+            d.setDate(Math.min(dia, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+            return ymd(d);
+        }
+        // Fechas de la serie estrictamente después de `despues` y hasta `hasta` (incluida).
+        function fechasSerie(rule, inicio, despues, hasta) {
+            const out = [];
+            if (rule === 'weekdays') {
+                let c = inicio;
+                for (let k = 0; k < 6000 && c < hasta && out.length < MAX_NUEVAS; k++) { c = addDays(c, 1); const w = parseYmd(c).getDay(); if (c > despues && c <= hasta && w !== 0 && w !== 6) out.push(c); }
+                return out;
+            }
+            for (let n = 1; n < 6000 && out.length < MAX_NUEVAS; n++) {
+                const f = rule === 'daily' ? addDays(inicio, n) : rule === 'weekly' ? addDays(inicio, 7 * n) : rule === 'biweekly' ? addDays(inicio, 14 * n) : rule === 'monthly' ? sumarMeses(inicio, n) : sumarMeses(inicio, 12 * n);
+                if (f > hasta) break;
+                if (f > despues) out.push(f);
+            }
+            return out;
+        }
+        // Crea las repeticiones que falten hasta el horizonte (una sola llamada al servidor). Devuelve cuántas creó.
+        async function extenderSerie(serieId) {
+            const occ = S.items.filter((i) => i.series && i.series.id === serieId).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+            if (!occ.length) return 0;
+            const serie = occ[0].series;
+            if (!(serie.rule in HORIZONTE_DIAS)) return 0;
+            const genUntil = occ.reduce((mx, i) => ((i.series.genUntil || '') > mx ? i.series.genUntil : mx), serie.start);
+            const tope = addDays(hoy(), HORIZONTE_DIAS[serie.rule]);
+            const limite = serie.until && serie.until < tope ? serie.until : tope;
+            if (genUntil >= limite) return 0;
+            const plantilla = occ[occ.length - 1];
+            const fechas = fechasSerie(serie.rule, serie.start, genUntil, limite);
+            const nuevas = fechas.map((f) => {
+                const o = clone(plantilla);
+                for (const k of ['_updated_at', 'completedAt', 'linked', 'autoDone', 'autoSource']) delete o[k];
+                o.id = uid('ite'); o.createdAt = new Date().toISOString(); o.date = f; o.status = 'pending';
+                o.subtasks = (o.subtasks || []).map((st) => ({ ...st, id: uid('st'), completed: false }));
+                o.series = { ...serie, genUntil: limite };
+                return o;
+            });
+            // aunque no haya fechas nuevas (p. ej. fin de la serie), se avanza el marcador para no recalcular cada vez
+            const marca = { ...plantilla, series: { ...plantilla.series, genUntil: limite } };
+            delete marca._updated_at;
+            try {
+                await NLT_API.coordinaImportar({ items: nuevas.length ? [...nuevas, marca] : [marca] });
+                await cargar(true);
+                return nuevas.length;
+            } catch (e) { toast('No se pudieron crear las repeticiones: ' + e.message, 'err'); return 0; }
+        }
+        async function extenderTodasLasSeries() {
+            const ids = new Set(S.items.filter((i) => i.series).map((i) => i.series.id));
+            let n = 0;
+            for (const id of ids) n += await extenderSerie(id);
+            return n;
         }
 
         // ------------------------------------------------------------------
@@ -651,7 +852,7 @@
         }
 
         function actionsHTML(modId, r, m) {
-            return `<div class="cd-row-actions">${m.detail ? `<button class="cd-btn sm" data-act="view" data-mod="${modId}" data-id="${esc(r.id)}" title="Ver detalle"><i class="ph ph-eye"></i></button>` : ''}<button class="cd-btn sm" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}" title="Editar"><i class="ph ph-pencil-simple"></i></button><button class="cd-btn sm danger" data-act="del" data-mod="${modId}" data-id="${esc(r.id)}" title="Eliminar"><i class="ph ph-trash"></i></button></div>`;
+            return `<div class="cd-row-actions">${m.rowActions ? m.rowActions(r, modId) : ''}${m.detail ? `<button class="cd-btn sm" data-act="view" data-mod="${modId}" data-id="${esc(r.id)}" title="Ver detalle"><i class="ph ph-eye"></i></button>` : ''}<button class="cd-btn sm" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}" title="Editar"><i class="ph ph-pencil-simple"></i></button><button class="cd-btn sm danger" data-act="del" data-mod="${modId}" data-id="${esc(r.id)}" title="Eliminar"><i class="ph ph-trash"></i></button></div>`;
         }
 
         function listHTML(modId) {
@@ -685,9 +886,18 @@
             return `<div class="glass-card cd-scroll"><table class="cd-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>${mas}`;
         }
 
+        function reunionesPendientesHTML() {
+            const lista = reunionesProgramadas('').filter((i) => i.status !== 'completed' || i.date >= addDays(hoy(), -7)).slice(0, 5);
+            if (!lista.length) return '';
+            return `<div class="glass-card" style="padding:18px;margin-bottom:18px;border-left:3px solid #a78bfa">
+                <div style="font-weight:800;font-size:14px;font-family:Geist,Inter,sans-serif;margin-bottom:4px">Reuniones de la agenda sin minuta</div>
+                ${lista.map((i) => `<button type="button" class="cd-pick" data-act="pick-meeting" data-id="${esc(i.id)}"><span class="cd-when">${fmtDate(i.date).slice(0, 5)}<br>${esc(i.time || '—')}</span><span style="flex:1;min-width:0"><b>${esc(i.title)}</b><div class="cd-sub">${cuando(i)}</div></span><span class="cd-btn sm primary">Hacer minuta</span></button>`).join('')}
+            </div>`;
+        }
+
         function viewModule(modId) {
             const m = MODS[modId];
-            return kpisHTML(m, S[m.col]) + (DEPT_DE_MODULO[modId] ? agendaDeDeptoHTML(DEPT_DE_MODULO[modId]) : '') + toolbarHTML(modId, m) + `<div id="cdList">${listHTML(modId)}</div>`;
+            return kpisHTML(m, S[m.col]) + (modId === 'meetings' ? reunionesPendientesHTML() : '') + (DEPT_DE_MODULO[modId] ? agendaDeDeptoHTML(DEPT_DE_MODULO[modId]) : '') + toolbarHTML(modId, m) + `<div id="cdList">${listHTML(modId)}</div>`;
         }
 
         // Cuántas cosas apuntan a un miembro del equipo (para avisar antes de borrarlo).
@@ -703,6 +913,177 @@
             return { total: cuentas.reduce((s, [, n]) => s + n, 0), detalle: cuentas.map(([l, n]) => `${n} ${l}`).join(', ') };
         }
 
+        // ------------------------------------------------------------------
+        // Registrar pago: se elige cliente o afiliado, su plan, y se actualizan sus fechas de pago y vencimiento
+        // ------------------------------------------------------------------
+        const pagadoresDe = (tipo) => (tipo === 'client' ? S.clients.map((c) => ({ id: c.id, label: c.fullName, sub: c.email || '' })) : S.affiliates.map((a) => ({ id: a.id, label: a.fullName, sub: `${a.affiliateCode || ''}${a.email ? ' · ' + a.email : ''}` })));
+        const pagadorDe = (tipo, id) => (tipo === 'client' ? S.clients : S.affiliates).find((x) => x.id === id);
+        const COBERTURA = O([['1', '1 mes'], ['3', '3 meses'], ['6', '6 meses'], ['12', '12 meses'], ['0', 'Pago único (sin vencimiento)'], ['custom', 'Fecha personalizada']]);
+
+        // Actualiza el plan del cliente/afiliado con los datos del pago (solo si está pagado y tiene plan).
+        async function actualizarPlanDelPagador(pago) {
+            if (pago.status !== 'paid' || !pago.planName) return;
+            const tipo = pago.payerType, id = tipo === 'client' ? pago.clientId : pago.affiliateId;
+            const col = tipo === 'client' ? 'clients' : 'affiliates';
+            const p = pagadorDe(tipo, id);
+            if (!p) return;
+            const n = clone(p);
+            n.plans = n.plans || [];
+            let fila = n.plans.find((x) => lower(x.name).trim() === lower(pago.planName).trim());
+            if (!fila) { fila = { name: pago.planName, price: pago.amountPaid || undefined }; n.plans.push(fila); }
+            if (!fila.paidDate || (pago.paymentDate || '') >= fila.paidDate) { fila.paidDate = pago.paymentDate || fila.paidDate; fila.expiryDate = pago.expiryDate || ''; }
+            if (pago.discountCode && !n.discountCode) n.discountCode = pago.discountCode;
+            MODS[tipo === 'client' ? 'clients' : 'affiliates'].before(n);
+            await guardar(col, n);
+        }
+
+        // Al renovar, el recordatorio del vencimiento anterior de ese mismo plan ya no hace falta.
+        async function cerrarRenovacionesPrevias(pago) {
+            if (pago.status !== 'paid' || !pago.planName) return;
+            const ids = new Set(S.payments.filter((x) => x.id !== pago.id && x.payerType === pago.payerType && (x.clientId || x.affiliateId) === (pago.clientId || pago.affiliateId) && lower(x.planName) === lower(pago.planName) && (x.expiryDate || '') < (pago.expiryDate || '9999')).map((x) => x.id));
+            for (const it of S.items.filter((i) => i.autoSource && i.autoSource.col === 'payments' && ids.has(i.autoSource.id) && i.status !== 'completed')) await guardar('items', { ...it, status: 'completed', completedAt: new Date().toISOString() });
+        }
+
+        function openPagoForm(rec, presets, ctx) {
+            const m = MODS.finance;
+            const nuevo = !rec;
+            const base = rec ? clone(rec) : { id: uid('pay'), createdAt: new Date().toISOString() };
+            if (nuevo) for (const f of m.fields) if (f.def !== undefined) base[f.k] = typeof f.def === 'function' ? f.def() : f.def;
+            if (nuevo && !base.paymentDate) base.paymentDate = hoy();
+            if (presets) Object.assign(base, presets);
+            if (!base.payerType) base.payerType = base.affiliateId && !base.clientId ? 'affiliate' : 'client';
+            const it = ctx && ctx.agendaItem;
+            const F = (k) => m.fields.find((f) => f.k === k);
+            const campo = (k, extra) => `<div class="cd-field${extra || ''}"><label for="f_${k}">${esc(F(k).l)}${F(k).req ? ' <em>*</em>' : ''}</label>${fieldInput(F(k), base[k], k)}</div>`;
+            const st = { tipo: base.payerType, id: base.payerType === 'client' ? base.clientId : base.affiliateId };
+            let conceptoAuto = nuevo && !base.concept;
+            openModal(`
+                <h2>${nuevo ? 'Registrar pago' : 'Editar pago'}</h2>
+                ${it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha.</p>` : ''}
+                <form id="cdPayForm" novalidate>
+                    <input type="hidden" name="payerType" value="${esc(st.tipo)}"><input type="hidden" name="affiliateId" value="${esc(base.affiliateId || '')}"><input type="hidden" name="clientId" value="${esc(base.clientId || '')}">
+                    <div class="cd-form">
+                        <div class="cd-field full"><label>Pagador <em>*</em></label>
+                            <div class="cd-seg" id="pgTipo" style="align-self:flex-start"><button type="button" data-t="client">Cliente</button><button type="button" data-t="affiliate">Afiliado</button></div>
+                            <input class="cd-input" id="pgQ" type="search" placeholder="Buscar por nombre, correo o código…" autocomplete="off">
+                            <select class="cd-select cd-pay-list" id="pgSel" size="5"></select>
+                            <div class="cd-sub" id="pgInfo"></div>
+                        </div>
+                        <div class="cd-field"><label for="f_planName">Plan</label><input class="cd-input" type="text" name="planName" id="f_planName" list="pgPlanes" value="${esc(base.planName || '')}" placeholder="Elige o escribe el plan" autocomplete="off"><datalist id="pgPlanes"></datalist></div>
+                        ${campo('paymentType')}
+                        ${campo('concept', ' full')}
+                        ${campo('status')}${campo('amountPaid')}
+                        ${campo('paymentMethod')}${campo('transactionRef')}
+                        ${campo('discountCode')}
+                        <div class="cd-field"><label for="pgCob">Cobertura del pago</label><select class="cd-select" id="pgCob">${COBERTURA.map((o) => `<option value="${o.v}">${esc(o.l)}</option>`).join('')}</select></div>
+                        ${campo('paymentDate')}${campo('expiryDate')}
+                        <div class="cd-field full" id="pgComision" style="display:none"><label>Datos de la comisión</label>
+                            <div class="cd-form" style="margin:0">${campo('commissionRate')}${campo('salesCount')}${campo('salesVolume')}${campo('commissionEarned')}${campo('amountPending')}${campo('dueDate')}</div></div>
+                        ${campo('notes', ' full')}
+                        <div class="cd-field full">${fieldInput(F('recordatorioAgenda'), base.recordatorioAgenda !== false, 'recordatorioAgenda')}</div>
+                    </div>
+                    <div class="cd-foot"><button type="button" class="cd-btn" data-act="close">Cancelar</button>${it ? `<button type="button" class="cd-btn" data-act="skip-done" data-id="${esc(it.id)}">Solo marcar como hecha</button>` : ''}<button type="submit" class="cd-btn primary"><i class="ph-bold ph-check"></i> Guardar pago</button></div>
+                </form>`, true);
+            const form = document.getElementById('cdPayForm');
+            const $ = (sel) => form.querySelector(sel);
+            const val = (k) => ($(`[name="${k}"]`) || {}).value || '';
+            const setVal = (k, v) => { const el = $(`[name="${k}"]`); if (el) el.value = v == null ? '' : v; };
+            const pagador = () => pagadorDe(st.tipo, st.id);
+            const planActual = () => planesDe(pagador()).find((x) => lower(x.name).trim() === lower(val('planName')).trim());
+
+            function pintarTipo() {
+                form.querySelectorAll('#pgTipo button').forEach((b) => b.classList.toggle('on', b.dataset.t === st.tipo));
+                setVal('payerType', st.tipo);
+            }
+            function pintarLista() {
+                const q = lower($('#pgQ').value).trim();
+                const lista = pagadoresDe(st.tipo).filter((p) => !q || lower(`${p.label} ${p.sub}`).includes(q)).slice(0, 60);
+                $('#pgSel').innerHTML = lista.length ? lista.map((p) => `<option value="${esc(p.id)}" ${p.id === st.id ? 'selected' : ''}>${esc(p.label)}${p.sub ? ' — ' + esc(p.sub) : ''}</option>`).join('') : `<option disabled>${pagadoresDe(st.tipo).length ? 'Sin resultados' : (st.tipo === 'client' ? 'Aún no hay clientes: créalos en la pestaña Clientes' : 'Aún no hay afiliados')}</option>`;
+            }
+            function pintarPlanes() {
+                const p = pagador();
+                $('#pgPlanes').innerHTML = planesDe(p).map((x) => `<option value="${esc(x.name)}"></option>`).join('');
+            }
+            function pintarInfo() {
+                const p = pagador();
+                if (!p) { $('#pgInfo').innerHTML = 'Elige a quién se le registra el pago.'; return; }
+                const pl = planActual();
+                $('#pgInfo').innerHTML = `<b style="color:#fff">${esc(p.fullName)}</b>${pl ? ` · ${esc(pl.name)}: ${pl.paidDate ? 'pagó el ' + fmtDate(pl.paidDate) : 'sin pagos'}${pl.expiryDate ? ', vence el ' + fmtDate(pl.expiryDate) : ''}` : (planesDe(p).length ? ' · Planes: ' + esc(planesDe(p).map((x) => x.name).join(', ')) : ' · Sin planes registrados')}`;
+            }
+            function visibilidad() {
+                const comision = st.tipo === 'affiliate' && val('paymentType') !== 'plan_payment';
+                $('#pgComision').style.display = comision ? '' : 'none';
+            }
+            function conceptoAutomatico() {
+                if (!conceptoAuto) return;
+                const plan = val('planName').trim();
+                setVal('concept', plan ? `Pago de plan ${plan}` : '');
+            }
+            function recalcularVencimiento() {
+                const c = $('#pgCob').value;
+                if (c === 'custom') return;
+                if (c === '0' || !val('paymentDate')) { setVal('expiryDate', ''); return; }
+                const pl = planActual();
+                const desde = pl && pl.expiryDate && pl.expiryDate > val('paymentDate') ? pl.expiryDate : val('paymentDate');   // pagar antes de tiempo suma al vencimiento vigente
+                setVal('expiryDate', sumarMeses(desde, Number(c)));
+            }
+            function elegir(id) {
+                st.id = id;
+                setVal('affiliateId', st.tipo === 'affiliate' ? id : ''); setVal('clientId', st.tipo === 'client' ? id : '');
+                const p = pagador();
+                pintarPlanes();
+                if (p && !val('discountCode') && p.discountCode) setVal('discountCode', p.discountCode);
+                if (p && !val('planName') && planesDe(p).length === 1) { setVal('planName', planesDe(p)[0].name); alElegirPlan(); }
+                pintarInfo(); recalcularVencimiento();
+            }
+            function alElegirPlan() {
+                const pl = planActual();
+                if (pl && pl.price && !Number(val('amountPaid'))) setVal('amountPaid', pl.price);
+                conceptoAutomatico(); pintarInfo(); recalcularVencimiento();
+            }
+            pintarTipo(); pintarLista(); pintarPlanes(); pintarInfo(); visibilidad();
+            $('#pgCob').value = nuevo ? (st.tipo === 'client' ? '1' : '0') : ((base.expiryDate && base.paymentDate) ? 'custom' : '0');
+            if (nuevo && st.id) { elegir(st.id); if (val('planName')) alElegirPlan(); }
+            form.addEventListener('input', () => { formDirty = true; });
+            form.addEventListener('change', () => { formDirty = true; });
+            form.querySelector('#pgTipo').addEventListener('click', (e) => {
+                const b = e.target.closest('button[data-t]'); if (!b || b.dataset.t === st.tipo) return;
+                st.tipo = b.dataset.t; st.id = ''; setVal('affiliateId', ''); setVal('clientId', '');
+                if (nuevo) { setVal('paymentType', st.tipo === 'client' ? 'plan_payment' : 'commission'); $('#pgCob').value = st.tipo === 'client' ? '1' : '0'; }
+                pintarTipo(); pintarLista(); pintarPlanes(); pintarInfo(); visibilidad(); recalcularVencimiento();
+            });
+            $('#pgQ').addEventListener('input', pintarLista);
+            $('#pgSel').addEventListener('change', (e) => { if (e.target.value) elegir(e.target.value); });
+            $('[name="planName"]').addEventListener('input', alElegirPlan);
+            $('[name="concept"]').addEventListener('input', () => { conceptoAuto = false; });
+            $('[name="paymentType"]').addEventListener('change', () => { visibilidad(); if (val('paymentType') !== 'plan_payment') $('#pgCob').value = '0'; recalcularVencimiento(); });
+            $('#pgCob').addEventListener('change', recalcularVencimiento);
+            $('[name="paymentDate"]').addEventListener('change', recalcularVencimiento);
+            $('[name="expiryDate"]').addEventListener('input', () => { $('#pgCob').value = 'custom'; });
+            form.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!st.id || !pagador()) { toast('Elige el cliente o afiliado que pagó.', 'err'); $('#pgQ').focus(); return; }
+                const out = collect(m, form, base, nuevo);
+                out.payerType = st.tipo; out.affiliateId = st.tipo === 'affiliate' ? st.id : ''; out.clientId = st.tipo === 'client' ? st.id : '';
+                if (!out.concept) { toast('Falta: Concepto', 'err'); return; }
+                if (out.status === 'paid' && !out.paymentDate) { toast('Falta: Fecha de pago', 'err'); return; }
+                if (out.expiryDate && out.paymentDate && out.expiryDate < out.paymentDate) { toast('El vencimiento no puede ser anterior a la fecha de pago.', 'err'); return; }
+                if (out.paymentType === 'plan_payment' && !out.planName && !confirm('No indicaste el plan: el pago se guardará pero no actualizará las fechas del cliente. ¿Continuar?')) return;
+                m.before(out);
+                const btn = form.querySelector('button[type=submit]'); btn.disabled = true;
+                const ok = await guardar('payments', out);
+                if (ok) {
+                    await sincronizarRecordatorio('payments', out);
+                    await actualizarPlanDelPagador(out);
+                    await cerrarRenovacionesPrevias(out);
+                    if (it) await marcarHecho(it.id, { col: 'payments', id: out.id });
+                    closeModal();
+                    toast(out.status === 'paid' && out.planName ? `Pago registrado · ${out.payerName} ${out.expiryDate ? 'vence el ' + fmtDate(out.expiryDate).replace(/&[a-z#0-9]+;/g, '') : ''}`.trim() : (nuevo ? 'Pago registrado' : 'Pago guardado'), 'ok');
+                    render();
+                } else btn.disabled = false;
+            });
+        }
+
         // --- Recordatorios automáticos: publicación / reunión / lanzamiento -> Agenda ---
         // Cada entrada crea (y mantiene al día) un recordatorio enlazado con `autoSource`. Así, al cambiar la
         // fecha del origen se mueve el recordatorio; al borrarlo desaparece; y si se marca como publicado /
@@ -711,6 +1092,7 @@
         const AUTO = {
             publications: { etiqueta: 'publicación', prefijo: 'Publicar', fecha: 'scheduledDate', hora: 'scheduledTime', titulo: 'title', resp: 'assigneeId', dept: () => 'dept-marketing', hecho: (r) => r.status === 'publicado', desc: (r) => [r.channel, r.campaignName].filter(Boolean).join(' · ') },
             meetings: { etiqueta: 'reunión', prefijo: 'Reunión', fecha: 'date', hora: 'time', titulo: 'topic', resp: null, dept: () => 'dept-reuniones', hecho: () => false, desc: (r) => (r.durationMinutes ? r.durationMinutes + ' min' : '') },
+            payments: { etiqueta: 'pago', prefijo: 'Renovación', fecha: 'expiryDate', hora: '__sin_hora', titulo: 'renewalTitle', resp: null, dept: () => 'dept-finanzas', hecho: () => false, desc: (r) => [r.planName, r.amountPaid ? money(r.amountPaid) : ''].filter(Boolean).join(' · ') },
             launches: { etiqueta: 'lanzamiento', prefijo: 'Lanzamiento', fecha: 'launchDate', hora: 'launchTime', titulo: 'title', resp: 'responsibleId', dept: (r) => r.departmentId || 'dept-marketing', hecho: (r) => r.status === 'lanzado', desc: (r) => r.targetAudience || '' },
         };
         const zonaHoraria = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) { return undefined; } };
@@ -812,7 +1194,7 @@
                         ${ty ? `<span class="cd-badge">${esc(ty.l)}</span>` : ''}${d ? `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>` : ''}
                         ${i.priority === 'high' ? `<span class="cd-badge cd-tone-bad">Alta prioridad</span>` : pr && i.priority === 'medium' ? `<span class="cd-badge cd-tone-warn">Media</span>` : ''}
                         ${i.assigneeId ? `<span class="cd-badge">👤 ${esc(mname(i.assigneeId))}</span>` : ''}${i.status === 'in_progress' ? '<span class="cd-badge cd-tone-info">En curso</span>' : ''}
-                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${i.autoSource ? `<span class="cd-badge" title="Se actualiza solo con su ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}">🔗 desde ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}</span>` : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
+                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${i.series ? `<span class="cd-badge cd-tone-vio" title="Se repite">🔁 ${esc((optOf(REPEAT, i.series.rule) || {}).l || '')}</span>` : ''}${i.linked ? `<span class="cd-badge cd-tone-ok" title="Ya está registrada en su sección">📎 ${esc((Object.values(MODS).find((x) => x.col === i.linked.col) || {}).label || 'sección')}</span>` : ''}${i.autoSource ? `<span class="cd-badge" title="Se actualiza solo con su ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}">🔗 desde ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}</span>` : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
                     </div>
                     ${i.description ? `<p class="cd-sub" style="margin-top:6px">${esc(i.description)}</p>` : ''}${i.locationOrLink ? `<p class="cd-sub">📍 ${esc(i.locationOrLink)}</p>` : ''}
                 </div>
@@ -870,11 +1252,23 @@
             { k: 'priority', l: 'Prioridad', t: 'select', opts: PRIO_ITEM, def: 'normal' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_ITEM, def: 'pending' },
             { k: 'locationOrLink', l: 'Lugar o enlace (Meet/Teams)', t: 'text', full: 1 },
             { k: 'automaticReminder', l: 'Recordatorio automático (requiere hora)', t: 'check', def: true }, { k: 'reminderLeadTime', l: 'Avisar', t: 'select', opts: LEAD, def: '15_min' },
+            { k: 'repeat', l: 'Repetir (te avisa cada vez)', t: 'select', opts: REPEAT, def: 'none', onlyNew: 1 }, { k: 'repeatUntil', l: 'Repetir hasta (opcional)', t: 'date', onlyNew: 1 },
             { k: 'description', l: 'Descripción', t: 'textarea', full: 1 },
             { k: 'subtasks', l: 'Subtareas', t: 'rows', full: 1, add: 'Añadir subtarea', sub: [{ k: 'title', l: 'Subtarea', t: 'text' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 80px' },
             { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
         ];
+        MODS.daily.validate = (r, base, nuevo) => (nuevo && r.repeat && r.repeat !== 'none' && r.repeatUntil && r.repeatUntil < r.date ? 'La fecha final de la repetición no puede ser anterior al inicio.' : '');
+        MODS.daily.after = async (r, nuevo) => {
+            if (!nuevo || !r.series) return;
+            const n = await extenderSerie(r.series.id);
+            toast(n ? `Se programaron ${n} repeticiones más (${(optOf(REPEAT, r.series.rule) || {}).l.toLowerCase()})` : 'Repetición programada', 'ok');
+        };
         MODS.daily.before = (r) => {
+            if (r.repeat && r.repeat !== 'none') {   // nueva serie: esta actividad es la primera; las demás se generan al guardar
+                r.series = { id: uid('ser'), rule: r.repeat, start: r.date, until: r.repeatUntil || '', genUntil: r.date };
+                if (!r.time) r.time = HORA_POR_DEFECTO;   // el aviso necesita una hora
+            }
+            delete r.repeat; delete r.repeatUntil;
             r.subtasks = (r.subtasks || []).filter((s) => s.title).map((s) => ({ id: s.id || uid('st'), ...s }));
             r.coordinatorName = r.coordinatorName || (SESSION && SESSION.user.email) || '';
             try { r.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) {}   // el servidor la usa para avisar a la hora correcta
@@ -1038,7 +1432,7 @@
 
         // --- Actividad: quién hizo qué (solo Global Admin; el servidor también lo exige) ---
         const ACT = { rows: [], who: 'all', loaded: false, error: '' };
-        const COL_LABEL = { team: 'Mi Equipo', items: 'Agenda', affiliates: 'Afiliados', payments: 'Finanzas', contracts: 'Contratos', meetings: 'Reuniones', publications: 'Marketing', academyClasses: 'Academia', devChanges: 'Programación', launches: 'Lanzamientos', reports: 'Informes' };
+        const COL_LABEL = { team: 'Mi Equipo', items: 'Agenda', affiliates: 'Afiliados', clients: 'Clientes', payments: 'Finanzas', contracts: 'Contratos', meetings: 'Reuniones', publications: 'Marketing', academyClasses: 'Academia', devChanges: 'Programación', launches: 'Lanzamientos', reports: 'Informes' };
         const ACT_LABEL = { 'coordina.crear': ['Creó', 'ok'], 'coordina.editar': ['Editó', 'info'], 'coordina.borrar': ['Eliminó', 'bad'], 'coordina.importar': ['Importó datos', 'vio'] };
 
         // Valor "antes/después" legible: personas, estados y departamentos por su nombre (no por id).
@@ -1054,6 +1448,7 @@
             if (t === 'member') return mname(v);
             if (t === 'members') return (Array.isArray(v) ? v : []).map(mname).join(', ') || '—';
             if (t === 'dept') return (dept(v) || { name: v }).name;
+            if (t === 'client') { const c = S.clients.find((x) => x.id === v); return c ? c.fullName : String(v); }
             if (t === 'affiliate') { const a = S.affiliates.find((x) => x.id === v); return a ? `${a.affiliateCode || ''} ${a.fullName}`.trim() : String(v); }
             if (t === 'select') { const o = optOf(f.opts, v); return o ? o.l : String(v); }
             if (t === 'date') return fmtDate(v).replace(/&[a-z#0-9]+;/g, '');
@@ -1202,7 +1597,17 @@
             if (act === 'tab') { UI.tab = t.dataset.tab; UI.q = ''; UI.status = 'all'; UI.limit = PAGE; return render(); }
             if (act === 'more') { UI.limit += PAGE; return refreshList(); }
             if (act === 'retry') { location.reload(); return; }
-            if (act === 'new') return openForm(t.dataset.mod, null, t.dataset.dept ? { departmentId: t.dataset.dept } : null);
+            if (act === 'new') {
+                if (t.dataset.mod === 'meetings') return abrirPickerMinuta();   // primero: ¿es una reunión que ya estaba en la agenda?
+                return openForm(t.dataset.mod, null, t.dataset.dept ? { departmentId: t.dataset.dept } : null);
+            }
+            if (act === 'pick-meeting') {
+                const it = S.items.find((x) => x.id === t.dataset.id); if (!it) return;
+                closeModal(); return openForm('meetings', null, presetsDesdeItem('meetings', it), { agendaItem: it });
+            }
+            if (act === 'pick-blank') { closeModal(); return openForm('meetings', null, null); }
+            if (act === 'pay') { closeModal(); return openForm('finance', null, t.dataset.tipo === 'client' ? { payerType: 'client', clientId: t.dataset.id } : { payerType: 'affiliate', affiliateId: t.dataset.id }); }
+            if (act === 'skip-done') { closeModal(); const it = S.items.find((x) => x.id === t.dataset.id); if (it && await marcarHecho(it.id)) render(); return; }
             if (act === 'ver-agenda-dept') {
                 const sig = S.items.filter((i) => i.departmentId === t.dataset.dept && i.status !== 'completed').sort((a, b) => String(a.date).localeCompare(String(b.date)))[0];
                 UI.tab = 'daily'; UI.dept = t.dataset.dept; UI.q = ''; UI.status = 'all'; UI.type = 'all'; UI.agendaView = 'week'; UI.limit = PAGE; if (sig) UI.date = sig.date;
@@ -1223,7 +1628,13 @@
                 if (AUTO[colDel] && itemDeOrigen(colDel, t.dataset.id)) aviso += '\n\nTambién se eliminará su recordatorio de la agenda.';
                 if (colDel === 'items' && previo && previo.autoSource) aviso = `Este recordatorio se creó automáticamente desde una ${(AUTO[previo.autoSource.col] || {}).etiqueta || 'entrada'}.\nSi lo eliminas, esa entrada dejará de crear recordatorio en la agenda.\n\n¿Eliminar?`;
                 if (!confirm(aviso)) return;
+                let futuras = [];
+                if (colDel === 'items' && previo && previo.series) {
+                    futuras = S.items.filter((i) => i.series && i.series.id === previo.series.id && i.id !== previo.id && i.date > previo.date);
+                    if (futuras.length && !confirm(`Esta actividad se repite. ¿Eliminar también las ${futuras.length} repeticiones siguientes?\n\nAceptar: elimina esta y las siguientes.\nCancelar: elimina solo esta.`)) futuras = [];
+                }
                 if (await borrar(colDel, t.dataset.id)) {
+                    for (let k = 0; k < futuras.length; k += 8) await Promise.all(futuras.slice(k, k + 8).map((f) => borrar('items', f.id)));
                     if (AUTO[colDel]) await quitarRecordatoriosDe(colDel, t.dataset.id);
                     if (colDel === 'items' && previo && previo.autoSource) {   // la persona lo borró a propósito: no se vuelve a crear
                         const origen = (S[previo.autoSource.col] || []).find((x) => x.id === previo.autoSource.id);
@@ -1235,10 +1646,7 @@
             }
             if (act === 'toggle') {
                 const i = S.items.find((x) => x.id === t.dataset.id); if (!i) return;
-                const nuevo = { ...i, status: i.status === 'completed' ? 'pending' : 'completed' };
-                if (nuevo.status === 'completed') nuevo.completedAt = new Date().toISOString(); else delete nuevo.completedAt;
-                if (await guardar('items', nuevo)) render();
-                return;
+                return alternarHecha(i);   // al marcar como hecha abre el formulario de su sección (reunión, publicación, pago…)
             }
             if (act === 'date-prev') { UI.limit = PAGE; UI.date = addDays(UI.date, UI.agendaView === 'week' ? -7 : -1); return render(); }
             if (act === 'date-next') { UI.limit = PAGE; UI.date = addDays(UI.date, UI.agendaView === 'week' ? 7 : 1); return render(); }
@@ -1282,11 +1690,13 @@
             if (h === HOY_ACTUAL) return;
             if (UI.date === HOY_ACTUAL) UI.date = h;   // si estaba mirando "hoy", pasa al nuevo día
             HOY_ACTUAL = h;
+            extenderTodasLasSeries().then((n) => { if (n && !modalOpen) render(); });
             if (!modalOpen) render();
         }
         setInterval(revisarCambioDeDia, 60000);
         document.addEventListener('visibilitychange', () => { if (!document.hidden) revisarCambioDeDia(); });
         document.addEventListener('input', (e) => {
+            if (e.target.id === 'cdPickQ') { const l = document.getElementById('cdPickList'); if (l) l.innerHTML = pickListHTML(e.target.value); return; }
             if (e.target.id === 'cdSearch') {
                 clearTimeout(searchTimer);
                 const v = e.target.value;
@@ -1352,6 +1762,7 @@
             }
             render();
             revisarRecordatorios();
+            extenderTodasLasSeries().then((n) => { if (n && !modalOpen) render(); });   // las tareas que se repiten siguen creando sus próximas fechas
             NLT.pollWhileVisible(async () => {
                 if (modalOpen || pendingSaves > 0) return;
                 if (await cargar(true)) {
