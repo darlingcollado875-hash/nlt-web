@@ -120,7 +120,9 @@
         // el dataset se recarga ENTERO de la nueva (nueva generación: nada calculado con la vieja se dibuja).
         let fuenteSerie = null;
         const cambiosDeFuente = [];
+        let cargaDeCache = false;     // la última carga inicial salió de la caché del navegador: la suscripción completa lo que falte al instante
         function recargarPorFuente(nueva) {
+            market.limpiarCacheVelas();
             if (externo) return;
             cambiosDeFuente.push({ at: new Date().toISOString(), from: fuenteSerie, to: nueva });
             console.warn('[NLT Charts] fuente de precios:', fuenteSerie, '->', nueva, '(se recarga el dataset completo)');
@@ -221,7 +223,7 @@
                 aplicarVela(callback, vela);
                 if (ultimoTs !== null && vela.timestamp > ultimoTs && onVelaNueva) onVelaNueva(vela);
                 if (ultimoTs === null || vela.timestamp > ultimoTs) ultimoTs = vela.timestamp;
-            }, { operaFinDeSemana, fuente: fuenteSerie, alCambiarFuente: recargarPorFuente });
+            }, { operaFinDeSemana, fuente: fuenteSerie, alCambiarFuente: recargarPorFuente, desde: cargaDeCache ? ultimoTs : null, inmediato: cargaDeCache });
         }
         function ventanaLlegoAlPresente() {
             if (!ventana) return;
@@ -366,7 +368,7 @@
                     signal = pedidoInicial.signal;
                 }
                 try {
-                    const r = await market.velas(symbol.ticker, tfPedido, { end: null, signal });
+                    const r = await market.velas(symbol.ticker, tfPedido, { end: null, signal, cache: type === 'init' });
                     // Si el usuario cambió de símbolo o timeframe mientras
                     // esperábamos, esta respuesta es de un gráfico que ya no está.
                     if (!vigenteInit()) return;       // de otro dataset (otro símbolo/timeframe, replay, backtest, otra fecha)
@@ -377,6 +379,7 @@
                         recargarPorFuente(r.source);
                         return;
                     }
+                    if (type === 'init') cargaDeCache = !!r.deCache;      // antes del callback: la suscripción nace al cargar los datos
                     callback(r.velas, { forward: r.velas.length > 0, backward: false });
                     if (type === 'init') {
                         espera = 5000;
@@ -385,6 +388,7 @@
                         // último dato de la historia: ahora si la última vela está en curso, si no su cierre
                         market.marcarDato(u == null ? null : Math.min(Date.now(), u + dur));
                         market.fijarEstado(market.calcularEstado(u, dur, operaFinDeSemana));
+                        if (!ventana) market.precargarVecinos(symbol.ticker, tfPedido);
                     }
                     onData && onData({ demo: r.demo, primera: type === 'init' });
                 } catch (err) {

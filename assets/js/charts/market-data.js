@@ -30,14 +30,63 @@
     let fuenteHistorica = null;
     // 'replay' (Bar Replay: el futuro no existe) o 'historico' (Ir a fecha: el gráfico muestra un tramo del pasado)
     let modoHistorico = null;
-    async function velas(symbol, timeframe, { limit = LOTE, end = null, signal } = {}) {
-        if (fuenteHistorica) return fuenteHistorica(symbol, timeframe, { limit, end });
+    // Caché de la última carga inicial por (símbolo, timeframe): cambiar de 5m a 1m y volver ya no espera al servidor. Lo que se
+    // muestra de la caché puede estar atrasado unos minutos; la suscripción en vivo pide de inmediato las velas que falten (ver
+    // `desde` en suscribir) y mientras tanto se refresca la caché en segundo plano.
+    const cacheVelas = new Map();
+    const CACHE_VELAS_MS = 10 * 60000, CACHE_FRESCA_MS = 20000;
+    const claveVelas = (sym, tf) => `${sym}|${tf}`;
+    const enVuelo = new Map();
+    async function pedirVelas(symbol, timeframe, opciones) {
         const t0 = Date.now();
-        const r = await NLT_API.chartsVelas(symbol, timeframe, { limit, end, signal });
-        if (r.server_time && NLTCharts.countdown) NLTCharts.countdown.sincronizar(r.server_time, t0, Date.now());
+        const r = await NLT_API.chartsVelas(symbol, timeframe, opciones);
+        if (r.server_time && NLTCharts.countdown && !opciones.sinCuenta) NLTCharts.countdown.sincronizar(r.server_time, t0, Date.now());
         // source: PRIMARY / BACKUP. Una serie nunca mezcla fuentes: si cambia, el motor recarga todo.
         return { demo: !!r.demo, provider: r.provider, source: r.source || 'primary', sourceState: r.source_state || null,
             precision: r.price_precision, velas: r.candles.map(aKline) };
+    }
+    async function velas(symbol, timeframe, { limit = LOTE, end = null, signal, cache = false } = {}) {
+        if (fuenteHistorica) return fuenteHistorica(symbol, timeframe, { limit, end });
+        const inicial = end == null && limit === LOTE;
+        const k = claveVelas(symbol, timeframe);
+        if (cache && inicial) {
+            const c = cacheVelas.get(k);
+            if (c && Date.now() - c.t < CACHE_VELAS_MS) {
+                if (Date.now() - c.t > CACHE_FRESCA_MS) refrescarCache(symbol, timeframe);
+                return { ...c.r, velas: c.r.velas.slice(), deCache: true, edadMs: Date.now() - c.t };
+            }
+        }
+        const r = await pedirVelas(symbol, timeframe, { limit, end, signal });
+        if (inicial) cacheVelas.set(k, { t: Date.now(), r });
+        return r;
+    }
+    function refrescarCache(symbol, timeframe) {
+        const k = claveVelas(symbol, timeframe);
+        if (enVuelo.has(k)) return enVuelo.get(k);
+        const p = pedirVelas(symbol, timeframe, { limit: LOTE, end: null, sinCuenta: true })
+            .then((r) => { cacheVelas.set(k, { t: Date.now(), r }); })
+            .catch(() => {})
+            .finally(() => enVuelo.delete(k));
+        enVuelo.set(k, p);
+        return p;
+    }
+    // Temporalidades vecinas del gráfico, bajadas en segundo plano para que el próximo cambio sea instantáneo.
+    const ORDEN_TF = ['1m', '5m', '15m', '30m', '1H', '4H', '1D'];
+    let precargaTimer = null;
+    function precargarVecinos(symbol, timeframe) {
+        clearTimeout(precargaTimer);
+        precargaTimer = setTimeout(async () => {
+            try {
+                if (fuenteHistorica || (navigator.connection && navigator.connection.saveData)) return;
+                const i = ORDEN_TF.indexOf(timeframe);
+                for (const tf of [ORDEN_TF[i - 1], ORDEN_TF[i + 1], ORDEN_TF[i - 2], ORDEN_TF[i + 2]].filter(Boolean)) {
+                    const c = cacheVelas.get(claveVelas(symbol, tf));
+                    if (c && Date.now() - c.t < 120000) continue;
+                    if (document.hidden || fuenteHistorica) return;
+                    await refrescarCache(symbol, tf);
+                }
+            } catch (_) { /* es solo una ayuda */ }
+        }, 2500);
     }
 
     // Estado de la conexión con los precios (lo muestra la barra):
@@ -92,12 +141,12 @@
     // estuvo oculta o sin red un rato, llegan todas las velas que faltan y no
     // queda un hueco. El motor distingue por timestamp si actualiza o agrega.
     const DURACION_MS = { minute: 60000, hour: 3600000, day: 86400000 };
-    function suscribir(symbol, timeframe, alRecibir, { operaFinDeSemana = true, fuente = null, alCambiarFuente = null } = {}) {
+    function suscribir(symbol, timeframe, alRecibir, { operaFinDeSemana = true, fuente = null, alCambiarFuente = null, desde = null, inmediato = false } = {}) {
         const p = PERIODOS[timeframe];
         const durMs = DURACION_MS[p.type] * p.span;
         let vivo = true;
         let timer = null;
-        let ultimo = null;
+        let ultimo = desde != null ? desde : null;     // `desde`: última vela que ya está en el gráfico (carga desde caché): completa lo que falte
         let enCurso = false;
         let fallos = 0, okAt = Date.now();
         let firmaUltima = null;
@@ -142,7 +191,7 @@
         document.addEventListener('visibilitychange', alVolver);
         window.addEventListener('online', alConectar);
         window.addEventListener('offline', alPerder);
-        timer = setTimeout(tick, REFRESCO_MS);
+        timer = setTimeout(tick, inmediato ? 0 : REFRESCO_MS);
         return () => {
             vivo = false; clearTimeout(timer);
             document.removeEventListener('visibilitychange', alVolver);
@@ -158,6 +207,8 @@
         LOTE,
         simbolos: () => NLT_API.chartsSimbolos(),
         velas,
+        precargarVecinos,
+        limpiarCacheVelas: () => cacheVelas.clear(),
         suscribir,
         fijarEstado,
         estado: () => estado,
