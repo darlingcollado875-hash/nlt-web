@@ -390,7 +390,7 @@
                         recargarPorFuente(r.source);
                         return;
                     }
-                    if (type === 'init') cargaDeCache = !!r.deCache;      // antes del callback: la suscripción nace al cargar los datos
+                    if (type === 'init') cargaDeCache = !!r.deCache || r.staleMs > 3000;      // antes del callback: la suscripción nace al cargar los datos
                     callback(r.velas, { forward: r.velas.length > 0, backward: false });
                     if (type === 'init') {
                         espera = 5000;
