@@ -541,11 +541,12 @@
             if (k === 0) return leerVar(nombre, nd);
             const i = barra - k;
             if (i < 0) return NA;
-            if (Object.prototype.hasOwnProperty.call(SERIES, nombre) && !globales.has(nombre) && !buscarLocal(nombre)) return SERIES[nombre][i];
+            const local = buscarLocal(nombre);          // una sola búsqueda (antes se repetía hasta 3 veces por lectura)
+            if (!local && Object.prototype.hasOwnProperty.call(SERIES, nombre) && !globales.has(nombre)) return SERIES[nombre][i];
             if (nombre === 'bar_index') return i;
             const h = hist.get(nombre);
-            if (h && !buscarLocal(nombre)) { const v = h[i]; return v === undefined ? NA : v; }
-            if (buscarLocal(nombre)) {
+            if (h && !local) { const v = h[i]; return v === undefined ? NA : v; }
+            if (local) {
                 const fh = frameActual && frameActual.get(nombre);
                 if (fh) { const v = fh[i]; return v === undefined ? NA : v; }
                 falla(`«${nombre}[${k}]» no se puede usar en una variable de un bloque if/for; declárala fuera del bloque o úsala dentro de una función.`, nd);
@@ -629,9 +630,10 @@
         ['abovebar', 'belowbar', 'top', 'bottom', 'absolute'].forEach((s) => { CONSTANTES['location.' + s] = s; });
         ['solid', 'dashed', 'dotted'].forEach((s) => { CONSTANTES['hline.style_' + s] = s; });
         ['dashed', 'dotted', 'solid'].forEach((s) => { CONSTANTES['line.style_' + s] = s; });
+        const RUTAS = new WeakMap();       // en un mapa aparte (no en el árbol): el árbol protegido lleva una firma de integridad y no se puede tocar
         function rutaDe(nd) {
             if (nd.tipo === 'Id') return nd.n;
-            if (nd.tipo === 'Miembro') return `${rutaDe(nd.a)}.${nd.n}`;
+            if (nd.tipo === 'Miembro') { let r = RUTAS.get(nd); if (r === undefined) { r = `${rutaDe(nd.a)}.${nd.n}`; RUTAS.set(nd, r); } return r; }        // cacheada: se pedía en cada llamada de cada vela
             falla('Expresión no válida aquí.', nd);
         }
         function binario(nd) {
@@ -775,10 +777,15 @@
             if (!st) { st = init ? init() : {}; st._barra = -1; estados.set(clave, st); }
             return st;
         }
+        const CLAVES_KW = new WeakMap();
+        const SIN_KW = Object.freeze({});            // llamadas sin argumentos con nombre (casi todas): no se crea un objeto nuevo cada vez
         function argsDe(nd) {
             const a = nd.args.map(ev);
+            let claves = CLAVES_KW.get(nd);
+            if (claves === undefined) { claves = Object.keys(nd.kwargs); CLAVES_KW.set(nd, claves); }
+            if (!claves.length) return { a, k: SIN_KW };
             const k = {};
-            for (const nombre of Object.keys(nd.kwargs)) k[nombre] = ev(nd.kwargs[nombre]);
+            for (const nombre of claves) k[nombre] = ev(nd.kwargs[nombre]);
             return { a, k };
         }
         function llamada(nd) {
@@ -838,7 +845,7 @@
         const SOLO_LONGITUD = new Set(['ta.highest', 'ta.lowest', 'ta.highestbars', 'ta.lowestbars']);
         function conNombres(nombre, a, k) {
             const nombres = PARAMS[nombre];
-            if (!nombres) return a;
+            if (!nombres || k === SIN_KW) return a;       // sin argumentos con nombre no hay nada que acomodar
             const r = a.slice();
             let usado = false;
             nombres.forEach((nm, i) => { if (k[nm] !== undefined && r[i] === undefined) { r[i] = k[nm]; usado = true; } });

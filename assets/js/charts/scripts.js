@@ -8,7 +8,10 @@
     // El worker usa el mismo sello de versión (?v=) que el nlts.js de la página, así nunca queda un intérprete viejo en caché.
     const TAG_NLTS = document.querySelector('script[src*="charts/nlts.js"]');
     const URL_WORKER = TAG_NLTS ? TAG_NLTS.src.replace(/nlts\.js(\?.*)?$/, (m, q) => `nlts-worker.js${q || ''}`) : 'assets/js/charts/nlts-worker.js';
-    const TIEMPO_MAX_MS = 8000;
+    // Tiempo máximo por corrida: crece con la cantidad de velas (un indicador pesado como un Zig-Zag con búsquedas hacia atrás cuesta ~1 ms
+    // por vela en una computadora y 3-4 ms en un celular). Antes eran 8 s fijos y un script legítimo con 5.000 velas se cortaba.
+    // Los bucles infinitos igual se detienen: el intérprete tiene su propio límite de pasos y este tiempo es el último seguro.
+    const tiempoMax = (velas) => { const n = velas && velas.t ? velas.t.length : 0; return Math.min(45000, Math.max(8000, 6000 + n * 6)); };
     const PALETA = ['#2962FF', '#FF9800', '#E040FB', '#00BCD4', '#F23645', '#4CAF50'];
     const CANDLE_PANE = 'candle_pane';
     const PALABRAS = /\b(if|else|for|to|by|in|while|def|return|and|or|not|true|false|break|continue|var|varip)\b/g;
@@ -25,7 +28,8 @@
                 const id = ++seq;
                 let listo = false;
                 const fin = (r) => { if (listo) return; listo = true; clearTimeout(t); resolve(r); };
-                const t = setTimeout(() => { matar(); fin(vacio(`El script tardó más de ${TIEMPO_MAX_MS / 1000} segundos y se detuvo. Revisa los bucles o baja los períodos.`)); }, TIEMPO_MAX_MS);
+                const limite = tiempoMax(velas);
+                const t = setTimeout(() => { matar(); fin(vacio(`El script tardó más de ${Math.round(limite / 1000)} segundos y se detuvo. Revisa los bucles o baja los períodos; si es un script pesado, prueba en una temporalidad mayor o con menos velas cargadas.`)); }, limite);
                 try {
                     if (!w) {
                         w = new Worker(URL_WORKER);
