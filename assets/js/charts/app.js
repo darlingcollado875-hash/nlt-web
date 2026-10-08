@@ -120,6 +120,8 @@
             onZonaMovida: (id) => pro && pro.zonaMovida(id),
         });
 
+        if (NLTCharts.panelHerrModulo) { try { NLTCharts.panelHerrModulo.montar({ stageEl: document.querySelector('.ch-stage'), state, dib }); } catch (e) { console.warn('[NLT Charts] panel de herramientas no disponible', e); } }
+
         // PRO: el backend decide el acceso; esto solo muestra y dibuja.
         let ind = null;
         pro = NLTCharts.pro.crear({

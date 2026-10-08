@@ -490,6 +490,7 @@
              <button type="button" class="ch-tool" data-accion="deshacer" title="Deshacer (Ctrl+Z)" aria-label="Deshacer" ${pos > 0 ? '' : 'disabled'}><i class="ph ph-arrow-u-up-left"></i></button>
              <button type="button" class="ch-tool" data-accion="rehacer" title="Rehacer (Ctrl+Y)" aria-label="Rehacer" ${pos < pila.length - 1 ? '' : 'disabled'}><i class="ph ph-arrow-u-up-right"></i></button>
              <button type="button" class="ch-tool" data-accion="borrar" title="Borrar un dibujo" aria-label="Borrar un dibujo"><i class="ph ph-eraser"></i></button>
+             <button type="button" class="ch-tool${NLTCharts.panelHerr && NLTCharts.panelHerr.visible() ? ' on' : ''}" data-accion="panelHerr" title="Mis herramientas: panel flotante" aria-label="Mostrar u ocultar mi panel de herramientas"><i class="ph ph-toolbox"></i></button>
              <button type="button" class="ch-tool peligro" data-accion="limpiar" title="Borrar todos los dibujos" aria-label="Borrar todos los dibujos"><i class="ph ph-trash"></i></button>`;
             marcarBotones();
         }
@@ -531,7 +532,9 @@
         });
         document.addEventListener('click', (ev) => { const ruta = ev.composedPath(); if (catAbierta && !ruta.includes(volador) && !ruta.some((n) => n.classList && n.classList.contains('ch-cat'))) cerrarMenu(); });
         window.addEventListener('resize', cerrarMenu);
+        const oyentesActiva = new Set();
         function marcarBotones() {
+            oyentesActiva.forEach((fn) => { try { fn(activa); } catch (_) { /* oyente roto: no frena */ } });
             toolsEl.querySelectorAll('[data-tool]').forEach((b) => b.classList.toggle('on', b.dataset.tool === activa));
             const hAct = activa && POR_ID[activa];
             toolsEl.querySelectorAll('[data-cat]').forEach((b) => {
@@ -921,6 +924,8 @@
                 state.savePrefs({ dibujoIman: iman });
                 chart.getOverlays({ groupId: GRUPO }).filter((o) => o.currentStep !== -1).forEach((o) => chart.overrideOverlay({ id: o.id, mode: iman }));
                 pintarHerramientas(); ayuda(NOMBRE_IMAN[iman]); setTimeout(() => { if (!activa) ayuda(''); }, 1800);
+            } else if (b.dataset.accion === 'panelHerr') {
+                if (NLTCharts.panelHerr) { NLTCharts.panelHerr.alternar(); b.classList.toggle('on', NLTCharts.panelHerr.visible()); }
             } else if (b.dataset.accion === 'mantener') {
                 mantener = !mantener; state.savePrefs({ dibujoMantener: mantener });
                 pintarHerramientas(); ayuda(mantener ? 'La herramienta queda activa después de cada dibujo (Esc para salir)' : ''); setTimeout(() => { if (!activa) ayuda(''); }, 2200);
@@ -958,6 +963,13 @@
         });
 
         const api = {
+            // Panel flotante "Mis herramientas" (panel-herramientas.js)
+            elegir: (id) => elegirHerramienta(id),
+            activa: () => activa,
+            alCambiarActiva(fn) { oyentesActiva.add(fn); return () => oyentesActiva.delete(fn); },
+            // acciones rápidas: las mismas de la barra (imán, mantener, ocultar, deshacer, borrar...)
+            accion(nombre) { const b = toolsEl.querySelector(`[data-accion="${nombre}"]`); if (b && !b.disabled) b.click(); },
+            estadoAcciones: () => ({ iman: iman !== 'normal', mantener, ocultar: todosOcultos, puedeDeshacer: pos > 0, borrar: modoBorrar }),
             seleccionado: () => seleccionado,
             // Posición dibujada -> orden (BUY/SELL, entrada, SL, TP, cantidad). La usa NLTCharts.trading.
             posicionComoOrden(id) {
