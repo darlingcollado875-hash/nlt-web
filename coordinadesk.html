@@ -987,6 +987,7 @@
                         ${campo('discountCode')}
                         <div class="cd-field"><label for="pgCob">Cobertura del pago</label><select class="cd-select" id="pgCob">${COBERTURA.map((o) => `<option value="${o.v}">${esc(o.l)}</option>`).join('')}</select></div>
                         ${campo('paymentDate')}${campo('expiryDate')}
+                        <div class="cd-field full" id="pgSumarBox" style="display:none"><label style="display:flex;gap:8px;align-items:flex-start;cursor:pointer"><input type="checkbox" id="pgSumar" style="margin-top:3px"><span id="pgSumarTxt" class="cd-sub"></span></label></div>
                         <div class="cd-field full" id="pgComision" style="display:none"><label>Datos de la comisión</label>
                             <div class="cd-form" style="margin:0">${campo('commissionRate')}${campo('salesCount')}${campo('salesVolume')}${campo('commissionEarned')}${campo('amountPending')}${campo('dueDate')}</div></div>
                         ${campo('notes', ' full')}
@@ -1060,12 +1061,31 @@
                 setVal('concept', plan ? `Pago de plan ${plan}` : '');
             }
             function recalcularVencimiento() {
+                avisoSumar();
                 const c = $('#pgCob').value;
                 if (c === 'custom') return;
                 if (c === '0' || !val('paymentDate')) { setVal('expiryDate', ''); return; }
+                // El vencimiento cuenta desde la FECHA DE PAGO: pagó el 8 de enero 1 mes -> vence el 8 de febrero.
+                // Sumarlo al vencimiento que el plan ya tenía (renovación anticipada) es opcional, con la casilla de abajo;
+                // antes se sumaba solo y el vencimiento salía un mes adelantado.
                 const pl = planActual();
-                const desde = pl && pl.expiryDate && pl.expiryDate > val('paymentDate') ? pl.expiryDate : val('paymentDate');   // pagar antes de tiempo suma al vencimiento vigente
-                setVal('expiryDate', sumarMeses(desde, Number(c)));
+                const sumar = pl && pl.expiryDate && pl.expiryDate > val('paymentDate') && ($('#pgSumar') || {}).checked;
+                setVal('expiryDate', sumarMeses(sumar ? pl.expiryDate : val('paymentDate'), Number(c)));
+            }
+            // Si la fecha de vencimiento coincide EXACTO con 1/3/6/12 meses desde el pago, la cobertura lo refleja sola.
+            function cobDeFechas() {
+                const pago = val('paymentDate'), venc = val('expiryDate');
+                if (!venc) return '0';
+                if (!pago) return 'custom';
+                const n = [1, 3, 6, 12].find((k) => sumarMeses(pago, k) === venc);
+                return n ? String(n) : 'custom';
+            }
+            function avisoSumar() {
+                const pl = planActual(), caja = $('#pgSumarBox');
+                if (!caja) return;
+                const hay = pl && pl.expiryDate && pl.expiryDate > val('paymentDate') && $('#pgCob').value !== '0';
+                caja.style.display = hay ? '' : 'none';
+                if (hay) $('#pgSumarTxt').textContent = `Este plan ya vence el ${fmtDate(pl.expiryDate).replace(/&[a-z#0-9]+;/g, '')}. Marca la casilla si este pago se suma a ese vencimiento (renovación anticipada).`;
             }
             function elegir(id) {
                 st.id = id;
@@ -1077,12 +1097,13 @@
                 pintarInfo(); recalcularVencimiento();
             }
             function alElegirPlan() {
+                if ($('#pgSumar')) $('#pgSumar').checked = false;
                 const pl = planActual();
                 if (montoAuto && pl) setVal('amountPaid', pl.price || '');
                 conceptoAutomatico(); pintarInfo(); recalcularVencimiento();
             }
             pintarTipo(); pintarLista(); pintarPlanes(); pintarInfo(); visibilidad();
-            $('#pgCob').value = nuevo ? (st.tipo === 'client' ? '1' : '0') : ((base.expiryDate && base.paymentDate) ? 'custom' : '0');
+            $('#pgCob').value = nuevo ? (st.tipo === 'client' ? '1' : '0') : cobDeFechas();
             if (nuevo && st.id) { elegir(st.id); if (val('planName')) alElegirPlan(); }
             form.addEventListener('input', () => { formDirty = true; });
             form.addEventListener('change', () => { formDirty = true; });
@@ -1103,9 +1124,10 @@
             $('[name="concept"]').addEventListener('input', () => { conceptoAuto = false; });
             $('[name="amountPaid"]').addEventListener('input', () => { montoAuto = false; });
             $('[name="paymentType"]').addEventListener('change', () => { visibilidad(); if (val('paymentType') !== 'plan_payment') $('#pgCob').value = '0'; recalcularVencimiento(); });
-            $('#pgCob').addEventListener('change', recalcularVencimiento);
-            $('[name="paymentDate"]').addEventListener('change', recalcularVencimiento);
-            $('[name="expiryDate"]').addEventListener('input', () => { $('#pgCob').value = 'custom'; });
+            $('#pgCob').addEventListener('change', () => { recalcularVencimiento(); avisoSumar(); });
+            $('#pgSumar').addEventListener('change', recalcularVencimiento);
+            $('[name="paymentDate"]').addEventListener('change', () => { if ($('#pgCob').value === 'custom') $('#pgCob').value = cobDeFechas(); recalcularVencimiento(); avisoSumar(); });
+            $('[name="expiryDate"]').addEventListener('input', () => { $('#pgCob').value = cobDeFechas(); });
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 if (!st.id || !pagador()) { toast('Elige el cliente o afiliado que pagó.', 'err'); $('#pgQ').focus(); return; }
