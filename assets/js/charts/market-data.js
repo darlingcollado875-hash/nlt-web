@@ -44,7 +44,7 @@
         if (r.server_time && NLTCharts.countdown && !opciones.sinCuenta) NLTCharts.countdown.sincronizar(r.server_time, t0, Date.now());
         // source: PRIMARY / BACKUP. Una serie nunca mezcla fuentes: si cambia, el motor recarga todo.
         return { demo: !!r.demo, provider: r.provider, source: r.source || 'primary', sourceState: r.source_state || null,
-            precision: r.price_precision, velas: r.candles.map(aKline) };
+            precision: r.price_precision, staleMs: r.stale_ms || 0, velas: r.candles.map(aKline) };
     }
     async function velas(symbol, timeframe, { limit = LOTE, end = null, signal, cache = false } = {}) {
         if (fuenteHistorica) return fuenteHistorica(symbol, timeframe, { limit, end });
