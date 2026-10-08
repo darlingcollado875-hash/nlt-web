@@ -311,13 +311,53 @@
                 <button type="button" class="ch-gear ch-ind-star on" data-fav-ind="${esc(id)}" title="Quitar de favoritos" aria-label="Quitar ${esc(p.nombre)} de favoritos"><i class="ph-fill ph-star"></i></button>
             </div>`;
         }
+        // ── Mis indicadores: los scripts que creaste (o te compartieron) en el apartado Script ──
+        const misErr = {}, misOcupado = new Set();
+        let suscrito = false;
+        const MIS = () => window.NLTCharts && window.NLTCharts.misInd;
+        function filaMis(it) {
+            const err = misErr[it.id];
+            const sub = err ? `<span class="ch-ind-desc" style="color:#F87171">${esc(err)}</span>` : `<span class="ch-ind-desc">${it.origen === 'propio' ? 'Script propio' : 'Compartido / de la tienda'}</span>`;
+            return `<div class="ch-ind-fila">
+                <label class="ch-ind">
+                    <input type="checkbox" data-mis="${esc(it.id)}"${it.enGrafico ? ' checked' : ''}${misOcupado.has(it.id) ? ' disabled' : ''}>
+                    <span><span class="ch-ind-name block">${esc(it.nombre)}</span>${sub}</span>
+                </label>
+                <button type="button" class="ch-gear ch-ind-star${it.fav ? ' on' : ''}" data-fav-mis="${esc(it.id)}" title="${it.fav ? 'Quitar de favoritos' : 'Agregar a favoritos'}" aria-label="${it.fav ? 'Quitar' : 'Agregar'} ${esc(it.nombre)} ${it.fav ? 'de' : 'a'} favoritos"><i class="${it.fav ? 'ph-fill' : 'ph'} ph-star"></i></button>
+                <button type="button" class="ch-gear" data-edit-mis="${esc(it.id)}" title="${it.origen === 'propio' ? 'Editar el código' : 'Ver detalles'}" aria-label="${it.origen === 'propio' ? 'Editar' : 'Ver'} ${esc(it.nombre)}"><i class="ph ${it.origen === 'propio' ? 'ph-pencil-simple' : 'ph-eye'}"></i></button>
+            </div>`;
+        }
+        function misHTML() {
+            const api = MIS();
+            const titulo = '<p class="ch-grupo"><i class="ph ph-code"></i> Mis indicadores</p>';
+            if (!api) return `${titulo}<p class="ch-ind-desc" style="padding:2px 8px 6px">Preparando tus scripts…</p>`;
+            const q = filtro.trim().toLowerCase();
+            const todos = api.items(), items = todos.filter((it) => !q || it.nombre.toLowerCase().includes(q));
+            const est = api.estado();
+            const crear = '<button type="button" class="ch-mis-nuevo" data-mis-nuevo><i class="ph ph-plus"></i> Crear indicador en Script</button>';
+            let cuerpo;
+            if (items.length) cuerpo = items.map(filaMis).join('');
+            else if (q && todos.length) cuerpo = '<p class="ch-ind-desc" style="padding:2px 8px 6px">Ninguno de tus indicadores coincide.</p>';
+            else if (!est.cargado) cuerpo = '<p class="ch-ind-desc" style="padding:2px 8px 6px">Cargando tus indicadores…</p>';
+            else cuerpo = '<p class="ch-ind-desc" style="padding:2px 8px 6px">Todavía no tienes indicadores propios. Lo que crees y guardes en Script aparece aquí.</p>';
+            return `${titulo}${cuerpo}${q ? '' : crear}`;
+        }
+        function repintarMis() {
+            if (panelEl.hidden) return;
+            const m = panelEl.querySelector('#chMisInd');
+            if (m) m.innerHTML = misHTML();
+            const l = panelEl.querySelector('[data-ind-lista]');
+            if (l) l.innerHTML = listaHTML();
+        }
         function listaHTML() {
             const q = filtro.trim().toLowerCase();
             const coincide = (f) => !q || [f.nombre, f.desc || '', f.id].some((t) => t.toLowerCase().includes(q));
             const bloques = [];
             // La búsqueda muestra primero los favoritos que coinciden (gratis y PRO).
             const favHTML = favs.map((id) => (porId[id] ? (coincide(porId[id]) ? fila(porId[id]) : '') : PRO_FAV[id] && coincide({ id, ...PRO_FAV[id] }) ? filaPro(id) : '')).join('');
-            if (favHTML) bloques.push(`<p class="ch-grupo"><i class="ph-fill ph-star" style="color:#FACC15"></i> Favoritos</p>${favHTML}`);
+            const misFav = MIS() ? MIS().items().filter((it) => it.fav && (!q || it.nombre.toLowerCase().includes(q))).map(filaMis).join('') : '';
+            const favTodo = favHTML + misFav;
+            if (favTodo) bloques.push(`<p class="ch-grupo"><i class="ph-fill ph-star" style="color:#FACC15"></i> Favoritos</p>${favTodo}`);
             GRUPOS.forEach((g) => {
                 const items = g.items.filter(coincide);
                 if (items.length) bloques.push(`<p class="ch-grupo">${esc(g.titulo)}</p>${items.map(fila).join('')}`);
@@ -364,6 +404,7 @@
                 </div>
  ${plantillasHTML()}
                 <input type="search" class="wl-buscar ch-ind-buscar" placeholder="Buscar indicador" value="${esc(filtro)}" aria-label="Buscar indicador">
+                <div id="chMisInd">${misHTML()}</div>
                 <div data-ind-lista>${listaHTML()}</div>
                 <div id="chProSeccion"></div>`;
             if (pro) pro.renderSeccion(panelEl.querySelector('#chProSeccion'), filtro, favs);
@@ -375,6 +416,14 @@
         panelEl.addEventListener('change', (ev) => {
             const pf = ev.target.dataset && ev.target.dataset.proFav;
             if (pf) { const api = PRO_FAV[pf] && PRO_FAV[pf].api(); if (api) api.alternar(ev.target.checked); return; }
+            const mid = ev.target.dataset && ev.target.dataset.mis;
+            if (mid) {
+                const api = MIS(); if (!api) return;
+                misOcupado.add(mid); delete misErr[mid];
+                repintarMis();
+                api.alternar(mid).then((r) => { if (!r.ok) misErr[mid] = r.error; }).finally(() => { misOcupado.delete(mid); repintarMis(); });
+                return;
+            }
             const id = ev.target.dataset && ev.target.dataset.ind;
             if (!id) return;
             ev.target.checked ? activar(id) : desactivar(id);
@@ -386,10 +435,16 @@
             if (!ev.target.classList.contains('ch-ind-buscar')) return;
             filtro = ev.target.value;
             panelEl.querySelector('[data-ind-lista]').innerHTML = listaHTML();
+            const m = panelEl.querySelector('#chMisInd'); if (m) m.innerHTML = misHTML();
             if (pro) pro.renderSeccion(panelEl.querySelector('#chProSeccion'), filtro, favs);
         });
         panelEl.addEventListener('click', (ev) => {
             if (ev.target.closest('[data-cerrar]')) { cerrar(); return; }
+            const fm = ev.target.closest('[data-fav-mis]');
+            if (fm) { if (MIS()) MIS().alternarFav(fm.dataset.favMis); return; }
+            const em = ev.target.closest('[data-edit-mis]');
+            if (em) { const id = em.dataset.editMis; cerrar(); if (MIS()) MIS().editar(id); return; }
+            if (ev.target.closest('[data-mis-nuevo]')) { cerrar(); if (MIS()) MIS().nuevo(); return; }
             const pl = ev.target.closest('[data-plant]');
             if (pl) {
                 const sel = panelEl.querySelector('[data-plant-sel]'); const nombre = sel && sel.value;
@@ -425,7 +480,11 @@
         return {
             activar(id) { activar(id); guardarActivos(); },
             desactivar(id) { desactivar(id); guardarActivos(); },
-            abrir() { render(); panelEl.hidden = false; panelBgEl.hidden = false; },
+            abrir() {
+                render(); panelEl.hidden = false; panelBgEl.hidden = false;
+                const api = MIS();
+                if (api) { api.cargar().then(repintarMis); if (!suscrito) { suscrito = true; api.suscribir(repintarMis); } }
+            },
             refrescarPanel,
             // Recalcula los indicadores propios (ej. al cambiar de símbolo el
             // contexto HTF de la Suite).

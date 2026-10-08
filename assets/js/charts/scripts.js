@@ -333,6 +333,7 @@
             const o = {};
             activos.forEach((a, id) => { o[id] = { inputs: a.inputs, oculto: !!a.oculto }; });
             state.savePrefs({ scriptsActivos: o });
+            avisar();
         }
         async function activar(id, nombre, codigo, inputs, ast) {
             const a = activos.get(id) || { id, version: 0 };
@@ -348,6 +349,47 @@
             if (a) { quitarDelGrafico(a); activos.delete(id); guardarActivos(); }
         }
 
+        // ───────────── Mis indicadores: lo que creas en Script aparece en el panel de Indicadores ─────────────
+        const oyentes = new Set();
+        let cargadoEn = 0;
+        function avisar() { oyentes.forEach((f) => { try { f(); } catch (_) { /* un oyente roto no frena a los demás */ } }); }
+        const favIds = () => { const f = state.prefs().scriptsFav; return Array.isArray(f) ? f : []; };
+        function misItems() {
+            const fav = new Set(favIds());
+            const todos = lista.map((s) => ({ id: s.id, nombre: s.name, origen: 'propio' }))
+                .concat(compartidos.map((s) => ({ id: s.id, nombre: s.name, origen: 'compartido' })));
+            return todos.map((x) => ({ ...x, fav: fav.has(x.id), enGrafico: activos.has(x.id) }))
+                .sort((a, b) => (b.fav - a.fav));       // favoritos arriba, el resto en el orden del servidor
+        }
+        async function alternarMis(id) {
+            if (activos.has(id)) { desactivar(id); return { ok: true }; }
+            try {
+                const propio = lista.some((x) => x.id === id);
+                const r = propio ? await NLT_API.chartsScript(id) : await NLT_API.chartsScriptCompartido(id);
+                const ok = await activar(id, r.script.name, r.script.code, undefined, r.script.ast);
+                if (ok) return { ok: true };
+                const a = activos.get(id);
+                activos.delete(id); guardarActivos();
+                return { ok: false, error: (a && a.errores && a.errores[0] && a.errores[0].mensaje) || 'Ese indicador no se pudo calcular.' };
+            } catch (e) { return { ok: false, error: e.message || 'No se pudo poner en el gráfico.' }; }
+        }
+        function alternarFavMis(id) {
+            const f = favIds();
+            state.savePrefs({ scriptsFav: f.includes(id) ? f.filter((x) => x !== id) : [...f, id] });
+            avisar();
+        }
+        window.NLTCharts = window.NLTCharts || {};
+        window.NLTCharts.misInd = {
+            items: misItems,
+            estado: () => ({ acceso, max, total: lista.length, cargado: cargadoEn > 0, motivo }),
+            cargar: async (forzar) => { if (forzar || Date.now() - cargadoEn > 45000) await cargarLista(); },
+            alternar: alternarMis,
+            alternarFav: alternarFavMis,
+            editar: async (id) => { await abrirEn({ id }, 'codigo'); },
+            nuevo: async () => { await abrir(); nuevo(); },
+            suscribir: (f) => { oyentes.add(f); return () => oyentes.delete(f); },
+        };
+
         // ───────────── API del servidor ─────────────
         async function cargarLista() {
             try {
@@ -359,6 +401,7 @@
             if (!miUsuario) { try { miUsuario = (await NLT_API.communityMiPerfil()).username; } catch (_) { /* sin perfil todavía */ } }
             // Los que te compartieron (o sacaste de la tienda) se usan SIN necesidad del plan
             try { compartidos = (await NLT_API.chartsScriptsCompartidos()).scripts || []; } catch (_) { compartidos = []; }
+            cargadoEn = Date.now(); avisar();
         }
         async function cargarTienda() {
             cargandoTienda = true;
@@ -405,7 +448,7 @@
                 let ast = null;
                 try { ast = window.NLTS.compilar(sel.codigo); } catch (_) { ast = null; }   // el compilado viaja con el script: es lo único que recibe quien lo use protegido
                 const r = sel.id ? await NLT_API.chartsScriptGuardar(sel.id, nombre, sel.codigo, ast, sel.descripcion || '') : await NLT_API.chartsScriptCrear(nombre, sel.codigo, ast, sel.descripcion || '');
-                sel.id = r.script.id; sel.nombre = r.script.name; sucio = false; mensaje = 'Guardado.';
+                sel.id = r.script.id; sel.nombre = r.script.name; sucio = false; mensaje = 'Guardado. Ya lo tienes en Indicadores › Mis indicadores.';
                 await cargarLista();
                 if (activos.has(sel.id)) await activar(sel.id, sel.nombre, sel.codigo);   // ya está en el gráfico: se actualiza
             } catch (e) { mensaje = e.message || 'No se pudo guardar.'; }
