@@ -37,6 +37,7 @@
     const CACHE_VELAS_MS = 10 * 60000, CACHE_FRESCA_MS = 20000;
     const claveVelas = (sym, tf) => `${sym}|${tf}`;
     const enVuelo = new Map();
+    let tokenCarga = 0;
     async function pedirVelas(symbol, timeframe, opciones) {
         const t0 = Date.now();
         const r = await NLT_API.chartsVelas(symbol, timeframe, opciones);
@@ -50,6 +51,7 @@
         const inicial = end == null && limit === LOTE;
         const k = claveVelas(symbol, timeframe);
         if (cache && inicial) {
+            tokenCarga++;                       // el usuario pidió una carga: cualquier precarga en curso se corta
             const c = cacheVelas.get(k);
             if (c && Date.now() - c.t < CACHE_VELAS_MS) {
                 if (Date.now() - c.t > CACHE_FRESCA_MS) refrescarCache(symbol, timeframe);
@@ -73,20 +75,23 @@
     // Temporalidades vecinas del gráfico, bajadas en segundo plano para que el próximo cambio sea instantáneo.
     const ORDEN_TF = ['1m', '5m', '15m', '30m', '1H', '4H', '1D'];
     let precargaTimer = null;
+    // Solo las 2 vecinas inmediatas y solo si el usuario no tocó nada: el servidor ya calienta las demás (market/service.py) y una precarga
+    // del navegador que sigue corriendo mientras se cambia rápido de temporalidad le ocupaba la cola al propio usuario.
     function precargarVecinos(symbol, timeframe) {
         clearTimeout(precargaTimer);
+        const mio = tokenCarga;
         precargaTimer = setTimeout(async () => {
             try {
                 if (fuenteHistorica || (navigator.connection && navigator.connection.saveData)) return;
                 const i = ORDEN_TF.indexOf(timeframe);
-                for (const tf of [ORDEN_TF[i - 1], ORDEN_TF[i + 1], ORDEN_TF[i - 2], ORDEN_TF[i + 2]].filter(Boolean)) {
+                for (const tf of [ORDEN_TF[i - 1], ORDEN_TF[i + 1]].filter(Boolean)) {
                     const c = cacheVelas.get(claveVelas(symbol, tf));
                     if (c && Date.now() - c.t < 120000) continue;
-                    if (document.hidden || fuenteHistorica) return;
+                    if (document.hidden || fuenteHistorica || mio !== tokenCarga) return;
                     await refrescarCache(symbol, tf);
                 }
             } catch (_) { /* es solo una ayuda */ }
-        }, 2500);
+        }, 6000);
     }
 
     // Estado de la conexión con los precios (lo muestra la barra):
