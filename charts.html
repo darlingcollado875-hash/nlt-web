@@ -491,6 +491,17 @@
         .ch-cd[data-estado="delayed"] { color: #EAB308; }
         .ch-cd[data-estado="disconnected"] { color: #F87171; }
         .ch-cd[data-estado="replay"], .ch-cd[data-estado="histórico"] { color: rgb(var(--ch-accent)); }
+        /* Estado del Zone Engine en el replay (cargando / no cargó) */
+        .nlt-zechip { position: absolute; left: 12px; bottom: 46px; z-index: 29; max-width: calc(100% - 100px); display: inline-flex; align-items: center; gap: 9px; padding: 9px 14px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #fff;
+                      background: rgba(24,27,36,.88); -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 10px 28px rgba(0,0,0,.45); }
+        .nlt-zechip[hidden] { display: none; }
+        .nlt-zechip i { font-size: 16px; flex: none; color: rgb(var(--ch-accent)); }
+        .nlt-zechip.carga i { animation: rpGiro .9s linear infinite; }
+        .nlt-zechip.err { border-color: rgba(248,113,113,.45); } .nlt-zechip.err i { color: #F87171; }
+        .nlt-zechip button { margin-left: 4px; padding: 5px 12px; border-radius: 999px; background: rgba(248,113,113,.18); color: #FCA5A5; font-size: 11.5px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .nlt-zechip button:hover { background: rgba(248,113,113,.3); }
+        html.es-safari .nlt-zechip, html[data-perf="bajo"] .nlt-zechip { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(24,27,36,.97); }
+        html[data-perf="bajo"] .nlt-zechip.carga i { animation: none; }
         /* Mis herramientas: panel flotante (movible y ocultable) */
         .phr { position: absolute; right: 78px; top: 84px; z-index: 28; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 3px; border-radius: 16px; touch-action: manipulation;
                background: rgba(24,27,36,.9); -webkit-backdrop-filter: blur(14px) saturate(150%); backdrop-filter: blur(14px) saturate(150%); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 10px 28px rgba(0,0,0,.45); }
@@ -656,7 +667,7 @@
     <script src="assets/vendor/klinecharts-10.0.3.min.js"></script>
     <script src="assets/js/nlt-shared.js?v=175a16e9"></script>
     <script src="assets/js/nlt-ai-reporte.js?v=414ace77"></script>
-    <script src="assets/js/nlt-api-client.js?v=e3e690c3"></script>
+    <script src="assets/js/nlt-api-client.js?v=12a85879"></script>
     <script src="assets/js/charts/diag.js?v=2bac588a"></script>
     <script src="assets/js/charts/fluidez.js?v=9971097e"></script>
     <script src="assets/js/charts/transicion.js?v=71d22449"></script>
@@ -682,10 +693,10 @@
     <script src="assets/js/charts/unified-suite.js?v=d9107ecc"></script>
     <script src="assets/js/charts/indicators-extra.js?v=659e08e5"></script>
     <script src="assets/js/charts/indicators.js?v=8c7176db"></script>
-    <script src="assets/js/charts/pro.js?v=e11a8381"></script>
+    <script src="assets/js/charts/pro.js?v=6431f973"></script>
     <script src="assets/js/charts/nlt-ai.js?v=701ad486"></script>
     <script src="assets/js/charts/guia-ai.js?v=ecbfd436"></script>
-    <script type="nlt/diferido" src="assets/js/charts/replay.js?v=18872ff2"></script>
+    <script type="nlt/diferido" src="assets/js/charts/replay.js?v=f3e629c2"></script>
     <script type="nlt/diferido" src="assets/js/charts/historia.js?v=30c07c99"></script>
     <script type="nlt/diferido" src="assets/js/charts/backtest.js?v=e90b5d22"></script>
     <script type="nlt/diferido" src="assets/js/charts/multichart.js?v=456e9156"></script>

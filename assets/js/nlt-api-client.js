@@ -1036,7 +1036,7 @@
         chartsReplayReset: (id) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/reset`, { method: 'POST', intentos: 1 }),
         // diarias/4H y Zone Engine esperan la 2.ª fase de la sesión (el servidor espera hasta 120 s)
         chartsReplayVelas: (id, timeframe, limit = 500) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/candles?timeframe=${encodeURIComponent(timeframe)}&limit=${limit}`, { timeoutMs: 130000 }),
-        chartsReplayZE: (id, inputs = {}) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/zone-engine`, { method: 'POST', body: JSON.stringify({ inputs }), timeoutMs: 130000, intentos: 1 }),
+        chartsReplayZE: (id, inputs = {}) => request(`/charts/replay/sessions/${encodeURIComponent(id)}/zone-engine`, { method: 'POST', body: JSON.stringify({ inputs }), timeoutMs: 45000, intentos: 1 }),   // el servidor sigue preparando los datos aunque se corte la espera: el siguiente pedido sale rápido
         // Histórico profundo (capa histórica compartida con Replay y Backtest): velas cerradas de un rango
         chartsHistoria: (symbol, timeframe, desde, hasta, { signal, timeoutMs } = {}) => request(`/charts/history/candles?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}&from=${Math.floor(desde)}&to=${Math.floor(hasta)}`, { timeoutMs: timeoutMs || 180000, intentos: 1, ...(signal ? { signal } : {}) }),
         chartsHistoriaDisponibilidad: (symbol, timeframe) => request(`/charts/history/availability?symbol=${encodeURIComponent(symbol)}&timeframe=${encodeURIComponent(timeframe)}`),
