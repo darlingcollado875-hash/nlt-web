@@ -412,6 +412,8 @@
         .ch-lab-btn.on { background: rgba(var(--ch-accent),.14); }
         .lab { flex: 0 0 44vh; min-height: 240px; display: flex; flex-direction: column; border-top: 1px solid var(--ch-line); background: #0B0E14; font-size: 12px; color: #D1D5DB; }
         .lab[hidden] { display: none; }
+        .lab.lab-min { flex: 0 0 auto; min-height: 0; height: auto !important; }
+        .lab.lab-min .lab-body { display: none; }
         .lab-head { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 14px; border-bottom: 1px solid var(--ch-line); flex-shrink: 0; overflow-x: auto; scrollbar-width: none; }
         .lab-head > b { font-size: 11px; letter-spacing: .1em; color: #fff; white-space: nowrap; display: inline-flex; gap: 6px; align-items: center; }
         .lab-head > b i { color: rgb(var(--ch-accent)); font-size: 15px; }
@@ -495,6 +497,11 @@
         .rp[hidden] { display: none; }
         .rp-t { font-size: 10.5px; letter-spacing: .1em; color: #fff; display: inline-flex; gap: 5px; align-items: center; white-space: nowrap; padding: 0 4px; }
         .rp-t i { color: rgb(var(--ch-accent)); font-size: 15px; }
+        .rp-grip { cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+        .rp-grip:active { cursor: grabbing; }
+        .rp-grip i:first-child { color: #6B7280; margin-right: -2px; }
+        .rp.rp-min { gap: 4px; padding: 4px 6px; flex-wrap: nowrap; }
+        .rp.rp-min .rp-ex, .rp.rp-min .rp-tt, .rp.rp-min .rp-cur, .rp.rp-min .rp-err, .rp.rp-min .rp-b span { display: none; }
         .rp-b { display: inline-flex; align-items: center; gap: 5px; padding: 6px 9px; border-radius: 9px; border: 1px solid var(--ch-line); background: rgba(255,255,255,.04); color: #E5E7EB; font-weight: 600; cursor: pointer; white-space: nowrap; }
         .rp-b:hover { border-color: rgba(255,255,255,.2); color: #fff; }
         .rp-b:disabled { opacity: .45; cursor: default; }
@@ -566,19 +573,19 @@
     <script src="assets/js/charts/layout.js?v=7601270b"></script>
     <script src="assets/js/charts/drawings-extra.js?v=418aaf7c"></script>
     <script src="assets/js/charts/estilo-dibujo.js?v=a3fb3b63"></script>
-    <script src="assets/js/charts/drawings.js?v=74754e2c"></script>
+    <script src="assets/js/charts/drawings.js?v=c60f1d7a"></script>
     <script src="assets/js/charts/trading.js?v=74d3ad01"></script>
     <script src="assets/js/charts/watchlist.js?v=2ef58b00"></script>
     <script src="assets/js/charts/indicators-free.js?v=a8bdd311"></script>
     <script src="assets/js/charts/unified-suite.js?v=d9107ecc"></script>
     <script src="assets/js/charts/indicators-extra.js?v=659e08e5"></script>
-    <script src="assets/js/charts/indicators.js?v=cca1413b"></script>
+    <script src="assets/js/charts/indicators.js?v=8c7176db"></script>
     <script src="assets/js/charts/pro.js?v=e11a8381"></script>
     <script src="assets/js/charts/nlt-ai.js?v=701ad486"></script>
     <script src="assets/js/charts/guia-ai.js?v=ecbfd436"></script>
-    <script type="nlt/diferido" src="assets/js/charts/replay.js?v=0f972ce2"></script>
+    <script type="nlt/diferido" src="assets/js/charts/replay.js?v=058defc2"></script>
     <script type="nlt/diferido" src="assets/js/charts/historia.js?v=c28ddaa6"></script>
-    <script type="nlt/diferido" src="assets/js/charts/backtest.js?v=32a8f966"></script>
+    <script type="nlt/diferido" src="assets/js/charts/backtest.js?v=85a01e05"></script>
     <script type="nlt/diferido" src="assets/js/charts/multichart.js?v=456e9156"></script>
     <script type="nlt/diferido" src="assets/js/charts/ratings.js?v=26642596"></script>
     <script type="nlt/diferido" src="assets/js/charts/noticias.js?v=e7b3eb05"></script>
@@ -587,7 +594,7 @@
     <script type="nlt/diferido" src="assets/js/charts/nlts.js?v=a0683355"></script>
     <script type="nlt/diferido" src="assets/js/charts/nlts-ejemplos.js?v=8a0b783d"></script>
     <script type="nlt/diferido" src="assets/js/charts/scripts-dibujo.js?v=fb9b004d"></script>
-    <script type="nlt/diferido" src="assets/js/charts/scripts.js?v=d830a0bb"></script>
+    <script type="nlt/diferido" src="assets/js/charts/scripts.js?v=804ea522"></script>
     <script type="nlt/diferido" src="assets/js/charts/sonidos.js?v=ed9fc939"></script>
     <script type="nlt/diferido" src="assets/js/charts/poschips.js?v=ea5b0b78"></script>
     <script type="nlt/diferido" src="assets/js/charts/trader.js?v=dd093d68"></script>

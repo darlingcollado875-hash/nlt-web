@@ -296,17 +296,23 @@
                 const { h, v } = estiloDe(overlay);
                 const [ce, ct, cs] = coordinates;
                 const x1 = Math.min(ce.x, ct.x);
-                let x2 = Math.max(ce.x, ct.x, x1 + 8);
+                const x2 = Math.max(ce.x, ct.x, x1 + 8);       // el ancho que TÚ elegiste: la caja nunca se encoge por debajo de esto
                 const m = calcularPosicion(h.lado, overlay.points.map((pt) => pt.value), v, simboloFn());
                 // La operación SE CIERRA cuando el mercado toca el objetivo o el stop: la caja termina en esa vela y marca el resultado.
                 const res = resultadoPosicion(chart, overlay.id, h.lado, overlay.points[0].timestamp, m.entrada, m.tp, m.sl);
+                // La operación SE CIERRA en esa vela: hasta ahí la caja va a todo color y de ahí en adelante queda atenuada
+                // (antes la caja se cortaba en la vela del cierre: al estirarla hacia la izquierda, donde el mercado ya
+                // había tocado el objetivo o el stop, se encogía hasta casi desaparecer).
                 let xHit = null;
                 if (res) {
-                    try { const px = chart.convertToPixel({ timestamp: res.ts }, { paneId: 'candle_pane' }); if (px && Number.isFinite(px.x)) { xHit = px.x; x2 = Math.max(x1 + 8, px.x); } } catch (_) { /* sin conversión: queda el ancho elegido */ }
+                    try { const px = chart.convertToPixel({ timestamp: res.ts }, { paneId: 'candle_pane' }); if (px && Number.isFinite(px.x) && px.x <= x2) xHit = Math.max(x1, px.x); } catch (_) { /* sin conversión: la caja queda completa */ }
                 }
-                const caja = (y1, y2, c) => ({ type: 'polygon', attrs: { coordinates: [{ x: x1, y: y1 }, { x: x2, y: y1 }, { x: x2, y: y2 }, { x: x1, y: y2 }] }, styles: { style: 'fill', color: css(c) } });
-                const fig = [caja(ce.y, ct.y, v.ganancia), caja(ce.y, cs.y, v.perdida),
-                    { type: 'line', attrs: { coordinates: [{ x: x1, y: ce.y }, { x: x2, y: ce.y }] }, styles: lineaEstilo(v) }];
+                const xv = xHit == null ? x2 : xHit;
+                const tenue = (c) => ({ ...c, t: Math.min(96, 100 - (100 - (c.t || 0)) * 0.4) });
+                const rect = (y1, y2, c, xa, xb) => ({ type: 'polygon', ignoreEvent: false, attrs: { coordinates: [{ x: xa, y: y1 }, { x: xb, y: y1 }, { x: xb, y: y2 }, { x: xa, y: y2 }] }, styles: { style: 'fill', color: css(c) } });
+                const fig = [rect(ce.y, ct.y, v.ganancia, x1, xv), rect(ce.y, cs.y, v.perdida, x1, xv)];
+                if (xv < x2) fig.push(rect(ce.y, ct.y, tenue(v.ganancia), xv, x2), rect(ce.y, cs.y, tenue(v.perdida), xv, x2));
+                fig.push({ type: 'line', attrs: { coordinates: [{ x: x1, y: ce.y }, { x: x2, y: ce.y }] }, styles: lineaEstilo(v) });
                 if (!v.mostrarEtiquetas) return fig;
                 const f = NLTCharts.drawings.formatear, cx = (x1 + x2) / 2;
                 const dinero = (n) => `${n < 0 ? '−' : '+'}$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -321,7 +327,7 @@
                     const pl = ok ? m.plTP : m.plSL;
                     fig.push({ type: 'line', ignoreEvent: true, attrs: { coordinates: [{ x: xHit, y: ce.y }, { x: xHit, y: yNivel }] }, styles: { style: 'solid', size: 2, color: ok ? '#22C55E' : '#EF4444' } });
                     fig.push({ type: 'circle', ignoreEvent: true, attrs: { x: xHit, y: yNivel, r: 5 }, styles: { style: 'fill', color: ok ? '#22C55E' : '#EF4444' } });
-                    fig.push({ type: 'text', ignoreEvent: true, attrs: { x: xHit, y: yNivel + (ok === (ct.y < cs.y) ? -10 : 10), text: `${ok ? '✓ Objetivo alcanzado' : '✗ Stop alcanzado'}${m.lotes ? ` · ${dinero(pl)}` : ''}`, align: 'center', baseline: ok === (ct.y < cs.y) ? 'bottom' : 'top' },
+                    fig.push({ type: 'text', ignoreEvent: true, attrs: { x: xHit < 110 ? xHit + 8 : xHit, y: yNivel + (ok === (ct.y < cs.y) ? -10 : 10), text: `${ok ? '✓ Objetivo alcanzado' : '✗ Stop alcanzado'}${m.lotes ? ` · ${dinero(pl)}` : ''}`, align: xHit < 110 ? 'left' : 'center', baseline: ok === (ct.y < cs.y) ? 'bottom' : 'top' },
                         styles: { color: '#fff', backgroundColor: ok ? 'rgba(21,128,61,.95)' : 'rgba(185,28,28,.95)', size: 11, family: FUENTE, weight: 700, paddingLeft: 7, paddingRight: 7, paddingTop: 3, paddingBottom: 3, borderRadius: 4 } });
                 }
                 if (m.lotes && v.mostrarEtiquetas) {

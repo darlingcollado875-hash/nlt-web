@@ -317,7 +317,7 @@
         const MIS = () => window.NLTCharts && window.NLTCharts.misInd;
         function filaMis(it) {
             const err = misErr[it.id];
-            const sub = err ? `<span class="ch-ind-desc" style="color:#F87171">${esc(err)}</span>` : `<span class="ch-ind-desc">${it.origen === 'propio' ? 'Script propio' : 'Compartido / de la tienda'}</span>`;
+            const sub = err ? `<span class="ch-ind-desc" style="color:#F87171">${esc(err)}</span>` : misOcupado.has(it.id) ? '<span class="ch-ind-desc" style="color:#8fb0ff">Procesando…</span>' : `<span class="ch-ind-desc">${it.origen === 'propio' ? 'Script propio' : 'Compartido / de la tienda'}</span>`;
             return `<div class="ch-ind-fila">
                 <label class="ch-ind">
                     <input type="checkbox" data-mis="${esc(it.id)}"${it.enGrafico ? ' checked' : ''}${misOcupado.has(it.id) ? ' disabled' : ''}>

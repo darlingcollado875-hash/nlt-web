@@ -352,6 +352,30 @@
         // ───────────── Mis indicadores: lo que creas en Script aparece en el panel de Indicadores ─────────────
         const oyentes = new Set();
         let cargadoEn = 0;
+        // El código de cada script se guarda en memoria: ponerlo en el gráfico ya no espera un viaje al servidor
+        // (antes cada vez que lo agregabas desde Indicadores se volvía a pedir y tardaba segundos con mala señal).
+        const codigos = new Map();          // id -> { t, script }
+        async function traerCodigo(id, propio) {
+            const c = codigos.get(id);
+            if (c && Date.now() - c.t < 600000) return c.script;
+            const r = propio ? await NLT_API.chartsScript(id) : await NLT_API.chartsScriptCompartido(id);
+            codigos.set(id, { t: Date.now(), script: r.script });
+            return r.script;
+        }
+        let precargando = false;
+        async function precargarCodigos() {
+            if (precargando) return;
+            precargando = true;
+            try {
+                const pend = misItems().filter((x) => !codigos.has(x.id)).slice(0, 25);
+                for (const x of pend) {
+                    await new Promise((ok) => (window.requestIdleCallback ? window.requestIdleCallback(ok, { timeout: 1500 }) : setTimeout(ok, 50)));
+                    try { await traerCodigo(x.id, x.origen === 'propio'); } catch (_) { /* sin red: se pedirá al usarlo */ }
+                }
+            } finally { precargando = false; }
+        }
+        // el motor de scripts (Worker) arranca antes de que lo pidas: el primer indicador ya no paga el arranque en frío
+        setTimeout(() => { try { ejecutor.correr('indicator("w")\nplot(close)\n', velasDe([{ timestamp: 0, open: 1, high: 1, low: 1, close: 1, volume: 0 }]), {}); } catch (_) { /* nada */ } }, 1500);
         function avisar() { oyentes.forEach((f) => { try { f(); } catch (_) { /* un oyente roto no frena a los demás */ } }); }
         const favIds = () => { const f = state.prefs().scriptsFav; return Array.isArray(f) ? f : []; };
         function misItems() {
@@ -365,8 +389,8 @@
             if (activos.has(id)) { desactivar(id); return { ok: true }; }
             try {
                 const propio = lista.some((x) => x.id === id);
-                const r = propio ? await NLT_API.chartsScript(id) : await NLT_API.chartsScriptCompartido(id);
-                const ok = await activar(id, r.script.name, r.script.code, undefined, r.script.ast);
+                const sc = await traerCodigo(id, propio);
+                const ok = await activar(id, sc.name, sc.code, undefined, sc.ast);
                 if (ok) return { ok: true };
                 const a = activos.get(id);
                 activos.delete(id); guardarActivos();
@@ -382,7 +406,7 @@
         window.NLTCharts.misInd = {
             items: misItems,
             estado: () => ({ acceso, max, total: lista.length, cargado: cargadoEn > 0, motivo }),
-            cargar: async (forzar) => { if (forzar || Date.now() - cargadoEn > 45000) await cargarLista(); },
+            cargar: async (forzar) => { if (forzar || Date.now() - cargadoEn > 45000) await cargarLista(); precargarCodigos(); },
             alternar: alternarMis,
             alternarFav: alternarFavMis,
             editar: async (id) => { await abrirEn({ id }, 'codigo'); },
@@ -448,7 +472,7 @@
                 let ast = null;
                 try { ast = window.NLTS.compilar(sel.codigo); } catch (_) { ast = null; }   // el compilado viaja con el script: es lo único que recibe quien lo use protegido
                 const r = sel.id ? await NLT_API.chartsScriptGuardar(sel.id, nombre, sel.codigo, ast, sel.descripcion || '') : await NLT_API.chartsScriptCrear(nombre, sel.codigo, ast, sel.descripcion || '');
-                sel.id = r.script.id; sel.nombre = r.script.name; sucio = false; mensaje = 'Guardado. Ya lo tienes en Indicadores › Mis indicadores.';
+                sel.id = r.script.id; sel.nombre = r.script.name; sucio = false; codigos.set(sel.id, { t: Date.now(), script: { ...r.script, name: r.script.name, code: sel.codigo, ast } }); mensaje = 'Guardado. Ya lo tienes en Indicadores › Mis indicadores.';
                 await cargarLista();
                 if (activos.has(sel.id)) await activar(sel.id, sel.nombre, sel.codigo);   // ya está en el gráfico: se actualiza
             } catch (e) { mensaje = e.message || 'No se pudo guardar.'; }
@@ -457,7 +481,7 @@
         async function borrar() {
             if (!sel || !sel.id) { sel = null; pintar(); return; }
             if (!window.confirm(`¿Borrar el script “${sel.nombre}”? No se puede deshacer.`)) return;
-            try { await NLT_API.chartsScriptBorrar(sel.id); desactivar(sel.id); sel = null; mensaje = 'Script borrado.'; await cargarLista(); } catch (e) { mensaje = e.message || 'No se pudo borrar.'; }
+            try { await NLT_API.chartsScriptBorrar(sel.id); codigos.delete(sel.id); desactivar(sel.id); sel = null; mensaje = 'Script borrado.'; await cargarLista(); } catch (e) { mensaje = e.message || 'No se pudo borrar.'; }
             pintar();
         }
         async function alternarEnGrafico() {
@@ -897,9 +921,9 @@
                 try {
                     // propio (si el plan sigue activo) o compartido / de la tienda (no exige plan)
                     const propio = lista.some((x) => x.id === id);
-                    const r = propio ? await NLT_API.chartsScript(id) : await NLT_API.chartsScriptCompartido(id);
+                    const sc = await traerCodigo(id, propio);
                     if (guardados[id] && guardados[id].oculto) activos.set(id, { id, version: 0, oculto: true });
-                    await activar(id, r.script.name, r.script.code, (guardados[id] && guardados[id].inputs) || {}, r.script.ast);
+                    await activar(id, sc.name, sc.code, (guardados[id] && guardados[id].inputs) || {}, sc.ast);
                 } catch (_) { /* si falla uno (ya no tiene acceso, lo borraron), los demás siguen */ }
             }
         })();

@@ -458,12 +458,14 @@
             el.hidden = !st.abierto;
             if (!st.abierto) return;
             const cuerpo = { config: htmlConfig, resultados: htmlResultados, operaciones: htmlOperaciones, replay: htmlReplay }[st.tab]();
+            el.classList.toggle('lab-min', !!st.min);
             el.innerHTML = `
                 <div class="lab-head">
                     <b><i class="ph ph-flask"></i> NLT BACKTEST LAB</b>
                     <nav>${TABS.map(([k, n, ic]) => `<button type="button" data-tab="${k}" class="${st.tab === k ? 'on' : ''}"><i class="ph ${ic}"></i><span>${n}</span></button>`).join('')}</nav>
                     <span class="lab-sp"></span>
                     ${st.enGrafico ? `<label class="lab-nota"><input type="checkbox" data-a="zonas"${st.verZonas ? ' checked' : ''}> zonas</label><button type="button" class="lab-sec" data-a="vivo"><i class="ph ph-broadcast"></i> Volver al vivo</button>` : ''}
+                    <button type="button" class="ch-tool" data-a="min" title="${st.min ? 'Mostrar el panel' : 'Ocultar el panel para ver y operar en el gráfico'}" aria-label="${st.min ? 'Mostrar el panel' : 'Ocultar el panel'}"><i class="ph ${st.min ? 'ph-caret-up' : 'ph-caret-down'}"></i></button>
                     <button type="button" class="ch-tool" data-a="cerrar" aria-label="Cerrar Backtest Lab"><i class="ph ph-x"></i></button>
                 </div>
                 <div class="lab-body">${cuerpo}</div>`;
@@ -482,6 +484,7 @@
             if (!a) return;
             const acc = a.dataset.a;
             if (acc === 'cerrar') { api.abrir(false); return; }
+            if (acc === 'min') { st.min = !st.min; pintar(); setTimeout(() => window.dispatchEvent(new Event('resize')), 50); return; }
             if (acc === 'run') correr();
             if (acc === 'cancel') cancelar();
             if (acc === 'vivo') { salirGrafico(); pintar(); }
