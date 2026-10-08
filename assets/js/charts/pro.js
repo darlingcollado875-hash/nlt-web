@@ -494,6 +494,7 @@
             pintarTablas();
         }
 
+        let reintentos403 = 0;
         const iniciosPedido = new Map();      // pedidos del Zone Engine en vuelo (n -> cuándo empezó): para mostrar "cargando" / error de carga
         // Pedido al servidor. `seq` descarta respuestas viejas (llegaron después de un pedido más nuevo).
         async function refrescar() {
@@ -525,6 +526,7 @@
                 const calcTs = r.cursor_ts != null ? r.cursor_ts : r.last_candle;
                 if (calcTs != null && ultTs != null && calcTs > ultTs) { zeDescartados++; programar(200); return; }
                 if (calcTs != null && ultTs != null && calcTs < ultTs) programar(300);
+                reintentos403 = 0;
                 dibujo = r.drawing;
                 dibujoGen = gen;
                 actualizarVisuales();
@@ -536,7 +538,18 @@
             } catch (err) {
                 if (n !== seq) return;
                 error = err.message;
-                if (err.status === 403) { ver = false; mostrarEnGrafico(false); await cargarCatalogo(); }
+                if (err.status === 403) {
+                    // Un 403 suelto (pasarela, token que se renueva...) NO le quita el indicador a quien lo tiene: se confirma con el catálogo y,
+                    // si el acceso sigue ahí, se conserva la preferencia 'ver' y se reintenta con espera creciente (antes quedaba apagado hasta recargar).
+                    mostrarEnGrafico(false);
+                    await cargarCatalogo();
+                    if (tieneAcceso()) {
+                        const w = Math.min(5000 * 2 ** reintentos403++, 60000);
+                        onCambio && onCambio();
+                        timer = setTimeout(refrescar, w);
+                        return;
+                    }
+                }
             } finally { iniciosPedido.delete(n); }
             onCambio && onCambio();
             timer = setTimeout(refrescar, espera());
