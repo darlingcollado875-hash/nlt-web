@@ -331,7 +331,11 @@
                     // "Ir a fecha": una ventana alrededor de la fecha (no todo lo intermedio)
                     const v = ventana;
                     try {
-                        const antes = (PASO[tfPedido] || 1500) * 0.6, despues = (PASO[tfPedido] || 1500) * 0.4;
+                        // Primero solo un NÚCLEO alrededor de la fecha (≈600 velas: lo que se ve + un colchón). Un pedido enorme de
+                        // historia vieja tardaba minutos con el gráfico en blanco; el resto llega solo al mover el gráfico
+                        // (precarga del borde izquierdo / velas más nuevas) y los indicadores se recalculan con cada bloque.
+                        const nucleo = Math.min(PASO[tfPedido] || 1500, 600);
+                        const antes = nucleo * 0.75, despues = nucleo * 0.25;
                         const desde = v.centro - antes * dur * calendario();
                         const hasta = Math.min(tope(), v.centro + despues * dur * calendario());
                         const r = await historia(symbol.ticker, tfPedido, desde, hasta, { onProgreso: v.onProgreso, centro: v.centro });
@@ -346,6 +350,7 @@
                         if (onData) onData({ demo: false, primera: true });
                         if (v.listo) v.listo.ok({ velas: r.velas.length, hit: r.hit });
                         if (llega) ventanaLlegoAlPresente();
+                        else setTimeout(precargar, 400);       // ya con el núcleo a la vista, se adelanta el bloque anterior
                     } catch (err) {
                         callback([], { forward: false, backward: false });
                         if (onError) onError(err.message);
