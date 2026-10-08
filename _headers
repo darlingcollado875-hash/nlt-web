@@ -39,3 +39,9 @@
 
 /assets/css/*
   Cache-Control: public, max-age=86400
+
+# Librerías de terceros AUTOALOJADAS (Supabase, KLineChart, Chart.js, iconos Phosphor): el nombre del archivo lleva la versión, así que
+# nunca cambian bajo la misma URL -> un año de caché y sin revalidar. Antes salían de jsdelivr/unpkg (dos conexiones y dos TLS más por
+# página, y una página sin Supabase si el CDN fallaba o estaba bloqueado).
+/assets/vendor/*
+  Cache-Control: public, max-age=31536000, immutable

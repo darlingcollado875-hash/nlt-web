@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="assets/js/nlt-perf.js?v=6f425d16"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title id="tituloPagina">NLT Prop Hub | Next Level Trading</title>
@@ -25,11 +24,11 @@
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"></noscript>
-    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="assets/vendor/phosphor/regular.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="assets/vendor/phosphor/fill.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
-        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+        <link rel="stylesheet" href="assets/vendor/phosphor/regular.css">
+        <link rel="stylesheet" href="assets/vendor/phosphor/fill.css">
     </noscript>
     <style>
         html { overflow-x: hidden; }
@@ -43,6 +42,7 @@
         .badge-partner { background: rgba(255, 255, 255, 0.05); color: #9ca3af; border: 1px solid rgba(255, 255, 255, 0.08); }
         .challenge-row:not(:last-child) { border-bottom: 1px solid rgba(255,255,255,0.05); }
     </style>
+    <link rel="stylesheet" href="assets/css/nlt-perf.css?v=a1191217">
 </head>
 <body class="min-h-screen relative">
 
@@ -73,7 +73,7 @@
         </div>
     </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="/assets/js/nlt-shared.js?v=5a05efc3"></script>
     <script src="/assets/js/nlt-api-client.js?v=b16dbfcb"></script>
     <script>

@@ -3,28 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <script src="assets/js/nlt-perf.js?v=6f425d16"></script>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://unpkg.com">
-    <link rel="preconnect" href="https://cdn.jsdelivr.net">
     <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Charts</title>
     <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
     <link rel="stylesheet" href="assets/css/noticias.css?v=15588c5d">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=f1156d08">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=83ad1a4b">
     <link rel="manifest" href="/manifest.webmanifest">
     <meta name="theme-color" content="#080A0F">
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
     <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800&display=swap"></noscript>
-    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css" onload="this.onload=null;this.rel='stylesheet'">
-    <link rel="preload" as="style" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="assets/vendor/phosphor/regular.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="assets/vendor/phosphor/fill.css" onload="this.onload=null;this.rel='stylesheet'">
     <noscript>
-        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/regular/style.css">
-        <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.2/src/fill/style.css">
+        <link rel="stylesheet" href="assets/vendor/phosphor/regular.css">
+        <link rel="stylesheet" href="assets/vendor/phosphor/fill.css">
     </noscript>
     <style>
         :root { --ch-accent: 67,120,255; --ch-line: rgba(255,255,255,0.06); }
@@ -517,6 +516,7 @@
     <link rel="stylesheet" href="assets/css/estilo-dibujo.css?v=41a9c8d6">
     <link rel="stylesheet" href="assets/css/pestanas.css?v=0a7f8e4c">
     <link rel="stylesheet" href="assets/css/charts-skin.css?v=d3ff97a2">
+    <link rel="stylesheet" href="assets/css/nlt-perf.css?v=a1191217">
 </head>
 <body class="h-screen flex overflow-hidden" data-sin-soporte>
 
@@ -542,10 +542,10 @@
     <div id="chPanelBg" class="ch-panel-bg" hidden></div>
     <div id="chPanel" class="ch-panel" role="dialog" aria-label="Indicadores" hidden></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://cdn.jsdelivr.net/npm/klinecharts@10.0.3/dist/umd/klinecharts.min.js" integrity="sha384-mDk2ZCby0dAY121ON2d27q0Kpll0mCiLGX9CuJegyfrn2uliCdpwfH7ARBKZFzeA" crossorigin="anonymous"></script>
-    <script src="assets/js/nlt-shared.js?v=91441add"></script>
-    <script src="assets/js/nlt-ai-reporte.js?v=f11dcf12"></script>
+    <script src="assets/vendor/supabase-2.117.3.js"></script>
+    <script src="assets/vendor/klinecharts-10.0.3.min.js"></script>
+    <script src="assets/js/nlt-shared.js?v=175a16e9"></script>
+    <script src="assets/js/nlt-ai-reporte.js?v=414ace77"></script>
     <script src="assets/js/nlt-api-client.js?v=159dc879"></script>
     <script src="assets/js/charts/diag.js?v=2bac588a"></script>
     <script src="assets/js/charts/fluidez.js?v=f9c99ac7"></script>
@@ -573,24 +573,24 @@
     <script src="assets/js/charts/pro.js?v=e11a8381"></script>
     <script src="assets/js/charts/nlt-ai.js?v=701ad486"></script>
     <script src="assets/js/charts/guia-ai.js?v=ecbfd436"></script>
-    <script src="assets/js/charts/replay.js?v=0f972ce2"></script>
-    <script src="assets/js/charts/historia.js?v=c28ddaa6"></script>
-    <script src="assets/js/charts/backtest.js?v=32a8f966"></script>
-    <script src="assets/js/charts/multichart.js?v=456e9156"></script>
-    <script src="assets/js/charts/ratings.js?v=26642596"></script>
-    <script src="assets/js/charts/noticias.js?v=e7b3eb05"></script>
-    <script src="assets/js/charts/alerts.js?v=5abcf41e"></script>
-    <script src="assets/js/charts/screener.js?v=0e133aa2"></script>
-    <script src="assets/js/charts/nlts.js?v=a0683355"></script>
-    <script src="assets/js/charts/nlts-ejemplos.js?v=8a0b783d"></script>
-    <script src="assets/js/charts/scripts-dibujo.js?v=fb9b004d"></script>
-    <script src="assets/js/charts/scripts.js?v=d258ed27"></script>
-    <script src="assets/js/charts/sonidos.js?v=ed9fc939"></script>
-    <script src="assets/js/charts/poschips.js?v=ea5b0b78"></script>
-    <script src="assets/js/charts/trader.js?v=dd093d68"></script>
-    <script src="assets/js/charts/paper.js?v=c9697dc9"></script>
+    <script type="nlt/diferido" src="assets/js/charts/replay.js?v=0f972ce2"></script>
+    <script type="nlt/diferido" src="assets/js/charts/historia.js?v=c28ddaa6"></script>
+    <script type="nlt/diferido" src="assets/js/charts/backtest.js?v=32a8f966"></script>
+    <script type="nlt/diferido" src="assets/js/charts/multichart.js?v=456e9156"></script>
+    <script type="nlt/diferido" src="assets/js/charts/ratings.js?v=26642596"></script>
+    <script type="nlt/diferido" src="assets/js/charts/noticias.js?v=e7b3eb05"></script>
+    <script type="nlt/diferido" src="assets/js/charts/alerts.js?v=5abcf41e"></script>
+    <script type="nlt/diferido" src="assets/js/charts/screener.js?v=0e133aa2"></script>
+    <script type="nlt/diferido" src="assets/js/charts/nlts.js?v=a0683355"></script>
+    <script type="nlt/diferido" src="assets/js/charts/nlts-ejemplos.js?v=8a0b783d"></script>
+    <script type="nlt/diferido" src="assets/js/charts/scripts-dibujo.js?v=fb9b004d"></script>
+    <script type="nlt/diferido" src="assets/js/charts/scripts.js?v=d258ed27"></script>
+    <script type="nlt/diferido" src="assets/js/charts/sonidos.js?v=ed9fc939"></script>
+    <script type="nlt/diferido" src="assets/js/charts/poschips.js?v=ea5b0b78"></script>
+    <script type="nlt/diferido" src="assets/js/charts/trader.js?v=dd093d68"></script>
+    <script type="nlt/diferido" src="assets/js/charts/paper.js?v=c9697dc9"></script>
     <script src="assets/js/charts/nselect.js?v=605f9780"></script>
     <script src="assets/js/charts/pestanas.js?v=c2766218"></script>
-    <script src="assets/js/charts/app.js?v=92a3271c"></script>
+    <script src="assets/js/charts/app.js?v=3a668c11"></script>
 </body>
 </html>

@@ -1,5 +1,5 @@
 // Cliente Supabase y helpers compartidos por todas las páginas de NLT.
-// Requiere que la página haya cargado <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script> antes.
+// Requiere que la página haya cargado <script src="assets/vendor/supabase-2.117.3.js"></script> antes.
 
 // Parche de window.fetch para el tokenizador de Pay2Commerce (bug real y
 // confirmado en su tokenizer.js v1.0.0: usa fetch('/public/payment-config/...')
