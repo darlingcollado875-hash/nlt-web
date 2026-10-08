@@ -130,6 +130,7 @@
             cargar();
             pro.cambioDeSimbolo();
             nltAi.cambioDeSimbolo();
+            if (noticias) noticias.repintar();
         }
 
         const wl = NLTCharts.watchlist.montar({
@@ -167,7 +168,7 @@
             if (paper) setTimeout(() => paper.cambioSimbolo(), 1200);
             if (trader) setTimeout(() => trader.cambioSimbolo(), 1200);
         }
-        let multi = null, alertas = null, paper = null, trader = null, scripts = null;
+        let noticias = null, multi = null, alertas = null, paper = null, trader = null, scripts = null;
         cargar();
         if (NLTCharts.multi) {
             try {
@@ -194,6 +195,9 @@
         }
         if (NLTCharts.screener) {
             try { NLTCharts.screener.montar({ simbolos: catalogo.symbols, getSymbol: () => symbol, getTimeframe: () => timeframe, onAbrir: (s, tf) => window.NLTCharts.app.irA(s, tf) }); } catch (e) { console.warn('[NLT Charts] screener no disponible', e); }
+        }
+        if (NLTCharts.noticias) {
+            try { noticias = NLTCharts.noticias.montar({ chart: motor.chart, getSymbol: () => symbol, simbolos: catalogo.symbols }); } catch (e) { console.warn('[NLT Charts] avisos de noticias no disponibles', e); }
         }
         if (NLTCharts.ratings) { try { NLTCharts.ratings.montar({ chart: motor.chart, getSymbol: () => symbol, getTimeframe: () => timeframe }); } catch (e) { console.warn('[NLT Charts] análisis técnico no disponible', e); } }
         pro.iniciar();

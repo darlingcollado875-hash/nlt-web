@@ -477,6 +477,8 @@
                     aperturaLocal(orden, resp);
                 } catch (err) { avisar(err.message || 'El broker rechazó la orden.', 'error'); sonido('error'); }
             },
+            // Posiciones abiertas de la cuenta conectada (solo lectura): News Radar avisa si una noticia puede afectarlas.
+            posiciones() { return (vivo.positions || []).map((p) => ({ symbol: p.symbol, nlt_symbol: p.nlt_symbol, side: p.side, volume: p.volume, profit: p.profit })); },
             desdePosicion(pos) {
                 if (!pos) return;
                 const px = ultimoPrecio();

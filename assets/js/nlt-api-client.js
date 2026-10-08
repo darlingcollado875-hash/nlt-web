@@ -995,6 +995,8 @@
         chartsTraderCerrar: (id, ticket, volumen) => request(`/charts/trader/accounts/${encodeURIComponent(id)}/positions/${encodeURIComponent(ticket)}/close`, { method: 'POST', body: JSON.stringify(volumen ? { volume: volumen } : {}), intentos: 1 }),
         // Alertas de precio 24/7 (corren en el servidor)
         chartsAlertas: () => request('/charts/alerts'),
+        chartsNoticiasPrefs: () => request('/charts/news/prefs'),
+        chartsNoticiasGuardar: (datos) => request('/charts/news/prefs', { method: 'PUT', body: JSON.stringify(datos) }),
         chartsCrearAlerta: (alerta) => request('/charts/alerts', { method: 'POST', body: JSON.stringify(alerta) }),
         chartsCambiarAlerta: (id, active) => request(`/charts/alerts/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ active }) }),
         chartsBorrarAlerta: (id) => request(`/charts/alerts/${encodeURIComponent(id)}`, { method: 'DELETE' }),
