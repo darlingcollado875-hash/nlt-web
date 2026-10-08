@@ -148,7 +148,7 @@
             anim = { actual: desde, raf: 0, final: () => cb(vela) };
             const paso = (ahora) => {
                 // el timestamp de rAF es el INICIO del frame y puede ser anterior a t0: sin acotar, k < 0 y el
-                // primer frame quedaba fuera del rango real (visto en tests/charts-fluidez.test.html)
+                // primer frame quedaba fuera del rango real
                 const k = Math.max(0, Math.min(1, (ahora - t0) / TWEEN_MS));
                 if (k >= 1) { anim = null; interpolando = false; cb(vela); return; }     // último frame: el dato real
                 const e = 1 - Math.pow(1 - k, 3);

@@ -90,6 +90,8 @@
         .cd-col { min-width: 0; }
         .cd-col .glass-item { padding: 12px; margin-bottom: 10px; cursor: pointer; min-width: 0; overflow-wrap: anywhere; }
         .cd-col .cd-title { line-height: 1.35; }
+        .cd-col .glass-item { cursor: default; }
+        .cd-col .cd-row-actions { margin-top: 10px; justify-content: flex-end; }
         .cd-col .glass-item:hover { border-color: rgba(67,120,255,.4); }
         .cd-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 18px; }
         .cd-day { padding: 10px 6px; text-align: center; border-radius: 14px; cursor: pointer; border: 1px solid rgba(255,255,255,0.05); background: rgba(255,255,255,0.02); transition: all .15s; }
@@ -336,7 +338,7 @@
             clients: {
                 label: 'Clientes', icon: 'ph-user-circle', col: 'clients', singular: 'cliente', newLabel: 'Nuevo cliente', empty: 'Aún no hay clientes registrados.',
                 fields: [
-                    { k: 'fullName', l: 'Nombre completo', t: 'text', req: 1 }, { k: 'email', l: 'Correo', t: 'email', req: 1 },
+                    { k: 'fullName', l: 'Nombre completo (opcional)', t: 'text', ph: 'Si lo dejas vacío se usa el correo' }, { k: 'email', l: 'Correo', t: 'email', req: 1 },
                     { k: 'phone', l: 'Teléfono', t: 'tel' }, { k: 'joinDate', l: 'Cliente desde', t: 'date', def: () => hoy() },
                     { k: 'discountCode', l: 'Código de descuento usado', t: 'text' }, { k: 'referredById', l: 'Referido por (afiliado)', t: 'affiliate' },
                     { k: 'status', l: 'Estado manual', t: 'select', opts: O([['activo', 'Automático (por vencimientos)'], ['cancelado', 'Cancelado']]), def: 'activo' },
@@ -344,11 +346,11 @@
                     { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
                 ],
                 statusKey: 'status', statusFn: estadoCliente, statusOpts: ST_CLIENT, search: ['fullName', 'email', 'discountCode', 'phone'],
-                cols: [['Cliente', (r) => `<b>${esc(r.fullName)}</b><div class="cd-sub">${esc(r.email || '')}</div>`], ['Estado', 'badge:status'], ['Planes', (r) => esc(planesDe(r).map((p) => p.name).join(', ') || '—')], ['Descuento', (r) => esc(r.discountCode || '—')], ['Último pago', (r) => fmtDate(ultimoPago(r))], ['Vence', (r) => venceTxt(proximoVenc(r))]],
+                cols: [['Cliente', (r) => `<b>${esc(r.fullName || r.email)}</b>${r.fullName && r.fullName !== r.email ? `<div class="cd-sub">${esc(r.email || '')}</div>` : ''}`], ['Estado', 'badge:status'], ['Planes', (r) => esc(planesDe(r).map((p) => p.name).join(', ') || '—')], ['Descuento', (r) => esc(r.discountCode || '—')], ['Último pago', (r) => fmtDate(ultimoPago(r))], ['Vence', (r) => venceTxt(proximoVenc(r))]],
                 rowActions: botonPagar('client'),
                 kpis: (r) => [['Clientes', r.length], ['Activos', r.filter((c) => estadoCliente(c) === 'activo').length, 'ok'], ['Por vencer (7 d)', r.filter((c) => estadoCliente(c) === 'por_vencer').length, 'warn'], ['Vencidos', r.filter((c) => estadoCliente(c) === 'vencido').length, 'bad']],
                 sort: (a, b) => lower(a.fullName).localeCompare(lower(b.fullName)),
-                before: (r) => { r.plans = (r.plans || []).filter((p) => p.name); r.contractedPlans = r.plans.map((p) => p.name); r.lastPaymentDate = ultimoPago(r); r.nextExpiry = proximoVenc(r); },
+                before: (r) => { r.fullName = String(r.fullName || '').trim() || String(r.email || '').trim(); r.plans = (r.plans || []).filter((p) => p.name); r.contractedPlans = r.plans.map((p) => p.name); r.lastPaymentDate = ultimoPago(r); r.nextExpiry = proximoVenc(r); },
                 validate: (r, base) => { const e = lower(r.email).trim(); return e && S.clients.some((c) => c.id !== base.id && lower(c.email).trim() === e) ? 'Ya existe un cliente con ese correo.' : ''; },
                 detail: (r) => [['Correo', r.email], ['Teléfono', r.phone], ['Cliente desde', fmtDate(r.joinDate)], ['Código de descuento', r.discountCode], ['Referido por', (S.affiliates.find((a) => a.id === r.referredById) || {}).fullName], ['Planes', planesDe(r).map((p) => `${p.name} (${money(p.price)})${p.paidDate ? ' · pagó ' + fmtDate(p.paidDate) : ''}${p.expiryDate ? ' · vence ' + fmtDate(p.expiryDate) : ''}`).join('\n')], ['Pagos registrados', String(S.payments.filter((p) => p.clientId === r.id).length)], ['Notas', r.notes]],
                 report: { date: 'joinDate', status: (r) => estadoCliente(r), sums: [], cols: [['Nombre', 'fullName'], ['Correo', 'email'], ['Teléfono', 'phone'], ['Estado', (r) => estadoCliente(r)], ['Planes', (r) => planesDe(r).map((p) => p.name).join('; ')], ['Código descuento', 'discountCode'], ['Último pago', 'lastPaymentDate'], ['Próximo vencimiento', 'nextExpiry'], ['Cliente desde', 'joinDate']] },
@@ -462,6 +464,7 @@
                 statusKey: 'status', statusOpts: ST_ACAD, search: ['title', 'topic', 'description'],
                 kpis: (r) => [['Clases', r.length], ['En edición', r.filter((c) => c.status === 'en_edicion').length, 'warn'], ['Listas para subir', r.filter((c) => c.status === 'lista_para_subir').length, 'vio'], ['Subidas', r.filter((c) => c.status === 'subida').length, 'ok']],
                 sort: (a, b) => String(a.uploadDate || '9999').localeCompare(String(b.uploadDate || '9999')),
+                detail: (r) => [['Módulo / tema', r.topic], ['Estado', (ST_ACAD.find((o) => o.v === r.status) || {}).l], ['Graba', r.recordedById ? mname(r.recordedById) : ''], ['Edita', r.editedById ? mname(r.editedById) : ''], ['Grabada', fmtDate(r.recordedDate)], ['Subida', fmtDate(r.uploadDate)], ['Video', r.videoUrl], ['Descripción / temario', r.description], ['Notas de coordinación', r.notes]],
                 card: (r) => ({ title: r.title, sub: r.topic || '', lines: [`Graba: ${r.recordedById ? mname(r.recordedById) : 'sin asignar'}`, `Edita: ${r.editedById ? mname(r.editedById) : 'sin asignar'}`, r.recordedDate ? 'Grabada: ' + fmtDate(r.recordedDate) : '', r.uploadDate ? 'Subida: ' + fmtDate(r.uploadDate) : ''].filter(Boolean) }),
                 report: { date: 'uploadDate', status: 'status', cols: [['Título', 'title'], ['Tema', 'topic'], ['Estado', 'status'], ['Graba', (r) => mname(r.recordedById)], ['Edita', (r) => mname(r.editedById)], ['Grabada', 'recordedDate'], ['Subida', 'uploadDate']] },
             },
@@ -874,7 +877,7 @@
             if (m.view === 'board') {
                 return `<div class="cd-board">${m.statusOpts.map((o) => {
                     const col = lista.filter((r) => r[m.statusKey] === o.v);
-                    return `<div class="glass-card cd-col"><h4><span class="cd-tone-${o.tone}">${esc(o.l)}</span><span class="cd-badge">${col.length}</span></h4>${col.map((r) => { const c = m.card(r); return `<div class="glass-item" data-act="edit" data-mod="${modId}" data-id="${esc(r.id)}" tabindex="0" role="button"><div class="cd-title">${esc(c.title)}</div><div class="cd-sub">${esc(c.sub || '')}</div>${(c.lines || []).map((l) => `<div class="cd-sub">${esc(l)}</div>`).join('')}</div>`; }).join('')}</div>`;
+                    return `<div class="glass-card cd-col"><h4><span class="cd-tone-${o.tone}">${esc(o.l)}</span><span class="cd-badge">${col.length}</span></h4>${col.map((r) => { const c = m.card(r); return `<div class="glass-item"><div data-act="${m.detail ? 'view' : 'edit'}" data-mod="${modId}" data-id="${esc(r.id)}" tabindex="0" role="button" style="cursor:pointer"><div class="cd-title">${esc(c.title)}</div><div class="cd-sub">${esc(c.sub || '')}</div>${(c.lines || []).map((l) => `<div class="cd-sub">${esc(l)}</div>`).join('')}</div>${actionsHTML(modId, r, m)}</div>`; }).join('')}</div>`;
                 }).join('')}</div>`;
             }
             const head = m.cols.map((c) => `<th>${esc(c[0])}</th>`).join('') + '<th></th>';
