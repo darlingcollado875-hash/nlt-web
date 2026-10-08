@@ -494,6 +494,7 @@
             pintarTablas();
         }
 
+        const iniciosPedido = new Map();      // pedidos del Zone Engine en vuelo (n -> cuándo empezó): para mostrar "cargando" / error de carga
         // Pedido al servidor. `seq` descarta respuestas viejas (llegaron después de un pedido más nuevo).
         async function refrescar() {
             clearTimeout(timer); clearTimeout(timerCorto);
@@ -511,6 +512,7 @@
             }
             const n = ++seq;
             const gen = NLTCharts.market.generacion ? NLTCharts.market.generacion() : 0;
+            iniciosPedido.set(n, Date.now());
             try {
                 const r = fuenteZE ? await fuenteZE(entradasCalculo(valores()))
                     : await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), entradasCalculo(valores()));
@@ -535,7 +537,7 @@
                 if (n !== seq) return;
                 error = err.message;
                 if (err.status === 403) { ver = false; mostrarEnGrafico(false); await cargarCatalogo(); }
-            }
+            } finally { iniciosPedido.delete(n); }
             onCambio && onCambio();
             timer = setTimeout(refrescar, espera());
         }
@@ -723,6 +725,9 @@
             // Rectángulo conectado movido/estirado: re-analizar (agrupado).
             zonaMovida(id) { if (!rectId || id === rectId) programar(400); },
             velaNueva() { if (ver && dibujado) programar(300); },
+            // Estado de la carga del Zone Engine (lo muestra el replay: "cargando N s" / "no cargó · Reintentar")
+            estadoCarga() { return { enCurso: iniciosPedido.size > 0, desde: iniciosPedido.size ? Math.min(...iniciosPedido.values()) : 0, error: error || '', dibujado: !!dibujo }; },
+            reintentar() { error = ''; programar(0); onCambio && onCambio(); },
             // NLT Bar Replay: fn(entradas) -> {drawing} en el cursor; null vuelve al vivo
             fijarFuente(fn) { fuenteZE = fn || null; seq++; dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); if (ver) programar(100); },
             // Los dibujos del símbolo ya están en pantalla: buscar el rectángulo conectado.

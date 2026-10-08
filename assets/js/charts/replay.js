@@ -284,6 +284,35 @@
         // doble toque en el título: vuelve a su lugar de siempre
         el.addEventListener('dblclick', (ev) => { if (ev.target.closest('.rp-grip')) { pos = null; try { localStorage.removeItem('nlt_replay_pos'); } catch (_) { /* nada */ } aplicarPos(); } });
 
+        // ── estado del Zone Engine dentro del replay: nunca "nada" sin explicación ──
+        const stage = el.parentElement;
+        const zeChip = document.createElement('div');
+        zeChip.className = 'nlt-zechip'; zeChip.setAttribute('role', 'status'); zeChip.hidden = true;
+        if (stage) stage.appendChild(zeChip);
+        let zeFirma = '';
+        function pintarZE() {
+            if (!stage) return;
+            const pro = app.pro, visible = pro && pro.visible && pro.visible();
+            if (!st.activo || !visible || !pro.estadoCarga) { zeChip.hidden = true; zeFirma = ''; return; }
+            const e = pro.estadoCarga();
+            const seg = e.enCurso ? Math.round((Date.now() - e.desde) / 1000) : 0;
+            let html = '', modo = '';
+            if (e.error && !e.enCurso && !e.dibujado) {
+                modo = 'err';
+                const lento = /tard[óo] demasiado|HTF|Preparando|descarg/i.test(e.error);
+                html = `<i class="ph-fill ph-warning"></i><span>${lento ? 'El Zone Engine tardó demasiado en cargar los datos del replay.' : 'El Zone Engine no cargó: ' + esc(e.error)}</span><button type="button" data-ze-reintentar>Reintentar</button>`;
+            } else if (e.enCurso && seg >= 4 && !e.dibujado) {
+                modo = 'carga';
+                html = `<i class="ph ph-circle-notch"></i><span>Cargando el Zone Engine · ${seg} s${seg >= 20 ? ' · los datos de una fecha lejana tardan' : ''}</span>`;
+            }
+            if (!html) { zeChip.hidden = true; zeFirma = ''; return; }
+            const f = modo + html;
+            if (f !== zeFirma) { zeFirma = f; zeChip.className = 'nlt-zechip ' + modo; zeChip.innerHTML = html; }
+            zeChip.hidden = false;
+        }
+        zeChip.addEventListener('click', (ev) => { if (ev.target.closest('[data-ze-reintentar]') && app.pro.reintentar) { app.pro.reintentar(); zeChip.hidden = true; zeFirma = ''; } });
+        setInterval(pintarZE, 1000);
+
         function pintar() {
             boton.classList.toggle('on', st.abierto || st.activo);
             el.hidden = !(st.abierto || st.activo);
