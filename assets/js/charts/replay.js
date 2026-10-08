@@ -131,7 +131,7 @@
             st.activo = true;
             market.fijarFuenteHistorica(fuenteHistorica);        // antes de cargar: los indicadores ya piden a la sesión
             limpiarCaches();
-            motor.modoExterno({ velas: klines }, false);
+            motor.modoExterno({ velas: klines, conHistoria: true }, false);
             app.irA(r.symbol, r.timeframe);
             if (mismo) chart.resetData();
             market.fijarEstado('replay');
@@ -214,7 +214,7 @@
                 if (mio !== op) return;
                 st.ses = { ...st.ses, ...r, candles: undefined }; st.error = '';
                 limpiarCaches();
-                motor.modoExterno({ velas: r.candles.map(aK) });
+                motor.modoExterno({ velas: r.candles.map(aK), conHistoria: true });
                 app.pro.velaNueva();
             } catch (err) { if (mio !== op) return; if (sesionPerdida(err)) { recuperarSesion(false); return; } st.error = err.message; }
             pintar();

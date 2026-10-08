@@ -271,7 +271,35 @@
             // pegaba a la derecha. Las velas nuevas las trae subscribeBar,
             // así que "backward" nunca tiene nada.
             getBars: async ({ type, timestamp, symbol, callback }) => {
-                if (externo) { callback(type === 'init' ? externo.velas : [], { forward: false, backward: false }); if (type === 'init') onData && onData({ demo: false, primera: true }); return; }
+                if (externo) {
+                    const ext = externo;
+                    if (type === 'init') { callback(ext.velas, { forward: !!ext.conHistoria && ext.velas.length > 0, backward: false }); onData && onData({ demo: false, primera: true }); return; }
+                    // Replay / Backtest: al retroceder más allá de lo que trae la sesión, la historia anterior sale de la capa histórica
+                    // (todo es ANTERIOR a la primera vela cargada: no hay look-ahead). Antes el gráfico se quedaba sin velas a la izquierda.
+                    if (type === 'forward' && ext.conHistoria && ext.velas.length) {
+                        const tfE = timeframe, durE = DUR(tfE), tick = symbol.ticker;
+                        avisoHistoria(true);
+                        let r = null, fallo = null;
+                        for (let intento = 0; intento < 3 && !r; intento++) {
+                            try { const n = pasoAdaptativo(tfE); r = await historia(tick, tfE, timestamp - n * durE * calendario(), timestamp); }
+                            catch (err) { fallo = err; if (externo !== ext) break; if (intento < 2) await new Promise((ok) => setTimeout(ok, 500 * (intento + 1))); }
+                        }
+                        avisoHistoria(false);
+                        if (externo !== ext || tfE !== timeframe) return;           // el modo externo cambió mientras tanto
+                        if (!r) {
+                            avisoHistoria(true, 'No se pudo cargar el historial · sigue moviendo para reintentar');
+                            setTimeout(() => avisoHistoria(false), 4000);
+                            callback([], { forward: true, backward: false });
+                            if (onError && fallo) onError(fallo.message);
+                            return;
+                        }
+                        const previas = r.velas.filter((v) => v.timestamp < timestamp);
+                        callback(previas, { forward: previas.length > 0, backward: false });
+                        return;
+                    }
+                    callback([], { forward: false, backward: false });
+                    return;
+                }
                 const tfPedido = timeframe;
                 const dur = DUR(tfPedido);
                 // Una respuesta que llega tarde solo se aplica si el gráfico sigue en el MISMO dataset: mismo símbolo y
@@ -470,7 +498,7 @@
                 if (fluidez) fluidez.cancelar();
                 market.nuevaGeneracion();
                 if (ventana) { ventana = null; avisarVentana(); }
-                externo = datos ? { velas: datos.velas.slice() } : null;
+                externo = datos ? { velas: datos.velas.slice(), conHistoria: !!datos.conHistoria } : null;
                 empujarExterno = null;
                 historiaOk = !!datos;
                 if (recargar) chart.resetData();
