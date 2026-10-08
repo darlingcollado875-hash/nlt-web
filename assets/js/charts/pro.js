@@ -422,7 +422,10 @@
                 });
                 actualizarVisuales();
                 esperaEsquema = 3000;
-            } catch (_) {
+                if (/configuración del Zone Engine/.test(error)) error = '';
+            } catch (err) {
+                error = `No se pudo cargar la configuración del Zone Engine${err && err.message ? ' (' + err.message + ')' : ''}. Reintentando…`;
+                onCambio && onCambio();
                 clearTimeout(reintentoEsquema);
                 reintentoEsquema = setTimeout(() => cargarEsquema().then(() => { if (esquema && ver) programar(100); }), esperaEsquema);
                 esperaEsquema = Math.min(esperaEsquema * 2, 30000);
@@ -495,6 +498,12 @@
         }
 
         let reintentos403 = 0;
+        let esquemaDesde = 0;
+        // El dibujo se pinta solo si es del dataset actual. Si el gráfico pasó a otro (cambio de fuente, ventana de fecha...) sin que nadie
+        // avisara al Zone Engine, el dibujo viejo se omitía y no se pedía otro hasta el próximo ciclo (30 s, o 5 min con mercado cerrado).
+        setInterval(() => {
+            if (ver && tieneAcceso() && esquema && !iniciosPedido.size && !dibujoVigente()) programar(200);
+        }, 1500);
         const iniciosPedido = new Map();      // pedidos del Zone Engine en vuelo (n -> cuándo empezó): para mostrar "cargando" / error de carga
         // Pedido al servidor. `seq` descarta respuestas viejas (llegaron después de un pedido más nuevo).
         async function refrescar() {
@@ -521,7 +530,7 @@
                 // Contexto: misma generación del dataset (vivo/replay/símbolo/timeframe) y calculado sobre una
                 // vela que el gráfico ya tiene (nunca después de la última visible). Si el gráfico avanzó, el
                 // dibujo es histórico y válido (anclado por timestamp) y se pide otro para la vela nueva.
-                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { zeDescartados++; return; }
+                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { zeDescartados++; programar(300); return; }   // el gráfico cambió de dataset mientras se calculaba: se pide otra vez ya
                 const dl = chart.getDataList(), ultTs = dl.length ? dl[dl.length - 1].timestamp : null;
                 const calcTs = r.cursor_ts != null ? r.cursor_ts : r.last_candle;
                 if (calcTs != null && ultTs != null && calcTs > ultTs) { zeDescartados++; programar(200); return; }
@@ -739,7 +748,12 @@
             zonaMovida(id) { if (!rectId || id === rectId) programar(400); },
             velaNueva() { if (ver && dibujado) programar(300); },
             // Estado de la carga del Zone Engine (lo muestra el replay: "cargando N s" / "no cargó · Reintentar")
-            estadoCarga() { return { enCurso: iniciosPedido.size > 0, desde: iniciosPedido.size ? Math.min(...iniciosPedido.values()) : 0, error: error || '', dibujado: !!dibujo }; },
+            estadoCarga() {
+                const sinEsquema = ver && tieneAcceso() && !esquema;
+                if (sinEsquema && !esquemaDesde) esquemaDesde = Date.now(); else if (!sinEsquema) esquemaDesde = 0;
+                const enCurso = iniciosPedido.size > 0 || (sinEsquema && !error);
+                return { enCurso, desde: iniciosPedido.size ? Math.min(...iniciosPedido.values()) : (sinEsquema ? esquemaDesde : 0), error: error || '', dibujado: !!dibujo && dibujoVigente() };
+            },
             reintentar() { error = ''; programar(0); onCambio && onCambio(); },
             // NLT Bar Replay: fn(entradas) -> {drawing} en el cursor; null vuelve al vivo
             fijarFuente(fn) { fuenteZE = fn || null; seq++; dibujo = null; vista = null; if (dibujado) chart.setStyles({}); pintarTablas(); if (ver) programar(100); },
