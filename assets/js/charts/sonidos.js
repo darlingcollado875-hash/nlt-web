@@ -79,6 +79,19 @@
             nota(a, { f: mi(-5), t: 0, dur: 0.3, vol: 0.4, glide: mi(-9), brillo: 0.15, lp: 900 });
             nota(a, { f: mi(-12), t: 0.14, dur: 0.46, vol: 0.4, brillo: 0.1, lp: 700 });
         },
+        // News Radar: un "ping" de radar con eco (aviso previo), tres pulsos que suben (ya sale) y un acorde de cristal (resultado).
+        noticia(a) {
+            nota(a, { f: mi(14), t: 0, dur: 0.22, vol: 0.34, brillo: 0.6 });
+            nota(a, { f: mi(19), t: 0.16, dur: 0.5, vol: 0.34, brillo: 0.7 });
+            nota(a, { f: mi(-5), t: 0, dur: 0.3, vol: 0.2, brillo: 0, lp: 500 });
+        },
+        noticiaYa(a) {
+            [0, 5, 10].forEach((s, i) => nota(a, { f: mi(17 + s), t: i * 0.13, dur: 0.16, vol: 0.4, tipo: 'triangle', brillo: 0.4 }));
+            nota(a, { f: mi(-12), t: 0, dur: 0.5, vol: 0.28, brillo: 0, lp: 420 });
+        },
+        noticiaResultado(a) {
+            [0, 7, 12].forEach((s, i) => nota(a, { f: mi(s + 12), t: i * 0.05, dur: 0.55, vol: 0.28, brillo: 0.6 }));
+        },
         sltp(a) { nota(a, { f: mi(26), t: 0, dur: 0.07, vol: 0.28, brillo: 0.3 }); },
         cancelar(a) { nota(a, { f: mi(14), t: 0, dur: 0.2, vol: 0.34, glide: mi(2) }); },
         error(a) {
