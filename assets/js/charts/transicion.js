@@ -1,0 +1,45 @@
+/* NLT Charts -- transición premium al cambiar de temporalidad / símbolo / modo.
+ *
+ * KLineChart vacía el gráfico en cuanto se cambia el período, y hasta que llegan las velas nuevas se veía una
+ * pantalla en blanco (en el replay, 15-20 s). Aquí se toma una FOTO del gráfico justo antes del cambio y se deja
+ * encima, atenuada, con una etiqueta de "Cambiando a 1m" y una barra de progreso; cuando llegan las velas nuevas la
+ * foto se desvanece (crossfade) y las velas nuevas entran con un pequeño acercamiento. Solo es visual: los datos no se tocan.
+ * Sin blur en Safari / equipos de nivel bajo, y con "reducir movimiento" solo hay un cambio de opacidad. */
+(function () {
+    function montar({ chart, stageEl }) {
+        if (!chart || !stageEl) return { iniciar() {}, terminar() {} };
+        let capa = null, vigilante = null;
+        const reducido = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
+
+        function quitar(c) { if (c && c.parentNode) c.parentNode.removeChild(c); }
+        function terminar() {
+            clearTimeout(vigilante);
+            if (!capa) return;
+            const c = capa; capa = null;
+            c.classList.remove('on'); c.classList.add('sale');
+            stageEl.classList.add('ch-entra');
+            setTimeout(() => stageEl.classList.remove('ch-entra'), 520);
+            setTimeout(() => quitar(c), 380);
+        }
+        /** iniciar('Cambiando a 1m'): foto del gráfico actual + etiqueta. Si ya hay una transición en curso solo cambia el texto. */
+        function iniciar(texto) {
+            if (capa) { const t = capa.querySelector('[data-t]'); if (t) t.textContent = texto; return; }
+            let foto = null;
+            try { if (chart.getDataList().length) foto = chart.getConvertPictureUrl(true, 'jpeg', '#0B0E14'); } catch (_) { foto = null; }
+            const c = document.createElement('div');
+            c.className = 'ch-tran'; c.setAttribute('role', 'status'); c.setAttribute('aria-live', 'polite');
+            c.innerHTML = `${foto ? `<img class="ch-tran-foto" alt="" src="${foto}">` : '<div class="ch-tran-foto vacio"></div>'}
+                <div class="ch-tran-chip"><i class="ph ph-circle-notch"></i><span data-t>${texto}</span></div>
+                <div class="ch-tran-barra"><i></i></div>`;
+            stageEl.appendChild(c);
+            capa = c;
+            requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('on')));
+            // seguro: si por algún motivo nunca llegan datos, la capa no se queda para siempre
+            clearTimeout(vigilante);
+            vigilante = setTimeout(terminar, 90000);
+        }
+        return { iniciar, terminar, activa: () => !!capa };
+    }
+    window.NLTCharts = window.NLTCharts || {};
+    window.NLTCharts.transicion = { montar };
+})();

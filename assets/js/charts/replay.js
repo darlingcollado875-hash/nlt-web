@@ -61,9 +61,31 @@
                 const prep = conZE && m.ttzr == null;
                 if (prep !== st.preparandoZE) { st.preparandoZE = prep; pintar(); }
                 if ((m.ttir == null || m.ttzr == null) && ahora - t0 < 180000) setTimeout(tick, 100);
-                else if (window.NLT_DEBUG || /[?&]diag=1/.test(location.search)) console.info('[replay] métricas', JSON.stringify(m));
+                else {
+                    if (m.ttir != null && m.ttzr != null && !m.vecinos) { m.vecinos = true; setTimeout(() => precalentarVecinos(mio), 1500); }
+                    if (window.NLT_DEBUG || /[?&]diag=1/.test(location.search)) console.info('[replay] métricas', JSON.stringify(m));
+                }
             };
             tick();
+        }
+        // Cuando el replay ya está listo, en segundo plano se baja a la caché compartida del servidor la historia de las
+        // temporalidades vecinas EN ESTE MISMO MOMENTO: cambiar de 5m a 1m deja de esperar a TickerAll (15-20 s) porque el
+        // servidor ya la tiene. Una a la vez, sin competir con el replay, y solo con la pestaña a la vista.
+        const ORDEN_TF = ['1m', '5m', '15m', '30m', '1H', '4H', '1D'];
+        async function precalentarVecinos(mio) {
+            try {
+                if (navigator.connection && navigator.connection.saveData) return;
+                if (!st.ses || !NLT_API.chartsHistoria) return;
+                const i = ORDEN_TF.indexOf(st.ses.timeframe);
+                const vecinos = [ORDEN_TF[i - 1], ORDEN_TF[i + 1], ORDEN_TF[i - 2]].filter(Boolean);
+                for (const tf of vecinos) {
+                    if (mio !== op || !st.activo || !st.ses) return;
+                    while (document.hidden) { await new Promise((r) => setTimeout(r, 2000)); if (mio !== op || !st.activo) return; }
+                    const cierre = st.ses.cursor_ts + DUR[st.ses.timeframe], inicio = cierre - DUR[tf];
+                    const desde = inicio - 600 * DUR[tf] * 1.5, hasta = Math.min(Date.now(), inicio + 450 * DUR[tf] * 1.6);
+                    if (hasta > desde) await NLT_API.chartsHistoria(st.ses.symbol, tf, desde, hasta, { timeoutMs: 120000 }).catch(() => {});
+                }
+            } catch (_) { /* es solo una ayuda: nunca molesta */ }
         }
 
         function limpiarCaches() {
@@ -76,18 +98,20 @@
                 .then((r) => ({ demo: false, provider: 'replay', precision: st.ses.price_precision, velas: r.candles.map(aK) }));
         }
 
-        async function iniciar(symbol, tf, inicioMs) {
+        const trans = () => (app.transicion ? app.transicion() : null);
+        async function iniciar(symbol, tf, inicioMs, etiqueta) {
             detener();
             if (NLTCharts.backtestLab) NLTCharts.backtestLab.salirGrafico();
             const mio = ++op;
             const t0 = performance.now();
             st.cargando = true; st.error = ''; pintar();
+            if (trans()) trans().iniciar(etiqueta || 'Preparando el replay');
             let r;
             try {
                 // si el servidor de precios tarda de más con una fecha lejana, un segundo intento suele salir de la caché que dejó el primero
                 try { r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs, 60000); }
                 catch (e1) { if (mio !== op || !/tard[óo] demasiado/i.test(e1.message || '')) throw e1; r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs, 90000); }
-            } catch (err) { if (mio === op) { st.error = err.message; st.cargando = false; pintar(); } return; }
+            } catch (err) { if (mio === op) { st.error = err.message; st.cargando = false; if (trans()) trans().terminar(); if (app.sincronizarToolbar) app.sincronizarToolbar(); pintar(); } return; }
             if (mio !== op) { NLT_API.chartsReplayCerrar(r.id).catch(() => {}); return; }   // ya no la quiere nadie
             if (st.ses && st.ses.id !== r.id) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             st.ses = r; st.cargando = false;
@@ -171,11 +195,12 @@
         function cambiar(symbol, tf) {
             if (!st.ses) return;
             const cierre = st.ses.cursor_ts + DUR[st.ses.timeframe];
-            iniciar(symbol, tf, cierre - DUR[tf]);
+            iniciar(symbol, tf, cierre - DUR[tf], symbol !== st.ses.symbol ? `Cargando ${symbol} ${tf}` : `Cambiando a ${tf}`);
         }
         function salir() {
             detener();
             ++op; st.cargando = false; st.pidiendo = false; st.preparandoZE = false;
+            if (trans()) trans().terminar();
             if (st.ses) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             const estaba = st.activo;
             st.activo = false; st.ses = null; st.error = ''; st.eligiendo = false;

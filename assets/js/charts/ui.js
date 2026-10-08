@@ -64,10 +64,25 @@
         el.querySelector('#chFav').addEventListener('click', () => o.onFavorito && o.onFavorito());
         el.querySelector('#chBtnRefresh').addEventListener('click', (e) => recargaCompleta(e.currentTarget));
 
+        // Píldora que se desliza hasta la temporalidad activa (animación en vez de saltar)
+        const grupoTf = el.querySelector('.ch-tfs');
+        function moverPill() {
+            if (!grupoTf) return;
+            const on = grupoTf.querySelector('.ch-tf.on');
+            if (!on || !on.offsetWidth) { grupoTf.style.setProperty('--tf-o', '0'); return; }
+            grupoTf.style.setProperty('--tf-x', on.offsetLeft + 'px');
+            grupoTf.style.setProperty('--tf-w', on.offsetWidth + 'px');
+            grupoTf.style.setProperty('--tf-o', '1');
+        }
+        if (grupoTf) {
+            try { new ResizeObserver(() => moverPill()).observe(grupoTf); } catch (_) { grupoTf.classList.add('sin-slide'); }
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(moverPill);
+        }
         const api = {
             setSymbol(s) { sel.value = s; },
             setTimeframe(tf) {
                 el.querySelectorAll('.ch-tf').forEach((b) => b.classList.toggle('on', b.dataset.tf === tf));
+                moverPill();
             },
             setDemo(demo) { el.querySelector('#chDemo').classList.toggle('hidden', !demo); },
             // Estado de los precios: conectado / retrasado / desconectado / cerrado / conectando.

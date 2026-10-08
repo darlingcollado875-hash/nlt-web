@@ -84,16 +84,17 @@
         let symbol = porSimbolo[prefs.symbol] ? prefs.symbol : catalogo.symbols[0].symbol;
         let timeframe = catalogo.timeframes.includes(prefs.timeframe) ? prefs.timeframe : '15m';
 
-        let dib = null;
+        let dib = null, trans = null;
         const motor = engine.crear(document.getElementById('chart'), {
             onData: ({ demo, primera }) => {
                 toolbar.setDemo(demo);
                 if (primera) NLTCharts.diag.marcarCarga();
                 primeraData = true; clearTimeout(vigilante); if (resolverPrimera) resolverPrimera();
                 mostrarEstado('');
+                if (trans) trans.terminar();
                 if (primera && dib) { dib.restaurar(); if (pro) pro.dibujosRestaurados(); }
             },
-            onError: (msg) => mostrarEstado('No se pudieron cargar los precios: ' + msg, true),
+            onError: (msg) => { if (trans) trans.terminar(); mostrarEstado('No se pudieron cargar los precios: ' + msg, true); },
             // Zonas PRO: se re-analizan con cada vela nueva
             onVelaNueva: () => pro && pro.velaNueva(),
         });
@@ -148,13 +149,17 @@
             pro,
         });
 
+        if (NLTCharts.transicion) { try { trans = NLTCharts.transicion.montar({ chart: motor.chart, stageEl: document.querySelector('.ch-stage') }); } catch (e) { console.warn('[NLT Charts] transición no disponible', e); } }
         const toolbar = ui.montarToolbar(document.getElementById('chToolbar'), {
             simbolos: catalogo.symbols,
             timeframes: catalogo.timeframes,
             symbol, timeframe,
             onSymbol: (s) => (NLTCharts.replayApi && NLTCharts.replayApi.activo() ? NLTCharts.replayApi.cambiar(s, timeframe) : cambiarSimbolo(s)),
             onTimeframe: (tf) => {
-                if (NLTCharts.replayApi && NLTCharts.replayApi.activo()) { toolbar.setTimeframe(timeframe); NLTCharts.replayApi.cambiar(symbol, tf); return; } timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); cargar(); pro.cambioDeTimeframe(); nltAi.cambioDeSimbolo(); },
+                if (NLTCharts.replayApi && NLTCharts.replayApi.activo()) { if (tf !== timeframe) { toolbar.setTimeframe(tf); NLTCharts.replayApi.cambiar(symbol, tf); } return; }
+                if (tf === timeframe) return;
+                if (trans) trans.iniciar('Cambiando a ' + tf);
+                timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); cargar(); pro.cambioDeTimeframe(); nltAi.cambioDeSimbolo(); },
             onIndicadores: () => ind.abrir(),
             onConfig: () => NLTCharts.settings.abrir('GRAFICO', (v) => motor.aplicarApariencia(v)),
             onWatchlist: () => wl.alternar(),
@@ -163,6 +168,7 @@
 
         function cambiarSimbolo(s) {
             if (!porSimbolo[s]) return;
+            if (s !== symbol && trans) trans.iniciar('Cargando ' + s);
             symbol = s;
             state.savePrefs({ symbol });
             toolbar.setSymbol(s);
@@ -225,6 +231,7 @@
                 if (s !== symbol) cambiarSimbolo(s); else cargar();
             },
             simbolo: () => symbol, timeframe: () => timeframe, multi: () => multi,
+            transicion: () => trans, sincronizarToolbar: () => toolbar.setTimeframe(timeframe),
         };   // favoritos PRO, consola y Backtest Lab
         // Lo esencial ya está en marcha (precios, indicadores, dibujos, zonas). Lo demás -multigráfico, alertas, simulador, operar,
         // NLT Script, replay, backtest, noticias...- se descarga y se monta DESPUÉS de que aparezcan las velas, sin competir con ellas
