@@ -177,8 +177,8 @@
         // Ir a fecha / Ir a año: el gráfico muestra un tramo del pasado (los indicadores piden hasta ese tramo)
         enHistorico: () => modoHistorico === 'historico',
         // Histórico profundo (capa compartida del servidor): velas CERRADAS de [desde, hasta)
-        async historia(symbol, timeframe, desde, hasta, { signal } = {}) {
-            const r = await NLT_API.chartsHistoria(symbol, timeframe, desde, hasta, { signal });
+        async historia(symbol, timeframe, desde, hasta, { signal, timeoutMs } = {}) {
+            const r = await NLT_API.chartsHistoria(symbol, timeframe, desde, hasta, { signal, timeoutMs });
             return { source: r.source || 'primary', cache: r.cache || {}, covered: r.covered || [], velas: r.candles.map((c) => ({ timestamp: c[0], open: c[1], high: c[2], low: c[3], close: c[4], volume: c[5] })) };
         },
     };

@@ -152,22 +152,32 @@
             return Math.round((PASO[tf] || 1500) * hist.factor);
         }
         // [desde, hasta) en tramos de ~PASO velas pedidos a la vez; progreso real = tramos terminados
-        async function historia(sym, tf, desde, hasta, { signal, onProgreso } = {}) {
+        // `centro` (Ir a fecha): cada tramo se intenta dos veces. La primera espera menos: el servidor sigue trabajando y deja el
+        // resultado en la caché compartida, así que el segundo intento suele salir de inmediato (antes: un solo pedido de hasta
+        // 3 minutos y, si fallaba, "el servidor tardó demasiado" sin más).
+        async function historia(sym, tf, desde, hasta, { signal, onProgreso, centro } = {}) {
             const dur = DUR(tf), paso = (PASO[tf] || 1500) * dur * calendario();
             const tramos = [];
             for (let a = desde; a < hasta; a += paso) tramos.push([a, Math.min(hasta, a + paso)]);
             let hechos = 0;
             const t0 = performance.now();
             if (onProgreso) onProgreso({ hechos, total: tramos.length, ms: 0 });
-            const partes = await Promise.all(tramos.map(async ([a, b]) => {
+            const intentos = centro != null ? [75000, 105000] : [undefined];
+            const todas = await Promise.all(tramos.map(async ([a, b]) => {
                 const t = performance.now();
-                const r = await market.historia(sym, tf, a, b, { signal });
+                let r = null, fallo = null;
+                for (const tm of intentos) {
+                    try { r = await market.historia(sym, tf, a, b, { signal, timeoutMs: tm }); fallo = null; break; }
+                    catch (err) { fallo = err; if (err.name === 'AbortError' || (signal && signal.aborted)) throw err; }
+                }
+                if (fallo) throw fallo;
                 hist.pedidos.push({ tf, desde: a, hasta: b, velas: r.velas.length, ms: Math.round(performance.now() - t), hit: !!r.cache.hit, prov: r.cache.provider_requests || 0 });
                 if (hist.pedidos.length > 300) hist.pedidos.shift();
                 hechos += 1;
                 if (onProgreso) onProgreso({ hechos, total: tramos.length, ms: Math.round(performance.now() - t0) });
                 return r;
             }));
+            const partes = todas;
             const fuentes = new Set(partes.map((r) => r.source));
             const vistos = new Map();
             partes.forEach((r) => r.velas.forEach((v) => vistos.set(v.timestamp, v)));
@@ -324,7 +334,7 @@
                         const antes = (PASO[tfPedido] || 1500) * 0.6, despues = (PASO[tfPedido] || 1500) * 0.4;
                         const desde = v.centro - antes * dur * calendario();
                         const hasta = Math.min(tope(), v.centro + despues * dur * calendario());
-                        const r = await historia(symbol.ticker, tfPedido, desde, hasta, { onProgreso: v.onProgreso });
+                        const r = await historia(symbol.ticker, tfPedido, desde, hasta, { onProgreso: v.onProgreso, centro: v.centro });
                         if (!vigenteInit() || ventana !== v) return;
                         fuenteSerie = r.source;
                         const llega = hasta >= tope();
@@ -486,7 +496,9 @@
                 ventana = v;
                 avisarVentana();
                 chart.resetData();
-                const info = await listo;
+                let info;
+                try { info = await listo; }
+                catch (e) { if (ventana === v) this.volverAlPresente(); throw e; }      // falló: no se deja el gráfico vacío, vuelve al vivo
                 chart.scrollToTimestamp(objetivo, 0);
                 return { modo: 'ventana', ms: Math.round(performance.now() - t0), ...info };
             },
