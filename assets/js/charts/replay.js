@@ -108,6 +108,19 @@
             app.pro.fijarFuente((entradas) => NLT_API.chartsReplayZE(st.ses.id, entradas));
             pintar();
         }
+        // Si la vela en curso quedó fuera de la pantalla (arrastraste el gráfico hacia la historia, o elegiste una
+        // vela de partida y después lo moviste), el replay seguía avanzando pero NO se veía. Aquí el gráfico la
+        // sigue: solo se mueve cuando la última vela está fuera del área visible; si la tienes a la vista no se toca.
+        function seguirUltimaVela() {
+            try {
+                const dl = chart.getDataList(), n = dl.length;
+                if (!n) return;
+                const ancho = (chart.getSize('candle_pane', 'main') || {}).width;
+                const x = chart.convertToPixel({ dataIndex: n - 1, value: 0 }, { paneId: 'candle_pane' }).x;
+                if (!ancho || x == null || (x >= ancho * 0.04 && x <= ancho * 0.96)) return;
+                chart.scrollToRealTime();
+            } catch (_) { /* sin tamaño todavía: la próxima vela lo intenta */ }
+        }
         async function siguiente(n = 1) {
             if (!st.activo || st.pidiendo) return false;
             st.pidiendo = true;
@@ -119,7 +132,7 @@
                 st.ses = { ...st.ses, ...r, candles: undefined };
                 limpiarCaches();
                 r.candles.forEach((c) => motor.empujar(aK(c)));
-                if (r.candles.length) app.pro.velaNueva();
+                if (r.candles.length) { app.pro.velaNueva(); seguirUltimaVela(); }
                 mas = r.has_more;
                 if (!mas) { detener(); st.error = 'Fin de los datos cargados para este replay.'; }
             } catch (err) { if (mio !== op) { st.pidiendo = false; return false; } st.error = err.message; detener(); }
@@ -131,7 +144,7 @@
             detener();
             const intervalo = Math.max(120, 1000 / st.vel);
             const n = Math.max(1, Math.round(st.vel * intervalo / 1000));   // 25x: 3 velas cada 120 ms
-            const tick = async () => { if (await siguiente(n)) st.timer = setTimeout(tick, intervalo); };
+            const tick = async () => { const t0 = performance.now(); if (await siguiente(n)) st.timer = setTimeout(tick, Math.max(0, intervalo - (performance.now() - t0))); };   // el ritmo cuenta lo que tardó el servidor
             st.timer = setTimeout(tick, intervalo);
             pintar();
         }
@@ -186,24 +199,55 @@
             } catch (_) { /* fuera de las velas */ }
         }, true);
 
+        // ── barra movible y ocultable: no tapa los botones de operar / las velas ──
+        let pos = null;
+        try { pos = JSON.parse(localStorage.getItem('nlt_replay_pos') || 'null'); st.min = localStorage.getItem('nlt_replay_min') === '1'; } catch (_) { pos = null; }
+        function aplicarPos() {
+            const pr = el.parentElement && el.parentElement.getBoundingClientRect();
+            if (!pos || !pr || !pr.width) { el.style.left = el.style.top = el.style.transform = ''; return; }
+            const w = el.offsetWidth || 200, h = el.offsetHeight || 40;
+            const x = Math.max(4, Math.min(pr.width - w - 4, pos.x)), y = Math.max(4, Math.min(pr.height - h - 4, pos.y));
+            el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.transform = 'none';
+        }
+        el.addEventListener('pointerdown', (ev) => {
+            const g = ev.target.closest('.rp-grip');
+            if (!g || ev.button > 0) return;
+            const pr = el.parentElement.getBoundingClientRect(), r = el.getBoundingClientRect();
+            const dx = ev.clientX - r.left, dy = ev.clientY - r.top;
+            ev.preventDefault();
+            try { g.setPointerCapture(ev.pointerId); } catch (_) { /* navegador sin captura */ }
+            const mover = (e) => { pos = { x: e.clientX - pr.left - dx, y: e.clientY - pr.top - dy }; aplicarPos(); };
+            const soltar = () => {
+                g.removeEventListener('pointermove', mover); g.removeEventListener('pointerup', soltar); g.removeEventListener('pointercancel', soltar);
+                try { localStorage.setItem('nlt_replay_pos', JSON.stringify(pos)); } catch (_) { /* sin almacenamiento */ }
+            };
+            g.addEventListener('pointermove', mover); g.addEventListener('pointerup', soltar); g.addEventListener('pointercancel', soltar);
+        });
+        window.addEventListener('resize', () => { if (!el.hidden) aplicarPos(); });
+        // doble toque en el título: vuelve a su lugar de siempre
+        el.addEventListener('dblclick', (ev) => { if (ev.target.closest('.rp-grip')) { pos = null; try { localStorage.removeItem('nlt_replay_pos'); } catch (_) { /* nada */ } aplicarPos(); } });
+
         function pintar() {
             boton.classList.toggle('on', st.abierto || st.activo);
             el.hidden = !(st.abierto || st.activo);
             if (el.hidden) return;
             const s = st.ses;
             const corriendo = !!st.timer;
+            el.classList.toggle('rp-min', !!st.min && st.activo);
+            aplicarPos();
             el.innerHTML = `
-                <b class="rp-t"><i class="ph ph-clock-counter-clockwise"></i> BAR REPLAY</b>
+                <b class="rp-t rp-grip" title="Arrastra para mover la barra"><i class="ph ph-dots-six-vertical"></i><i class="ph ph-clock-counter-clockwise"></i><span class="rp-tt"> BAR REPLAY</span></b>
                 ${st.activo ? `
-                    <button type="button" class="rp-b" data-a="reset" title="RESET: volver a la vela de partida"><i class="ph ph-skip-back"></i></button>
+                    <button type="button" class="rp-b rp-ex" data-a="reset" title="RESET: volver a la vela de partida"><i class="ph ph-skip-back"></i></button>
                     <button type="button" class="rp-b rp-play" data-a="${corriendo ? 'pause' : 'play'}" title="${corriendo ? 'PAUSE' : 'PLAY'}"><i class="ph-fill ${corriendo ? 'ph-pause' : 'ph-play'}"></i></button>
                     <button type="button" class="rp-b" data-a="next" title="NEXT BAR: una vela" ${st.pidiendo && !corriendo ? 'disabled' : ''}><i class="ph ph-skip-forward"></i><span>Next bar</span></button>
-                    <select data-k="vel" aria-label="Velocidad">${VELOCIDADES.map((v) => `<option value="${v}"${v === st.vel ? ' selected' : ''}>${v}x</option>`).join('')}</select>
-                    <span class="rp-cur" title="Última vela visible (cerrada)">${esc(s.symbol)} ${esc(s.timeframe)} · ${esc(fmt(s.cursor_ts))}</span>
+                    <select class="rp-ex" data-k="vel" aria-label="Velocidad">${VELOCIDADES.map((v) => `<option value="${v}"${v === st.vel ? ' selected' : ''}>${v}x</option>`).join('')}</select>
+                    <span class="rp-cur rp-ex" title="Última vela visible (cerrada)">${esc(s.symbol)} ${esc(s.timeframe)} · ${esc(fmt(s.cursor_ts))}</span>
                     ${st.cargando ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Cargando replay…</span>'
                         : st.preparandoZE ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Preparando NLT Zone Engine…</span>' : ''}
-                    <button type="button" class="rp-b" data-a="elegir" title="Elegir otra vela en el gráfico"><i class="ph ph-crosshair"></i></button>
-                    <button type="button" class="rp-b rp-x" data-a="salir" title="Salir del replay (volver al vivo)"><i class="ph ph-x"></i><span>Salir</span></button>`
+                    <button type="button" class="rp-b rp-ex" data-a="elegir" title="Elegir otra vela en el gráfico"><i class="ph ph-crosshair"></i></button>
+                    <button type="button" class="rp-b rp-keep" data-a="min" title="${st.min ? 'Mostrar la barra completa' : 'Ocultar la barra (sigue funcionando)'}" aria-label="${st.min ? 'Mostrar la barra' : 'Ocultar la barra'}"><i class="ph ${st.min ? 'ph-arrows-out-simple' : 'ph-minus'}"></i></button>
+                    <button type="button" class="rp-b rp-x rp-ex" data-a="salir" title="Salir del replay (volver al vivo)"><i class="ph ph-x"></i><span>Salir</span></button>`
                 : `
                     <span class="rp-cur">${esc(app.simbolo())} ${esc(app.timeframe())}</span>
                     <input type="date" data-k="fecha" value="${esc(st.fecha)}" aria-label="Fecha">
@@ -212,6 +256,7 @@
                     <button type="button" class="rp-b ${st.eligiendo ? 'on' : ''}" data-a="elegir" title="Toca una vela del gráfico"><i class="ph ph-crosshair"></i><span>${st.eligiendo ? 'Toca una vela…' : 'Elegir en el gráfico'}</span></button>
                     <button type="button" class="rp-b rp-x" data-a="cerrar" aria-label="Cerrar"><i class="ph ph-x"></i></button>`}
                 ${st.error ? `<span class="rp-err">${esc(st.error)}</span>` : ''}`;
+            aplicarPos();
         }
         el.addEventListener('click', (ev) => {
             const a = ev.target.closest('[data-a]');
@@ -220,6 +265,7 @@
                 ir: () => iniciar(app.simbolo(), app.timeframe(), new Date(`${st.fecha}T${st.hora || '00:00'}`).getTime()),
                 play: () => play(),
                 pause: () => { detener(); pintar(); },
+                min: () => { st.min = !st.min; try { localStorage.setItem('nlt_replay_min', st.min ? '1' : '0'); } catch (_) { /* sin almacenamiento */ } pintar(); },
                 next: () => { detener(); siguiente(1); },
                 reset: () => reiniciar(),
                 elegir: () => { st.eligiendo = !st.eligiendo; pintar(); },
