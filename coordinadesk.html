@@ -140,6 +140,12 @@
         .cd-pick:hover { border-color: #4378FF; background: rgba(67,120,255,.08); }
         .cd-pick .cd-when { width: 76px; flex-shrink: 0; font-size: 12px; font-weight: 700; color: #9CA3AF; line-height: 1.35; }
         .cd-pay-list { min-height: 120px; }
+        .cd-ficha { border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 12px; background: rgba(255,255,255,0.02); margin-top: 6px; }
+        .cd-ficha-datos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 6px 14px; margin: 8px 0 10px; font-size: 12px; }
+        .cd-ficha-datos span { color: #6B7280; display: block; font-size: 10px; text-transform: uppercase; letter-spacing: .06em; }
+        .cd-plan-fila { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.06); margin-top: 6px; flex-wrap: wrap; }
+        .cd-plan-fila.sel { border-color: #4378ff; background: rgba(67,120,255,.08); }
+        .cd-plan-fila .cd-plan-info { flex: 1; min-width: 140px; font-size: 13px; }
         .cd-detail { white-space: pre-wrap; font-size: 13px; color: #D1D5DB; line-height: 1.55; }
         @media (max-width: 767px) {
             .cd-form { grid-template-columns: 1fr; }
@@ -960,6 +966,7 @@
             const campo = (k, extra) => `<div class="cd-field${extra || ''}"><label for="f_${k}">${esc(F(k).l)}${F(k).req ? ' <em>*</em>' : ''}</label>${fieldInput(F(k), base[k], k)}</div>`;
             const st = { tipo: base.payerType, id: base.payerType === 'client' ? base.clientId : base.affiliateId };
             let conceptoAuto = nuevo && !base.concept;
+            let montoAuto = nuevo && !Number(base.amountPaid);      // el monto sigue al plan elegido hasta que lo escribes a mano
             openModal(`
                 <h2>${nuevo ? 'Registrar pago' : 'Editar pago'}</h2>
                 ${it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha.</p>` : ''}
@@ -1007,11 +1014,41 @@
                 const p = pagador();
                 $('#pgPlanes').innerHTML = planesDe(p).map((x) => `<option value="${esc(x.name)}"></option>`).join('');
             }
+            function planEstado(x) {
+                if (!x.paidDate) return ['Sin pagar', 'warn'];
+                if (x.expiryDate && diasHasta(x.expiryDate) < 0) return ['Vencido', 'bad'];
+                return ['Al día', 'ok'];
+            }
             function pintarInfo() {
                 const p = pagador();
-                if (!p) { $('#pgInfo').innerHTML = 'Elige a quién se le registra el pago.'; return; }
-                const pl = planActual();
-                $('#pgInfo').innerHTML = `<b style="color:#fff">${esc(p.fullName)}</b>${pl ? ` · ${esc(pl.name)}: ${pl.paidDate ? 'pagó el ' + fmtDate(pl.paidDate) : 'sin pagos'}${pl.expiryDate ? ', vence el ' + fmtDate(pl.expiryDate) : ''}` : (planesDe(p).length ? ' · Planes: ' + esc(planesDe(p).map((x) => x.name).join(', ')) : ' · Sin planes registrados')}`;
+                const box = $('#pgInfo');
+                if (!p) { box.innerHTML = 'Elige a quién se le registra el pago.'; return; }
+                const actual = lower(val('planName')).trim();
+                const dato = (l, v) => (v ? `<div><span>${esc(l)}</span>${esc(v)}</div>` : '');
+                const ref = st.tipo === 'client' && p.referredById ? (S.affiliates.find((a) => a.id === p.referredById) || {}).fullName : '';
+                const datos = st.tipo === 'client'
+                    ? [dato('Correo', p.email), dato('Teléfono', p.phone), dato('Cliente desde', p.joinDate ? fmtDate(p.joinDate) : ''), dato('Código de descuento', p.discountCode), dato('Referido por', ref), dato('Notas', p.notes)]
+                    : [dato('Código', p.affiliateCode), dato('Correo', p.email), dato('Teléfono', p.phone), dato('Comisión', p.commissionRate), dato('Pagado', money(p.paidAmount)), dato('Pendiente', money(p.pendingAmount))];
+                const planes = planesDe(p);
+                const filas = planes.map((x, k) => {
+                    const [et, tono] = planEstado(x);
+                    return `<div class="cd-plan-fila${lower(x.name).trim() === actual ? ' sel' : ''}"><div class="cd-plan-info"><b>${esc(x.name)}</b>${x.price ? ' · ' + money(x.price) : ''}<div class="cd-sub">${x.paidDate ? 'Pagó ' + fmtDate(x.paidDate) : 'Todavía no ha pagado'}${x.expiryDate ? ' · vence ' + fmtDate(x.expiryDate) : ''}</div></div><span class="cd-badge cd-tone-${tono}">${et}</span><button type="button" class="cd-btn sm" data-pl-pagar="${k}">Pagar este</button><button type="button" class="cd-btn sm danger" data-pl-quitar="${k}" title="Quitar este plan del ${st.tipo === 'client' ? 'cliente' : 'afiliado'}" aria-label="Quitar ${esc(x.name)}"><i class="ph ph-trash"></i></button></div>`;
+                }).join('');
+                box.innerHTML = `<div class="cd-ficha"><div><b style="color:#fff;font-size:14px">${esc(p.fullName)}</b></div><div class="cd-ficha-datos">${datos.join('')}</div>
+                    <div class="cd-lbl" style="font-size:11px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.06em">Planes (${planes.length})</div>
+                    ${filas || '<div class="cd-sub" style="margin-top:6px">Sin planes registrados. Escribe el plan abajo y se agrega al guardar el pago.</div>'}
+                    ${planes.length > 1 ? '<div class="cd-sub" style="margin-top:8px">Si no va a pagar alguno, quítalo con la papelera: deja de salir en su ficha (los pagos ya registrados se conservan).</div>' : ''}</div>`;
+            }
+            async function quitarPlan(k) {
+                const p = pagador(); if (!p) return;
+                const x = planesDe(p)[k]; if (!x) return;
+                if (!confirm(`¿Quitar el plan “${x.name}” de ${p.fullName}?\nLos pagos ya registrados de ese plan no se borran.`)) return;
+                const n = clone(p);
+                n.plans = (n.plans || []).filter((y) => y.name && !(lower(y.name).trim() === lower(x.name).trim()));
+                MODS[st.tipo === 'client' ? 'clients' : 'affiliates'].before(n);
+                if (!(await guardar(st.tipo === 'client' ? 'clients' : 'affiliates', n))) return;
+                if (lower(val('planName')).trim() === lower(x.name).trim()) { setVal('planName', ''); if (conceptoAuto) setVal('concept', ''); }
+                pintarPlanes(); pintarInfo(); recalcularVencimiento(); toast('Plan quitado', 'ok');
             }
             function visibilidad() {
                 const comision = st.tipo === 'affiliate' && val('paymentType') !== 'plan_payment';
@@ -1041,7 +1078,7 @@
             }
             function alElegirPlan() {
                 const pl = planActual();
-                if (pl && pl.price && !Number(val('amountPaid'))) setVal('amountPaid', pl.price);
+                if (montoAuto && pl) setVal('amountPaid', pl.price || '');
                 conceptoAutomatico(); pintarInfo(); recalcularVencimiento();
             }
             pintarTipo(); pintarLista(); pintarPlanes(); pintarInfo(); visibilidad();
@@ -1056,9 +1093,15 @@
                 pintarTipo(); pintarLista(); pintarPlanes(); pintarInfo(); visibilidad(); recalcularVencimiento();
             });
             $('#pgQ').addEventListener('input', pintarLista);
+            $('#pgInfo').addEventListener('click', (e) => {
+                const pg = e.target.closest('[data-pl-pagar]'), qt = e.target.closest('[data-pl-quitar]');
+                if (pg) { const x = planesDe(pagador())[Number(pg.dataset.plPagar)]; if (x) { setVal('planName', x.name); alElegirPlan(); } }
+                else if (qt) quitarPlan(Number(qt.dataset.plQuitar));
+            });
             $('#pgSel').addEventListener('change', (e) => { if (e.target.value) elegir(e.target.value); });
             $('[name="planName"]').addEventListener('input', alElegirPlan);
             $('[name="concept"]').addEventListener('input', () => { conceptoAuto = false; });
+            $('[name="amountPaid"]').addEventListener('input', () => { montoAuto = false; });
             $('[name="paymentType"]').addEventListener('change', () => { visibilidad(); if (val('paymentType') !== 'plan_payment') $('#pgCob').value = '0'; recalcularVencimiento(); });
             $('#pgCob').addEventListener('change', recalcularVencimiento);
             $('[name="paymentDate"]').addEventListener('change', recalcularVencimiento);
