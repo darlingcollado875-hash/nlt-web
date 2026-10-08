@@ -293,14 +293,14 @@
         function pintarZE() {
             if (!stage) return;
             const pro = app.pro, visible = pro && pro.visible && pro.visible();
-            if (!st.activo || !visible || !pro.estadoCarga) { zeChip.hidden = true; zeFirma = ''; return; }
+            if (!visible || !pro.estadoCarga) { zeChip.hidden = true; zeFirma = ''; return; }
             const e = pro.estadoCarga();
             const seg = e.enCurso ? Math.round((Date.now() - e.desde) / 1000) : 0;
             let html = '', modo = '';
             if (e.error && !e.enCurso && !e.dibujado) {
                 modo = 'err';
                 const lento = /tard[óo] demasiado|HTF|Preparando|descarg/i.test(e.error);
-                html = `<i class="ph-fill ph-warning"></i><span>${lento ? 'El Zone Engine tardó demasiado en cargar los datos del replay.' : 'El Zone Engine no cargó: ' + esc(e.error)}</span><button type="button" data-ze-reintentar>Reintentar</button>`;
+                html = `<i class="ph-fill ph-warning"></i><span>${lento && st.activo ? 'El Zone Engine tardó demasiado en cargar los datos del replay.' : 'El Zone Engine no cargó: ' + esc(e.error)}</span><button type="button" data-ze-reintentar>Reintentar</button>`;
             } else if (e.enCurso && seg >= 4 && !e.dibujado) {
                 modo = 'carga';
                 html = `<i class="ph ph-circle-notch"></i><span>Cargando el Zone Engine · ${seg} s${seg >= 20 ? ' · los datos de una fecha lejana tardan' : ''}</span>`;
