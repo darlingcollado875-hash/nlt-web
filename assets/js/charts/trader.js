@@ -278,7 +278,7 @@
                     <input name="login_numero" class="mc-sel" inputmode="numeric" placeholder="Número de cuenta" required><input name="password" class="mc-sel" type="password" autocomplete="off" placeholder="Contraseña" required>
                     <input name="broker_server" class="mc-sel" placeholder="Servidor del broker (ej. ICMarkets-Demo)" required>
                     <input type="hidden" name="mode" value="trade">
-                    <p class="mc-nota">La contraseña se envía una vez al proveedor para conectar la cuenta; NLT la guarda cifrada solo para reconectar la sesión sola cuando el proveedor la enfría; puedes quitarla desconectando la cuenta. Hasta ${est.max_accounts} cuentas. Empieza con una cuenta DEMO.</p>
+                    <p class="mc-nota">La contraseña se envía una vez al proveedor para conectar la cuenta; NLT la guarda cifrada solo para reconectar la sesión sola cuando el proveedor la enfría; puedes quitarla desconectando la cuenta. ${est.max_accounts === 1 ? 'Tu plan incluye 1 cuenta conectada.' : `Hasta ${est.max_accounts} cuentas.`} Empieza con una cuenta DEMO.</p>
                     <button type="submit" class="mc-d on">Conectar</button></form>` : '';
                 const sel = cuentas.length ? `<div class="al-fila2"><select data-tr-cuenta class="mc-sel">${cuentas.map((x) => `<option value="${esc(x.id)}"${x.id === cuentaId ? ' selected' : ''}>#${esc(x.login)} · ${esc(x.server || '')}</option>`).join('')}</select>
                     <button type="button" data-tr="mas" class="mc-d" title="Conectar otra cuenta">+</button><button type="button" data-tr="desconectar" class="mc-d" title="Desconectar esta cuenta">Quitar</button></div>` : '';
