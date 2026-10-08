@@ -1021,8 +1021,8 @@
         chartsBacktestConfig: () => request('/charts/backtest/config', { timeoutMs: 20000 }),
         chartsBacktestCrear: (pedido) => request('/charts/backtest/runs', { method: 'POST', body: JSON.stringify(pedido), intentos: 1 }),
         chartsBacktestEstado: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}`),
-        chartsBacktestResultado: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/result`, { timeoutMs: 30000 }),
-        chartsBacktestVelas: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/candles`, { timeoutMs: 30000 }),
+        chartsBacktestResultado: (id, timeoutMs) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/result`, { timeoutMs: timeoutMs || 30000 }),
+        chartsBacktestVelas: (id, timeoutMs) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/candles`, { timeoutMs: timeoutMs || 30000 }),
         chartsBacktestCancelar: (id) => request(`/charts/backtest/runs/${encodeURIComponent(id)}/cancel`, { method: 'POST', intentos: 1 }),
         chartsBacktestPresets: () => request('/charts/backtest/presets'),
         chartsBacktestGuardarPreset: (preset, id = null) => request(id ? `/charts/backtest/presets/${encodeURIComponent(id)}` : '/charts/backtest/presets', {

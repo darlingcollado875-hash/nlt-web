@@ -166,7 +166,7 @@
         }
         function irATrade(t) {
             st.sel = t.id;
-            if (st.enGrafico && chart.scrollToTimestamp) chart.scrollToTimestamp(t.entrada_ts, 200);
+            if (st.enGrafico && chart.scrollToTimestamp) { if (motor.irACentrado) motor.irACentrado(t.entrada_ts, 250, 0.6); else chart.scrollToTimestamp(t.entrada_ts, 200); }   // la entrada a ~40 % desde la izquierda: se ve cómo terminó la operación
             chart.setStyles({});
             pintar();
         }
@@ -215,7 +215,7 @@
                     st.job = await NLT_API.chartsBacktestEstado(st.job.id);
                 } catch (err) { st.error = err.message; }
                 if (st.job && ['queued', 'data', 'engine', 'simulation'].includes(st.job.status)) { pintarProgreso(); seguir(); return; }
-                if (st.job && st.job.status === 'done') await cargarResultado(st.job.id);
+                if (st.job && st.job.status === 'done') { try { await cargarResultado(st.job.id); } catch (err) { st.error = err.message; st.reintentarRes = st.job.id; const t = app.transicion && app.transicion(); if (t) t.terminar(); } }
                 pintar();
             }, 700);
         }
@@ -224,11 +224,29 @@
             try { st.job = await NLT_API.chartsBacktestCancelar(st.job.id); } catch (err) { st.error = err.message; }
             pintar();
         }
+        // El resultado y las velas del backtest son una respuesta grande (meses de velas). Antes, si tardaba más de 30 s, el error se
+        // perdía en silencio y el gráfico se quedaba sin cargar. Ahora: se pone la transición con desenfoque mientras llega, se intenta
+        // dos veces (45 s y 2 min) y, si no llega, se dice claro con un botón para reintentar.
         async function cargarResultado(id) {
-            const [res, velas] = await Promise.all([NLT_API.chartsBacktestResultado(id), NLT_API.chartsBacktestVelas(id)]);
-            st.res = res; st.velas = velas; st.precision = velas.price_precision; st.sel = null;
-            st.tab = 'resultados';
-            entrarGrafico(velas.candles.map(aKline));
+            const trans = app.transicion ? app.transicion() : null;
+            st.reintentarRes = null; st.error = '';
+            if (trans) trans.iniciar('Cargando el backtest en el gráfico');
+            let ultimo = null;
+            for (const tm of [45000, 120000]) {
+                try {
+                    const [res, velas] = await Promise.all([NLT_API.chartsBacktestResultado(id, tm), NLT_API.chartsBacktestVelas(id, tm)]);
+                    st.res = res; st.velas = velas; st.precision = velas.price_precision; st.sel = null;
+                    st.tab = 'resultados';
+                    entrarGrafico(velas.candles.map(aKline));      // al llegar las velas al gráfico, la transición se quita sola
+                    return true;
+                } catch (err) { ultimo = err; }
+            }
+            if (trans) trans.terminar();
+            st.reintentarRes = id;
+            st.error = /tard[óo] demasiado/i.test((ultimo && ultimo.message) || '')
+                ? 'El backtest terminó, pero el servidor tardó demasiado en entregar las velas. Pulsa Reintentar: el resultado ya está calculado.'
+                : `No se pudo cargar el resultado en el gráfico: ${(ultimo && ultimo.message) || 'error desconocido'}`;
+            return false;
         }
 
         // ───────────── replay (mismo resultado, vela por vela) ─────────────
@@ -336,7 +354,7 @@
         }
         function htmlProgreso() {
             const j = st.job;
-            if (st.error) return `<p class="lab-error">${esc(st.error)}</p>`;
+            if (st.error) return `<p class="lab-error">${esc(st.error)}</p>${st.reintentarRes ? '<button type="button" class="lab-sec" data-a="reintentarRes"><i class="ph ph-arrow-clockwise"></i> Reintentar</button>' : ''}`;
             if (!j) return '';
             const p = Math.round(j.progress || 0);
             const txt = { queued: 'En cola', data: 'Cargando datos', engine: 'Motor', simulation: 'Simulando', done: 'Listo', error: 'Error', cancelled: 'Cancelado' }[j.status] || j.status;
@@ -495,6 +513,7 @@
             if (acc === 'reset') { detenerReplay(); iniciarReplay(); pintar(); }
             if (acc === 'guardarPreset') guardarPreset();
             if (acc === 'reintentarConfig') { st.error = ''; pintar(); cargarConfig(); }
+            if (acc === 'reintentarRes' && st.reintentarRes) { const id = st.reintentarRes; st.error = ''; pintar(); cargarResultado(id).finally(pintar); }
             if (acc === 'abrirReplay' && NLTCharts.replayApi) { const m = st.res.meta; salirGrafico(); api.abrir(false); NLTCharts.replayApi.iniciar(m.symbol, m.timeframe, m.dataset.first); }
         });
         el.addEventListener('change', (ev) => {

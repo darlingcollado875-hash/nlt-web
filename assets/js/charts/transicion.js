@@ -8,11 +8,12 @@
 (function () {
     function montar({ chart, stageEl }) {
         if (!chart || !stageEl) return { iniciar() {}, terminar() {} };
-        let capa = null, vigilante = null;
+        let capa = null, vigilante = null, retenida = false, pendiente = false;
         const reducido = () => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; } };
 
         function quitar(c) { if (c && c.parentNode) c.parentNode.removeChild(c); }
-        function terminar() {
+        function terminar(forzar) {
+            if (retenida && !forzar) { pendiente = true; return; }       // otra operación sigue en curso (p. ej. el replay creando su sesión)
             clearTimeout(vigilante);
             if (!capa) return;
             const c = capa; capa = null;
@@ -36,9 +37,11 @@
             requestAnimationFrame(() => requestAnimationFrame(() => c.classList.add('on')));
             // seguro: si por algún motivo nunca llegan datos, la capa no se queda para siempre
             clearTimeout(vigilante);
-            vigilante = setTimeout(terminar, 90000);
+            vigilante = setTimeout(() => { retenida = false; terminar(true); }, 90000);
         }
-        return { iniciar, terminar, activa: () => !!capa };
+        /** retener(true): ignora los "ya llegaron datos" de cargas anteriores (la carga en vivo que sigue a salir del backtest) hasta retener(false). */
+        function retener(si) { retenida = !!si; if (!si && pendiente) { pendiente = false; /* los datos de la nueva operación llegan después: la quitan ellos */ } }
+        return { iniciar, terminar, retener, activa: () => !!capa };
     }
     window.NLTCharts = window.NLTCharts || {};
     window.NLTCharts.transicion = { montar };
