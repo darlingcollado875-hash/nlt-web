@@ -105,13 +105,13 @@
             const mio = ++op;
             const t0 = performance.now();
             st.cargando = true; st.error = ''; pintar();
-            if (trans()) trans().iniciar(etiqueta || 'Preparando el replay');
+            if (trans()) { trans().iniciar(etiqueta || 'Preparando el replay'); trans().retener(true); }
             let r;
             try {
                 // si el servidor de precios tarda de más con una fecha lejana, un segundo intento suele salir de la caché que dejó el primero
                 try { r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs, 60000); }
                 catch (e1) { if (mio !== op || !/tard[óo] demasiado/i.test(e1.message || '')) throw e1; r = await NLT_API.chartsReplayCrear(symbol, tf, inicioMs, 90000); }
-            } catch (err) { if (mio === op) { st.error = err.message; st.cargando = false; if (trans()) trans().terminar(); if (app.sincronizarToolbar) app.sincronizarToolbar(); pintar(); } return; }
+            } catch (err) { if (mio === op) { st.error = err.message; st.cargando = false; if (trans()) { trans().retener(false); trans().terminar(true); } if (app.sincronizarToolbar) app.sincronizarToolbar(); pintar(); } return; }
             if (mio !== op) { NLT_API.chartsReplayCerrar(r.id).catch(() => {}); return; }   // ya no la quiere nadie
             if (st.ses && st.ses.id !== r.id) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             st.ses = r; st.cargando = false;
@@ -122,6 +122,7 @@
             vigilar(mio);
         }
         function activar(klines) {
+            if (trans()) trans().retener(false);       // desde acá, los datos que lleguen son los del replay
             const r = st.ses;
             const mismo = app.simbolo() === r.symbol && app.timeframe() === r.timeframe;
             st.activo = true;
@@ -200,7 +201,7 @@
         function salir() {
             detener();
             ++op; st.cargando = false; st.pidiendo = false; st.preparandoZE = false;
-            if (trans()) trans().terminar();
+            if (trans()) { trans().retener(false); trans().terminar(true); }
             if (st.ses) NLT_API.chartsReplayCerrar(st.ses.id).catch(() => {});
             const estaba = st.activo;
             st.activo = false; st.ses = null; st.error = ''; st.eligiendo = false;

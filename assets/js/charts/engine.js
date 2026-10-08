@@ -241,6 +241,17 @@
         // que el cálculo, el gráfico parecía congelado aunque el reloj avanzaba. Se pide un repintado propio (uno por frame)
         // con los datos ya agregados; los indicadores lentos se dibujan cuando terminan (el dibujo de resultados viejos se
         // omite solo, ver fluidez.js).
+        // scrollToTimestamp deja la vela pedida en el BORDE DERECHO: al ir a una fecha o a una operación se veía solo el pasado y a la
+        // derecha un vacío (como si no hubiera cargado). Esto deja la vela hacia el centro (`frac` = cuánto de la pantalla va a su derecha).
+        function irACentrado(ts, ms = 0, frac = 0.5) {
+            const dl = chart.getDataList();
+            if (!dl.length) return;
+            let lo = 0, hi = dl.length - 1;
+            while (lo < hi) { const m = (lo + hi + 1) >> 1; if (dl[m].timestamp <= ts) lo = m; else hi = m - 1; }
+            const vr = chart.getVisibleRange();
+            const vis = Math.max(20, ((vr.realTo ?? vr.to) - (vr.realFrom ?? vr.from)) || 80);
+            chart.scrollToTimestamp(dl[Math.min(dl.length - 1, lo + Math.round(vis * frac))].timestamp, ms);
+        }
         let repintando = false;
         function repintarYa() {
             if (repintando) return;
@@ -465,6 +476,7 @@
                 if (recargar) chart.resetData();
             },
             enModoExterno: () => !!externo,
+            irACentrado,
             // ── histórico profundo ──
             /** irAFecha(ms, { onProgreso }) -> { modo: 'cache' | 'contiguo' | 'ventana', ms } */
             async irAFecha(ms, { onProgreso } = {}) {
@@ -475,7 +487,7 @@
                 let dl = chart.getDataList();
                 // 1) ya cargada: salto inmediato
                 if (dl.length && objetivo >= dl[0].timestamp && (!ventana || objetivo <= dl[dl.length - 1].timestamp)) {
-                    chart.scrollToTimestamp(objetivo, 0);
+                    irACentrado(objetivo, 0);
                     return { modo: 'cache', ms: Math.round(performance.now() - t0) };
                 }
                 // 2) cerca de lo cargado: se completa hacia la izquierda (queda contiguo)
@@ -490,7 +502,7 @@
                         dl = chart.getDataList();
                     }
                     if (dl.length && dl[0].timestamp <= objetivo) {
-                        chart.scrollToTimestamp(objetivo, 0);
+                        irACentrado(objetivo, 0);
                         return { modo: 'contiguo', ms: Math.round(performance.now() - t0) };
                     }
                 }
@@ -508,7 +520,7 @@
                 let info;
                 try { info = await listo; }
                 catch (e) { if (ventana === v) this.volverAlPresente(); throw e; }      // falló: no se deja el gráfico vacío, vuelve al vivo
-                chart.scrollToTimestamp(objetivo, 0);
+                irACentrado(objetivo, 0);
                 return { modo: 'ventana', ms: Math.round(performance.now() - t0), ...info };
             },
             volverAlPresente() {
