@@ -224,6 +224,21 @@
         // Movimiento fluido (solo visual): tween de la vela en curso y entrada suave de la vela nueva
         const fluidez = NLTCharts.fluidez ? NLTCharts.fluidez.crear(chart) : null;
         const aplicarVela = (cb, vela) => (fluidez ? fluidez.aplicar(cb, vela) : cb(vela));
+        // KLineChart repinta una vela nueva SOLO cuando terminan de calcular TODOS los indicadores. Si alguno es lento (Suite,
+        // Zone Engine pidiendo velas al servidor), la vela aparecía con retraso y, en PLAY con las velas llegando más rápido
+        // que el cálculo, el gráfico parecía congelado aunque el reloj avanzaba. Se pide un repintado propio (uno por frame)
+        // con los datos ya agregados; los indicadores lentos se dibujan cuando terminan (el dibujo de resultados viejos se
+        // omite solo, ver fluidez.js).
+        let repintando = false;
+        function repintarYa() {
+            if (repintando) return;
+            repintando = true;
+            requestAnimationFrame(() => {
+                repintando = false;
+                try { chart.layout({ measureWidth: true, update: true, buildYAxisTick: true, cacheYAxisWidth: true }); }
+                catch (_) { try { chart.setStyles({}); } catch (__) { /* sin redibujo extra */ } }
+            });
+        }
 
         chart.setDataLoader({
             // En KLineChart 10, "forward" pide historia MÁS VIEJA (a la
@@ -496,6 +511,7 @@
                 const vs = externo.velas, u = vs[vs.length - 1];
                 if (u && u.timestamp === vela.timestamp) vs[vs.length - 1] = vela; else if (!u || vela.timestamp > u.timestamp) vs.push(vela);
                 aplicarVela(empujarExterno, vela);
+                repintarYa();
             },
             fluidez: () => fluidez,
             destruir() {
