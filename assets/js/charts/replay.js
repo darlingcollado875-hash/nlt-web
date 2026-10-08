@@ -76,10 +76,13 @@
             try {
                 if (navigator.connection && navigator.connection.saveData) return;
                 if (!st.ses || !NLT_API.chartsHistoria) return;
+                // Historia de más de ~6 meses: el servidor la pide al proveedor DE A UNA y cada pedido tarda 5-20 s; precalentar ahí hacía
+                // esperar al usuario su propio replay detrás de la precarga. Solo se precalienta con fechas recientes.
+                if (Date.now() - st.ses.cursor_ts > 150 * 86400000) return;
                 const i = ORDEN_TF.indexOf(st.ses.timeframe);
-                const vecinos = [ORDEN_TF[i - 1], ORDEN_TF[i + 1], ORDEN_TF[i - 2]].filter(Boolean);
+                const vecinos = [ORDEN_TF[i - 1], ORDEN_TF[i + 1]].filter(Boolean);
                 for (const tf of vecinos) {
-                    if (mio !== op || !st.activo || !st.ses) return;
+                    if (mio !== op || !st.activo || !st.ses || st.timer || st.pidiendo) return;       // el usuario ya está operando el replay: no se le compite
                     while (document.hidden) { await new Promise((r) => setTimeout(r, 2000)); if (mio !== op || !st.activo) return; }
                     const cierre = st.ses.cursor_ts + DUR[st.ses.timeframe], inicio = cierre - DUR[tf];
                     const desde = inicio - 600 * DUR[tf] * 1.5, hasta = Math.min(Date.now(), inicio + 450 * DUR[tf] * 1.6);
@@ -148,6 +151,23 @@
                 chart.scrollToRealTime();
             } catch (_) { /* sin tamaño todavía: la próxima vela lo intenta */ }
         }
+        // La sesión del replay vive en la memoria del servidor: si el servidor se reinicia (despliegue), la sesión se cierra por tiempo o el
+        // usuario abre varias y se descarta la más vieja, el siguiente paso devuelve 404 "Sesión de replay no encontrada". En vez de dejar
+        // el replay roto, se abre otra sesión en la MISMA vela (con la transición) y se sigue donde estaba, reanudando Play si corría.
+        const sesionPerdida = (err) => !!err && (err.status === 404 || /sesi[óo]n de replay no encontrada/i.test(err.message || ''));
+        let recuperando = false, intentosRecuperar = 0;
+        async function recuperarSesion(reanudar) {
+            if (recuperando || !st.ses || !st.activo) return false;
+            if (intentosRecuperar >= 3) { st.error = 'La sesión del replay se perdió varias veces seguidas. Pulsa la vela de partida para empezar de nuevo.'; pintar(); return false; }
+            recuperando = true; intentosRecuperar += 1;
+            const x = st.ses;
+            try {
+                st.error = '';
+                await iniciar(x.symbol, x.timeframe, x.cursor_ts, 'Reconectando el replay');
+            } finally { recuperando = false; }
+            if (st.activo && !st.error) { intentosRecuperar = 0; if (reanudar) play(); return true; }
+            return false;
+        }
         async function siguiente(n = 1) {
             if (!st.activo || st.pidiendo) return false;
             st.pidiendo = true;
@@ -162,7 +182,16 @@
                 if (r.candles.length) { app.pro.velaNueva(); seguirUltimaVela(); }
                 mas = r.has_more;
                 if (!mas) { detener(); st.error = 'Fin de los datos cargados para este replay.'; }
-            } catch (err) { if (mio !== op) { st.pidiendo = false; return false; } st.error = err.message; detener(); }
+            } catch (err) {
+                if (mio !== op) { st.pidiendo = false; return false; }
+                if (sesionPerdida(err)) {
+                    const corria = !!st.timer;
+                    detener(); st.pidiendo = false;
+                    recuperarSesion(corria);                 // sigue por su cuenta (no bloquea el bucle de Play)
+                    return false;
+                }
+                st.error = err.message; detener();
+            }
             st.pidiendo = false;
             pintar();
             return mas;
@@ -187,7 +216,7 @@
                 limpiarCaches();
                 motor.modoExterno({ velas: r.candles.map(aK) });
                 app.pro.velaNueva();
-            } catch (err) { if (mio !== op) return; st.error = err.message; }
+            } catch (err) { if (mio !== op) return; if (sesionPerdida(err)) { recuperarSesion(false); return; } st.error = err.message; }
             pintar();
         }
         // Otro símbolo o timeframe durante el replay: nueva sesión en el MISMO momento. La última vela
