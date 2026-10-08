@@ -86,10 +86,73 @@
             return out;
         }
 
+        // ── Aviso tipo notificación de iOS: "Estás en tal fecha" ──
+        const host = el.parentElement;
+        let aviso = null, avisoTimer = null, carga = null;
+        const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
+        const DIAS_SEM = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+        function haceTanto(ms) {
+            const dias = Math.max(0, Math.round((Date.now() - ms) / 86400000));
+            if (dias < 1) return 'hoy';
+            if (dias < 31) return `hace ${dias} ${dias === 1 ? 'día' : 'días'}`;
+            const m = Math.round(dias / 30.44);
+            if (m < 12) return `hace ${m} ${m === 1 ? 'mes' : 'meses'}`;
+            const a = Math.floor(m / 12), r = m % 12;
+            return `hace ${a} ${a === 1 ? 'año' : 'años'}${r ? ` y ${r} ${r === 1 ? 'mes' : 'meses'}` : ''}`;
+        }
+        function cerrarAviso() {
+            clearTimeout(avisoTimer);
+            if (!aviso) return;
+            const a = aviso; aviso = null;
+            el.classList.remove('nlt-bajo-aviso');
+            a.classList.remove('on'); a.classList.add('sale');
+            setTimeout(() => a.remove(), 450);
+        }
+        function mostrarAviso(ms) {
+            if (!host) return;
+            cerrarAviso();
+            const d = new Date(ms);
+            const hora = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            const a = document.createElement('div');
+            a.className = 'nlt-ios'; a.setAttribute('role', 'status'); a.setAttribute('aria-live', 'polite');
+            a.innerHTML = `
+                <span class="nlt-ios-ico"><i class="ph-fill ph-calendar-check"></i></span>
+                <div class="nlt-ios-txt">
+                    <div class="nlt-ios-app"><b>NLT CHARTS</b><span>ahora</span></div>
+                    <div class="nlt-ios-t">Estás en el ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}</div>
+                    <div class="nlt-ios-s">${esc(DIAS_SEM[d.getDay()])} · ${esc(hora)} · ${esc(app.simbolo())} ${esc(app.timeframe())} · ${esc(haceTanto(ms))}</div>
+                </div>
+                <button type="button" class="nlt-ios-b" data-ios="presente">Volver al presente</button>`;
+            a.addEventListener('click', (ev) => {
+                if (ev.target.closest('[data-ios="presente"]')) { motor.volverAlPresente(); cerrarAviso(); return; }
+                cerrarAviso();
+            });
+            // deslizar hacia arriba para descartarla (como en iOS)
+            let y0 = null;
+            a.addEventListener('pointerdown', (ev) => { y0 = ev.clientY; });
+            a.addEventListener('pointerup', (ev) => { if (y0 != null && y0 - ev.clientY > 18) cerrarAviso(); y0 = null; });
+            host.appendChild(a);
+            aviso = a;
+            el.classList.add('nlt-bajo-aviso');         // el panel de fecha se aparta mientras dura el aviso (ocupan el mismo lugar)
+            requestAnimationFrame(() => requestAnimationFrame(() => a.classList.add('on')));
+            avisoTimer = setTimeout(cerrarAviso, 6500);
+            try { if (navigator.vibrate) navigator.vibrate(8); } catch (_) { /* sin vibración */ }
+        }
+        // Mientras llegan las velas el gráfico no se queda en blanco sin explicación
+        function mostrarCarga(ms) {
+            if (!host) return;
+            if (!carga) { carga = document.createElement('div'); carga.className = 'nlt-fcarga'; carga.setAttribute('role', 'status'); host.appendChild(carga); }
+            const d = new Date(ms);
+            carga.innerHTML = `<i class="ph ph-spinner"></i><div><b>Yendo al ${d.getDate()} de ${MESES[d.getMonth()]} de ${d.getFullYear()}</b><span>Cargando las velas…</span></div>`;
+            requestAnimationFrame(() => carga && carga.classList.add('on'));
+        }
+        function quitarCarga() { if (carga) { const c = carga; carga = null; c.classList.remove('on'); setTimeout(() => c.remove(), 250); } }
+
         async function ir(ms) {
             if (motor.enModoExterno()) { st.error = 'En Bar Replay / Backtest la fecha se elige desde su propio panel.'; pintar(); return null; }
             if (st.cargando) return null;
             st.cargando = true; st.error = ''; st.prog = null; pintar();
+            cerrarAviso(); mostrarCarga(ms);
             const t0 = performance.now();
             const antes = motor.metricasHistorico().pedidos.length;
             try {
@@ -97,6 +160,7 @@
                 const pedidos = motor.metricasHistorico().pedidos.slice(antes);
                 st.ultimo = { ...r, destino: ms, total_ms: Math.round(performance.now() - t0), pedidos: pedidos.length,
                     velas_servidor_pedidas: pedidos.reduce((a, x) => a + (x.prov || 0), 0), hit: pedidos.every((x) => x.hit) };
+                quitarCarga(); mostrarAviso(ms);
                 return st.ultimo;
             } catch (err) {
                 st.reintento = ms;
@@ -105,6 +169,7 @@
                     : err.message;
                 return null;
             } finally {
+                quitarCarga();
                 st.cargando = false; st.prog = null;
                 pintar();
             }
