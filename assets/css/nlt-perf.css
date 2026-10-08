@@ -1,0 +1,29 @@
+/* NLT Perf -- reglas por nivel (ver assets/js/nlt-perf.js). En nivel "alto" no hace nada: el diseño es el de siempre. */
+
+/* ───────── medio y bajo: lo que más cuesta en Safari y en equipos justos ───────── */
+/* Desenfoque de fondo: en WebKit obliga a recomponer lo de atrás en CADA cuadro. Las superficies "de cristal" ya son casi opacas,
+   así que sin el desenfoque se ven prácticamente igual. */
+html[data-perf="medio"] *, html[data-perf="bajo"] *,
+html[data-perf="medio"] *::before, html[data-perf="bajo"] *::before {
+    -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
+/* Las capas que van ENCIMA del contenido pierden su desenfoque: se compensa con un fondo más sólido para que se lea igual. */
+html[data-perf="medio"] #sidebar, html[data-perf="bajo"] #sidebar { background-color: rgba(8, 10, 15, .97) !important; }
+html[data-perf="medio"] .modal-overlay, html[data-perf="bajo"] .modal-overlay,
+html[data-perf="medio"] .cd-overlay, html[data-perf="bajo"] .cd-overlay { background: rgba(4, 6, 10, .86) !important; }
+/* Fondo fijo: en Safari repinta toda la pantalla al desplazar (y iOS lo ignora). */
+html[data-perf="medio"] body, html[data-perf="bajo"] body, html.es-safari body { background-attachment: scroll !important; }
+/* Resplandores hechos con blur grande */
+html[data-perf="medio"] .nlt-glowborder::before, html[data-perf="bajo"] .nlt-glowborder::before { display: none !important; }
+
+/* ───────── bajo: sin adornos en movimiento ───────── */
+html[data-perf="bajo"] .animate-pulse, html[data-perf="bajo"] .animate-bounce, html[data-perf="bajo"] .animate-ping,
+html[data-perf="bajo"] .nlt-skel, html[data-perf="bajo"] [data-skel], html[data-perf="bajo"] .sc-skel, html[data-perf="bajo"] [class*="shimmer"], html[data-perf="bajo"] [class*="glow"],
+html[data-perf="bajo"] .nr-pill, html[data-perf="bajo"] .nr-pill .nr-pt, html[data-perf="bajo"] .nr-barrido, html[data-perf="bajo"] .nrp-radar::before {
+    animation: none !important;
+}
+html[data-perf="bajo"] .glass-card, html[data-perf="bajo"] .glass-item, html[data-perf="bajo"] .nr-card, html[data-perf="bajo"] #nrPanel {
+    box-shadow: none !important;
+}
+html[data-perf="bajo"] * { text-shadow: none !important; }
+html[data-perf="bajo"] ::view-transition-group(*), html[data-perf="bajo"] ::view-transition-old(*), html[data-perf="bajo"] ::view-transition-new(*) { animation: none !important; }

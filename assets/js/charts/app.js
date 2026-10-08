@@ -11,7 +11,47 @@
         estado.classList.toggle('error', !!error);
     }
 
+    // Sin esto, cualquier fallo al montar una pieza dejaba el gráfico en "Cargando…" para siempre y sin decir nada.
+    // Ahora se avisa con el motivo y un botón para reintentar; y si en 25 s no apareció ninguna vela, también.
+    let primeraData = false, vigilante = null, resolverPrimera = null;
+    const primeraDataP = new Promise((r) => { resolverPrimera = r; });
+    // Los <script type="nlt/diferido"> de charts.html no se ejecutan solos: se piden aquí, en paralelo y ejecutándose EN ORDEN.
+    // Si uno falla (red, bloqueador) se sigue sin él: cada pieza se monta solo si existe.
+    function cargarDiferidos() {
+        const tags = Array.from(document.querySelectorAll('script[type="nlt/diferido"]'));
+        if (!tags.length) return Promise.resolve();
+        return new Promise((resolver) => {
+            let pendientes = tags.length;
+            const fin = () => { if (--pendientes === 0) resolver(); };
+            tags.forEach((t) => {
+                const s = document.createElement('script');
+                s.src = t.getAttribute('src'); s.async = false;      // async=false: se bajan a la vez pero se ejecutan en el orden del HTML
+                s.onload = fin; s.onerror = () => { console.warn('[NLT Charts] no se pudo cargar', s.src); fin(); };
+                document.head.appendChild(s);
+            });
+        });
+    }
+    function mostrarFallo(texto) {
+        estado.hidden = false; estado.classList.add('error');
+        estado.innerHTML = '';
+        const t = document.createElement('span'); t.textContent = texto + ' ';
+        const b = document.createElement('button'); b.type = 'button'; b.textContent = 'Reintentar'; b.className = 'ch-btn';
+        b.style.cssText = 'margin-left:8px;padding:4px 12px'; b.addEventListener('click', () => location.reload());
+        estado.append(t, b);
+    }
+    function vigilar() {
+        clearTimeout(vigilante);
+        vigilante = setTimeout(() => {
+            if (!primeraData) mostrarFallo('El gráfico está tardando más de lo normal en cargar (revisa tu conexión).');
+        }, 25000);
+    }
+    window.addEventListener('error', (e) => {
+        // Un script que no se pudo cargar (red, bloqueador) o un error al arrancar: se dice, no se queda mudo.
+        if (!primeraData && e && e.target && e.target.tagName === 'SCRIPT') mostrarFallo('No se pudo cargar una parte del gráfico (' + String(e.target.src || '').split('/').pop().split('?')[0] + ').');
+    }, true);
+
     async function init() {
+        vigilar();
         const session = await NLT.requireSession();
         if (!session) return;
         state.setUser(session.user.id);
@@ -49,6 +89,7 @@
             onData: ({ demo, primera }) => {
                 toolbar.setDemo(demo);
                 if (primera) NLTCharts.diag.marcarCarga();
+                primeraData = true; clearTimeout(vigilante); if (resolverPrimera) resolverPrimera();
                 mostrarEstado('');
                 if (primera && dib) { dib.restaurar(); if (pro) pro.dibujosRestaurados(); }
             },
@@ -170,6 +211,27 @@
         }
         let noticias = null, multi = null, alertas = null, paper = null, trader = null, scripts = null;
         cargar();
+        pro.iniciar();
+        nltAi.iniciar();
+        window.NLTCharts.motor = motor; // para depurar desde la consola
+        window.NLTCharts.app = {
+            activarIndicador: (id) => ind.activar(id), desactivarIndicador: (id) => ind.desactivar(id), indicadoresActivos: () => ind.activos(),
+            pro, nltAi, dibujos: dib, motor, paper: () => paper, trader: () => trader, scripts: () => scripts,
+            // NLT Backtest Lab: lleva el gráfico a un símbolo/timeframe por el mismo camino que la barra
+            irA(s, tf) {
+                if (tf && tf !== timeframe && catalogo.timeframes.includes(tf)) {
+                    timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); pro.cambioDeTimeframe();
+                }
+                if (s !== symbol) cambiarSimbolo(s); else cargar();
+            },
+            simbolo: () => symbol, timeframe: () => timeframe, multi: () => multi,
+        };   // favoritos PRO, consola y Backtest Lab
+        // Lo esencial ya está en marcha (precios, indicadores, dibujos, zonas). Lo demás -multigráfico, alertas, simulador, operar,
+        // NLT Script, replay, backtest, noticias...- se descarga y se monta DESPUÉS de que aparezcan las velas, sin competir con ellas
+        // por el hilo principal (antes se bajaban y ejecutaban ~500 KB de JS antes de poder ver el primer gráfico).
+        await Promise.race([primeraDataP, new Promise((r) => setTimeout(r, 9000))]);
+        await new Promise((r) => (window.requestIdleCallback ? window.requestIdleCallback(r, { timeout: 1200 }) : setTimeout(r, 150)));
+        await cargarDiferidos();
         if (NLTCharts.multi) {
             try {
                 multi = NLTCharts.multi.montar({
@@ -200,21 +262,6 @@
             try { noticias = NLTCharts.noticias.montar({ chart: motor.chart, getSymbol: () => symbol, simbolos: catalogo.symbols }); } catch (e) { console.warn('[NLT Charts] avisos de noticias no disponibles', e); }
         }
         if (NLTCharts.ratings) { try { NLTCharts.ratings.montar({ chart: motor.chart, getSymbol: () => symbol, getTimeframe: () => timeframe }); } catch (e) { console.warn('[NLT Charts] análisis técnico no disponible', e); } }
-        pro.iniciar();
-        nltAi.iniciar();
-        window.NLTCharts.motor = motor; // para depurar desde la consola
-        window.NLTCharts.app = {
-            activarIndicador: (id) => ind.activar(id), desactivarIndicador: (id) => ind.desactivar(id), indicadoresActivos: () => ind.activos(),
-            pro, nltAi, dibujos: dib, motor, paper: () => paper, trader: () => trader, scripts: () => scripts,
-            // NLT Backtest Lab: lleva el gráfico a un símbolo/timeframe por el mismo camino que la barra
-            irA(s, tf) {
-                if (tf && tf !== timeframe && catalogo.timeframes.includes(tf)) {
-                    timeframe = tf; toolbar.setTimeframe(tf); state.savePrefs({ timeframe }); ind.cambioTimeframe(); pro.cambioDeTimeframe();
-                }
-                if (s !== symbol) cambiarSimbolo(s); else cargar();
-            },
-            simbolo: () => symbol, timeframe: () => timeframe, multi: () => multi,
-        };   // favoritos PRO, consola y Backtest Lab
         NLTCharts.replay && NLTCharts.replay.montar({ el: document.getElementById('chReplay'), boton: document.getElementById('chBtnReplay') });
         NLTCharts.historia && NLTCharts.historia.montar({ el: document.getElementById('chHistoria'), boton: document.getElementById('chBtnHistoria') });
         NLTCharts.backtest && NLTCharts.backtest.montar({
@@ -222,5 +269,8 @@
         });
     }
 
-    init();
+    init().catch((e) => {
+        console.error('[NLT Charts] no se pudo iniciar', e);
+        mostrarFallo('No se pudo iniciar el gráfico (' + ((e && e.message) || 'error') + ').');
+    });
 })();

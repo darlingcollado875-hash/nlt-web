@@ -28,8 +28,9 @@
         const buena = v.clave === 'optima' || v.clave === 'valida';
         const fuente = buena ? [...lista(a.confluences), ...lista(a.confirmation_required)] : [...lista(a.invalidation), ...lista(a.warnings), ...lista(a.confirmation_required)];
         if (fuente.length) return recorta(fuente[0], 120);
-        const e = String(a.explanation || '').split(/(?<=[.!?])\s/)[0];
-        return recorta(e, 120);
+        // Primera frase. (Sin lookbehind `(?<=…)`: Safari anterior a 16.4 no entiende esa sintaxis y descarta el archivo ENTERO.)
+        const texto = String(a.explanation || ''), m = texto.match(/^[\s\S]*?[.!?](?=\s)/);
+        return recorta(m ? m[0] : texto, 120);
     }
     function resumen(a) {
         const v = veredicto(a); if (!v) return null;

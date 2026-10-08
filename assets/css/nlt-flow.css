@@ -5,7 +5,7 @@
    primer paint y la transicion se perdia. Header, sidebar y fondo liquido se
    quedan fijos; solo el contenido hace fundido. Navegadores sin soporte lo
    ignoran por completo. */
-@view-transition { navigation: auto; }
+/* @view-transition lo activa assets/js/nlt-perf.js solo en equipos fuertes (en WebKit/equipos justos retrasa cada navegación) */
 header.nav-blur { view-transition-name: nlt-header; }
 #sidebar { view-transition-name: nlt-sidebar; }
 #nlt-liquid-bg { view-transition-name: nlt-bg; }
