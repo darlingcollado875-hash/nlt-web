@@ -221,6 +221,30 @@
         .dm-img-fallo { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; line-height: 1.2; }
         .dm-img-fallo button { font-size: 13px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
         .dm-img-fallo .dm-img-quitar { background: transparent; border-color: transparent; font-weight: 500; color: #E5E7EB; padding: 2px 10px; }
+        /* Llamadas: chip del chat global, botón del chat privado y aviso de llamada entrante */
+        .chip-llamada { color: #86efac; border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.1); }
+        .chip-llamada.hidden { display: none; }
+        .chip-llamada.viva { background: #16a34a; color: #fff; border-color: transparent; animation: llPulso 1.8s ease-in-out infinite; }
+        .chip-llamada.dentro { background: #fff; color: #0b0f17; border-color: transparent; }
+        @keyframes llPulso { 0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,.55); } 50% { box-shadow: 0 0 0 8px rgba(34,197,94,0); } }
+        .dm-llamar { width: 40px; height: 40px; border-radius: 999px; border: 0; background: rgba(255,255,255,0.06); color: #E5E7EB; font-size: 19px; cursor: pointer; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; margin-left: 4px; }
+        .dm-llamar.activa { background: #16a34a; color: #fff; animation: llPulso 1.8s ease-in-out infinite; }
+        .dm-llamar.dentro { background: #fff; color: #0b0f17; }
+        .dm-llamar.hidden { display: none; }
+        @media (min-width: 1024px) { .dm-topbar { position: relative; } .dm-llamar { position: absolute; right: 8px; top: 6px; } }
+        .llamada-entrante { position: fixed; left: 10px; right: 10px; top: calc(env(safe-area-inset-top, 0px) + 10px); z-index: 2147483000; max-width: 460px; margin: 0 auto;
+            background: rgba(12,16,26,.97); border: 1px solid rgba(34,197,94,.45); border-radius: 20px; padding: 12px 14px; display: flex; align-items: center; gap: 12px;
+            box-shadow: 0 18px 50px rgba(0,0,0,.6); animation: llEntra .25s ease-out; }
+        .llamada-entrante.hidden { display: none; }
+        .llamada-entrante .ll-av { width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg,#3b4658,#252d3b); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; overflow: hidden; flex: none; animation: llPulso 1.6s ease-in-out infinite; }
+        .llamada-entrante .ll-av img { width: 100%; height: 100%; object-fit: cover; }
+        .llamada-entrante .ll-txt { flex: 1; min-width: 0; font-size: 13px; line-height: 1.25; }
+        .llamada-entrante .ll-txt b { display: block; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .llamada-entrante button { border: 0; border-radius: 999px; padding: 10px 16px; font-size: 13px; font-weight: 700; cursor: pointer; flex: none; }
+        .llamada-entrante .ll-ok { background: #16a34a; color: #fff; }
+        .llamada-entrante .ll-no { background: rgba(255,255,255,.1); color: #e5e7eb; padding: 10px 12px; }
+        @keyframes llEntra { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: none; } }
         .dm-dia { display: flex; justify-content: center; margin: 14px 0 8px; }
         .dm-dia span { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: #9CA3AF; background: rgba(255,255,255,0.05); padding: 3px 11px; border-radius: 999px; }
         .dm-mas { text-align: center; font-size: 11px; color: #6B7280; padding: 4px 0 10px; min-height: 22px; }
@@ -463,7 +487,8 @@
             </div>
 
             <div id="chatAutorizado" class="hidden">
-                <div class="flex items-center justify-end mb-2">
+                <div class="flex items-center justify-between gap-2 mb-2">
+                    <button id="btn-chat-llamada" type="button" class="chip chip-llamada hidden" title="Llamada de voz para todo Community: toca para empezar una o unirte a la que esté en curso"><i class="ph-fill ph-phone-call" aria-hidden="true"></i> <span>Llamada grupal</span></button>
                     <button id="btn-chat-avisos" type="button" class="chip" aria-pressed="true" title="Avisos de mensajes nuevos del chat global (campana y notificación del teléfono)"><i class="ph ph-bell-ringing" aria-hidden="true"></i> <span>Avisos: activados</span></button>
                 </div>
                 <div class="msg-scroll mb-1">
@@ -515,6 +540,7 @@
                     <div class="dm-topbar">
                         <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer" aria-label="Volver a Mensajes"><i class="ph ph-arrow-left"></i> <span class="dm-volver-txt">Volver a Mensajes</span></button>
                         <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
+                        <button id="btn-dm-llamar" type="button" class="dm-llamar hidden" aria-label="Llamar" title="Llamar"><i class="ph-fill ph-phone" aria-hidden="true"></i></button>
                     </div>
                     <div class="msg-scroll mb-1">
                         <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh; height: 50dvh;">
@@ -554,9 +580,12 @@
         <img id="lightboxImg" alt="Imagen">
     </div>
 
+    <div id="llamadaEntrante" class="llamada-entrante hidden" role="alertdialog" aria-live="assertive"></div>
+
     <script src="assets/vendor/supabase-2.117.3.js"></script>
-    <script src="assets/js/nlt-shared.js?v=f4c1719e"></script>
-    <script src="assets/js/nlt-api-client.js?v=03ccae48"></script>
+    <script src="assets/js/nlt-shared.js?v=513a1529"></script>
+    <script src="assets/js/nlt-api-client.js?v=a61dc0fd"></script>
+    <script src="assets/js/nlt-call.js?v=fc82752e"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -2079,6 +2108,7 @@
 
         async function abrirConversacion(conversationId, conversacionData) {
             conversacionActualId = conversationId;
+            LL.dm = { active: false, participants: [] }; pintarLlamadas(); setTimeout(pollLlamadas, 0);
             dmOtroParticipante = conversacionData || conversacionesCache.find(c => c.id === conversationId) || null;
             document.getElementById('dmListaBox').classList.add('hidden');
             document.getElementById('dmConversacionBox').classList.remove('hidden');
@@ -2136,6 +2166,7 @@
             if (conversacionActualId) NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {});
             conversacionActualId = null;
             dmOtroParticipante = null;
+            pintarLlamadas();
             cancelarReplyDM();
             const panel = document.getElementById('dmConversacionBox');
             // Sale deslizando hacia la derecha en mobile (la animación solo
@@ -2527,6 +2558,7 @@
                 }
                 dmCargado = true;
             }
+            pintarLlamadas(); pollLlamadas();
         }
         // Buscador de personas
         (function () {
@@ -2619,6 +2651,99 @@
         // y "marcar todas", con el contenido siempre escapado (nunca innerHTML
         // crudo de `message`/`title`).
 
+        // ───── Llamadas de voz (Community) ─────
+        // Chat global: UNA llamada para todos (quien toca el botón la crea; los demás se unen). Chat privado: una por conversación.
+        // La llamada vive en nlt-call.js y NO se corta al cambiar de página (ver ahí). Aquí solo van los botones y el aviso de llamada entrante.
+        const LL = { global: { active: false, participants: [] }, dm: { active: false, participants: [] }, descartadas: new Set(), entrante: null };
+        const llamadas = () => window.NLTCall;
+        const dentroDe = (scope, convId) => { const e = llamadas() && llamadas().estado(); return !!e && e.activa && e.scope === scope && (scope === 'global' || e.conversationId === convId); };
+
+        async function iniciarLlamada(scope, conversationId, label) {
+            if (!llamadas() || !miPerfil) return;
+            try { await llamadas().unirse({ scope, conversationId, label, myId: miPerfil.user_id }); }
+            catch (err) { llamadas().toast(err && err.message ? err.message : 'No se pudo entrar a la llamada.'); }
+            pintarLlamadas();
+        }
+
+        function pintarLlamadas() {
+            const chip = document.getElementById('btn-chat-llamada'), dm = document.getElementById('btn-dm-llamar');
+            const ok = esMiembro && llamadas() && llamadas().hayWebRTC;
+            const e = ok ? llamadas().estado() : null;
+            if (chip) {
+                chip.classList.toggle('hidden', !ok);
+                if (ok) {
+                    const dentro = dentroDe('global'), otros = dentro ? Math.max(0, e.participantes.length - 1) : LL.global.participants.length;
+                    chip.classList.toggle('dentro', dentro);
+                    chip.classList.toggle('viva', !dentro && LL.global.active);
+                    chip.querySelector('span').textContent = dentro ? `En llamada · ${e.participantes.length} · abrir` : (LL.global.active ? `Unirte a la llamada · ${LL.global.participants.length}` : 'Llamada grupal');
+                    chip.title = dentro ? 'Abrir los controles de la llamada' : (LL.global.active ? 'Hay una llamada grupal en curso' : 'Empezar una llamada grupal');
+                }
+            }
+            if (dm) {
+                dm.classList.toggle('hidden', !ok || !conversacionActualId);
+                if (ok && conversacionActualId) {
+                    const dentro = dentroDe('dm', conversacionActualId);
+                    dm.classList.toggle('dentro', dentro);
+                    dm.classList.toggle('activa', !dentro && LL.dm.active);
+                    dm.title = dentro ? 'Abrir los controles de la llamada' : (LL.dm.active ? 'Unirte a la llamada' : 'Llamar');
+                    dm.setAttribute('aria-label', dm.title);
+                }
+            }
+            mostrarEntrante(ok && !e.activa ? LL.entrante : null);
+        }
+
+        function mostrarEntrante(ent) {
+            const box = document.getElementById('llamadaEntrante');
+            if (!ent) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            if (box.getAttribute('data-call') === ent.call_id && !box.classList.contains('hidden')) return;
+            box.setAttribute('data-call', ent.call_id);
+            const nombre = ent.from.display_name || 'Alguien';
+            box.innerHTML = `<div class="ll-av">${ent.from.avatar_url ? `<img src="${esc(ent.from.avatar_url)}" alt="">` : esc(iniciales(nombre))}</div>
+                <div class="ll-txt"><b>${esc(nombre)}</b>te está llamando…</div>
+                <button type="button" class="ll-no" data-ll="no">Ahora no</button><button type="button" class="ll-ok" data-ll="si">Contestar</button>`;
+            box.classList.remove('hidden');
+        }
+        document.getElementById('llamadaEntrante').addEventListener('click', async (e) => {
+            const b = e.target.closest('[data-ll]'); const ent = LL.entrante;
+            if (!b || !ent) return;
+            LL.descartadas.add(ent.call_id); LL.entrante = null; pintarLlamadas();
+            if (b.getAttribute('data-ll') !== 'si') return;
+            await mostrarVista('mensajes');
+            await abrirConversacion(ent.conversation_id);
+            await iniciarLlamada('dm', ent.conversation_id, ent.from.display_name);
+        });
+        document.getElementById('btn-chat-llamada').addEventListener('click', () => (dentroDe('global') ? llamadas().abrirPanel() : iniciarLlamada('global', null, 'Community')));
+        document.getElementById('btn-dm-llamar').addEventListener('click', () => {
+            if (!conversacionActualId) return;
+            if (dentroDe('dm', conversacionActualId)) llamadas().abrirPanel();
+            else iniciarLlamada('dm', conversacionActualId, dmOtroParticipante ? dmOtroParticipante.other_display_name : '');
+        });
+
+        async function pollLlamadas() {
+            if (!esMiembro || !llamadas() || !llamadas().hayWebRTC) return;
+            try {
+                const e = llamadas().estado();
+                if (!e.activa) {
+                    const ent = await NLT_API.callEntrantes();
+                    LL.entrante = ent.find((x) => !LL.descartadas.has(x.call_id)) || null;
+                } else LL.entrante = null;
+                if (!document.getElementById('vistaChat').classList.contains('hidden')) LL.global = await NLT_API.callEstado('global');
+                if (conversacionActualId) LL.dm = await NLT_API.callEstado('dm', conversacionActualId);
+                else LL.dm = { active: false, participants: [] };
+            } catch (_) { /* un poll fallido no debe molestar */ }
+            pintarLlamadas();
+        }
+        if (window.NLTCall) window.NLTCall.alCambiar(() => { pintarLlamadas(); });
+
+        // Desde una notificación de llamada, sin recargar la página (recargar cortaría una llamada en curso)
+        window.irALlamadaDesdeAviso = async (href) => {
+            let u; try { u = new URL(href, window.location.href); } catch (_) { return; }
+            const c = u.searchParams.get('c');
+            await mostrarVista(u.searchParams.get('vista') === 'chat' ? 'chat' : 'mensajes');
+            if (c && u.searchParams.get('vista') !== 'chat') await abrirConversacion(c);
+            pollLlamadas();
+        };
+
         // --- Init ---
         async function init() {
             // skipProfileAvatar: el perfil/logout de esta página vive en
@@ -2691,7 +2816,10 @@
                 // Deep-link del Notification Center ("Nuevo DM" -> Community
                 // /Messages, ver nlt-shared.js::_NOTIF_HREFS) -- solo cambia de
                 // pestaña si el usuario ya es miembro (mismo gate que el resto).
-                if (esMiembro && (vistaParam === 'mensajes' || vistaParam === 'chat')) mostrarVista(vistaParam);
+                if (esMiembro && (vistaParam === 'mensajes' || vistaParam === 'chat')) {
+                    await mostrarVista(vistaParam);
+                    if (vistaParam === 'mensajes' && params.get('c')) await abrirConversacion(params.get('c'));
+                }
             }
 
             // Mismo patrón que signals-dashboard.html (NLT.pollWhileVisible,
@@ -2704,6 +2832,9 @@
             NLT.pollWhileVisible(pollComentariosAbiertos, 20000);
             NLT.pollWhileVisible(pollChatNuevo, 8000);
             NLT.pollWhileVisible(pollDMNuevo, 8000);
+            NLT.pollWhileVisible(pollLlamadas, 10000);
+            pintarLlamadas();
+            setTimeout(pollLlamadas, 600);
         }
         init();
     </script>

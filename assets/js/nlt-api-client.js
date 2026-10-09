@@ -563,6 +563,13 @@
         communityDMMarcarLeida: (conversationId) => request(`/community/dm/conversations/${conversationId}/read`, { method: 'POST' }),
         communityDMEscribiendo: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'POST' }),
         communityDMDejarDeEscribir: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'DELETE' }),
+        // --- Llamadas de Community (voz + compartir pantalla; ver nlt-call.js) ---
+        callUnirse: (scope, conversationId) => request('/community/calls/join', { method: 'POST', body: JSON.stringify({ scope, conversation_id: conversationId || null }) }),
+        callSync: (callId, datos) => request(`/community/calls/${callId}/sync`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
+        callSenal: (callId, datos) => request(`/community/calls/${callId}/signal`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
+        callSalir: (callId) => request(`/community/calls/${callId}/leave`, { method: 'POST', intentos: 1 }),
+        callEstado: (scope, conversationId) => request(`/community/calls/active?scope=${scope}${conversationId ? '&conversation_id=' + encodeURIComponent(conversationId) : ''}`, { intentos: 1 }),
+        callEntrantes: () => request('/community/calls/incoming', { intentos: 1 }),
         communityDMQuienEscribe: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`),
 
         // --- Equipo + Acuerdos + Firma Electrónica ---
