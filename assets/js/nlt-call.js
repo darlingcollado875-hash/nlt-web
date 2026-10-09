@@ -38,6 +38,8 @@
         cola: Promise.resolve(),
         oyentes: new Set(),
         hablando: new Set(),
+        live: null,            // sala «Operativa en vivo»: { room }
+        pantallasLive: new Map(),   // userId -> MediaStream de su pantalla
     };
 
     // ---------- utilidades ----------
@@ -49,7 +51,7 @@
     function estado() {
         return {
             activa: !!S.call, callId: S.call ? S.call.id : null, scope: S.call ? S.call.scope : null, conversationId: S.call ? S.call.conversationId : null,
-            muted: S.muted, compartiendo: !!S.share, participantes: S.roster.slice(), soportaPantalla, sinMic: S.sinMic,
+            muted: S.muted, compartiendo: !!S.share || !!(S.live && S.live.room.localParticipant.isScreenShareEnabled), participantes: S.roster.slice(), hablando: [...S.hablando], soportaPantalla, sinMic: S.sinMic,
         };
     }
 
@@ -222,18 +224,18 @@
                 const comparte = p.sharing && !yo;
                 return `<div class="nc-fila ${S.hablando.has(p.user_id) ? 'nc-habla' : ''}" data-uid="${esc(p.user_id)}">
                     <div class="nc-av">${p.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="">` : esc(iniciales(p.display_name))}</div>
-                    <div class="nc-nom">${esc(p.display_name)}${yo ? ' <i>(tú)</i>' : ''}</div>
+                    <div class="nc-nom">${esc(p.display_name)}${yo ? ' <i>(tú)</i>' : ''}${p.host ? ' <i>· anfitrión</i>' : ''}</div>
                     <div class="nc-est">${p.sharing ? `<span title="Compartiendo pantalla">${IC.screen}</span>` : ''}${p.muted ? `<span title="Silenciado">${IC.micOff}</span>` : ''}
                     ${comparte ? `<button class="nc-ver" data-nc="ver" data-uid="${esc(p.user_id)}">Ver</button>` : ''}</div></div>`;
             }).join('');
-            const titulo = S.call.scope === 'global' ? 'Llamada grupal' : `Llamada con ${esc(S.call.label || 'tu contacto')}`;
+            const titulo = S.call.scope === 'live' ? 'Operativa en vivo' : (S.call.scope === 'global' ? 'Llamada grupal' : `Llamada con ${esc(S.call.label || 'tu contacto')}`);
             const htmlPanel = `
                 <div class="nc-cab"><div class="nc-tit"><b>${titulo}</b><small><span data-nc-t>§T§</span> · ${S.roster.length} ${S.roster.length === 1 ? 'persona' : 'personas'}</small></div>
                     <button class="nc-min" data-nc="min" aria-label="Minimizar">${IC.down}</button></div>
                 <div class="nc-lista">${filas || '<div class="nc-fila"><div class="nc-nom"><i>Conectando…</i></div></div>'}</div>
                 <div class="nc-ctrl">
                     <button class="nc-btn ${S.muted ? 'nc-on' : ''}" data-nc="mic" aria-label="${S.muted ? 'Activar micrófono' : 'Silenciar micrófono'}">${S.muted ? IC.micOff : IC.mic}</button>
-                    <button class="nc-btn ${S.share ? 'nc-on' : ''}" data-nc="pantalla" aria-label="${S.share ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}" ${soportaPantalla ? '' : 'hidden'}>${IC.screen}</button>
+                    <button class="nc-btn ${S.share || (S.live && S.live.room.localParticipant.isScreenShareEnabled) ? 'nc-on' : ''}" data-nc="pantalla" aria-label="${S.share ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}" ${soportaPantalla && (!S.live || S.live.anfitrion) ? '' : 'hidden'}>${IC.screen}</button>
                     <button class="nc-btn nc-rojo" data-nc="salir" aria-label="Salir de la llamada">${IC.hangup}<span>Salir</span></button>
                 </div>`;
             // solo se vuelve a dibujar si algo cambió (si no, un toque a mitad de un redibujo se perdería)
@@ -254,7 +256,8 @@
     function abrirVisor(uid) {
         const peer = S.peers.get(uid);
         const p = S.roster.find((x) => x.user_id === uid);
-        if (!peer || !peer.pantalla) { toast('Todavía no llega la pantalla, espera un momento…'); return; }
+        const flujo = S.live ? S.pantallasLive.get(uid) : (peer && peer.pantalla);
+        if (!flujo) { toast('Todavía no llega la pantalla, espera un momento…'); return; }
         cerrarVisor();
         S.viendo = uid;
         elVisor = document.createElement('div');
@@ -262,7 +265,7 @@
         elVisor.innerHTML = `<div class="nc-barra"><b>Pantalla de ${esc(p ? p.display_name : '')}</b><button class="nc-min" data-v="full" aria-label="Pantalla completa">${IC.full}</button><button class="nc-min" data-v="x" aria-label="Cerrar">${IC.close}</button></div><video autoplay playsinline muted></video>`;
         raiz.appendChild(elVisor);
         const v = elVisor.querySelector('video');
-        v.srcObject = peer.pantalla; v.play().catch(() => {});
+        v.srcObject = flujo; v.play().catch(() => {});
         elVisor.addEventListener('click', (e) => {
             const b = e.target.closest('[data-v]'); if (!b) return;
             if (b.getAttribute('data-v') === 'x') cerrarVisor();
@@ -288,6 +291,15 @@
     }
 
     async function alternarMic() {
+        if (S.live) {
+            try {
+                const room = S.live.room;
+                const encender = !room.localParticipant.isMicrophoneEnabled;
+                await room.localParticipant.setMicrophoneEnabled(encender);
+                S.muted = !encender; S.sinMic = false;
+            } catch (e) { toast(e && e.name === 'NotAllowedError' ? 'Permite el micrófono para hablar.' : 'No se pudo usar el micrófono.'); }
+            actualizarRosterLive(); return;
+        }
         if (S.sinMic || !S.mic) {
             if (!(await pedirMic())) { pintar(); return; }
             S.muted = false; S.mic.track.enabled = true;
@@ -300,6 +312,15 @@
 
     // ---------- compartir pantalla ----------
     async function alternarPantalla() {
+        if (S.live) {
+            if (!S.live.anfitrion) { toast('Solo los anfitriones comparten pantalla en la operativa.'); return; }
+            if (!soportaPantalla) { toast('Compartir pantalla funciona desde el computador.'); return; }
+            try {
+                const lp = S.live.room.localParticipant;
+                await lp.setScreenShareEnabled(!lp.isScreenShareEnabled, { audio: false, contentHint: 'detail', resolution: { width: 1920, height: 1080, frameRate: 15 } });
+            } catch (e) { if (e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') toast('No se pudo compartir la pantalla.'); }
+            actualizarRosterLive(); return;
+        }
         if (S.share) { detenerPantalla(); return; }
         if (!soportaPantalla) { toast('Compartir pantalla funciona desde el computador (Chrome, Edge, Firefox o Safari de escritorio).'); return; }
         try {
@@ -481,7 +502,7 @@
 
     // ---------- bucle con el servidor ----------
     let syncPendiente = false;
-    function sincronizarYa() { if (S.call && !syncPendiente) { clearTimeout(S.timer); bucle(); } }
+    function sincronizarYa() { if (S.call && !S.live && !syncPendiente) { clearTimeout(S.timer); bucle(); } }
 
     function intervalo() {
         for (const p of S.peers.values()) { const c = p.pc.connectionState; if (c !== 'connected') return SYNC_RAPIDO; }
@@ -504,7 +525,7 @@
     }
 
     async function bucle() {
-        if (!S.call) return;
+        if (!S.call || S.live) return;
         syncPendiente = true;
         const callId = S.call.id;
         try {
@@ -529,6 +550,7 @@
 
     // ---------- entrar / salir ----------
     async function unirse({ scope, conversationId, label, myId }) {
+        if (scope === 'live') return unirseLive({ myId });
         if (!hayWebRTC) throw new Error('Tu navegador no permite llamadas. Actualízalo o prueba con Chrome o Safari.');
         if (!window.isSecureContext) throw new Error('Las llamadas necesitan una conexión segura (https).');
         if (S.call) {
@@ -554,6 +576,87 @@
         return estado();
     }
 
+    // ---------- Operativa en vivo (sala con servidor LiveKit: hasta 30 personas; los anfitriones comparten pantalla) ----------
+    let cargaLiveKit = null;
+    function cargarLiveKit() {
+        if (window.LivekitClient) return Promise.resolve();
+        if (!cargaLiveKit) {
+            cargaLiveKit = new Promise((ok, mal) => {
+                const sc = document.createElement('script');
+                sc.src = 'assets/vendor/livekit-client.umd.js';
+                sc.onload = ok; sc.onerror = () => { cargaLiveKit = null; mal(new Error('No se pudo cargar la sala. Revisa tu conexión.')); };
+                document.head.appendChild(sc);
+            });
+        }
+        return cargaLiveKit;
+    }
+
+    function metaDe(p) { try { return JSON.parse(p.metadata || '{}'); } catch (_) { return {}; } }
+    function entradaRoster(p, esYo) {
+        const m = metaDe(p);
+        return { user_id: p.identity, display_name: p.name || m.username || 'Miembro', avatar_url: m.avatar || null, host: !!m.host,
+                 muted: !p.isMicrophoneEnabled, sharing: !!p.isScreenShareEnabled, joined_at: p.joinedAt ? new Date(p.joinedAt).toISOString() : '' , yo: esYo };
+    }
+    function actualizarRosterLive() {
+        if (!S.live) return;
+        const room = S.live.room;
+        const lista = [entradaRoster(room.localParticipant, true), ...[...room.remoteParticipants.values()].map((p) => entradaRoster(p, false))];
+        lista.sort((a, b) => (b.host - a.host) || a.display_name.localeCompare(b.display_name));
+        S.roster = lista;
+        S.muted = !room.localParticipant.isMicrophoneEnabled;
+        pintar();
+    }
+
+    async function unirseLive({ myId }) {
+        if (S.call) {
+            if (S.call.scope === 'live') { S.panelAbierto = true; montarUI(); pintar(); return estado(); }
+            throw new Error('Ya estás en otra llamada. Sal de ella primero.');
+        }
+        if (!hayWebRTC || !window.isSecureContext) throw new Error('Tu navegador no permite llamadas seguras. Actualízalo o prueba con Chrome o Safari.');
+        montarUI();
+        S.myId = myId; S.muted = true; S.sinMic = false; S.roster = [];
+        const [pase] = await Promise.all([api().liveToken(), cargarLiveKit()]);
+        const LK = window.LivekitClient;
+        const room = new LK.Room({
+            adaptiveStream: true, dynacast: true,
+            audioCaptureDefaults: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+            publishDefaults: { screenShareEncoding: { maxBitrate: 2500000, maxFramerate: 15 }, screenShareSimulcastLayers: [] },
+        });
+        const E = LK.RoomEvent;
+        room.on(E.ParticipantConnected, (p) => { const m = metaDe(p); if (m.host) toast(`${p.name || 'El anfitrión'} entró a la operativa`); actualizarRosterLive(); });
+        room.on(E.ParticipantDisconnected, (p) => { S.pantallasLive.delete(p.identity); if (S.viendo === p.identity) cerrarVisor(); S.hablando.delete(p.identity); actualizarRosterLive(); });
+        room.on(E.TrackSubscribed, (track, pub, p) => {
+            if (track.kind === 'audio') { const el = track.attach(); el.setAttribute('playsinline', ''); elAudios.appendChild(el); el.play().catch(() => {}); }
+            else if (pub.source === LK.Track.Source.ScreenShare) {
+                S.pantallasLive.set(p.identity, new MediaStream([track.mediaStreamTrack]));
+                toast(`${p.name || 'El anfitrión'} está compartiendo pantalla`);
+                if (!elVisor) abrirVisor(p.identity);                       // en una operativa la pantalla es lo principal: se abre sola
+            }
+            actualizarRosterLive();
+        });
+        room.on(E.TrackUnsubscribed, (track, pub, p) => {
+            track.detach().forEach((el) => el.remove());
+            if (pub.source === LK.Track.Source.ScreenShare) { S.pantallasLive.delete(p.identity); if (S.viendo === p.identity) cerrarVisor(); }
+            actualizarRosterLive();
+        });
+        [E.TrackMuted, E.TrackUnmuted, E.LocalTrackPublished, E.LocalTrackUnpublished, E.ParticipantMetadataChanged, E.TrackPublished, E.TrackUnpublished].forEach((ev) => room.on(ev, actualizarRosterLive));
+        room.on(E.ActiveSpeakersChanged, (hablan) => { S.hablando = new Set(hablan.map((p) => p.identity)); pintar(); });
+        room.on(E.Reconnecting, () => toast('Reconectando…'));
+        room.on(E.Reconnected, () => toast('Reconectado'));
+        room.on(E.Disconnected, () => { if (S.live && S.live.room === room) terminarLocal('Se cortó la conexión con la operativa'); });
+        try {
+            await room.connect(pase.url, pase.token);
+            room.startAudio().catch(() => {});
+        } catch (e) { try { room.disconnect(); } catch (_) { /* nada */ } throw new Error(e && e.message ? 'No se pudo entrar a la operativa: ' + e.message : 'No se pudo entrar a la operativa.'); }
+        S.live = { room, anfitrion: !!pase.is_host };
+        S.call = { id: 'live', scope: 'live', conversationId: null, label: 'Operativa en vivo', startedAt: Date.now() };
+        S.panelAbierto = true;
+        if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); }, 600);
+        actualizarRosterLive();
+        if (pase.is_host) { room.localParticipant.setMicrophoneEnabled(true).then(actualizarRosterLive).catch(() => { toast('Permite el micrófono para hablar.'); }); }
+        return estado();
+    }
+
     function liberarMedios() {
         if (S.mic) { try { S.mic.track.stop(); } catch (_) { /* parado */ } quitarVigia(S.myId); S.mic = null; }
         if (S.share) { try { S.share.track.stop(); } catch (_) { /* parado */ } S.share = null; }
@@ -561,6 +664,7 @@
 
     function terminarLocal(aviso) {
         clearTimeout(S.timer);
+        if (S.live) { const room = S.live.room; S.live = null; try { room.disconnect(); } catch (_) { /* ya desconectada */ } S.pantallasLive.clear(); }
         [...S.peers.keys()].forEach(cerrarPeer);
         liberarMedios();
         S.call = null; S.roster = []; S.panelAbierto = false; S.hablando.clear();
@@ -572,9 +676,9 @@
     }
 
     function salir() {
-        const callId = S.call && S.call.id;
-        terminarLocal('Saliste de la llamada');
-        if (callId && api()) api().callSalir(callId).catch(() => {});
+        const callId = S.call && S.call.id, enSala = !!S.live;
+        terminarLocal(enSala ? 'Saliste de la operativa' : 'Saliste de la llamada');
+        if (callId && !enSala && api()) api().callSalir(callId).catch(() => {});
     }
 
     // Al volver a la app (después de bloquear el teléfono o cambiar de app) el sistema puede haber cortado el micrófono: se recupera solo
@@ -633,7 +737,7 @@
     }
     window.addEventListener('popstate', () => { if (marco && !(history.state && history.state.nltMarco)) { cerrarMarco(); document.title = document.title; } });
     window.addEventListener('beforeunload', (e) => { if (S.call) { e.preventDefault(); e.returnValue = ''; } });
-    window.addEventListener('pagehide', (e) => { if (S.call && api() && !e.persisted) { try { api().callSalir(S.call.id); } catch (_) { /* el servidor lo da por salido a los 30 s */ } } });
+    window.addEventListener('pagehide', (e) => { if (S.live && !e.persisted) { try { S.live.room.disconnect(); } catch (_) { /* nada */ } return; } if (S.call && api() && !e.persisted) { try { api().callSalir(S.call.id); } catch (_) { /* el servidor lo da por salido a los 30 s */ } } });
     window.addEventListener('resize', () => {
         if (!elBurbuja || !elBurbuja.style.left) return;
         elBurbuja.style.left = Math.min(parseFloat(elBurbuja.style.left), window.innerWidth - 64) + 'px';
@@ -657,6 +761,15 @@
         // Para pruebas y soporte: estado de cada conexión y bytes de audio/pantalla recibidos
         async diagnostico() {
             const salida = [];
+            if (S.live) {
+                const room = S.live.room;
+                for (const p of room.remoteParticipants.values()) {
+                    let audio = 0;
+                    for (const pub of p.audioTrackPublications.values()) { if (pub.track && pub.track.getRTCStatsReport) { try { (await pub.track.getRTCStatsReport()).forEach((r) => { if (r.type === 'inbound-rtp') audio += r.bytesReceived || 0; }); } catch (_) { /* sin estadísticas */ } } }
+                    salida.push({ uid: p.identity, estado: room.state, audio, video: 0, pantalla: S.pantallasLive.has(p.identity) });
+                }
+                return salida;
+            }
             for (const [uid, p] of S.peers) {
                 let audio = 0, video = 0;
                 try { (await p.pc.getStats()).forEach((r) => { if (r.type === 'inbound-rtp') { if (r.kind === 'audio') audio += r.bytesReceived || 0; else video += r.bytesReceived || 0; } }); } catch (_) { /* sin estadísticas */ }

@@ -2720,7 +2720,7 @@
             // pestaña en la misma página en vez de recargarla (mejor UX, sin
             // inventar un router: solo se usa si la función ya existe en scope).
             // Llamadas: en Community se abre el lugar de la llamada SIN recargar la página (recargar cortaría una llamada en curso)
-            if ((n.type === 'call_global' || n.type === 'call_dm') && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.irALlamadaDesdeAviso === 'function') {
+            if ((n.type === 'call_global' || n.type === 'call_dm' || n.type === 'live_start') && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.irALlamadaDesdeAviso === 'function') {
                 panel.classList.add('hidden');
                 window.irALlamadaDesdeAviso(href);
                 return;

@@ -568,6 +568,8 @@
         callSync: (callId, datos) => request(`/community/calls/${callId}/sync`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
         callSenal: (callId, datos) => request(`/community/calls/${callId}/signal`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
         callSenales: (callId, datos) => request(`/community/calls/${callId}/signals`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
+        liveEstado: () => request('/community/live/status', { intentos: 1 }),
+        liveToken: () => request('/community/live/token', { method: 'POST', intentos: 1 }),
         callSalir: (callId) => request(`/community/calls/${callId}/leave`, { method: 'POST', intentos: 1 }),
         callEstado: (scope, conversationId) => request(`/community/calls/active?scope=${scope}${conversationId ? '&conversation_id=' + encodeURIComponent(conversationId) : ''}`, { intentos: 1 }),
         callEntrantes: () => request('/community/calls/incoming', { intentos: 1 }),
