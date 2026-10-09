@@ -355,6 +355,187 @@
             html.chat-abierto #chatAutorizado .msg-scroll { flex: 1 1 0; min-height: 0; margin: 0; display: flex; flex-direction: column; }
         }
 
+        /* ───── Community estilo Instagram: navegación, publicaciones, hojas, perfil ───── */
+        .ig-nav { display: flex; align-items: center; gap: 8px; margin-bottom: 22px; overflow-x: auto; padding-bottom: 4px; -webkit-overflow-scrolling: touch; }
+        .ig-nav.hidden { display: none; }
+        .ig-tab { position: relative; display: inline-flex; align-items: center; gap: 7px; padding: 8px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; color: #9CA6B4;
+            background: rgba(255,255,255,0.04); border: 1px solid transparent; cursor: pointer; white-space: nowrap; flex-shrink: 0; transition: background .15s, color .15s; }
+        .ig-tab i { font-size: 17px; }
+        .ig-tab:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .ig-tab.activo { color: #fff; background: rgba(67,120,255,0.18); border-color: rgba(67,120,255,0.35); }
+        .ig-tab.hidden { display: none; }
+        .ig-badge { position: absolute; top: 2px; right: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: #EF4444; color: #fff; font-size: 10px; font-weight: 800;
+            display: inline-flex; align-items: center; justify-content: center; border: 2px solid #080A0F; }
+        .ig-badge.hidden { display: none; }
+        .ig-tab .op-punto { position: absolute; top: 5px; right: 11px; margin: 0; width: 8px; height: 8px; }
+        @media (max-width: 1023px) {
+            main { padding-bottom: calc(86px + env(safe-area-inset-bottom, 0px)) !important; }
+            html.tabs-visibles .ig-nav, html.tabs-visibles .ig-nav.hidden { display: flex; }
+            .ig-nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 45; margin: 0 !important; max-width: none !important; width: auto !important; gap: 0; overflow: visible;
+                padding: 6px 2px calc(6px + env(safe-area-inset-bottom, 0px)); background: rgba(8,10,15,0.97); border-top: 1px solid rgba(255,255,255,0.08);
+                -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); }
+            .ig-tab { flex: 1 1 0; flex-direction: column; gap: 2px; padding: 6px 0 4px; font-size: 10px; border-radius: 12px; background: transparent !important; border-color: transparent !important; color: #8b95a5; }
+            .ig-tab i { font-size: 25px; }
+            .ig-tab.activo { color: #fff; }
+            .ig-badge { right: calc(50% - 22px); top: 0; }
+            .ig-tab .op-punto { right: calc(50% - 16px); top: 6px; }
+            html.dm-abierto .ig-nav { display: none !important; }
+            #feedBox { margin-inline: -20px; }
+        }
+
+        /* Publicaciones */
+        .ig-post { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: hidden; position: relative; }
+        .ig-post + .ig-post { margin-top: 16px; }
+        #feedBox { display: block; }
+        #feedBox > * + * { margin-top: 16px; }
+        @media (max-width: 1023px) {
+            #feedBox .ig-post { border-radius: 0; border-left: 0; border-right: 0; }
+            #feedBox > * + * { margin-top: 0; }
+            #feedBox .ig-post + .ig-post { margin-top: 0; border-top: 0; }
+        }
+        .ig-post-cab { display: flex; align-items: center; gap: 10px; padding: 12px 8px 10px 14px; }
+        .ig-av { position: relative; flex-shrink: 0; width: 42px; height: 42px; border-radius: 50%; padding: 2px; background: rgba(255,255,255,0.14); cursor: pointer; }
+        .ig-av.anillo { background: linear-gradient(135deg, #4378FF, #9B5CFF 55%, #F0539B); }
+        .ig-av > div { width: 100%; height: 100%; border-radius: 50%; border: 2px solid #0a0d13; background: linear-gradient(135deg, #3b4658, #252d3b); overflow: hidden; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; }
+        .ig-av img { width: 100%; height: 100%; object-fit: cover; }
+        .ig-post-quien { flex: 1; min-width: 0; }
+        .ig-post-nombre { font-size: 14px; font-weight: 700; color: #fff; line-height: 1.2; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ig-post-meta { font-size: 11.5px; color: #7b8798; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ig-mas { width: 40px; height: 40px; border: 0; border-radius: 50%; background: transparent; color: #cbd5e1; font-size: 22px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ig-mas:hover { background: rgba(255,255,255,0.06); }
+        .ig-etiqueta { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #6c97ff; background: rgba(67,120,255,0.12); padding: 2px 8px; border-radius: 999px; margin: 0 14px 8px; }
+        .ig-datos { margin: 0 14px 10px; }
+        .ig-media { position: relative; background: #000; line-height: 0; cursor: pointer; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+        .ig-media img { display: block; width: 100%; max-height: 580px; object-fit: cover; }
+        .ig-corazon { position: absolute; left: 50%; top: 50%; margin: -48px 0 0 -48px; width: 96px; height: 96px; font-size: 90px; line-height: 96px; text-align: center; pointer-events: none; opacity: 0; filter: drop-shadow(0 6px 20px rgba(0,0,0,.5)); }
+        .ig-corazon.pop { animation: igPop .85s ease-out; }
+        @keyframes igPop { 0% { opacity: 0; transform: scale(.3); } 18% { opacity: 1; transform: scale(1.18); } 32% { transform: scale(.95); } 60% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.15) translateY(-14px); } }
+        .ig-barra { display: flex; align-items: center; gap: 2px; padding: 6px 8px 0; position: relative; }
+        .ig-ico { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 27px; background: none; border: 0; color: #fff; cursor: pointer; border-radius: 50%; position: relative; }
+        .ig-ico:active { transform: scale(.88); }
+        .ig-ico.activo { color: #ff3b6b; }
+        .ig-ico.late i { animation: igLate .35s ease-out; }
+        @keyframes igLate { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+        .ig-ico .ig-n { font-size: 13px; font-weight: 700; margin-left: 5px; }
+        .ig-espacio { flex: 1; }
+        .ig-picker { position: absolute; left: 8px; bottom: 54px; z-index: 5; display: flex; gap: 2px; padding: 6px 8px; background: #0c101a; border: 1px solid rgba(255,255,255,0.12); border-radius: 999px; box-shadow: 0 14px 40px rgba(0,0,0,.6); animation: igSube .16s ease-out; }
+        .ig-picker button { width: 42px; height: 42px; font-size: 24px; border: 0; background: transparent; border-radius: 50%; cursor: pointer; transition: transform .12s; }
+        .ig-picker button:hover, .ig-picker button:active { transform: scale(1.25); background: rgba(255,255,255,.06); }
+        .ig-picker button.activo { background: rgba(67,120,255,.2); }
+        .ig-picker.hidden { display: none; }
+        .ig-resumen { padding: 2px 14px 2px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
+        .ig-resumen b { font-weight: 700; color: #fff; }
+        .ig-rch { display: inline-flex; align-items: center; gap: 4px; padding: 2px 9px; border-radius: 999px; background: rgba(255,255,255,0.06); font-size: 12.5px; font-weight: 600; color: #e5e7eb; }
+        .ig-rch.mia { background: rgba(67,120,255,0.18); }
+        .ig-caption { padding: 4px 14px 2px; font-size: 14px; line-height: 1.42; color: #e5e7eb; word-break: break-word; }
+        .ig-caption b { color: #fff; margin-right: 6px; cursor: pointer; }
+        .ig-caption.recortado .ig-texto { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+        .ig-texto { display: inline; }
+        .ig-caption.recortado .ig-texto { display: -webkit-box; }
+        .ig-vermas { background: none; border: 0; padding: 0 14px; color: #7b8798; font-size: 13px; cursor: pointer; }
+        .ig-vercoms { background: none; border: 0; padding: 3px 14px 0; color: #7b8798; font-size: 13.5px; cursor: pointer; display: block; text-align: left; }
+        .ig-hora { padding: 4px 14px 14px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; color: #6b7686; }
+        .ig-oficial { padding: 4px 14px 14px; }
+        .ig-oficial h3 { font-size: 16px; font-weight: 800; color: #fff; margin-bottom: 4px; }
+
+        /* Hojas (comentarios, acciones): desde abajo en el teléfono, centradas en el computador */
+        .ig-hoja-fondo { position: fixed; inset: 0; z-index: 100; background: rgba(0,0,0,0.62); display: flex; align-items: flex-end; justify-content: center; animation: igFade .18s ease-out; }
+        .ig-hoja { position: relative; width: 100%; max-width: 560px; background: #0c101a; border: 1px solid rgba(255,255,255,0.1); border-bottom: 0; border-radius: 22px 22px 0 0;
+            display: flex; flex-direction: column; max-height: var(--hoja-max, 84dvh); height: var(--hoja-alto, auto); animation: igSube .24s cubic-bezier(.16,1,.3,1); }
+        @media (min-width: 1024px) { .ig-hoja-fondo { align-items: center; } .ig-hoja { border-radius: 22px; border-bottom: 1px solid rgba(255,255,255,0.1); max-height: 80vh; } }
+        @keyframes igSube { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+        @keyframes igFade { from { opacity: 0; } to { opacity: 1; } }
+        .ig-hoja-cab { position: relative; display: flex; align-items: center; justify-content: center; padding: 16px 14px 12px; font-weight: 800; font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.08); flex-shrink: 0; }
+        .ig-hoja-cab::before { content: ''; position: absolute; top: 6px; left: 50%; width: 38px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.2); transform: translateX(-50%); }
+        .ig-hoja-x { position: absolute; right: 8px; top: 8px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: transparent; color: #cbd5e1; font-size: 20px; cursor: pointer; }
+        .ig-hoja-cuerpo { overflow-y: auto; flex: 1 1 auto; min-height: 0; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 6px 14px 0; display: flex; flex-direction: column; }
+        .ig-accion { display: flex; align-items: center; gap: 14px; width: 100%; padding: 16px 6px; border: 0; background: none; color: #fff; font-size: 15px; font-weight: 600; text-align: left; cursor: pointer; border-bottom: 1px solid rgba(255,255,255,0.06); }
+        .ig-accion:last-child { border-bottom: 0; margin-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+        .ig-accion i { font-size: 22px; width: 26px; text-align: center; }
+        .ig-accion.peligro { color: #ff5d6c; }
+        .ig-sin-coms { margin: auto; text-align: center; color: #64748b; font-size: 14px; padding: 40px 10px; }
+        .ig-sin-coms b { display: block; color: #fff; font-size: 17px; margin-bottom: 4px; }
+
+        /* Comentarios (dentro de la hoja) */
+        .cm-item { display: flex; align-items: flex-start; gap: 11px; padding: 9px 0; }
+        .cm-av { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #3b4658, #252d3b); font-size: 11px; font-weight: 700; color: #fff; }
+        .cm-av img { width: 100%; height: 100%; object-fit: cover; }
+        .cm-texto { flex: 1; min-width: 0; font-size: 14px; line-height: 1.38; color: #e5e7eb; word-break: break-word; }
+        .cm-texto b { color: #fff; margin-right: 6px; }
+        .cm-meta { display: flex; align-items: center; gap: 12px; margin-top: 3px; font-size: 11.5px; color: #6b7686; }
+        .cm-meta button { background: none; border: 0; color: #7b8798; font-size: 12px; font-weight: 600; cursor: pointer; padding: 0; }
+        .cm-meta button:hover { color: #fff; }
+        .cm-form { position: sticky; bottom: 0; display: flex; align-items: center; gap: 10px; margin: 6px -14px 0; padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px)); background: #0c101a; border-top: 1px solid rgba(255,255,255,0.08); }
+        .cm-form input { flex: 1; min-width: 0; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); border-radius: 22px; padding: 10px 16px; color: #fff; }
+        .cm-form input:focus { outline: none; border-color: rgba(67,120,255,0.5); }
+        .cm-form .btn-enviar-comentario { background: none; border: 0; color: #4378FF; font-weight: 800; font-size: 14px; cursor: pointer; padding: 6px 4px; opacity: .45; }
+        .cm-form.listo .btn-enviar-comentario { opacity: 1; }
+
+        /* Composer plegable */
+        #composerBox { position: relative; }
+        .cp-pill { display: flex; align-items: center; gap: 12px; cursor: pointer; color: #8b95a5; font-size: 14px; }
+        .cp-pill span { flex: 1; min-width: 0; padding: 11px 16px; border-radius: 22px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.07); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .cp-pill i { font-size: 24px; color: #6c97ff; }
+        #composerBox:not(.colapsado) .cp-pill { display: none; }
+        #composerBox.colapsado > :not(.cp-pill) { display: none !important; }
+        #composerBox.colapsado { padding: 12px 14px !important; }
+        .cp-cerrar { position: absolute; right: 12px; top: 12px; width: 32px; height: 32px; border-radius: 50%; border: 0; background: rgba(255,255,255,0.06); color: #cbd5e1; cursor: pointer; z-index: 2; }
+        #composerBox.colapsado .cp-cerrar { display: none !important; }
+        @media (max-width: 1023px) {
+            .ig-hero { display: none; }
+            main { padding-top: 5.2rem !important; }
+            #buscadorPersonas { margin-bottom: 14px; }
+            #chipsBox { margin-bottom: 14px !important; }
+        }
+        /* Filtros del feed: píldoras compactas */
+        #chipsBox .chip { padding: 7px 16px; }
+
+        /* Perfil estilo Instagram */
+        .pf-barra { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+        .pf-barra b { font-size: 16px; }
+        .pf-volver { width: 40px; height: 40px; border-radius: 50%; border: 0; background: transparent; color: #e5e7eb; font-size: 20px; cursor: pointer; }
+        .pf-cab { padding: 6px 4px 14px; }
+        .pf-fila { display: flex; align-items: center; gap: 22px; margin-bottom: 14px; }
+        .pf-av { width: 92px; height: 92px; padding: 3px; flex-shrink: 0; cursor: default; }
+        .pf-av > div { font-size: 26px; border-width: 3px; }
+        .pf-stats { flex: 1; display: flex; justify-content: space-around; text-align: center; }
+        .pf-stats b { display: block; font-size: 18px; font-weight: 800; color: #fff; }
+        .pf-stats span { font-size: 12.5px; color: #9aa5b5; }
+        .pf-nombre { font-size: 15px; font-weight: 800; color: #fff; }
+        .pf-bio { font-size: 14px; color: #cbd5e1; line-height: 1.4; margin-top: 2px; white-space: pre-line; }
+        .pf-desde { font-size: 12px; color: #64748b; margin-top: 4px; }
+        .pf-botones { display: flex; gap: 8px; margin-top: 14px; }
+        .pf-btn { flex: 1; padding: 9px 12px; border-radius: 10px; border: 0; background: rgba(255,255,255,0.1); color: #fff; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .pf-btn.pri { background: #4378FF; }
+        .pf-pestana { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: #fff; }
+        .pf-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; }
+        .pf-tile { position: relative; aspect-ratio: 1; padding: 0; border: 0; background: #0d1119; overflow: hidden; cursor: pointer; }
+        .pf-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+        .pf-tile-texto { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; padding: 10px; text-align: center; }
+        .pf-tile-texto span { font-size: 12.5px; font-weight: 700; line-height: 1.25; color: #fff; display: -webkit-box; -webkit-line-clamp: 5; -webkit-box-orient: vertical; overflow: hidden; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+        .pf-tile-tipo { position: absolute; top: 6px; right: 6px; color: #fff; font-size: 16px; filter: drop-shadow(0 1px 3px rgba(0,0,0,.6)); }
+        .pf-tile-hover { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; gap: 8px; background: rgba(0,0,0,0.45); color: #fff; font-weight: 800; font-size: 14px; opacity: 0; transition: opacity .15s; }
+        @media (hover: hover) { .pf-tile:hover .pf-tile-hover { opacity: 1; } }
+        .pf-vacio { grid-column: 1 / -1; text-align: center; padding: 50px 10px; color: #64748b; }
+        .pf-vacio i { display: block; font-size: 44px; margin-bottom: 8px; color: #334155; } .pf-vacio b { color: #fff; font-size: 16px; }
+        @media (max-width: 1023px) { #vistaPerfil { margin-inline: 0; } .pf-grid { margin-inline: -20px; } .pf-pestana { margin-inline: -20px; } }
+
+        /* Bandeja de mensajes estilo Instagram */
+        .dm-titulo h1 { font-size: 24px; font-weight: 800; letter-spacing: -.01em; margin: 0 0 6px 4px; }
+        #dmConversaciones { display: block; }
+        #dmConversaciones > * + * { margin-top: 0; }
+        .dm-fila { display: flex; align-items: center; gap: 14px; padding: 11px 4px; cursor: pointer; border-radius: 14px; transition: background .15s; }
+        .dm-fila:hover, .dm-fila:active { background: rgba(255,255,255,0.04); }
+        .dm-fila-av { width: 56px; height: 56px; border-radius: 50%; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; color: #fff;
+            background: linear-gradient(135deg, #3b4658, #252d3b); }
+        .dm-fila-av img { width: 100%; height: 100%; object-fit: cover; }
+        .dm-fila-txt { flex: 1; min-width: 0; }
+        .dm-fila-nombre { font-size: 15px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dm-fila-prev { font-size: 13.5px; color: #8b95a5; margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .dm-fila.sin-leer .dm-fila-nombre { font-weight: 800; }
+        .dm-fila.sin-leer .dm-fila-prev { color: #fff; font-weight: 700; }
+        .dm-fila-punto { width: 11px; height: 11px; border-radius: 50%; background: #4378FF; flex-shrink: 0; box-shadow: 0 0 10px rgba(67,120,255,.7); }
+
         /* --- Fase "Reliability + Reply + Typing Premium" --- */
 
         /* Botón Enviar bloqueado mientras hay un envío en curso (Parte 1) --
@@ -458,22 +639,22 @@
         <!-- Perfil view -->
         <div id="vistaPerfil" class="hidden vista-angosta"></div>
 
-        <div id="chatTabs" class="hidden vista-angosta flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-            <button data-vista="feed" id="tab-vista-feed" class="chip activo">Feed</button>
-            <button data-vista="chat" id="tab-vista-chat" class="chip">Chat</button>
-            <button data-vista="mensajes" id="tab-vista-mensajes" class="chip">Mensajes</button>
-            <button data-vista="operativa" id="tab-vista-operativa" class="chip"><span id="opPuntoTab" class="op-punto hidden" aria-hidden="true"></span>Operativa en vivo</button>
+        <nav id="chatTabs" class="hidden vista-angosta ig-nav" aria-label="Secciones de Community">
+            <button data-vista="feed" id="tab-vista-feed" class="ig-tab activo"><i class="ph-fill ph-house" aria-hidden="true"></i><span>Inicio</span></button>
+            <button data-vista="chat" id="tab-vista-chat" class="ig-tab"><i class="ph ph-chats-circle" aria-hidden="true"></i><span>Chat</span></button>
+            <button data-vista="mensajes" id="tab-vista-mensajes" class="ig-tab"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i><span>Mensajes</span><b id="badgeDM" class="ig-badge hidden" aria-label="Mensajes sin leer"></b></button>
+            <button data-vista="operativa" id="tab-vista-operativa" class="ig-tab"><i class="ph ph-broadcast" aria-hidden="true"></i><span>En vivo</span><span id="opPuntoTab" class="op-punto hidden" aria-hidden="true"></span></button>
             <!-- Solo visible para miembros (mismo gate que composerBox/chat/DM) --
                  se revela en init() junto con la carga de miPerfil. Reusa
                  mostrarPerfil() con el username propio: es el MISMO componente
                  de perfil que ya usan los demás miembros, is_own lo calcula el
                  backend desde el JWT (nunca un id que mande el frontend). -->
-            <button id="tab-mi-perfil" class="chip hidden shrink-0">👤 Mi perfil</button>
-        </div>
+            <button id="tab-mi-perfil" class="ig-tab hidden"><i class="ph ph-user-circle" aria-hidden="true"></i><span>Perfil</span></button>
+        </nav>
 
         <!-- Feed view -->
         <div id="vistaFeed" class="vista-angosta">
-            <div class="text-center mb-8">
+            <div class="text-center mb-8 ig-hero">
                 <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
                 <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Where NLT traders learn, share and grow together.</h1>
             </div>
@@ -485,7 +666,11 @@
                 <button id="btn-become-member" class="px-6 py-2.5 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer">Entrar gratis</button>
             </div>
 
-            <div id="composerBox" class="hidden glass-card p-5 mb-6">
+            <div id="composerBox" class="hidden glass-card p-5 mb-6 colapsado">
+                <div class="cp-pill" id="cpPill" role="button" tabindex="0" aria-label="Crear una publicación">
+                    <div class="cm-av" id="cpAv"></div><span>¿Qué quieres compartir con la comunidad?</span><i class="ph ph-image" aria-hidden="true"></i>
+                </div>
+                <button id="cpCerrar" type="button" class="cp-cerrar" aria-label="Cerrar"><i class="ph ph-x" aria-hidden="true"></i></button>
                 <div class="flex items-center gap-1.5 mb-4 overflow-x-auto">
                     <button data-type="text" class="type-tab activo">Text</button>
                     <button data-type="analysis" class="type-tab">Analysis</button>
@@ -611,11 +796,8 @@
                  de siempre (JS alterna .hidden sin ningún cambio). -->
             <div id="dmPanels">
                 <div id="dmListaBox">
-                    <div class="text-center mb-6">
-                        <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
-                        <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Mensajes</h1>
-                    </div>
-                    <div id="dmConversaciones" class="space-y-2">
+                    <div class="dm-titulo"><h1>Mensajes</h1></div>
+                    <div id="dmConversaciones">
                         <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando conversaciones...</p>
                     </div>
                 </div>
@@ -681,10 +863,21 @@
         // Precarga en segundo plano (el usuario ya vio el feed): al tocar Chat o Mensajes la lista ya está, sin esperar a la red.
         const _pre = { chat: null, dm: null, msgs: new Map() };
         const _vigente = (p) => p && (Date.now() - p.t) < 45000;
+        // Insignia roja en «Mensajes» con los mensajes sin leer (viene de la misma lista de conversaciones)
+        function pintarInsigniaDM(conversaciones) {
+            const n = (conversaciones || []).reduce((t, c) => t + (c.unread_count || 0), 0);
+            const b = document.getElementById('badgeDM');
+            b.textContent = n > 9 ? '9+' : String(n);
+            b.classList.toggle('hidden', !n);
+        }
+        async function refrescarInsigniaDM() {
+            if (!esMiembro || document.hidden) return;
+            try { const c = await NLT_API.communityDMConversaciones(); pintarInsigniaDM(c); if (!document.getElementById('vistaMensajes').classList.contains('hidden') && !conversacionActualId) { conversacionesCache = c; repintarListaConversaciones(c); } } catch (_) { /* sin red: se queda como estaba */ }
+        }
         function precargarCommunity() {
             if (!esMiembro) return;
             if (!_vigente(_pre.chat)) _pre.chat = { t: Date.now(), p: NLT_API.communityChatMensajes().catch(() => null) };
-            if (!_vigente(_pre.dm)) _pre.dm = { t: Date.now(), p: NLT_API.communityDMConversaciones().catch(() => null) };
+            if (!_vigente(_pre.dm)) _pre.dm = { t: Date.now(), p: NLT_API.communityDMConversaciones().then((c) => { pintarInsigniaDM(c); return c; }).catch(() => null) };
         }
         function precargarMensajesDM(id) {
             if (!id || _vigente(_pre.msgs.get(id))) return;
@@ -733,6 +926,10 @@
         }
 
         // --- Composer ---
+        const _cpAbrir = () => { document.getElementById('composerBox').classList.remove('colapsado'); setTimeout(() => document.getElementById('cpBody').focus(), 50); };
+        document.getElementById('cpPill').addEventListener('click', _cpAbrir);
+        document.getElementById('cpPill').addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); _cpAbrir(); } });
+        document.getElementById('cpCerrar').addEventListener('click', () => document.getElementById('composerBox').classList.add('colapsado'));
         document.querySelectorAll('.type-tab').forEach(btn => {
             btn.addEventListener('click', () => {
                 document.querySelectorAll('.type-tab').forEach(b => b.classList.remove('activo'));
@@ -837,6 +1034,7 @@
             try {
                 const nuevo = await NLT_API.communityCrearPost(datos);
                 document.getElementById('cpBody').value = '';
+                document.getElementById('composerBox').classList.add('colapsado');
                 imagenSeleccionada = null;
                 document.getElementById('cpImagePreview').classList.add('hidden');
                 document.getElementById('cpImageInput').value = '';
@@ -865,9 +1063,9 @@
         });
 
         // --- Filtros ---
-        document.querySelectorAll('.chip').forEach(btn => {
+        document.querySelectorAll('#chipsBox .chip').forEach(btn => {
             btn.addEventListener('click', () => {
-                document.querySelectorAll('.chip').forEach(b => b.classList.remove('activo'));
+                document.querySelectorAll('#chipsBox .chip').forEach(b => b.classList.remove('activo'));
                 btn.classList.add('activo');
                 filtroActivo = btn.getAttribute('data-filtro');
                 cargarFeed();
@@ -907,55 +1105,188 @@
 
         function adCardHTML(ad) {
             return `
-            <div class="glass-card p-5" data-ad-id="${ad.id}">
-                <div class="flex items-center gap-2.5 mb-3">
-                    <div class="w-9 h-9 rounded-full bg-nlt-accent/15 flex items-center justify-center"><i class="ph-fill ph-megaphone text-nlt-accent"></i></div>
-                    <div><p class="text-sm font-semibold text-white">${esc(ad.advertiser_name)}</p><p class="text-[10px] text-gray-500 uppercase tracking-wider">Sponsored</p></div>
+            <article class="ig-post" data-ad-id="${ad.id}">
+                <div class="ig-post-cab">
+                    <div class="ig-av"><div><i class="ph-fill ph-megaphone" style="font-size:18px;color:#4378FF"></i></div></div>
+                    <div class="ig-post-quien"><p class="ig-post-nombre">${esc(ad.advertiser_name)}</p><p class="ig-post-meta">Patrocinado</p></div>
                 </div>
-                <p class="font-bold text-white mb-1">${esc(ad.title)}</p>
-                ${ad.body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${esc(ad.body).replace(/\n/g, '<br>')}</p>` : ''}
-                ${ad.image_url ? `<img loading="lazy" decoding="async" src="${ad.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
-                ${ad.target_url ? `<button class="btn-ad-click w-full py-2 rounded-lg bg-nlt-accent/10 text-nlt-accent text-xs font-semibold cursor-pointer" data-ad-id="${ad.id}" data-url="${esc(ad.target_url)}">Ver más</button>` : ''}
-            </div>`;
+                ${ad.image_url ? `<div class="ig-media"><img loading="lazy" decoding="async" src="${ad.image_url}" alt=""></div>` : ''}
+                ${ad.target_url ? `<button class="btn-ad-click" data-ad-id="${ad.id}" data-url="${esc(ad.target_url)}" style="display:flex;align-items:center;justify-content:space-between;width:100%;padding:12px 14px;border:0;background:rgba(67,120,255,.14);color:#8fb0ff;font-size:13.5px;font-weight:700;cursor:pointer">Ver más <i class="ph ph-caret-right"></i></button>` : ''}
+                <div class="ig-caption"><b>${esc(ad.title)}</b>${ad.body ? `<span class="ig-texto">${esc(ad.body).replace(/\n/g, '<br>')}</span>` : ''}</div>
+                <div class="ig-hora" style="padding-top:6px">Publicidad</div>
+            </article>`;
+        }
+
+        // «hace 3 h» para la línea de hora de cada publicación
+        function haceTexto(iso) {
+            const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
+            if (s < 60) return 'hace un momento';
+            if (s < 3600) return `hace ${Math.floor(s / 60)} min`;
+            if (s < 86400) return `hace ${Math.floor(s / 3600)} h`;
+            if (s < 7 * 86400) return `hace ${Math.floor(s / 86400)} d`;
+            return new Date(iso).toLocaleDateString('es', { day: 'numeric', month: 'long' });
+        }
+
+        function postOficialHTML(p) {
+            return `
+            <article class="ig-post" data-post-id="${p.id}">
+                <div class="ig-post-cab">
+                    <div class="ig-av anillo"><div><img src="assets/img/nlt-icon.png" style="width:60%;height:60%;object-fit:contain" alt=""></div></div>
+                    <div class="ig-post-quien"><p class="ig-post-nombre" style="cursor:default">NLT Official <i class="ph-fill ph-seal-check" style="color:#4378FF"></i></p><p class="ig-post-meta">${esc(p.category || 'Anuncio')} · ${haceTexto(p.created_at)}</p></div>
+                </div>
+                ${p.image_url ? `<div class="ig-media"><img loading="lazy" decoding="async" src="${p.image_url}" alt=""></div>` : ''}
+                <div class="ig-oficial">${p.title ? `<h3>${esc(p.title)}</h3>` : ''}<p style="font-size:14px;line-height:1.5;color:#cbd5e1">${formatearBody(p.body || '')}</p></div>
+            </article>`;
+        }
+
+        // Estado de reacciones/comentarios por publicación (para actualizar solo la tarjeta tocada, sin recargar el feed)
+        const estadoPost = new Map();      // postId -> { counts, mine:Set, comentarios }
+
+        // Una publicación como casilla de la cuadrícula del perfil (foto, o texto sobre un fondo de color)
+        function postTileHTML(p) {
+            const fondo = ['#1f2a44,#4378FF', '#2a1f44,#9B5CFF', '#10372f,#22c55e', '#44201f,#ef4444', '#3a2f10,#f59e0b'][String(p.id).split('').reduce((n, c) => n + c.charCodeAt(0), 0) % 5].split(',');
+            const reacciones = Object.values(p.reaction_counts || {}).reduce((n, v) => n + v, 0);
+            return `<button class="pf-tile" data-post-id="${p.id}" type="button" aria-label="Abrir publicación">
+                ${p.image_url ? `<img loading="lazy" decoding="async" src="${esc(p.image_url)}" alt="">` : `<div class="pf-tile-texto" style="background:linear-gradient(135deg,${fondo[0]},${fondo[1]})"><span>${esc((p.body || TYPE_LABEL[p.type] || '').slice(0, 90))}</span></div>`}
+                ${p.type === 'analysis' || p.type === 'result' ? '<i class="ph-fill ph-chart-line-up pf-tile-tipo" aria-hidden="true"></i>' : ''}
+                <span class="pf-tile-hover"><i class="ph-fill ph-heart"></i> ${reacciones} <i class="ph-fill ph-chat-circle"></i> ${p.comments_count || 0}</span>
+            </button>`;
         }
 
         function postCardHTML(p) {
             if (p._ad) return adCardHTML(p);
-            const esOficial = p._oficial;
+            if (p._oficial) return postOficialHTML(p);
+            estadoPost.set(p.id, { counts: { ...(p.reaction_counts || {}) }, mine: new Set(p.my_reactions || []), comentarios: p.comments_count || 0 });
+            const nombre = esc(p.author_display_name), user = esc(p.author_username);
+            const largo = (p.body || '').length > 150 || (p.body || '').split('\n').length > 3;
+            const conImagen = !!p.image_url;
             return `
-            <div class="glass-card feed-card p-5" data-post-id="${p.id}">
-                <div class="flex items-start justify-between mb-3">
-                    <div class="flex items-center gap-2.5">
-                        ${esOficial
-                            ? `<div class="w-9 h-9 rounded-full bg-nlt-accent/15 flex items-center justify-center"><img src="assets/img/nlt-icon.png" class="w-5 h-5"></div>
-                               <div><p class="text-sm font-bold text-white">NLT Official <i class="ph-fill ph-seal-check text-nlt-accent"></i></p><span class="official-badge">${p.category}</span></div>`
-                            : `<div class="w-9 h-9 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white overflow-hidden btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}" role="button" tabindex="0" aria-label="Ver perfil de ${esc(p.author_display_name)}">${p.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(p.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(p.author_display_name)}</div>
-                               <div><p class="text-sm font-semibold text-white btn-ver-perfil cursor-pointer" data-username="${esc(p.author_username)}">${esc(p.author_display_name)}${p.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p><p class="text-[10px] text-gray-500">@${esc(p.author_username)} · ${tiempoRelativo(p.created_at)} · ${TYPE_LABEL[p.type] || ''}</p></div>`
-                        }
+            <article class="ig-post feed-card" data-post-id="${p.id}">
+                <div class="ig-post-cab">
+                    <div class="ig-av ${p.author_verified ? 'anillo' : ''} btn-ver-perfil" data-username="${user}" role="button" tabindex="0" aria-label="Ver perfil de ${nombre}"><div>${p.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(p.author_avatar_url)}" alt="">` : iniciales(p.author_display_name)}</div></div>
+                    <div class="ig-post-quien">
+                        <p class="ig-post-nombre btn-ver-perfil" data-username="${user}">${nombre}${p.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
+                        <p class="ig-post-meta">@${user}${TYPE_LABEL[p.type] && p.type !== 'text' && p.type !== 'image' ? ' · ' + TYPE_LABEL[p.type] : ''}</p>
                     </div>
-                    ${!esOficial ? (p.is_own
-                        ? `<div class="flex items-center gap-1">
-                             <button class="btn-edit-post text-gray-600 hover:text-white cursor-pointer" data-post-id="${p.id}" title="Editar" aria-label="Editar publicación"><i class="ph ph-pencil-simple" aria-hidden="true"></i></button>
-                             <button class="btn-delete-post text-gray-600 hover:text-nlt-danger cursor-pointer" data-post-id="${p.id}" title="Eliminar" aria-label="Eliminar publicación"><i class="ph ph-trash" aria-hidden="true"></i></button>
-                           </div>`
-                        : `<button class="btn-report text-gray-600 hover:text-gray-400 cursor-pointer" data-post-id="${p.id}" title="Reportar" aria-label="Reportar publicación"><i class="ph ph-flag" aria-hidden="true"></i></button>`
-                    ) : ''}
+                    <button class="ig-mas btn-mas-post" data-post-id="${p.id}" data-own="${p.is_own ? '1' : '0'}" aria-label="Más opciones"><i class="ph-bold ph-dots-three" aria-hidden="true"></i></button>
                 </div>
-                ${esOficial ? `<p class="font-bold text-white mb-1">${esc(p.title)}</p>` : ''}
-                ${p.type === 'analysis' ? bloqueAnalysis(p) : ''}
-                ${p.type === 'result' ? bloqueResult(p) : ''}
-                ${!esOficial ? `<div id="postBody-${p.id}" data-raw-body="${esc(p.body || '')}">${p.body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body)}</p>` : ''}</div>` : `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(p.body || '')}</p>`}
-                ${p.image_url ? `<img loading="lazy" decoding="async" src="${p.image_url}" class="rounded-xl w-full max-h-96 object-cover mb-3">` : ''}
-                ${!esOficial ? `
-                    <div class="flex items-center justify-between pt-3 border-t border-white/5">
-                        <div class="flex items-center gap-1.5">
-                            ${REACCIONES.map(r => `<button class="react-btn btn-react ${(p.my_reactions || []).includes(r.tipo) ? 'activo' : ''}" data-post-id="${p.id}" data-tipo="${r.tipo}">${r.emoji} ${p.reaction_counts && p.reaction_counts[r.tipo] ? p.reaction_counts[r.tipo] : ''}</button>`).join('')}
-                        </div>
-                        <button class="btn-toggle-comments text-xs text-gray-500 hover:text-white cursor-pointer flex items-center gap-1" data-post-id="${p.id}"><i class="ph ph-chat-circle"></i> ${p.comments_count || 0}</button>
-                    </div>
-                    <div id="comments-${p.id}" class="hidden mt-4 pt-4 border-t border-white/5 space-y-3"></div>
-                ` : ''}
-            </div>`;
+                ${p.type === 'analysis' ? `<div class="ig-datos">${bloqueAnalysis(p)}</div>` : ''}
+                ${p.type === 'result' ? `<div class="ig-datos">${bloqueResult(p)}</div>` : ''}
+                ${conImagen ? `<div class="ig-media" data-post-id="${p.id}"><img loading="lazy" decoding="async" src="${p.image_url}" alt="Imagen de la publicación"><div class="ig-corazon" aria-hidden="true">❤️</div></div>` : ''}
+                <div class="ig-barra">
+                    <button class="ig-ico btn-react ${(p.my_reactions || []).includes('heart') ? 'activo' : ''}" data-post-id="${p.id}" data-tipo="heart" aria-label="Me gusta"><i class="${(p.my_reactions || []).includes('heart') ? 'ph-fill' : 'ph'} ph-heart" aria-hidden="true"></i></button>
+                    <button class="ig-ico btn-toggle-comments" data-post-id="${p.id}" aria-label="Comentarios"><i class="ph ph-chat-circle" aria-hidden="true"></i></button>
+                    <button class="ig-ico btn-compartir" data-post-id="${p.id}" aria-label="Compartir"><i class="ph ph-paper-plane-tilt" aria-hidden="true"></i></button>
+                    <span class="ig-espacio"></span>
+                    <button class="ig-ico btn-picker" data-post-id="${p.id}" aria-label="Más reacciones"><i class="ph ph-smiley" aria-hidden="true"></i></button>
+                    <div class="ig-picker hidden" data-post-id="${p.id}">${REACCIONES.map(r => `<button class="btn-react" data-post-id="${p.id}" data-tipo="${r.tipo}" aria-label="Reaccionar ${r.emoji}">${r.emoji}</button>`).join('')}</div>
+                </div>
+                <div class="ig-resumen" data-resumen="${p.id}"></div>
+                ${p.body ? `<div id="postBody-${p.id}" data-raw-body="${esc(p.body)}" data-autor="${nombre}"><div class="ig-caption ${largo ? 'recortado' : ''}"><b class="btn-ver-perfil" data-username="${user}">${nombre}</b><span class="ig-texto">${formatearBody(p.body)}</span></div>${largo ? '<button class="ig-vermas btn-vermas" type="button">más</button>' : ''}</div>` : `<div id="postBody-${p.id}" data-raw-body="" data-autor="${nombre}"></div>`}
+                <button class="ig-vercoms btn-toggle-comments" data-post-id="${p.id}" data-coms="${p.id}" type="button"></button>
+                <div class="ig-hora">${haceTexto(p.created_at)}</div>
+                <div id="comments-${p.id}" class="hidden"></div>
+            </article>`;
+        }
+
+        // Pinta de nuevo SOLO las partes de una tarjeta que dependen de reacciones/comentarios
+        function pintarReaccionesPost(postId) {
+            const est = estadoPost.get(postId);
+            if (!est) return;
+            document.querySelectorAll(`.ig-post[data-post-id="${postId}"]`).forEach((card) => {
+                const corazon = card.querySelector('.ig-ico.btn-react[data-tipo="heart"]');
+                if (corazon) {
+                    const activo = est.mine.has('heart');
+                    corazon.classList.toggle('activo', activo);
+                    corazon.querySelector('i').className = (activo ? 'ph-fill' : 'ph') + ' ph-heart';
+                }
+                card.querySelectorAll('.ig-picker .btn-react').forEach((b) => b.classList.toggle('activo', est.mine.has(b.getAttribute('data-tipo'))));
+                const resumen = card.querySelector('.ig-resumen');
+                const tipos = REACCIONES.filter((r) => (est.counts[r.tipo] || 0) > 0).sort((a, b) => (est.counts[b.tipo] || 0) - (est.counts[a.tipo] || 0));
+                const total = tipos.reduce((n, r) => n + (est.counts[r.tipo] || 0), 0);
+                resumen.innerHTML = total ? `<b>${total} ${total === 1 ? 'reacción' : 'reacciones'}</b>` + tipos.map((r) => `<span class="ig-rch ${est.mine.has(r.tipo) ? 'mia' : ''}">${r.emoji} ${est.counts[r.tipo]}</span>`).join('') : '';
+                resumen.style.display = total ? '' : 'none';
+                const vc = card.querySelector('.ig-vercoms');
+                if (vc) { vc.textContent = est.comentarios ? `Ver ${est.comentarios === 1 ? 'el comentario' : `los ${est.comentarios} comentarios`}` : 'Añade un comentario…'; }
+            });
+        }
+
+        async function reaccionarPost(postId, tipo) {
+            if (!esMiembro) { alert('Inicia sesión (gratis) para reaccionar.'); return; }
+            const est = estadoPost.get(postId);
+            if (!est) return;
+            const yaActivo = est.mine.has(tipo);
+            // Optimista: se ve YA; si el servidor falla, vuelve atrás solo esta tarjeta
+            const aplicar = (activo) => { if (activo) { est.mine.add(tipo); est.counts[tipo] = (est.counts[tipo] || 0) + 1; } else { est.mine.delete(tipo); est.counts[tipo] = Math.max(0, (est.counts[tipo] || 0) - 1); } pintarReaccionesPost(postId); };
+            aplicar(!yaActivo);
+            try { await NLT_API.communityReaccionar(postId, tipo); }
+            catch (err) { aplicar(yaActivo); alert('Error: ' + err.message); }
+        }
+
+        async function borrarPost(postId) {
+            if (!confirm('¿Eliminar esta publicación?')) return;
+            try {
+                await NLT_API.communityBorrarPost(postId);
+                document.querySelectorAll(`.ig-post[data-post-id="${postId}"]`).forEach((c) => c.remove());   // solo esta tarjeta, nunca todo el feed
+            } catch (err) { alert('Error: ' + err.message); }
+        }
+
+        // ---------- Hojas (desde abajo en el teléfono, centradas en el computador) ----------
+        function abrirHoja(titulo, { alCerrar, pie } = {}) {
+            const fondo = document.createElement('div');
+            fondo.className = 'ig-hoja-fondo';
+            fondo.innerHTML = `<div class="ig-hoja" role="dialog" aria-label="${esc(titulo)}"><div class="ig-hoja-cab">${esc(titulo)}<button class="ig-hoja-x" type="button" aria-label="Cerrar"><i class="ph ph-x" aria-hidden="true"></i></button></div><div class="ig-hoja-cuerpo"></div></div>`;
+            document.body.appendChild(fondo);
+            const hoja = fondo.querySelector('.ig-hoja'), cuerpo = fondo.querySelector('.ig-hoja-cuerpo');
+            const vv = window.visualViewport;
+            // con el teclado abierto, la hoja mide lo que mide la parte visible (el cuadro de comentar sube con el teclado)
+            const ajustar = () => { if (!vv) return; fondo.style.top = vv.offsetTop + 'px'; fondo.style.height = vv.height + 'px'; fondo.style.bottom = 'auto'; hoja.style.setProperty('--hoja-max', Math.round(vv.height * 0.9) + 'px'); };
+            if (vv) { vv.addEventListener('resize', ajustar); vv.addEventListener('scroll', ajustar); ajustar(); }
+            document.documentElement.style.overflow = 'hidden';
+            const cerrar = () => {
+                if (vv) { vv.removeEventListener('resize', ajustar); vv.removeEventListener('scroll', ajustar); }
+                document.documentElement.style.overflow = '';
+                if (alCerrar) alCerrar();
+                fondo.remove();
+            };
+            fondo.addEventListener('click', (e) => { if (e.target === fondo) cerrar(); });
+            fondo.querySelector('.ig-hoja-x').addEventListener('click', cerrar);
+            return { fondo, hoja, cuerpo, cerrar };
+        }
+
+        function abrirMenuPost(postId, propia) {
+            const h = abrirHoja('Opciones');
+            const acciones = [
+                { ic: 'ph-paper-plane-tilt', t: 'Compartir', f: () => compartirPost(postId) },
+                ...(propia ? [{ ic: 'ph-pencil-simple', t: 'Editar publicación', f: () => activarEdicionPost(postId) }, { ic: 'ph-trash', t: 'Eliminar publicación', peligro: true, f: () => borrarPost(postId) }]
+                           : [{ ic: 'ph-flag', t: 'Reportar', peligro: true, f: () => reportarPost(postId) }]),
+            ];
+            h.cuerpo.innerHTML = acciones.map((a, i) => `<button class="ig-accion ${a.peligro ? 'peligro' : ''}" data-i="${i}" type="button"><i class="ph ${a.ic}" aria-hidden="true"></i>${a.t}</button>`).join('');
+            h.cuerpo.addEventListener('click', (e) => { const b = e.target.closest('[data-i]'); if (!b) return; h.cerrar(); acciones[+b.getAttribute('data-i')].f(); });
+        }
+
+        async function compartirPost(postId) {
+            const caja = document.getElementById(`postBody-${postId}`);
+            const texto = ((caja && caja.getAttribute('data-raw-body')) || 'Mira esta publicación en NLT Community').slice(0, 200);
+            const url = new URL('community.html', window.location.href).href;
+            try {
+                if (navigator.share) { await navigator.share({ title: 'NLT Community', text: texto, url }); return; }
+                await navigator.clipboard.writeText(`${texto}\n${url}`);
+                if (window.NLTCall) window.NLTCall.toast('Enlace copiado');
+            } catch (_) { /* cancelado por la persona */ }
+        }
+
+        // Comentarios: hoja con la lista y el cuadro para comentar fijo abajo
+        function abrirComentarios(postId) {
+            const box = document.getElementById(`comments-${postId}`);
+            if (!box) return;
+            const origen = box.parentElement;
+            const h = abrirHoja('Comentarios', { alCerrar: () => { box.classList.add('hidden'); box.style.cssText = ''; origen.appendChild(box); } });
+            h.hoja.style.setProperty('--hoja-alto', '78dvh');
+            box.classList.remove('hidden');
+            h.cuerpo.appendChild(box);
+            box.style.cssText = 'display:flex;flex-direction:column;flex:1;min-height:100%';
+            cargarComentarios(postId);
         }
 
         // Escucha una sola vez por elemento -- wirePostCards se vuelve a
@@ -970,56 +1301,58 @@
             fn();
         }
 
+        function abrirImagenGrande(url) {
+            document.getElementById('lightboxImg').src = url;
+            document.getElementById('lightboxModal').classList.remove('hidden');
+        }
+
         function wirePostCards(container) {
+            container.querySelectorAll('.ig-post[data-post-id]').forEach((card) => { if (!card._pintado) { card._pintado = true; pintarReaccionesPost(card.getAttribute('data-post-id')); } });
             container.querySelectorAll('.btn-react').forEach(btn => _unaVez(btn, () => {
-                btn.addEventListener('click', async () => {
-                    if (!esMiembro) { alert('Inicia sesión (gratis) para reaccionar.'); return; }
-                    const postId = btn.getAttribute('data-post-id');
-                    const tipo = btn.getAttribute('data-tipo');
-                    const reaccion = REACCIONES.find(r => r.tipo === tipo);
-                    const yaActivo = btn.classList.contains('activo');
-                    const countActual = parseInt(btn.textContent.trim().split(/\s+/)[1], 10) || 0;
-                    const countNuevo = yaActivo ? Math.max(0, countActual - 1) : countActual + 1;
-
-                    // Feedback optimista: el botón cambia YA, sin esperar la
-                    // red -- antes esto esperaba el request y encima recargaba
-                    // TODO el feed entero, que se sentía como que el botón no
-                    // reaccionaba. Si el request falla, se revierte solo esta tarjeta.
-                    btn.classList.toggle('activo', !yaActivo);
-                    btn.textContent = `${reaccion.emoji} ${countNuevo || ''}`.trim();
-
-                    try {
-                        await NLT_API.communityReaccionar(postId, tipo);
-                    } catch (err) {
-                        btn.classList.toggle('activo', yaActivo);
-                        btn.textContent = `${reaccion.emoji} ${countActual || ''}`.trim();
-                        alert('Error: ' + err.message);
-                    }
+                btn.addEventListener('click', () => {
+                    const picker = btn.closest('.ig-picker'); if (picker) picker.classList.add('hidden');
+                    if (btn.classList.contains('ig-ico')) { btn.classList.remove('late'); void btn.offsetWidth; btn.classList.add('late'); }
+                    reaccionarPost(btn.getAttribute('data-post-id'), btn.getAttribute('data-tipo'));
+                });
+            }));
+            container.querySelectorAll('.btn-picker').forEach(btn => _unaVez(btn, () => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const p = btn.parentElement.querySelector('.ig-picker');
+                    document.querySelectorAll('.ig-picker').forEach((x) => { if (x !== p) x.classList.add('hidden'); });
+                    p.classList.toggle('hidden');
                 });
             }));
             container.querySelectorAll('.btn-toggle-comments').forEach(btn => _unaVez(btn, () => {
-                btn.addEventListener('click', () => alternarComentarios(btn.getAttribute('data-post-id')));
+                btn.addEventListener('click', () => abrirComentarios(btn.getAttribute('data-post-id')));
+            }));
+            container.querySelectorAll('.btn-compartir').forEach(btn => _unaVez(btn, () => {
+                btn.addEventListener('click', () => compartirPost(btn.getAttribute('data-post-id')));
+            }));
+            container.querySelectorAll('.btn-mas-post').forEach(btn => _unaVez(btn, () => {
+                btn.addEventListener('click', () => abrirMenuPost(btn.getAttribute('data-post-id'), btn.getAttribute('data-own') === '1'));
+            }));
+            container.querySelectorAll('.btn-vermas').forEach(btn => _unaVez(btn, () => {
+                btn.addEventListener('click', () => { btn.parentElement.querySelector('.ig-caption').classList.remove('recortado'); btn.remove(); });
+            }));
+            // Foto: un toque la abre grande; dos toques seguidos dan ❤️ (como Instagram)
+            container.querySelectorAll('.ig-media[data-post-id]').forEach(media => _unaVez(media, () => {
+                let ultimo = 0, t = null;
+                media.addEventListener('click', () => {
+                    const ahora = Date.now();
+                    if (ahora - ultimo < 320) {
+                        clearTimeout(t); ultimo = 0;
+                        const postId = media.getAttribute('data-post-id'), est = estadoPost.get(postId);
+                        const c = media.querySelector('.ig-corazon'); c.classList.remove('pop'); void c.offsetWidth; c.classList.add('pop');
+                        if (est && !est.mine.has('heart')) reaccionarPost(postId, 'heart');
+                    } else {
+                        ultimo = ahora;
+                        t = setTimeout(() => abrirImagenGrande(media.querySelector('img').src), 320);
+                    }
+                });
             }));
             container.querySelectorAll('.btn-report').forEach(btn => _unaVez(btn, () => {
                 btn.addEventListener('click', () => reportarPost(btn.getAttribute('data-post-id')));
-            }));
-            container.querySelectorAll('.btn-edit-post').forEach(btn => _unaVez(btn, () => {
-                btn.addEventListener('click', () => activarEdicionPost(btn.getAttribute('data-post-id')));
-            }));
-            container.querySelectorAll('.btn-delete-post').forEach(btn => _unaVez(btn, () => {
-                btn.addEventListener('click', async () => {
-                    if (!confirm('¿Eliminar esta publicación?')) return;
-                    const postId = btn.getAttribute('data-post-id');
-                    try {
-                        await NLT_API.communityBorrarPost(postId);
-                        // Solo se quita esta tarjeta del DOM -- nunca recargar
-                        // todo el feed acá (mismo motivo que los comentarios).
-                        // .glass-card (no [data-post-id]) a propósito: el botón
-                        // TAMBIÉN tiene data-post-id, así que closest() con ese
-                        // selector encontraba el botón mismo, no la tarjeta.
-                        btn.closest('.glass-card').remove();
-                    } catch (err) { alert('Error: ' + err.message); }
-                });
             }));
             container.querySelectorAll('.btn-ver-perfil').forEach(el => _unaVez(el, () => {
                 const ir = () => { window.location.href = `community.html?u=${el.getAttribute('data-username')}`; };
@@ -1040,6 +1373,7 @@
                 });
             }));
         }
+        document.addEventListener('click', (e) => { if (!e.target.closest('.ig-picker, .btn-picker')) document.querySelectorAll('.ig-picker').forEach((x) => x.classList.add('hidden')); });
 
         const _adsImpresionadas = new Set();
         function registrarImpresionesAds(ads) {
@@ -1052,7 +1386,7 @@
 
         function renderPostBodyEstatico(wrap, body) {
             wrap.setAttribute('data-raw-body', body || '');
-            wrap.innerHTML = body ? `<p class="text-sm text-gray-300 leading-relaxed mb-3">${formatearBody(body)}</p>` : '';
+            wrap.innerHTML = body ? `<div class="ig-caption"><b>${wrap.getAttribute('data-autor') || ''}</b><span class="ig-texto">${formatearBody(body)}</span></div>` : '';
         }
 
         function activarEdicionPost(postId) {
@@ -1093,22 +1427,12 @@
         }
 
         function actualizarContadorComentarios(postId, delta) {
-            // Solo actualiza el número en el botón de esta tarjeta -- nunca
-            // recargar todo el feed acá, porque eso reconstruye el DOM entero
-            // y colapsa de nuevo el bloque de comentarios que el usuario
-            // recién abrió (mismo motivo por el que .btn-react ya es
-            // optimista, ver wirePostCards).
-            const btn = document.querySelector(`.btn-toggle-comments[data-post-id="${postId}"]`);
-            if (!btn) return;
-            const actual = parseInt(btn.textContent.trim().match(/\d+$/)?.[0] || '0', 10);
-            btn.innerHTML = `<i class="ph ph-chat-circle"></i> ${Math.max(0, actual + delta)}`;
-        }
-
-        async function alternarComentarios(postId) {
-            const box = document.getElementById(`comments-${postId}`);
-            const oculto = box.classList.contains('hidden');
-            box.classList.toggle('hidden');
-            if (oculto) await cargarComentarios(postId);
+            // Solo actualiza el número de esta tarjeta -- nunca recargar todo el feed acá (reconstruiría el DOM entero y cerraría lo que
+            // la persona tenga abierto).
+            const est = estadoPost.get(postId);
+            if (!est) return;
+            est.comentarios = Math.max(0, est.comentarios + delta);
+            pintarReaccionesPost(postId);
         }
 
         function activarEdicionComentario(commentId) {
@@ -1127,7 +1451,7 @@
             textarea.focus();
             const renderEstatico = (body) => {
                 wrap.setAttribute('data-raw-body', body);
-                wrap.innerHTML = `<p class="text-xs text-gray-300 mt-0.5">${esc(body).replace(/\n/g, '<br>')}</p>`;
+                wrap.innerHTML = esc(body).replace(/\n/g, '<br>');
             };
             wrap.querySelector('.btn-cancelar-edicion-comentario').addEventListener('click', () => renderEstatico(original));
             wrap.querySelector('.btn-guardar-edicion-comentario').addEventListener('click', async () => {
@@ -1145,18 +1469,14 @@
 
         function comentarioHTML(c, postId) {
             return `
-                <div class="comment-item flex items-start gap-2.5" data-comment-id="${c.id}">
-                    <div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white shrink-0 overflow-hidden">${c.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(c.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.author_display_name)}</div>
-                    <div class="flex-1 min-w-0 glass-item px-3 py-2">
-                        <p class="text-xs font-semibold text-white">${esc(c.author_display_name)}${c.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(c.created_at)}</span></p>
-                        <div id="commentBody-${c.id}" data-raw-body="${esc(c.body)}"><p class="text-xs text-gray-300 mt-0.5">${esc(c.body).replace(/\n/g, '<br>')}</p></div>
-                    </div>
-                    ${c.is_own ? `
-                        <div class="flex items-center gap-1 shrink-0">
-                            <button class="btn-editar-comentario text-gray-600 hover:text-white cursor-pointer" data-comment-id="${c.id}" title="Editar" aria-label="Editar comentario"><i class="ph ph-pencil-simple text-xs" aria-hidden="true"></i></button>
-                            <button class="btn-borrar-comentario text-gray-600 hover:text-nlt-danger cursor-pointer" data-comment-id="${c.id}" data-post-id="${postId}" title="Eliminar" aria-label="Eliminar comentario"><i class="ph ph-trash text-xs" aria-hidden="true"></i></button>
+                <div class="comment-item cm-item" data-comment-id="${c.id}">
+                    <div class="cm-av">${c.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(c.author_avatar_url)}" alt="">` : iniciales(c.author_display_name)}</div>
+                    <div class="cm-texto">
+                        <div><b>${esc(c.author_display_name)}${c.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</b><span id="commentBody-${c.id}" data-raw-body="${esc(c.body)}">${esc(c.body).replace(/\n/g, '<br>')}</span></div>
+                        <div class="cm-meta"><span>${haceTexto(c.created_at).replace('hace ', '')}</span>
+                            ${c.is_own ? `<button class="btn-editar-comentario" data-comment-id="${c.id}" type="button">Editar</button><button class="btn-borrar-comentario" data-comment-id="${c.id}" data-post-id="${postId}" type="button">Eliminar</button>` : ''}
                         </div>
-                    ` : ''}
+                    </div>
                 </div>
             `;
         }
@@ -1173,58 +1493,57 @@
                 b.addEventListener('click', async () => {
                     if (!confirm('¿Eliminar este comentario?')) return;
                     await NLT_API.communityBorrarComentario(b.getAttribute('data-comment-id'));
-                    // .comment-item (no [data-comment-id]) a propósito: el botón
-                    // también lleva data-comment-id, así que closest() con ese
-                    // selector encontraba el botón mismo, no el bloque completo
-                    // (mismo bug ya corregido antes para btn-delete-post).
+                    // .comment-item (no [data-comment-id]) a propósito: el botón también lleva data-comment-id, así que closest() con ese
+                    // selector encontraba el botón mismo, no el bloque completo.
                     b.closest('.comment-item').remove();
                     actualizarContadorComentarios(postId, -1);
                 });
             });
         }
 
+        const _sinComentarios = '<div class="ig-sin-coms"><b>Aún no hay comentarios</b>Empieza la conversación.</div>';
         async function cargarComentarios(postId) {
             const box = document.getElementById(`comments-${postId}`);
-            box.innerHTML = '<p class="text-xs text-gray-500 animate-pulse">Cargando...</p>';
+            box.innerHTML = '<div class="ig-sin-coms" style="animation:skeleton-pulse 1.4s ease-in-out infinite">Cargando…</div>';
             try {
                 const comentarios = await NLT_API.communityComentarios(postId);
-                box.innerHTML = comentarios.map(c => comentarioHTML(c, postId)).join('') || '<p class="text-xs text-gray-600">Sé el primero en comentar.</p>';
+                box.innerHTML = comentarios.map(c => comentarioHTML(c, postId)).join('') || _sinComentarios;
                 wireComentarios(box, postId);
 
                 if (esMiembro) {
                     box.insertAdjacentHTML('beforeend', `
-                        <div class="flex items-center gap-2 pt-2">
-                            <input id="newComment-${postId}" placeholder="Escribe un comentario..." class="post-input flex-1">
-                            <button class="btn-enviar-comentario px-4 py-2 rounded-full bg-nlt-accent text-white text-xs font-semibold cursor-pointer" data-post-id="${postId}">Enviar</button>
+                        <div class="flex items-center gap-2 cm-form" style="margin-top:auto">
+                            <div class="cm-av">${miPerfil && miPerfil.avatar_url ? `<img src="${esc(miPerfil.avatar_url)}" alt="">` : iniciales(miPerfil ? miPerfil.display_name : '')}</div>
+                            <input id="newComment-${postId}" placeholder="Añade un comentario…" maxlength="1000" autocomplete="off" enterkeyhint="send">
+                            <button class="btn-enviar-comentario" data-post-id="${postId}" type="button">Publicar</button>
                         </div>
                     `);
-                    box.querySelector('.btn-enviar-comentario').addEventListener('click', async () => {
-                        const input = document.getElementById(`newComment-${postId}`);
-                        if (!input.value.trim()) return;
+                    const form = box.querySelector('.cm-form'), input = document.getElementById(`newComment-${postId}`);
+                    input.addEventListener('input', () => form.classList.toggle('listo', !!input.value.trim()));
+                    const enviar = async () => {
+                        const texto = input.value.trim();
+                        if (!texto) return;
+                        input.value = ''; form.classList.remove('listo');          // se ve YA: el cuadro queda libre y el teclado abierto
                         try {
-                            const nuevo = await NLT_API.communityCrearComentario(postId, input.value.trim());
-                            input.value = '';
-                            // Inserta solo el comentario nuevo antes del input -- nunca
-                            // recargar la lista entera acá (mismo motivo que el resto
-                            // de este archivo: no perder el estado de otras tarjetas
-                            // ni el propio input si el poll de fondo dispara a la vez).
-                            const placeholder = box.querySelector('p.text-gray-600');
-                            if (placeholder) placeholder.remove();
-                            input.closest('.flex').insertAdjacentHTML('beforebegin', comentarioHTML(nuevo, postId));
+                            const nuevo = await NLT_API.communityCrearComentario(postId, texto);
+                            // Inserta solo el comentario nuevo antes del cuadro -- nunca recargar la lista entera
+                            const vacio = box.querySelector('.ig-sin-coms'); if (vacio) vacio.remove();
+                            form.insertAdjacentHTML('beforebegin', comentarioHTML(nuevo, postId));
                             wireComentarios(box, postId);
                             actualizarContadorComentarios(postId, 1);
-                        } catch (err) { alert('Error: ' + err.message); }
-                    });
+                            const cuerpo = box.closest('.ig-hoja-cuerpo'); if (cuerpo) cuerpo.scrollTop = cuerpo.scrollHeight;
+                        } catch (err) { input.value = texto; form.classList.add('listo'); alert('Error: ' + err.message); }
+                    };
+                    box.querySelector('.btn-enviar-comentario').addEventListener('click', enviar);
+                    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); enviar(); } });
                 }
             } catch (err) {
-                box.innerHTML = `<p class="text-xs text-nlt-danger">Error: ${err.message}</p>`;
+                box.innerHTML = `<div class="ig-sin-coms" style="color:#ff5d6c">Error: ${esc(err.message)}</div>`;
             }
         }
 
-        // --- Polling: comentarios nuevos de OTROS en hilos que ya tienes
-        // abiertos. Nunca recarga el hilo entero (perdería un borrador sin
-        // enviar o una edición en curso) -- solo agrega los ids que todavía
-        // no están en el DOM, en el mismo lugar donde aparecería uno propio.
+        // --- Polling: comentarios nuevos de OTROS en la hoja que tienes abierta. Nunca recarga el hilo entero (perdería un borrador sin
+        // enviar o una edición en curso) -- solo agrega los ids que todavía no están en el DOM, en el mismo lugar donde aparecería uno propio.
         async function pollComentariosAbiertos() {
             const abiertos = [...document.querySelectorAll('[id^="comments-"]')].filter(b => !b.classList.contains('hidden'));
             for (const box of abiertos) {
@@ -1234,11 +1553,10 @@
                     const idsActuales = new Set([...box.querySelectorAll('[data-comment-id]')].map(el => el.getAttribute('data-comment-id')));
                     const nuevos = comentarios.filter(c => !idsActuales.has(c.id));
                     if (!nuevos.length) continue;
-                    const placeholder = box.querySelector('p.text-gray-600');
-                    if (placeholder) placeholder.remove();
-                    const inputRow = box.querySelector('#newComment-' + postId)?.closest('.flex');
+                    const vacio = box.querySelector('.ig-sin-coms'); if (vacio) vacio.remove();
+                    const form = box.querySelector('.cm-form');
                     const html = nuevos.map(c => comentarioHTML(c, postId)).join('');
-                    if (inputRow) inputRow.insertAdjacentHTML('beforebegin', html);
+                    if (form) form.insertAdjacentHTML('beforebegin', html);
                     else box.insertAdjacentHTML('beforeend', html);
                     wireComentarios(box, postId);
                     actualizarContadorComentarios(postId, nuevos.length);
@@ -1367,32 +1685,36 @@
             const conversacionOrigenId = origen === 'dm' ? conversacionActualId : null;
             try {
                 const [perfil, posts] = await Promise.all([NLT_API.communityPerfilPublico(username), NLT_API.communityPostsDePerfil(username)]);
+                const sigue = perfil.is_following;
                 box.innerHTML = `
-                    <button id="btn-volver-feed" class="text-xs text-gray-500 hover:text-white mb-6 flex items-center gap-1 cursor-pointer">
-                        <i class="ph ph-arrow-left"></i> ${conversacionOrigenId ? 'Volver a la conversación' : 'Volver al feed'}
-                    </button>
-                    <div class="glass-card p-6 mb-6 text-center">
-                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-lg font-bold text-white mx-auto mb-3 overflow-hidden">${perfil.avatar_url ? `<img loading="lazy" decoding="async" src="${esc(perfil.avatar_url)}" class="w-full h-full object-cover">` : iniciales(perfil.display_name)}</div>
-                        <p class="text-lg font-bold text-white">${esc(perfil.display_name)}${perfil.verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
-                        <p class="text-xs text-gray-500 mb-2">@${esc(perfil.username)}</p>
-                        ${perfil.bio ? `<p class="text-sm text-gray-400 max-w-md mx-auto mb-3">${esc(perfil.bio)}</p>` : ''}
-                        <p class="text-[11px] text-gray-600 mb-3">Miembro desde ${new Date(perfil.created_at).toLocaleDateString()}</p>
-                        <div class="flex items-center justify-center gap-5 text-xs text-gray-400 mb-4">
-                            <span><span class="font-bold text-white">${perfil.posts_count}</span> publicaciones</span>
-                            <span><span id="statSeguidores" class="font-bold text-white">${perfil.followers_count}</span> seguidores</span>
-                            <span><span class="font-bold text-white">${perfil.following_count}</span> siguiendo</span>
+                    <div class="pf-barra">
+                        <button id="btn-volver-feed" class="pf-volver" aria-label="${conversacionOrigenId ? 'Volver a la conversación' : 'Volver'}"><i class="ph ph-arrow-left" aria-hidden="true"></i></button>
+                        <b>@${esc(perfil.username)}</b><span style="width:40px"></span>
+                    </div>
+                    <div class="pf-cab">
+                        <div class="pf-fila">
+                            <div class="ig-av anillo pf-av"><div>${perfil.avatar_url ? `<img loading="lazy" decoding="async" src="${esc(perfil.avatar_url)}" alt="">` : iniciales(perfil.display_name)}</div></div>
+                            <div class="pf-stats">
+                                <div><b>${perfil.posts_count}</b><span>publicaciones</span></div>
+                                <div><b id="statSeguidores">${perfil.followers_count}</b><span>seguidores</span></div>
+                                <div><b>${perfil.following_count}</b><span>siguiendo</span></div>
+                            </div>
                         </div>
+                        <p class="pf-nombre">${esc(perfil.display_name)}${perfil.verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
+                        ${perfil.bio ? `<p class="pf-bio">${esc(perfil.bio)}</p>` : ''}
+                        <p class="pf-desde">Miembro desde ${new Date(perfil.created_at).toLocaleDateString('es', { month: 'long', year: 'numeric' })}</p>
                         ${perfil.is_own
-                            ? `<button id="btn-editar-perfil" class="px-4 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer">Editar perfil</button>`
-                            : `<div class="flex items-center justify-center gap-2">
-                                   <button id="btn-seguir" data-siguiendo="${perfil.is_following}" class="px-5 py-2 rounded-full text-xs font-semibold cursor-pointer ${perfil.is_following ? 'bg-white/10 text-gray-300' : 'bg-nlt-accent text-white'}">${perfil.is_following ? 'Siguiendo' : 'Seguir'}</button>
-                                   ${esMiembro ? `<button id="btn-enviar-mensaje" data-user-id="${esc(perfil.user_id)}" class="px-5 py-2 rounded-full bg-white/5 hover:bg-white/10 text-xs font-semibold cursor-pointer flex items-center gap-1.5"><i class="ph ph-chat-circle-dots"></i> Enviar mensaje</button>` : ''}
+                            ? `<div class="pf-botones"><button id="btn-editar-perfil" class="pf-btn" type="button">Editar perfil</button></div>`
+                            : `<div class="pf-botones">
+                                   <button id="btn-seguir" data-siguiendo="${sigue}" class="pf-btn ${sigue ? '' : 'pri'}" type="button">${sigue ? 'Siguiendo' : 'Seguir'}</button>
+                                   ${esMiembro ? `<button id="btn-enviar-mensaje" data-user-id="${esc(perfil.user_id)}" class="pf-btn" type="button">Mensaje</button>` : ''}
                                </div>`
                         }
                     </div>
                     <div id="perfilEditBox" class="hidden glass-card p-6 mb-6"></div>
                     <div id="perfilIndicadores" class="hidden glass-card p-5 mb-6"></div>
-                    <div id="perfilPostsBox" class="space-y-4"></div>
+                    <div class="pf-pestana"><i class="ph ph-squares-four" aria-hidden="true"></i> Publicaciones</div>
+                    <div id="perfilPostsBox" class="pf-grid"></div>
                 `;
                 cargarIndicadoresDePerfil(perfil);
                 document.getElementById('btn-volver-feed').addEventListener('click', async () => {
@@ -1410,8 +1732,18 @@
                     document.getElementById('vistaFeed').classList.remove('hidden');
                 });
                 const postsBox = document.getElementById('perfilPostsBox');
-                postsBox.innerHTML = posts.length ? posts.map(postCardHTML).join('') : '<p class="text-sm text-gray-500 text-center py-6">Sin publicaciones públicas todavía.</p>';
-                wirePostCards(postsBox);
+                // Cuadrícula de 3 columnas como Instagram: toca una para verla completa (con reacciones y comentarios)
+                const porId = new Map(posts.map((p) => [p.id, p]));
+                postsBox.innerHTML = posts.length ? posts.map(postTileHTML).join('') : '<div class="pf-vacio"><i class="ph ph-camera" aria-hidden="true"></i><b>Sin publicaciones todavía</b></div>';
+                postsBox.addEventListener('click', (e) => {
+                    const t = e.target.closest('.pf-tile'); if (!t) return;
+                    const p = porId.get(t.getAttribute('data-post-id')); if (!p) return;
+                    const h = abrirHoja('Publicación');
+                    h.cuerpo.style.padding = '0';
+                    h.cuerpo.innerHTML = postCardHTML(p);
+                    const card = h.cuerpo.querySelector('.ig-post'); if (card) { card.style.border = '0'; card.style.borderRadius = '0'; }
+                    wirePostCards(h.cuerpo);
+                });
 
                 if (perfil.is_own) {
                     document.getElementById('btn-editar-perfil').addEventListener('click', () => mostrarFormEdicionPerfil(perfil));
@@ -1442,7 +1774,7 @@
                         const pintar = (siguiendo) => {
                             btnSeguir.setAttribute('data-siguiendo', String(siguiendo));
                             btnSeguir.textContent = siguiendo ? 'Siguiendo' : 'Seguir';
-                            btnSeguir.className = `px-5 py-2 rounded-full text-xs font-semibold cursor-pointer ${siguiendo ? 'bg-white/10 text-gray-300' : 'bg-nlt-accent text-white'}`;
+                            btnSeguir.className = `pf-btn ${siguiendo ? '' : 'pri'}`;
                         };
                         pintar(nuevoEstado);
                         contador.textContent = nuevoEstado ? countAntes + 1 : Math.max(0, countAntes - 1);
@@ -2101,23 +2433,24 @@
         let dmTypingTimer = null;
 
         function tarjetaConversacionHTML(c) {
-            const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : (c.last_message_at ? '📷 Imagen' : 'Sin mensajes todavía.');
+            const sinLeer = c.unread_count || 0;
+            const preview = c.last_message_content ? esc(c.last_message_content).slice(0, 60) : (c.last_message_at ? '📷 Foto' : 'Toca para escribir');
             return `
-                <div class="glass-item conv-row p-3 flex items-center gap-3 cursor-pointer btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}" role="button" tabindex="0" aria-label="Abrir conversación con ${esc(c.other_display_name)}">
-                    <div class="w-11 h-11 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-xs font-bold text-white shrink-0 overflow-hidden">${c.other_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(c.other_avatar_url)}" class="w-full h-full object-cover">` : iniciales(c.other_display_name)}</div>
-                    <div class="flex-1 min-w-0">
-                        <p class="text-sm font-semibold text-white truncate">${esc(c.other_display_name)}${c.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
-                        <p class="text-xs text-gray-500 truncate">${preview}</p>
+                <div class="dm-fila ${sinLeer ? 'sin-leer' : ''} btn-abrir-conversacion" data-conversation-id="${c.id}" data-other-user-id="${c.other_user_id}" role="button" tabindex="0" aria-label="Abrir conversación con ${esc(c.other_display_name)}">
+                    <div class="dm-fila-av">${c.other_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(c.other_avatar_url)}" alt="">` : iniciales(c.other_display_name)}</div>
+                    <div class="dm-fila-txt">
+                        <p class="dm-fila-nombre">${esc(c.other_display_name)}${c.other_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>
+                        <p class="dm-fila-prev">${preview}${c.last_message_at ? ` · ${tiempoRelativo(c.last_message_at)}` : ''}</p>
                     </div>
-                    <p class="text-[11px] text-gray-600 shrink-0">${c.last_message_at ? tiempoRelativo(c.last_message_at) : ''}</p>
+                    ${sinLeer ? `<span class="dm-fila-punto" aria-label="${sinLeer} sin leer"></span>` : ''}
                 </div>
             `;
         }
 
         function _skeletonConversacionesHTML(n = 4) {
             return Array(n).fill(0).map(() => `
-                <div class="glass-item p-3 flex items-center gap-3">
-                    <div class="skeleton-block w-11 h-11 rounded-full shrink-0"></div>
+                <div class="dm-fila">
+                    <div class="skeleton-block dm-fila-av" style="border-radius:50%"></div>
                     <div class="flex-1 space-y-1.5">
                         <div class="skeleton-block h-3 w-24"></div>
                         <div class="skeleton-block h-2.5 w-44"></div>
@@ -2133,20 +2466,26 @@
                 const pre = _pre.dm; _pre.dm = null;
                 const conversaciones = await _tomar(pre, () => NLT_API.communityDMConversaciones());
                 conversacionesCache = conversaciones;
-                box.innerHTML = conversaciones.length ? conversaciones.map(tarjetaConversacionHTML).join('') : '<p class="text-sm text-gray-500 text-center py-10">Todavía no tienes conversaciones -- entra al perfil de otro miembro y toca "Enviar mensaje".</p>';
-                box.querySelectorAll('.btn-abrir-conversacion').forEach(el => {
-                    const id = el.getAttribute('data-conversation-id');
-                    const abrir = () => abrirConversacion(id, conversaciones.find(c => c.id === id));
-                    el.addEventListener('click', abrir);
-                    el.addEventListener('pointerdown', () => precargarMensajesDM(id), { passive: true });
-                    el.addEventListener('mouseenter', () => precargarMensajesDM(id), { passive: true });
-                    el.addEventListener('keydown', (e) => {
-                        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
-                    });
-                });
+                pintarInsigniaDM(conversaciones);
+                repintarListaConversaciones(conversaciones);
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
             }
+        }
+
+        function repintarListaConversaciones(conversaciones) {
+            const box = document.getElementById('dmConversaciones');
+            box.innerHTML = conversaciones.length ? conversaciones.map(tarjetaConversacionHTML).join('') : '<p class="text-sm text-gray-500 text-center py-10">Todavía no tienes conversaciones -- entra al perfil de otro miembro y toca "Enviar mensaje".</p>';
+            box.querySelectorAll('.btn-abrir-conversacion').forEach(el => {
+                const id = el.getAttribute('data-conversation-id');
+                const abrir = () => abrirConversacion(id, conversaciones.find(c => c.id === id));
+                el.addEventListener('click', abrir);
+                el.addEventListener('pointerdown', () => precargarMensajesDM(id), { passive: true });
+                el.addEventListener('mouseenter', () => precargarMensajesDM(id), { passive: true });
+                el.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
+                });
+            });
         }
 
         // mostrarAvatar: solo true en el ÚLTIMO mensaje de una tanda seguida
@@ -2389,7 +2728,7 @@
                 box.scrollTop = box.scrollHeight;
                 // Preparado: marca como leídos los mensajes del otro participante
                 // al abrir la conversación -- ver community_dm.py::marcar_leida.
-                NLT_API.communityDMMarcarLeida(conversationId).catch(() => {});
+                NLT_API.communityDMMarcarLeida(conversationId).then(() => refrescarInsigniaDM()).catch(() => {});
                 actualizarTypingDM();
             } catch (err) {
                 box.innerHTML = `<p class="text-sm text-nlt-danger text-center py-10">Error: ${esc(err.message)}</p>`;
@@ -2771,10 +3110,16 @@
 
         // --- Switch de vista Feed/Chat ---
         async function mostrarVista(vista) {
-            document.getElementById('tab-vista-feed').classList.toggle('activo', vista === 'feed');
-            document.getElementById('tab-vista-chat').classList.toggle('activo', vista === 'chat');
-            document.getElementById('tab-vista-mensajes').classList.toggle('activo', vista === 'mensajes');
-            document.getElementById('tab-vista-operativa').classList.toggle('activo', vista === 'operativa');
+            const perfilAbierto = document.getElementById('vistaPerfil');
+            if (!perfilAbierto.classList.contains('hidden')) {            // con la barra inferior visible se puede salir de un perfil tocando una pestaña
+                perfilAbierto.classList.add('hidden');
+                if (window.location.search) window.history.replaceState({}, '', 'community.html');
+            }
+            ['feed', 'chat', 'mensajes', 'operativa'].forEach((v) => {
+                const t = document.getElementById('tab-vista-' + v);
+                t.classList.toggle('activo', vista === v);
+                const ic = t.querySelector('i'); if (ic) ic.className = ic.className.replace(/\bph(-fill)?\b/, vista === v ? 'ph-fill' : 'ph');
+            });
             document.getElementById('vistaOperativa').classList.toggle('hidden', vista !== 'operativa');
             document.getElementById('vistaFeed').classList.toggle('hidden', vista !== 'feed');
             document.getElementById('vistaChat').classList.toggle('hidden', vista !== 'chat');
@@ -3062,6 +3407,7 @@
             const pPerfil = sesionActual ? NLT_API.communityMiPerfil().catch(() => null) : Promise.resolve(null);
 
             if (sesionActual) {
+                document.documentElement.classList.add('tabs-visibles');      // en móvil la barra inferior queda siempre a la mano (también en un perfil)
                 document.getElementById('buscadorPersonas').classList.remove('hidden');
                 esMiembro = await pAcceso;
                 if (esMiembro) {
@@ -3069,6 +3415,7 @@
                         miPerfil = await pPerfil;
                         if (!miPerfil) throw new Error('sin perfil');
                         document.getElementById('tab-mi-perfil').classList.remove('hidden');
+                        document.getElementById('cpAv').innerHTML = miPerfil.avatar_url ? `<img src="${esc(miPerfil.avatar_url)}" alt="">` : iniciales(miPerfil.display_name);
                         document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
                         NLT.mountNotifBell('notifBell');
                     } catch (_) {}
@@ -3132,6 +3479,7 @@
             NLT.pollWhileVisible(pollDMNuevo, 8000);
             NLT.pollWhileVisible(pollLlamadas, 10000);
             NLT.pollWhileVisible(refrescarOperativa, 20000);
+            NLT.pollWhileVisible(refrescarInsigniaDM, 45000);
             pintarLlamadas();
             setTimeout(pollLlamadas, 600);
             setTimeout(refrescarOperativa, 900);
