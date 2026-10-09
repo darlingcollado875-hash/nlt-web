@@ -288,14 +288,16 @@
                     <span class="text-nlt-accent text-xs font-semibold group-hover:translate-x-0.5 transition-transform">Abrir →</span>
                 </a>
                 <div class="glass-card p-6 mb-6">
-                    <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-key text-nlt-accent"></i> Acceso manual · Zone Engine PRO y Charts Trader</h2>
-                    <p class="text-xs text-gray-500 mb-4">Da acceso a quien tú elijas, sin cobro ni comisión, igual que una compra. Con Vitalicio o Mensual se abre el Zone Engine PRO de NLT Charts. Con «NLT Charts Trader» se abre conectar cuentas MT5 reales y operar desde el gráfico, y crear/compartir/vender indicadores con NLT Script. El acceso se mantiene hasta que lo revoques. Cada persona debe tener cuenta en NLT: si aún no entró, pídele que inicie sesión una vez con Google.</p>
+                    <h2 class="text-sm font-semibold text-white flex items-center gap-2 mb-1"><i class="ph-fill ph-key text-nlt-accent"></i> Acceso manual · Zone Engine PRO, Indicator AI y Charts Trader</h2>
+                    <p class="text-xs text-gray-500 mb-4">Da acceso a quien tú elijas, sin cobro ni comisión, igual que una compra. Con Vitalicio o Mensual se abre el Zone Engine PRO de NLT Charts. Con «NLT Indicator AI» se abre el análisis de zona con IA (es un acceso aparte: no abre el Zone Engine PRO ni al revés; si quieres los dos, dale los dos). Con «NLT Charts Trader» se abre conectar cuentas MT5 reales y operar desde el gráfico, y crear/compartir/vender indicadores con NLT Script. El acceso se mantiene hasta que lo revoques. Cada persona debe tener cuenta en NLT: si aún no entró, pídele que inicie sesión una vez con Google.</p>
                     <div class="grid md:grid-cols-2 gap-3 mb-3">
                         <textarea id="accManualEmails" rows="5" placeholder="Correos de las cuentas NLT, uno por línea (o separados por coma)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm w-full md:row-span-2"></textarea>
                         <div class="grid grid-cols-2 gap-3">
                             <select id="accManualPlan" class="plan-select bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
                                 <option value="INDICATOR_LIFETIME">Vitalicio</option>
                                 <option value="INDICATOR_MONTHLY">Mensual (sigue activo hasta que lo revoques)</option>
+                                <option value="INDICATOR_AI_LIFETIME">NLT Indicator AI · Vitalicio</option>
+                                <option value="INDICATOR_AI_MONTHLY">NLT Indicator AI · Mensual (sigue activo hasta que lo revoques)</option>
                                 <option value="CHARTS_TRADER_MONTHLY">NLT Charts Trader · cuentas reales + Scripts</option>
                             </select>
                             <input id="accManualTv" placeholder="Usuario de TradingView (opcional)" class="bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
@@ -2483,7 +2485,7 @@
                 box.innerHTML = lista.length ? lista.map(a => `
                     <div class="glass-item p-3 flex items-center gap-3 flex-wrap ${a.status === 'active' ? '' : 'opacity-50'}">
                         <div class="flex-1 min-w-[180px]"><p class="text-sm text-white font-semibold">${esc(a.email || '—')}</p>
-                            <p class="text-xs text-gray-500">${({ INDICATOR_LIFETIME: 'Zone Engine · Vitalicio', INDICATOR_MONTHLY: 'Zone Engine · Mensual', CHARTS_TRADER_MONTHLY: 'Charts Trader (cuentas reales + Scripts)' })[a.plan_id] || a.plan_id} · ${a.status === 'active' ? 'Activo' : 'Revocado'} · ${esc(a.otorgado_por || '')} · ${a.fecha ? new Date(a.fecha).toLocaleDateString('es') : ''}${a.nota ? ' · ' + esc(a.nota) : ''}</p></div>
+                            <p class="text-xs text-gray-500">${({ INDICATOR_LIFETIME: 'Zone Engine · Vitalicio', INDICATOR_MONTHLY: 'Zone Engine · Mensual', CHARTS_TRADER_MONTHLY: 'Charts Trader (cuentas reales + Scripts)', INDICATOR_AI_LIFETIME: 'Indicator AI · Vitalicio', INDICATOR_AI_MONTHLY: 'Indicator AI · Mensual' })[a.plan_id] || a.plan_id} · ${a.status === 'active' ? 'Activo' : 'Revocado'} · ${esc(a.otorgado_por || '')} · ${a.fecha ? new Date(a.fecha).toLocaleDateString('es') : ''}${a.nota ? ' · ' + esc(a.nota) : ''}</p></div>
                         ${a.status === 'active' ? `<button data-revocar-acc="${esc(a.order_id)}" data-email="${esc(a.email || '')}" class="px-3 py-1.5 rounded-lg bg-nlt-danger/10 border border-nlt-danger/20 text-nlt-danger text-xs font-semibold cursor-pointer">Revocar</button>` : ''}
                     </div>`).join('') : '<p class="text-xs text-gray-500">Todavía no has dado accesos manuales.</p>';
                 box.querySelectorAll('[data-revocar-acc]').forEach(btn => btn.addEventListener('click', async () => {
