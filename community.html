@@ -379,6 +379,9 @@
             </div>
 
             <div id="chatAutorizado" class="hidden">
+                <div class="flex items-center justify-end mb-2">
+                    <button id="btn-chat-avisos" type="button" class="chip" aria-pressed="true" title="Avisos de mensajes nuevos del chat global (campana y notificación del teléfono)"><i class="ph ph-bell-ringing" aria-hidden="true"></i> <span>Avisos: activados</span></button>
+                </div>
                 <div class="msg-scroll mb-1">
                     <div id="chatMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 55vh; height: 55dvh;">
                         <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
@@ -465,8 +468,8 @@
     </div>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
-    <script src="assets/js/nlt-shared.js?v=175a16e9"></script>
-    <script src="assets/js/nlt-api-client.js?v=12a85879"></script>
+    <script src="assets/js/nlt-shared.js?v=627c3391"></script>
+    <script src="assets/js/nlt-api-client.js?v=59466739"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -2178,6 +2181,7 @@
             if (vista === 'chat' && !chatCargado) {
                 if (esMiembro) {
                     document.getElementById('chatAutorizado').classList.remove('hidden');
+                    if (window.cargarAvisoChat) window.cargarAvisoChat();
                     await cargarChat();
                 } else {
                     document.getElementById('chatSinAcceso').classList.remove('hidden');
@@ -2218,6 +2222,30 @@
             });
             document.addEventListener('click', (e) => { if (!e.target.closest('#buscadorPersonas')) cerrar(); });
             input.addEventListener('keydown', (e) => { if (e.key === 'Escape') { cerrar(); input.blur(); } });
+        })();
+        // Avisos del chat global (campana + notificación): se pueden apagar; el servidor además manda como mucho uno cada 10 min por persona.
+        (function () {
+            const btn = document.getElementById('btn-chat-avisos');
+            let activo = true, cargado = false, tocado = false;
+            const pintar = () => {
+                btn.setAttribute('aria-pressed', String(activo));
+                btn.querySelector('span').textContent = activo ? 'Avisos: activados' : 'Avisos: apagados';
+                btn.querySelector('i').className = 'ph ' + (activo ? 'ph-bell-ringing' : 'ph-bell-slash');
+                btn.style.color = activo ? '' : '#6B7280';
+            };
+            window.cargarAvisoChat = async () => {
+                if (cargado) return;
+                cargado = true;
+                try { const v = (await NLT_API.communityChatAviso()).enabled !== false; if (!tocado) activo = v; } catch (_) { cargado = false; }
+                pintar();
+            };
+            btn.addEventListener('click', async () => {
+                const antes = activo;
+                tocado = true;
+                activo = !activo; pintar();                    // se ve al instante; si el servidor falla, vuelve
+                try { await NLT_API.communityChatAvisoGuardar(activo); }
+                catch (err) { activo = antes; pintar(); alert('No se pudo cambiar el aviso: ' + err.message); }
+            });
         })();
         document.getElementById('tab-vista-feed').addEventListener('click', () => mostrarVista('feed'));
         document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
@@ -2332,7 +2360,7 @@
                 // Deep-link del Notification Center ("Nuevo DM" -> Community
                 // /Messages, ver nlt-shared.js::_NOTIF_HREFS) -- solo cambia de
                 // pestaña si el usuario ya es miembro (mismo gate que el resto).
-                if (esMiembro && vistaParam === 'mensajes') mostrarVista('mensajes');
+                if (esMiembro && (vistaParam === 'mensajes' || vistaParam === 'chat')) mostrarVista(vistaParam);
             }
 
             // Mismo patrón que signals-dashboard.html (NLT.pollWhileVisible,
