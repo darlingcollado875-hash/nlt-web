@@ -213,8 +213,11 @@
         .dm-img-wrap { position: relative; display: inline-block; margin-top: 6px; line-height: 0; }
         .dm-img-wrap .msg-thumb { margin-top: 0; }
         .dm-img-wrap.subiendo .msg-thumb, .dm-img-wrap.fallo .msg-thumb { filter: brightness(.55); }
-        .dm-img-wrap.subiendo::after { content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
-            border: 3px solid rgba(255,255,255,0.28); border-top-color: #fff; animation: dmGira .8s linear infinite; }
+        .dm-img-wrap.subiendo::before { content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px;
+            background: url('assets/img/nlt-mark.svg') center / contain no-repeat; z-index: 1; filter: drop-shadow(0 0 7px rgba(67,120,255,0.65)); animation: dmLatido 1.4s ease-in-out infinite; }
+        .dm-img-wrap.subiendo::after { content: ''; position: absolute; left: 50%; top: 50%; width: 58px; height: 58px; margin: -29px 0 0 -29px; border-radius: 50%;
+            border: 2.5px solid rgba(255,255,255,0.18); border-top-color: #4378FF; z-index: 1; animation: dmGira .9s linear infinite; }
+        @keyframes dmLatido { 0%, 100% { transform: scale(.93); } 50% { transform: scale(1.07); } }
         .dm-img-fallo { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; line-height: 1.2; }
         .dm-img-fallo button { font-size: 13px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
         .dm-img-fallo .dm-img-quitar { background: transparent; border-color: transparent; font-weight: 500; color: #E5E7EB; padding: 2px 10px; }
@@ -234,7 +237,7 @@
         .dm-esqueleto i:nth-child(even) { align-self: flex-end; width: 44%; }
         .dm-esqueleto i:nth-child(3n) { width: 68%; height: 52px; }
         @keyframes dmBrillo { to { background-position: -200% 0; } }
-        @media (prefers-reduced-motion: reduce) { .dm-nuevo, .dm-esqueleto i, .dm-mas.cargando::before, .dm-img-wrap.subiendo::after { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .dm-nuevo, .dm-esqueleto i, .dm-mas.cargando::before, .dm-img-wrap.subiendo::before, .dm-img-wrap.subiendo::after { animation: none; } }
         .dm-pendiente .dm-meta { display: none !important; }
         @media (max-width: 1023px) {
             html.dm-abierto, html.dm-abierto body { overflow: hidden; overscroll-behavior: none; }
