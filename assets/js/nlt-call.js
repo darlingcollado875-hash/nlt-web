@@ -16,7 +16,7 @@
     }
     if (window.NLTCall) return;
 
-    const SYNC_RAPIDO = 900, SYNC_NORMAL = 2500, ERRORES_MAX = 8;
+    const SYNC_RAPIDO = 600, SYNC_NORMAL = 1500, ERRORES_MAX = 8;
     const hayWebRTC = typeof RTCPeerConnection !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
     const soportaPantalla = !!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) && !/iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
@@ -362,10 +362,18 @@
     }
 
     // ---------- conexiones entre personas (WebRTC) ----------
+    // Las señales se juntan 60 ms y salen en UN solo viaje (la oferta y sus candidatos van juntas); la oferta/respuesta no espera.
+    let salida = [], salidaTimer = null;
+    function vaciarSalida() {
+        clearTimeout(salidaTimer); salidaTimer = null;
+        const callId = S.call && S.call.id, lote = salida; salida = [];
+        if (!callId || !lote.length) return;
+        S.cola = S.cola.then(() => api().callSenales(callId, { signals: lote }).catch(() => { /* la otra persona pudo salir */ }));
+    }
     function enviarSenal(uid, tipo, payload) {
-        const callId = S.call && S.call.id;
-        if (!callId) return;
-        S.cola = S.cola.then(() => api().callSenal(callId, { to_user_id: uid, kind: tipo, payload }).catch(() => { /* la otra persona pudo salir */ }));
+        if (!S.call) return;
+        salida.push({ to_user_id: uid, kind: tipo, payload: { sid: S.sid, d: payload } });     // sid: identifica ESTA entrada a la llamada (si vuelves a entrar es otra)
+        if (tipo === 'ice') { if (!salidaTimer) salidaTimer = setTimeout(vaciarSalida, 60); } else vaciarSalida();
     }
 
     async function ponerLocal(pc, tipo) {
@@ -373,15 +381,28 @@
         catch (_) { await pc.setLocalDescription(await (tipo === 'offer' ? pc.createOffer() : pc.createAnswer())); }
     }
 
-    function crearPeer(uid) {
-        const pc = new RTCPeerConnection({ iceServers: S.ice });
-        const peer = { uid, pc, polite: S.myId < uid, haciendoOferta: false, ignorarOferta: false, pantalla: null, pantallaSender: null, audioEl: null, ausencias: 0, cola: Promise.resolve(), cerrado: false };
-        S.peers.set(uid, peer);
+    // Quien llegó después es quien ofrece (así no se cruzan dos ofertas a la vez y la conexión se arma en un solo intercambio).
+    // La otra parte espera la oferta; si en 8 s no llega, ofrece ella.
+    function esIniciador(uid) {
+        const yo = S.roster.find((p) => p.user_id === S.myId), el = S.roster.find((p) => p.user_id === uid);
+        if (!yo || !el || !yo.joined_at || !el.joined_at) return S.myId > uid;
+        return yo.joined_at === el.joined_at ? S.myId > uid : yo.joined_at > el.joined_at;
+    }
+    function iniciarOferta(peer) {
+        if (peer.audioSender || peer.cerrado) return;
         // siempre hay un canal de audio (aunque no tengas micrófono todavía), así la conexión se arma igual
-        const tr = pc.addTransceiver('audio', { direction: 'sendrecv' });
+        const tr = peer.pc.addTransceiver('audio', { direction: 'sendrecv' });
         peer.audioSender = tr.sender;
         if (S.mic) tr.sender.replaceTrack(S.mic.track).catch(() => {});
         if (S.share) anadirPantalla(peer);
+    }
+
+    function crearPeer(uid, iniciar) {
+        const pc = new RTCPeerConnection({ iceServers: S.ice, iceCandidatePoolSize: 4, bundlePolicy: 'max-bundle' });
+        const peer = { uid, pc, polite: S.myId < uid, haciendoOferta: false, ignorarOferta: false, pantalla: null, pantallaSender: null, audioSender: null, audioEl: null, ausencias: 0, cola: Promise.resolve(), cerrado: false };
+        S.peers.set(uid, peer);
+        if (iniciar === undefined ? esIniciador(uid) : iniciar) iniciarOferta(peer);
+        else peer.espera = setTimeout(() => { if (!peer.cerrado && !pc.remoteDescription) iniciarOferta(peer); }, 8000);
 
         pc.onicecandidate = (e) => { if (e.candidate) enviarSenal(uid, 'ice', e.candidate.toJSON()); };
         pc.onnegotiationneeded = async () => {
@@ -416,7 +437,7 @@
     function cerrarPeer(uid) {
         const peer = S.peers.get(uid);
         if (!peer) return;
-        peer.cerrado = true;
+        peer.cerrado = true; clearTimeout(peer.espera);
         try { peer.pc.close(); } catch (_) { /* ya cerrada */ }
         if (peer.audioEl) { peer.audioEl.srcObject = null; peer.audioEl.remove(); }
         quitarVigia(uid);
@@ -425,8 +446,12 @@
     }
 
     // Señal entrante ("negociación perfecta": las dos partes pueden ofrecer a la vez y se resuelve sin quedarse trabadas).
-    function recibirSenal(de, tipo, payload) {
-        let peer = S.peers.get(de) || crearPeer(de);
+    function recibirSenal(de, tipo, envoltorio) {
+        const sid = envoltorio && envoltorio.sid, payload = envoltorio && envoltorio.d;
+        let peer = S.peers.get(de);
+        if (peer && sid && peer.sid && peer.sid !== sid) { cerrarPeer(de); peer = null; }       // la otra persona salió y volvió a entrar: conexión nueva
+        if (!peer) peer = crearPeer(de, false);
+        if (sid) peer.sid = sid;
         peer.cola = peer.cola.then(async () => {
             if (peer.cerrado) return;
             const pc = peer.pc;
@@ -439,8 +464,13 @@
                     if (peer.ignorarOferta) return;
                     await pc.setRemoteDescription(desc);
                     if (desc.type === 'offer') {
+                        if (!peer.audioSender) {
+                            const tr = pc.getTransceivers().find((t) => t.receiver && t.receiver.track && t.receiver.track.kind === 'audio');
+                            if (tr) { tr.direction = 'sendrecv'; peer.audioSender = tr.sender; if (S.mic) await tr.sender.replaceTrack(S.mic.track).catch(() => {}); }
+                        }
                         await ponerLocal(pc, 'answer');
                         enviarSenal(de, 'answer', { description: pc.localDescription.toJSON ? pc.localDescription.toJSON() : pc.localDescription });
+                        if (S.share) anadirPantalla(peer);
                     }
                 } else if (tipo === 'ice') {
                     try { await pc.addIceCandidate(payload); } catch (e) { if (!peer.ignorarOferta) throw e; }
@@ -507,7 +537,7 @@
             throw new Error('Ya estás en otra llamada. Sal de ella primero.');
         }
         montarUI();
-        S.myId = myId;
+        S.myId = myId; S.sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
         S.muted = false; S.sinMic = false; S.seq = 0; S.errores = 0; S.roster = [];
         await pedirMic();                                              // dentro del toque del usuario: así el navegador deja sonar el audio
         let r;
@@ -614,6 +644,13 @@
         unirse, salir, toast,
         alternarMic, alternarPantalla,
         abrirPanel() { S.panelAbierto = true; montarUI(); pintar(); },
+        // Abrir una página sin cortar la llamada (la usa el aviso del teléfono al tocarlo)
+        abrirUrl(url) {
+            let u; try { u = new URL(url, location.href); } catch (_) { return false; }
+            if (u.origin !== location.origin) return false;
+            if (S.call) { abrirMarco(u.href); return true; }
+            location.href = u.href; return true;
+        },
         estado,
         alCambiar(fn) { S.oyentes.add(fn); return () => S.oyentes.delete(fn); },
         soportaPantalla, hayWebRTC,
