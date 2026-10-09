@@ -234,6 +234,7 @@
             .dm-composer #dmInput { border-radius: 22px; padding: 10px 15px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
             .dm-composer #btn-dm-enviar { background: transparent; color: #4378FF; padding: 10px 6px; min-width: 0; font-size: 15px; height: 40px; margin-bottom: 1px; }
             .dm-composer:not(.dm-tiene) #btn-dm-enviar { display: none; }
+            html.dm-teclado .dm-composer { padding-bottom: 8px; }          /* con el teclado abierto no hay barra del iPhone abajo: sin ese hueco vacío */
         }
 
         /* --- Fase "Reliability + Reply + Typing Premium" --- */
@@ -2108,7 +2109,8 @@
         // reusándose por error al mandar en la conversación B).
         let dmEnviando = false;                 // solo para envíos con imagen (los de texto salen al instante, ver abajo)
         let dmClientMessageIdPendiente = null;
-        let dmTextoPendiente = null;            // el texto al que pertenece el client_message_id pendiente (un reintento del MISMO texto reusa el id)
+        let dmTextoPendiente = null;
+        const dmPendientes = new Set();        // client_message_id de mensajes que se están enviando: el refresco no los agrega dos veces            // el texto al que pertenece el client_message_id pendiente (un reintento del MISMO texto reusa el id)
         const dmTactil = window.matchMedia('(pointer: coarse)').matches;
 
         // Cuadro de texto: crece con lo que escribes (hasta 5 líneas) y, en móvil, "Enviar" aparece solo cuando hay algo que enviar.
@@ -2140,19 +2142,21 @@
             _agregarMensajeDM(box, { id: 'tmp-' + clientId, content: contenido, is_own: true, created_at: new Date().toISOString(), read_at: null, reply_to_id: null });
             const temporal = box.lastElementChild;
             temporal.classList.add('dm-pendiente');
+            dmPendientes.add(clientId);
             input.value = ''; ajustarComposerDM();
             msg.classList.add('hidden');
             cancelarReplyDM();
             dmAbajo();
             try {
                 const nuevo = await NLT_API.communityDMEnviar(convId, contenido, replyToId, clientId);
+                dmPendientes.delete(clientId);
                 if (convId !== conversacionActualId) { temporal.remove(); return; }       // cambió de conversación mientras tanto
                 temporal.remove();
-                _agregarMensajeDM(box, nuevo);
-                wireMensajesDM(box);
+                if (!box.querySelector(`.dm-message[data-message-id="${nuevo.id}"]`)) { _agregarMensajeDM(box, nuevo); wireMensajesDM(box); }
                 dmAbajo();
                 NLT_API.communityDMDejarDeEscribir(convId).catch(() => {});
             } catch (err) {
+                dmPendientes.delete(clientId);
                 temporal.remove();
                 if (convId !== conversacionActualId) return;
                 dmClientMessageIdPendiente = clientId; dmTextoPendiente = contenido;
@@ -2203,8 +2207,16 @@
             }
         }
         // Tocar un mensaje muestra/oculta sus acciones (solo se ven así en móvil; en escritorio siempre están a la vista)
+        // Tocar la conversación (o arrastrarla hacia abajo para ver mensajes anteriores) baja el teclado, como en Instagram.
+        const _cerrarTecladoDM = () => { const c = document.getElementById('dmInput'); if (document.activeElement === c) { c.blur(); return true; } return false; };
+        let _toqueY = null;
+        let _teniaTeclado = false;
+        document.getElementById('dmMensajes').addEventListener('touchstart', (e) => { _toqueY = e.touches[0].clientY; _teniaTeclado = document.activeElement === document.getElementById('dmInput'); }, { passive: true });
+        document.getElementById('dmMensajes').addEventListener('touchmove', (e) => { if (_toqueY !== null && e.touches[0].clientY - _toqueY > 28 && _cerrarTecladoDM()) _toqueY = null; }, { passive: true });
         document.getElementById('dmMensajes').addEventListener('click', (e) => {
             if (e.target.closest('button, a, img, input, textarea')) return;
+            const tenia = _teniaTeclado; _teniaTeclado = false;
+            if (_cerrarTecladoDM() || tenia) return;           // con el teclado abierto, el toque solo lo baja (no abre acciones)
             const fila = e.target.closest('.dm-message');
             if (!fila) return;
             const abrir = !fila.classList.contains('dm-acc');
@@ -2240,7 +2252,12 @@
             const movil = () => window.matchMedia('(max-width: 1023px)').matches;
             const abierta = () => !caja.classList.contains('hidden') && movil();
             lista.addEventListener('scroll', () => { pegado = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80; }, { passive: true });
+            const campo = document.getElementById('dmInput'), buscador = document.getElementById('buscadorPersonas');
             function ajustar() {
+                const tecladoAbierto = abierta() && ((vv && window.innerHeight - vv.height > 120) || document.activeElement === campo);
+                raiz.classList.toggle('dm-teclado', !!tecladoAbierto);        // sin el margen de la barra inferior del iPhone mientras el teclado está arriba
+                // el resto de campos de la página no se pueden enfocar mientras chateas: iOS no muestra las flechas ▲▼ de "campo anterior/siguiente"
+                if (buscador) buscador.inert = abierta();
                 raiz.classList.toggle('dm-abierto', abierta());
                 if (!abierta()) { raiz.style.removeProperty('--dm-h'); raiz.style.removeProperty('--dm-top'); return; }
                 raiz.style.setProperty('--dm-h', (vv ? vv.height : window.innerHeight) + 'px');
@@ -2251,6 +2268,7 @@
             window.addEventListener('resize', ajustar);
             window.addEventListener('orientationchange', () => setTimeout(ajustar, 300));
             new MutationObserver(() => { pegado = true; ajustar(); }).observe(caja, { attributes: true, attributeFilter: ['class'] });
+            campo.addEventListener('blur', () => setTimeout(ajustar, 50));
             document.getElementById('dmInput').addEventListener('focus', () => {
                 pegado = true;
                 // iOS tarda en abrir el teclado: se reajusta varias veces y se evita que la página de atrás se corra
@@ -2270,7 +2288,7 @@
             try {
                 const mensajes = await NLT_API.communityDMMensajes(conversacionActualId);
                 const idsActuales = new Set([...document.querySelectorAll('.dm-message')].map(el => el.getAttribute('data-message-id')));
-                const nuevos = mensajes.filter(m => !idsActuales.has(m.id));
+                const nuevos = mensajes.filter(m => !idsActuales.has(m.id) && !(m.is_own && m.client_message_id && dmPendientes.has(m.client_message_id)));
                 // El check ✓/✓✓ de un mensaje PROPIO ya renderizado puede
                 // cambiar (el otro lo acaba de leer) sin que haya mensajes
                 // nuevos -- se actualiza el span puntual, nunca se reconstruye
