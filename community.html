@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
     <script src="assets/js/nlt-perf.js?v=6f425d16"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -37,7 +37,14 @@
            por el overflow de un ancestro -- solo <html> (documentElement) controla
            si la pagina puede scrollear horizontal. Verificado real: sin esto,
            scrollWidth 417px en un viewport de 375px. */
-        html { overflow-x: hidden; }
+        html { overflow-x: hidden; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        /* Móvil: iOS acerca (zoom) la pantalla al enfocar un campo con letra menor de 16 px y no vuelve sola; además agranda textos al girar.
+           Con 16 px en los campos y el autoajuste apagado, escribir un mensaje ya no mueve ni agranda nada. */
+        @media (max-width: 1023px), (pointer: coarse) {
+            input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), textarea, select, .post-input { font-size: 16px !important; }
+        }
+        a, button, input, textarea, select, label, [role="button"] { touch-action: manipulation; }
+        #btn-chat-enviar, #btn-dm-enviar { min-width: 92px; }
         body { background-color: #080A0F; color: #ffffff; -webkit-font-smoothing: antialiased; }
         .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 24px; transition: border-color .15s ease; }
         .glass-item { background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.04); border-radius: 16px; transition: border-color .15s ease, background-color .15s ease; }
@@ -373,7 +380,7 @@
 
             <div id="chatAutorizado" class="hidden">
                 <div class="msg-scroll mb-1">
-                    <div id="chatMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 55vh;">
+                    <div id="chatMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 55vh; height: 55dvh;">
                         <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
                     </div>
                     <button id="btn-chat-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
@@ -421,7 +428,7 @@
                     <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mensajes</button>
                     <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
                     <div class="msg-scroll mb-1">
-                        <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh;">
+                        <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh; height: 50dvh;">
                             <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
                         </div>
                         <button id="btn-dm-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
@@ -468,6 +475,24 @@
         let tipoComposer = 'text';
         let imagenSeleccionada = null;
         let feedCache = [];
+        // Precarga en segundo plano (el usuario ya vio el feed): al tocar Chat o Mensajes la lista ya está, sin esperar a la red.
+        const _pre = { chat: null, dm: null, msgs: new Map() };
+        const _vigente = (p) => p && (Date.now() - p.t) < 45000;
+        function precargarCommunity() {
+            if (!esMiembro) return;
+            if (!_vigente(_pre.chat)) _pre.chat = { t: Date.now(), p: NLT_API.communityChatMensajes().catch(() => null) };
+            if (!_vigente(_pre.dm)) _pre.dm = { t: Date.now(), p: NLT_API.communityDMConversaciones().catch(() => null) };
+        }
+        function precargarMensajesDM(id) {
+            if (!id || _vigente(_pre.msgs.get(id))) return;
+            _pre.msgs.set(id, { t: Date.now(), p: NLT_API.communityDMMensajes(id).catch(() => null) });
+            if (_pre.msgs.size > 6) _pre.msgs.delete(_pre.msgs.keys().next().value);
+        }
+        // usa lo precargado una sola vez; si no hay (o falló) pide de nuevo
+        async function _tomar(slot, pedir) {
+            const x = slot && _vigente(slot) ? await slot.p : null;
+            return x || pedir();
+        }
 
         const REACCIONES = [
             { tipo: 'heart', emoji: '❤️' }, { tipo: 'fire', emoji: '🔥' }, { tipo: 'thumbsup', emoji: '👍' },
@@ -1582,7 +1607,8 @@
         async function cargarChat() {
             const box = document.getElementById('chatMensajes');
             try {
-                const mensajes = await NLT_API.communityChatMensajes();
+                const pre = _pre.chat; _pre.chat = null;
+                const mensajes = await _tomar(pre, () => NLT_API.communityChatMensajes());
                 ultimoMensajeChatId = mensajes.length ? mensajes[mensajes.length - 1].id : null;
                 box.innerHTML = mensajes.length ? mensajes.map(mensajeChatHTML).join('') : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
                 wireMensajesChat(box);
@@ -1750,13 +1776,16 @@
             const box = document.getElementById('dmConversaciones');
             box.innerHTML = _skeletonConversacionesHTML();
             try {
-                const conversaciones = await NLT_API.communityDMConversaciones();
+                const pre = _pre.dm; _pre.dm = null;
+                const conversaciones = await _tomar(pre, () => NLT_API.communityDMConversaciones());
                 conversacionesCache = conversaciones;
                 box.innerHTML = conversaciones.length ? conversaciones.map(tarjetaConversacionHTML).join('') : '<p class="text-sm text-gray-500 text-center py-10">Todavía no tienes conversaciones -- entra al perfil de otro miembro y toca "Enviar mensaje".</p>';
                 box.querySelectorAll('.btn-abrir-conversacion').forEach(el => {
                     const id = el.getAttribute('data-conversation-id');
                     const abrir = () => abrirConversacion(id, conversaciones.find(c => c.id === id));
                     el.addEventListener('click', abrir);
+                    el.addEventListener('pointerdown', () => precargarMensajesDM(id), { passive: true });
+                    el.addEventListener('mouseenter', () => precargarMensajesDM(id), { passive: true });
                     el.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); abrir(); }
                     });
@@ -1967,7 +1996,8 @@
             const box = document.getElementById('dmMensajes');
             box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>';
             try {
-                const mensajes = await NLT_API.communityDMMensajes(conversationId);
+                const pre = _pre.msgs.get(conversationId); _pre.msgs.delete(conversationId);
+                const mensajes = await _tomar(pre, () => NLT_API.communityDMMensajes(conversationId));
                 box.innerHTML = mensajes.length ? _listaMensajesDMHTML(mensajes) : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
                 wireMensajesDM(box);
                 box.scrollTop = box.scrollHeight;
@@ -2242,16 +2272,20 @@
             const vistaParam = params.get('vista');
             const editarPerfilParam = params.get('editar_perfil');
 
+            // Antes todo esto iba en fila (acceso -> perfil -> feed): 3-4 viajes seguidos a la API antes de ver algo. Ahora salen a la vez.
+            // El feed no depende de la membresía para pintarse (solo para reaccionar/comentar, que se revisa al hacer clic).
+            const irAPerfil = !!(usernameParam || editarPerfilParam);
+            const pFeed = irAPerfil ? null : cargarFeed();
+            const pAcceso = sesionActual ? NLT_API.communityAcceso().then((r) => !!r.has_member_access, () => false) : Promise.resolve(false);
+            const pPerfil = sesionActual ? NLT_API.communityMiPerfil().catch(() => null) : Promise.resolve(null);
+
             if (sesionActual) {
                 document.getElementById('buscadorPersonas').classList.remove('hidden');
-                try {
-                    esMiembro = (await NLT_API.communityAcceso()).has_member_access;
-                } catch (_) {
-                    esMiembro = false;
-                }
+                esMiembro = await pAcceso;
                 if (esMiembro) {
                     try {
-                        miPerfil = await NLT_API.communityMiPerfil();
+                        miPerfil = await pPerfil;
+                        if (!miPerfil) throw new Error('sin perfil');
                         document.getElementById('tab-mi-perfil').classList.remove('hidden');
                         document.getElementById('notifBellSlot').innerHTML = NLT.notifBellHTML('notifBell');
                         NLT.mountNotifBell('notifBell');
@@ -2293,7 +2327,8 @@
             } else {
                 document.getElementById('chatTabs').classList.remove('hidden');
                 document.getElementById('vistaFeed').classList.remove('hidden');
-                await cargarFeed();
+                await pFeed;
+                if (esMiembro) setTimeout(precargarCommunity, 300);        // Chat y Mensajes ya listos al tocar la pestaña
                 // Deep-link del Notification Center ("Nuevo DM" -> Community
                 // /Messages, ver nlt-shared.js::_NOTIF_HREFS) -- solo cambia de
                 // pestaña si el usuario ya es miembro (mismo gate que el resto).
