@@ -198,6 +198,44 @@
             .dm-panel-entrando, .dm-panel-saliendo { animation: none; }
         }
 
+
+        /* ───── Mensajes directos estilo Instagram (móvil) ─────
+           Al abrir una conversación ocupa TODA la pantalla: barra de arriba fija (volver + persona), mensajes que se desplazan solos y
+           el cuadro de texto abajo, que SUBE con el teclado (la altura sigue al `visualViewport`, ver JS: --dm-h/--dm-top) en vez de que
+           iOS mueva o agrande la página. Escritorio (>= 1024 px) no cambia: lista y conversación lado a lado. */
+        #dmInput { resize: none; overflow-y: auto; line-height: 1.35; max-height: 120px; }
+        .dm-pendiente { opacity: .6; }
+        @media (max-width: 1023px) {
+            html.dm-abierto, html.dm-abierto body { overflow: hidden; overscroll-behavior: none; }
+            html.dm-abierto body > header { display: none !important; }
+            #dmConversacionBox:not(.hidden) { position: fixed; left: 0; right: 0; top: var(--dm-top, 0px); height: var(--dm-h, 100dvh); z-index: 60;
+                display: flex; flex-direction: column; background: #080A0F; margin: 0; padding: 0; }
+            .dm-topbar { display: flex; align-items: center; gap: 4px; flex-shrink: 0; padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px 8px;
+                border-bottom: 1px solid rgba(255,255,255,0.07); background: rgba(8,10,15,0.96); }
+            .dm-topbar #btn-volver-mensajes { width: 40px; height: 40px; margin: 0; padding: 0; justify-content: center; border-radius: 999px; font-size: 20px; color: #E5E7EB; flex-shrink: 0; }
+            .dm-topbar .dm-volver-txt { display: none; }
+            .dm-topbar #dmConversacionHeader { margin: 0; flex: 1; min-width: 0; }
+            #dmConversacionBox .msg-scroll { flex: 1; min-height: 0; margin: 0; }
+            #dmMensajes { height: 100% !important; border-radius: 0; border: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
+                padding: 12px 12px 8px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+            #dmMensajes::before { content: ''; margin-top: auto; }               /* pocos mensajes: se quedan abajo, junto al texto (como Instagram) */
+            #dmMensajes .dm-message p.text-xs { font-size: 15px; line-height: 1.35; }
+            #dmMensajes .dm-message .border.rounded-xl { border-radius: 20px; padding: 8px 13px; }
+            #dmMensajes .msg-row-own .border.rounded-xl { background: linear-gradient(135deg, #4378FF, #6A5CFF); border-color: transparent; }
+            #dmMensajes .msg-row-own .border.rounded-xl p { color: #fff; }
+            /* Acciones (responder, copiar, borrar, editar): escondidas, aparecen al tocar el mensaje */
+            #dmMensajes .dm-message p[class~="text-[10px]"] button { display: none; font-size: 15px; padding: 6px 7px; margin-left: 2px; }
+            #dmMensajes .dm-message.dm-acc p[class~="text-[10px]"] button { display: inline-flex; }
+            #dmConversacionBox .msg-typing { padding: 0 14px; margin: 0; min-height: 18px; flex-shrink: 0; }
+            #dmMediaPreview, #dmReplyPreview, #dmMsg { margin: 0 10px 6px; flex-shrink: 0; }
+            .dm-composer { flex-shrink: 0; margin: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,0.07);
+                background: rgba(8,10,15,0.98); align-items: flex-end; position: static; }
+            .dm-composer .emoji-btn, .dm-composer .media-btn { width: 40px; height: 40px; margin-bottom: 1px; }
+            .dm-composer #dmInput { border-radius: 22px; padding: 10px 15px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+            .dm-composer #btn-dm-enviar { background: transparent; color: #4378FF; padding: 10px 6px; min-width: 0; font-size: 15px; height: 40px; margin-bottom: 1px; }
+            .dm-composer:not(.dm-tiene) #btn-dm-enviar { display: none; }
+        }
+
         /* --- Fase "Reliability + Reply + Typing Premium" --- */
 
         /* Botón Enviar bloqueado mientras hay un envío en curso (Parte 1) --
@@ -428,8 +466,10 @@
                 </div>
 
                 <div id="dmConversacionBox" class="hidden">
-                    <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer"><i class="ph ph-arrow-left"></i> Volver a Mensajes</button>
-                    <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
+                    <div class="dm-topbar">
+                        <button id="btn-volver-mensajes" class="text-xs text-gray-500 hover:text-white mb-4 flex items-center gap-1 cursor-pointer" aria-label="Volver a Mensajes"><i class="ph ph-arrow-left"></i> <span class="dm-volver-txt">Volver a Mensajes</span></button>
+                        <div id="dmConversacionHeader" class="flex items-center gap-2.5 mb-4"></div>
+                    </div>
                     <div class="msg-scroll mb-1">
                         <div id="dmMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 50vh; height: 50dvh;">
                             <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
@@ -439,13 +479,13 @@
                     <p id="dmEscribiendo" class="msg-typing mb-1">&nbsp;</p>
                     <div id="dmMediaPreview" class="hidden"></div>
                     <div id="dmReplyPreview" class="hidden"></div>
-                    <div class="msg-input-row flex items-center gap-2">
+                    <div class="msg-input-row dm-composer flex items-center gap-2">
                         <button id="btn-dm-emoji" type="button" class="emoji-btn" title="Emojis" aria-label="Insertar emoji"><i class="ph ph-smiley" aria-hidden="true"></i></button>
                         <label class="media-btn" title="Adjuntar imagen" aria-label="Adjuntar imagen">
                             <i class="ph ph-image" aria-hidden="true"></i><input type="file" id="dmImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
                         </label>
-                        <input id="dmInput" placeholder="Escribe un mensaje..." maxlength="2000" class="post-input flex-1">
-                        <button id="btn-dm-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
+                        <textarea id="dmInput" rows="1" placeholder="Escribe un mensaje..." maxlength="2000" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="post-input flex-1"></textarea>
+                        <button id="btn-dm-enviar" type="button" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
                     </div>
                     <p id="dmMsg" class="mt-2 text-xs hidden"></p>
                 </div>
@@ -1973,6 +2013,7 @@
             document.getElementById('dmEscribiendo').innerHTML = '&nbsp;';
             cancelarReplyDM(); // cambiar de conversación no debe arrastrar un reply pendiente de OTRA conversación
             dmClientMessageIdPendiente = null; // idem para un client_message_id pendiente de un fallo en OTRA conversación
+            dmTextoPendiente = null; document.getElementById('dmInput').value = ''; ajustarComposerDM();
             const header = document.getElementById('dmConversacionHeader');
             if (dmOtroParticipante) {
                 // Header clickeable entero (avatar + nombre + @username) ->
@@ -2056,7 +2097,8 @@
             if (!file) return;
             if (!validarImagenCliente(file)) { e.target.value = ''; return; }
             dmImagenSeleccionada = file;
-            mostrarPreviewImagen('dmMediaPreview', file, () => { dmImagenSeleccionada = null; document.getElementById('dmImagenInput').value = ''; });
+            mostrarPreviewImagen('dmMediaPreview', file, () => { dmImagenSeleccionada = null; document.getElementById('dmImagenInput').value = ''; ajustarComposerDM(); });
+            ajustarComposerDM();
         });
 
         // Mismo mecanismo de doble-send que Chat General (ver
@@ -2064,14 +2106,66 @@
         // un cambio de conversación (se limpia en abrirConversacion, ver
         // arriba, para que un fallo en la conversación A no termine
         // reusándose por error al mandar en la conversación B).
-        let dmEnviando = false;
+        let dmEnviando = false;                 // solo para envíos con imagen (los de texto salen al instante, ver abajo)
         let dmClientMessageIdPendiente = null;
+        let dmTextoPendiente = null;            // el texto al que pertenece el client_message_id pendiente (un reintento del MISMO texto reusa el id)
+        const dmTactil = window.matchMedia('(pointer: coarse)').matches;
+
+        // Cuadro de texto: crece con lo que escribes (hasta 5 líneas) y, en móvil, "Enviar" aparece solo cuando hay algo que enviar.
+        function ajustarComposerDM() {
+            const input = document.getElementById('dmInput');
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            document.querySelector('.dm-composer').classList.toggle('dm-tiene', !!input.value.trim() || !!dmImagenSeleccionada);
+        }
+        const dmAbajo = () => { const box = document.getElementById('dmMensajes'); box.scrollTop = box.scrollHeight; };
+
         async function enviarMensajeDM() {
-            if (dmEnviando) return;
             const input = document.getElementById('dmInput');
             const msg = document.getElementById('dmMsg');
             const contenido = input.value.trim();
             if ((!contenido && !dmImagenSeleccionada) || !conversacionActualId) return;
+            if (dmImagenSeleccionada) return enviarMensajeDMConImagen(contenido);
+
+            // Texto: el mensaje aparece YA (un poco apagado), el cuadro queda vacío y el teclado abierto, como en Instagram; el servidor
+            // confirma después. Si falla, el mensaje se quita y el texto vuelve al cuadro para reintentar sin perderlo.
+            const convId = conversacionActualId;
+            const replyToId = dmReplyState ? dmReplyState.id : null;
+            const replyGuardado = dmReplyState;
+            const clientId = (dmClientMessageIdPendiente && dmTextoPendiente === contenido) ? dmClientMessageIdPendiente : crypto.randomUUID();
+            dmClientMessageIdPendiente = null; dmTextoPendiente = null;
+            const box = document.getElementById('dmMensajes');
+            const placeholder = box.querySelector('p.text-gray-600');
+            if (placeholder) placeholder.remove();
+            _agregarMensajeDM(box, { id: 'tmp-' + clientId, content: contenido, is_own: true, created_at: new Date().toISOString(), read_at: null, reply_to_id: null });
+            const temporal = box.lastElementChild;
+            temporal.classList.add('dm-pendiente');
+            input.value = ''; ajustarComposerDM();
+            msg.classList.add('hidden');
+            cancelarReplyDM();
+            dmAbajo();
+            try {
+                const nuevo = await NLT_API.communityDMEnviar(convId, contenido, replyToId, clientId);
+                if (convId !== conversacionActualId) { temporal.remove(); return; }       // cambió de conversación mientras tanto
+                temporal.remove();
+                _agregarMensajeDM(box, nuevo);
+                wireMensajesDM(box);
+                dmAbajo();
+                NLT_API.communityDMDejarDeEscribir(convId).catch(() => {});
+            } catch (err) {
+                temporal.remove();
+                if (convId !== conversacionActualId) return;
+                dmClientMessageIdPendiente = clientId; dmTextoPendiente = contenido;
+                if (!input.value.trim()) { input.value = contenido; ajustarComposerDM(); }
+                if (replyGuardado && !dmReplyState) { dmReplyState = replyGuardado; renderReplyPreviewDM(); }
+                msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'No se envió: ' + err.message + ' · toca Enviar para reintentar.';
+            }
+        }
+
+        async function enviarMensajeDMConImagen(contenido) {
+            if (dmEnviando) return;
+            const input = document.getElementById('dmInput');
+            const msg = document.getElementById('dmMsg');
             const btn = document.getElementById('btn-dm-enviar');
             const textoOriginal = btn.textContent;
             dmEnviando = true;
@@ -2082,15 +2176,14 @@
             const clientId = dmClientMessageIdPendiente;
             const replyToId = dmReplyState ? dmReplyState.id : null;
             try {
-                const nuevo = dmImagenSeleccionada
-                    ? await NLT_API.communityDMEnviarImagen(conversacionActualId, dmImagenSeleccionada, contenido || null, replyToId, clientId)
-                    : await NLT_API.communityDMEnviar(conversacionActualId, contenido, replyToId, clientId);
-                dmClientMessageIdPendiente = null;
+                const nuevo = await NLT_API.communityDMEnviarImagen(conversacionActualId, dmImagenSeleccionada, contenido || null, replyToId, clientId);
+                dmClientMessageIdPendiente = null; dmTextoPendiente = null;
                 input.value = '';
                 dmImagenSeleccionada = null;
                 document.getElementById('dmImagenInput').value = '';
                 document.getElementById('dmMediaPreview').innerHTML = '';
                 document.getElementById('dmMediaPreview').classList.add('hidden');
+                ajustarComposerDM();
                 cancelarReplyDM();
                 msg.classList.add('hidden');
                 NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {});
@@ -2099,7 +2192,7 @@
                 if (placeholder) placeholder.remove();
                 _agregarMensajeDM(box, nuevo);
                 wireMensajesDM(box);
-                box.scrollTop = box.scrollHeight;
+                dmAbajo();
             } catch (err) {
                 msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
             } finally {
@@ -2109,20 +2202,62 @@
                 btn.textContent = textoOriginal;
             }
         }
-        document.getElementById('btn-dm-enviar').addEventListener('click', enviarMensajeDM);
+        // Tocar un mensaje muestra/oculta sus acciones (solo se ven así en móvil; en escritorio siempre están a la vista)
+        document.getElementById('dmMensajes').addEventListener('click', (e) => {
+            if (e.target.closest('button, a, img, input, textarea')) return;
+            const fila = e.target.closest('.dm-message');
+            if (!fila) return;
+            const abrir = !fila.classList.contains('dm-acc');
+            document.querySelectorAll('#dmMensajes .dm-acc').forEach((x) => x.classList.remove('dm-acc'));
+            if (abrir) fila.classList.add('dm-acc');
+        });
+        // El botón no le quita el foco al cuadro de texto: el teclado se queda abierto después de enviar (como Instagram).
+        const _btnDmEnviar = document.getElementById('btn-dm-enviar');
+        _btnDmEnviar.addEventListener('pointerdown', (e) => e.preventDefault());
+        _btnDmEnviar.addEventListener('click', enviarMensajeDM);
         document.getElementById('dmInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
+            // En el teléfono, Enter es salto de línea (se envía con el botón); en computador, Enter envía y Shift+Enter hace salto.
+            if (e.key === 'Enter' && !e.shiftKey && !dmTactil) {
                 e.preventDefault();
                 enviarMensajeDM();
             }
         });
         document.getElementById('dmInput').addEventListener('input', () => {
+            ajustarComposerDM();
             if (!conversacionActualId) return;
             if (!document.getElementById('dmInput').value.trim()) { NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {}); return; }
             if (dmTypingTimer) return;
             NLT_API.communityDMEscribiendo(conversacionActualId).catch(() => {});
             dmTypingTimer = setTimeout(() => { dmTypingTimer = null; }, 3000);
         });
+
+        // Teclado (móvil): el panel de la conversación mide lo que mide la parte VISIBLE de la pantalla, así el cuadro de texto sube con el
+        // teclado y los mensajes se quedan pegados abajo; además se bloquea el desplazamiento de la página de atrás y se oculta el header.
+        (function () {
+            const vv = window.visualViewport, raiz = document.documentElement;
+            const caja = document.getElementById('dmConversacionBox'), lista = document.getElementById('dmMensajes');
+            let pegado = true;
+            const movil = () => window.matchMedia('(max-width: 1023px)').matches;
+            const abierta = () => !caja.classList.contains('hidden') && movil();
+            lista.addEventListener('scroll', () => { pegado = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80; }, { passive: true });
+            function ajustar() {
+                raiz.classList.toggle('dm-abierto', abierta());
+                if (!abierta()) { raiz.style.removeProperty('--dm-h'); raiz.style.removeProperty('--dm-top'); return; }
+                raiz.style.setProperty('--dm-h', (vv ? vv.height : window.innerHeight) + 'px');
+                raiz.style.setProperty('--dm-top', (vv ? vv.offsetTop : 0) + 'px');
+                if (pegado) lista.scrollTop = lista.scrollHeight;
+            }
+            if (vv) { vv.addEventListener('resize', ajustar); vv.addEventListener('scroll', ajustar); }
+            window.addEventListener('resize', ajustar);
+            window.addEventListener('orientationchange', () => setTimeout(ajustar, 300));
+            new MutationObserver(() => { pegado = true; ajustar(); }).observe(caja, { attributes: true, attributeFilter: ['class'] });
+            document.getElementById('dmInput').addEventListener('focus', () => {
+                pegado = true;
+                // iOS tarda en abrir el teclado: se reajusta varias veces y se evita que la página de atrás se corra
+                [60, 220, 450].forEach((t) => setTimeout(() => { if (!abierta()) return; window.scrollTo(0, 0); ajustar(); lista.scrollTop = lista.scrollHeight; }, t));
+            });
+            ajustar();
+        })();
         document.getElementById('dmInput').addEventListener('blur', () => { if (conversacionActualId) NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {}); });
 
         // Poll eficiente: solo agrega mensajes nuevos a la conversación
