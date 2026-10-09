@@ -38,6 +38,8 @@
         cola: Promise.resolve(),
         oyentes: new Set(),
         hablando: new Set(),
+        llamando: false,       // llamada privada esperando que la otra persona conteste
+        sono: false,           // ya sonó el «conectado» de esta llamada
         live: null,            // sala «Operativa en vivo»: { room }
         pantallasLive: new Map(),   // userId -> MediaStream de su pantalla
     };
@@ -46,6 +48,9 @@
     const esc = (t) => String(t == null ? '' : t).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
     const iniciales = (n) => (String(n || '?').trim().split(/\s+/).slice(0, 2).map((p) => p[0]).join('') || '?').toUpperCase();
     const api = () => window.NLT_API;
+    // Tonos (los define nlt-shared.js: NLT.tonos). Se leen de la ventana principal, que es donde vive la llamada.
+    const tonos = () => { let t = null; try { t = (window.top.NLT || window.NLT || {}).tonos; } catch (_) { t = (window.NLT || {}).tonos; } return t && typeof t.sonar === 'function' ? t : null; };
+    const sonar = (n) => { try { const t = tonos(); if (t) t.sonar(n); } catch (_) { /* un sonido que falla no afecta a la llamada */ } };
     const avisar = () => S.oyentes.forEach((f) => { try { f(estado()); } catch (_) { /* un oyente roto no afecta a los demás */ } });
 
     function estado() {
@@ -117,6 +122,12 @@
         #nltCallRoot .nc-cab .nc-min svg, #nltCallRoot .nc-visor .nc-min svg { width: 100%; height: 100%; }
         .nc-btn[hidden] { display: none; }
         .nc-btn .nc-tip { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); font-size: 10px; color: #94a3b8; white-space: nowrap; margin-top: 3px; }
+        .nc-dialogo { position: fixed; inset: 0; pointer-events: auto; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 5; }
+        .nc-caja { background: #0c101a; border: 1px solid rgba(255,255,255,.12); border-radius: 22px; padding: 22px; max-width: 360px; width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
+        .nc-caja b { font-size: 16px; } .nc-caja p { color: #94a3b8; font-size: 14px; line-height: 1.45; margin: 8px 0 18px; }
+        .nc-caja div { display: flex; gap: 10px; justify-content: flex-end; }
+        .nc-caja button { border: 0; border-radius: 999px; padding: 11px 18px; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .nc-d-no { background: rgba(255,255,255,.1); color: #e5e7eb; } .nc-d-ok { background: #16a34a; color: #fff; }
         .nc-toast { position: fixed; left: 50%; top: calc(env(safe-area-inset-top, 0px) + 12px); transform: translateX(-50%); background: rgba(12,16,26,.96); border: 1px solid rgba(255,255,255,.12);
             color: #f3f4f6; padding: 9px 16px; border-radius: 999px; font-size: 13px; font-weight: 600; box-shadow: 0 10px 30px rgba(0,0,0,.5); max-width: 90vw; text-align: center; animation: ncToast 3.2s ease forwards; pointer-events: none; }
         @keyframes ncToast { 0% { opacity: 0; transform: translate(-50%, -8px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
@@ -230,7 +241,7 @@
             }).join('');
             const titulo = S.call.scope === 'live' ? 'Operativa en vivo' : (S.call.scope === 'global' ? 'Llamada grupal' : `Llamada con ${esc(S.call.label || 'tu contacto')}`);
             const htmlPanel = `
-                <div class="nc-cab"><div class="nc-tit"><b>${titulo}</b><small><span data-nc-t>§T§</span> · ${S.roster.length} ${S.roster.length === 1 ? 'persona' : 'personas'}</small></div>
+                <div class="nc-cab"><div class="nc-tit"><b>${titulo}</b><small>${S.llamando ? 'Llamando…' : `<span data-nc-t>§T§</span> · ${S.roster.length} ${S.roster.length === 1 ? 'persona' : 'personas'}`}</small></div>
                     <button class="nc-min" data-nc="min" aria-label="Minimizar">${IC.down}</button></div>
                 <div class="nc-lista">${filas || '<div class="nc-fila"><div class="nc-nom"><i>Conectando…</i></div></div>'}</div>
                 <div class="nc-ctrl">
@@ -250,6 +261,20 @@
         t.className = 'nc-toast'; t.textContent = texto;
         raiz.appendChild(t);
         setTimeout(() => t.remove(), 3300);
+    }
+
+    // ---------- pregunta (cambiar de llamada) ----------
+    function preguntar(titulo, texto, textoOk) {
+        montarUI();
+        return new Promise((resolver) => {
+            const d = document.createElement('div');
+            d.className = 'nc-dialogo';
+            d.innerHTML = `<div class="nc-caja" role="alertdialog" aria-label="${esc(titulo)}"><b>${esc(titulo)}</b><p>${esc(texto)}</p><div><button class="nc-d-no" type="button">Quedarme</button><button class="nc-d-ok" type="button">${esc(textoOk)}</button></div></div>`;
+            raiz.appendChild(d);
+            const fin = (v) => { d.remove(); resolver(v); };
+            d.querySelector('.nc-d-ok').onclick = () => fin(true);
+            d.querySelector('.nc-d-no').onclick = () => fin(false);
+        });
     }
 
     // ---------- ver la pantalla de otra persona ----------
@@ -393,7 +418,9 @@
     }
     function enviarSenal(uid, tipo, payload) {
         if (!S.call) return;
-        salida.push({ to_user_id: uid, kind: tipo, payload: { sid: S.sid, d: payload } });     // sid: identifica ESTA entrada a la llamada (si vuelves a entrar es otra)
+        const pe = S.peers.get(uid);
+        // sid: identifica ESTA entrada a la llamada (si vuelves a entrar es otra); pid: identifica ESTA conexión con esa persona (si se rehace, es otra)
+        salida.push({ to_user_id: uid, kind: tipo, payload: { sid: S.sid, pid: pe ? pe.pid : null, d: payload } });
         if (tipo === 'ice') { if (!salidaTimer) salidaTimer = setTimeout(vaciarSalida, 60); } else vaciarSalida();
     }
 
@@ -420,7 +447,7 @@
 
     function crearPeer(uid, iniciar) {
         const pc = new RTCPeerConnection({ iceServers: S.ice, iceCandidatePoolSize: 4, bundlePolicy: 'max-bundle' });
-        const peer = { uid, pc, polite: S.myId < uid, haciendoOferta: false, ignorarOferta: false, pantalla: null, pantallaSender: null, audioSender: null, audioEl: null, ausencias: 0, cola: Promise.resolve(), cerrado: false };
+        const peer = { uid, pid: Math.random().toString(36).slice(2, 10), remotePid: null, pc, polite: S.myId < uid, haciendoOferta: false, ignorarOferta: false, pantalla: null, pantallaSender: null, audioSender: null, audioEl: null, ausencias: 0, cola: Promise.resolve(), cerrado: false };
         S.peers.set(uid, peer);
         if (iniciar === undefined ? esIniciador(uid) : iniciar) iniciarOferta(peer);
         else peer.espera = setTimeout(() => { if (!peer.cerrado && !pc.remoteDescription) iniciarOferta(peer); }, 8000);
@@ -448,6 +475,7 @@
             }
         };
         pc.onconnectionstatechange = () => {
+            if (pc.connectionState === 'connected' && !S.sono) { S.sono = true; sonar('conectado'); }
             if (pc.connectionState === 'failed') { try { pc.restartIce(); } catch (_) { /* sin reinicio */ } }
             if (pc.connectionState === 'closed' || peer.cerrado) return;
             if (pc.connectionState === 'failed') setTimeout(() => { if (!peer.cerrado && pc.connectionState === 'failed') { cerrarPeer(uid); } }, 12000);
@@ -468,11 +496,13 @@
 
     // Señal entrante ("negociación perfecta": las dos partes pueden ofrecer a la vez y se resuelve sin quedarse trabadas).
     function recibirSenal(de, tipo, envoltorio) {
-        const sid = envoltorio && envoltorio.sid, payload = envoltorio && envoltorio.d;
+        const sid = envoltorio && envoltorio.sid, pid = envoltorio && envoltorio.pid, payload = envoltorio && envoltorio.d;
         let peer = S.peers.get(de);
-        if (peer && sid && peer.sid && peer.sid !== sid) { cerrarPeer(de); peer = null; }       // la otra persona salió y volvió a entrar: conexión nueva
+        // la otra persona salió y volvió a entrar, o rehízo su conexión con nosotros: se empieza una conexión nueva en vez de mezclar
+        if (peer && ((sid && peer.sid && peer.sid !== sid) || (pid && peer.remotePid && peer.remotePid !== pid))) { cerrarPeer(de); peer = null; }
         if (!peer) peer = crearPeer(de, false);
         if (sid) peer.sid = sid;
+        if (pid) peer.remotePid = pid;
         peer.cola = peer.cola.then(async () => {
             if (peer.cerrado) return;
             const pc = peer.pc;
@@ -512,8 +542,12 @@
     function aplicarRoster(lista) {
         const antes = new Set(S.roster.map((p) => p.user_id));
         const ahora = new Set(lista.map((p) => p.user_id));
-        lista.forEach((p) => { if (p.user_id !== S.myId && !antes.has(p.user_id) && S.roster.length) toast(`${p.display_name} se unió a la llamada`); });
-        S.roster.forEach((p) => { if (p.user_id !== S.myId && !ahora.has(p.user_id)) toast(`${p.display_name} salió de la llamada`); });
+        const dm = S.call && S.call.scope === 'dm';
+        lista.forEach((p) => { if (p.user_id !== S.myId && !antes.has(p.user_id) && S.roster.length) { if (!dm) { toast(`${p.display_name} se unió a la llamada`); sonar('entra'); } } });
+        S.roster.forEach((p) => { if (p.user_id !== S.myId && !ahora.has(p.user_id)) { toast(dm ? `${p.display_name} colgó` : `${p.display_name} salió de la llamada`); if (!dm) sonar('sale'); } });
+        // llamada privada: al contestar la otra persona deja de sonar el «tuuu» y suena el de conectado; si cuelga, se cuelga también
+        if (dm && S.llamando && lista.length > 1) { S.llamando = false; clearTimeout(S.sinRespuesta); const t = tonos(); if (t) t.detener(); if (!S.sono) { S.sono = true; sonar('conectado'); } }
+        if (dm && S.roster.length > 1 && lista.length <= 1 && S.call) { const id = S.call.id; setTimeout(() => { if (S.call && S.call.id === id && S.roster.length <= 1) salir(); }, 1200); }
         S.roster = lista;
         lista.forEach((p) => { if (p.user_id !== S.myId && !S.peers.has(p.user_id)) crearPeer(p.user_id); });
         // una persona nueva puede mandar su señal un instante antes de aparecer en la lista: se cierra solo tras 2 ausencias seguidas
@@ -549,7 +583,18 @@
     }
 
     // ---------- entrar / salir ----------
-    async function unirse({ scope, conversationId, label, myId }) {
+    function mismaLlamada(scope, conversationId) {
+        return !!S.call && S.call.scope === scope && (scope === 'global' || scope === 'live' || S.call.conversationId === conversationId);
+    }
+
+    // Una persona puede estar en una sola llamada a la vez; entrar a otra pregunta primero y sale de la actual (nunca se tumba nada sin avisar)
+    async function unirse({ scope, conversationId, label, myId, cambiar }) {
+        if (S.call && !mismaLlamada(scope, conversationId)) {
+            const donde = S.call.scope === 'live' ? 'la Operativa en vivo' : (S.call.scope === 'global' ? 'la llamada grupal' : 'una llamada privada');
+            const ok = cambiar || await preguntar('Ya estás en una llamada', `Estás en ${donde}. ¿Quieres salir de ella para entrar a esta otra?`, 'Cambiar de llamada');
+            if (!ok) return estado();
+            salir();
+        }
         if (scope === 'live') return unirseLive({ myId });
         if (!hayWebRTC) throw new Error('Tu navegador no permite llamadas. Actualízalo o prueba con Chrome o Safari.');
         if (!window.isSecureContext) throw new Error('Las llamadas necesitan una conexión segura (https).');
@@ -560,7 +605,7 @@
         }
         montarUI();
         S.myId = myId; S.sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
-        S.muted = false; S.sinMic = false; S.seq = 0; S.errores = 0; S.roster = [];
+        S.muted = false; S.sinMic = false; S.seq = 0; S.errores = 0; S.roster = []; S.sono = false; S.llamando = false;
         await pedirMic();                                              // dentro del toque del usuario: así el navegador deja sonar el audio
         let r;
         try { r = await api().callUnirse(scope, scope === 'dm' ? conversationId : null); }
@@ -570,6 +615,11 @@
         S.panelAbierto = true;
         S.roster = (r.participants || []);
         S.roster.forEach((p) => { if (p.user_id !== S.myId) crearPeer(p.user_id); });
+        if (scope === 'dm' && S.roster.filter((p) => p.user_id !== S.myId).length === 0) {
+            // yo llamo: suena el «tuuu» hasta que contesten (o 45 s)
+            S.llamando = true; const t = tonos(); if (t) t.iniciar('llamando', 45);
+            S.sinRespuesta = setTimeout(() => { if (S.call && S.llamando) { S.llamando = false; toast(`${label || 'La otra persona'} no contestó`); pintar(); } }, 45000);
+        }
         if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); medirVoz(); }, 600);
         pintar();
         bucle();
@@ -649,6 +699,7 @@
             room.startAudio().catch(() => {});
         } catch (e) { try { room.disconnect(); } catch (_) { /* nada */ } throw new Error(e && e.message ? 'No se pudo entrar a la operativa: ' + e.message : 'No se pudo entrar a la operativa.'); }
         S.live = { room, anfitrion: !!pase.is_host };
+        S.sono = true; sonar('conectado');
         S.call = { id: 'live', scope: 'live', conversationId: null, label: 'Operativa en vivo', startedAt: Date.now() };
         S.panelAbierto = true;
         if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); }, 600);
@@ -663,7 +714,9 @@
     }
 
     function terminarLocal(aviso) {
-        clearTimeout(S.timer);
+        clearTimeout(S.timer); clearTimeout(S.sinRespuesta);
+        if (S.call) { const t = tonos(); if (t) t.detener(); sonar('colgar'); }
+        S.llamando = false;
         if (S.live) { const room = S.live.room; S.live = null; try { room.disconnect(); } catch (_) { /* ya desconectada */ } S.pantallasLive.clear(); }
         [...S.peers.keys()].forEach(cerrarPeer);
         liberarMedios();
