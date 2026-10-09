@@ -38,12 +38,14 @@
         return BASE_URL;
     })();
 
+    let _ultimoToken = null;       // para poder avisar "salí de la llamada" mientras la pestaña se cierra (ahí no hay tiempo de esperar nada)
     async function _token() {
         // Reusa la misma sesión cacheada por nlt-shared.js -- antes esto
         // pedía su propia sesión a Supabase en cada llamada a la API,
         // sumado a los pedidos de requireSession()/mountPublicHeader().
         const session = await NLT.getSession();
         if (!session) throw new Error('No hay sesión activa');
+        _ultimoToken = session.access_token;
         return session.access_token;
     }
 
@@ -564,7 +566,9 @@
         communityDMEscribiendo: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'POST' }),
         communityDMDejarDeEscribir: (conversationId) => request(`/community/dm/conversations/${conversationId}/typing`, { method: 'DELETE' }),
         // --- Llamadas de Community (voz + compartir pantalla; ver nlt-call.js) ---
-        callUnirse: (scope, conversationId) => request('/community/calls/join', { method: 'POST', body: JSON.stringify({ scope, conversation_id: conversationId || null }) }),
+        callUnirse: (scope, conversationId, soloUnirse) => request('/community/calls/join', { method: 'POST', body: JSON.stringify({ scope, conversation_id: conversationId || null, solo_unirse: !!soloUnirse }) }),
+        // Al cerrar la pestaña: sin esperar, con el último token conocido y keepalive (el navegador termina de enviarlo aunque la página ya no exista)
+        callSalirAlCerrar: (callId) => { if (!_ultimoToken) return; try { fetch(`${BASE_URL}/community/calls/${callId}/leave`, { method: 'POST', keepalive: true, headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${_ultimoToken}` } }).catch(() => {}); } catch (_) { /* el servidor lo da por salido a los pocos segundos */ } },
         callSync: (callId, datos) => request(`/community/calls/${callId}/sync`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
         callSenal: (callId, datos) => request(`/community/calls/${callId}/signal`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),
         callSenales: (callId, datos) => request(`/community/calls/${callId}/signals`, { method: 'POST', body: JSON.stringify(datos), intentos: 1, timeoutMs: 8000 }),

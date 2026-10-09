@@ -464,7 +464,7 @@
             if (e.track.kind === 'audio') {
                 if (!peer.audioEl) { peer.audioEl = document.createElement('audio'); peer.audioEl.autoplay = true; peer.audioEl.setAttribute('playsinline', ''); elAudios.appendChild(peer.audioEl); }
                 peer.audioEl.srcObject = e.streams[0] || new MediaStream([e.track]);
-                peer.audioEl.play().catch(() => {});
+                reproducir(peer.audioEl);
                 vigilarVoz(uid, peer.audioEl.srcObject);
             } else {
                 peer.pantalla = e.streams[0] || new MediaStream([e.track]);
@@ -588,7 +588,7 @@
     }
 
     // Una persona puede estar en una sola llamada a la vez; entrar a otra pregunta primero y sale de la actual (nunca se tumba nada sin avisar)
-    async function unirse({ scope, conversationId, label, myId, cambiar }) {
+    async function unirse({ scope, conversationId, label, myId, cambiar, soloUnirse }) {
         if (S.call && !mismaLlamada(scope, conversationId)) {
             const donde = S.call.scope === 'live' ? 'la Operativa en vivo' : (S.call.scope === 'global' ? 'la llamada grupal' : 'una llamada privada');
             const ok = cambiar || await preguntar('Ya estás en una llamada', `Estás en ${donde}. ¿Quieres salir de ella para entrar a esta otra?`, 'Cambiar de llamada');
@@ -603,13 +603,20 @@
             if (igual) { S.panelAbierto = true; montarUI(); pintar(); return estado(); }
             throw new Error('Ya estás en otra llamada. Sal de ella primero.');
         }
+        if (S.uniendo) return estado();                                // doble toque: ya se está entrando
         montarUI();
         S.myId = myId; S.sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
         S.muted = false; S.sinMic = false; S.seq = 0; S.errores = 0; S.roster = []; S.sono = false; S.llamando = false;
-        await pedirMic();                                              // dentro del toque del usuario: así el navegador deja sonar el audio
+        S.uniendo = true; S.cancelarUnion = false;
         let r;
-        try { r = await api().callUnirse(scope, scope === 'dm' ? conversationId : null); }
-        catch (e) { liberarMedios(); throw e; }
+        try {
+            await pedirMic();                                          // dentro del toque del usuario: así el navegador deja sonar el audio
+            r = await api().callUnirse(scope, scope === 'dm' ? conversationId : null, !!soloUnirse);
+        } catch (e) { liberarMedios(); throw e; }
+        finally { S.uniendo = false; }
+        if (S.cancelarUnion) {                                         // colgó mientras todavía se estaba entrando: se sale de inmediato, sin dejar la llamada abierta
+            S.cancelarUnion = false; liberarMedios(); api().callSalir(r.call_id).catch(() => {}); pintar(); return estado();
+        }
         S.call = { id: r.call_id, scope, conversationId: conversationId || null, label: label || '', startedAt: Date.now() };
         S.ice = r.ice_servers || [];
         S.panelAbierto = true;
@@ -676,7 +683,7 @@
         room.on(E.ParticipantConnected, (p) => { const m = metaDe(p); if (m.host) toast(`${p.name || 'El anfitrión'} entró a la operativa`); actualizarRosterLive(); });
         room.on(E.ParticipantDisconnected, (p) => { S.pantallasLive.delete(p.identity); if (S.viendo === p.identity) cerrarVisor(); S.hablando.delete(p.identity); actualizarRosterLive(); });
         room.on(E.TrackSubscribed, (track, pub, p) => {
-            if (track.kind === 'audio') { const el = track.attach(); el.setAttribute('playsinline', ''); elAudios.appendChild(el); el.play().catch(() => {}); }
+            if (track.kind === 'audio') { const el = track.attach(); el.setAttribute('playsinline', ''); elAudios.appendChild(el); reproducir(el); }
             else if (pub.source === LK.Track.Source.ScreenShare) {
                 S.pantallasLive.set(p.identity, new MediaStream([track.mediaStreamTrack]));
                 toast(`${p.name || 'El anfitrión'} está compartiendo pantalla`);
@@ -708,6 +715,23 @@
         return estado();
     }
 
+    // Si el navegador no deja sonar el audio todavía (no hubo un toque en esta página), se avisa y suena al primer toque
+    let esperandoToque = false;
+    function reproducir(el) {
+        const p = el.play();
+        if (p && p.catch) p.catch((e) => { if (e && e.name === 'NotAllowedError') esperarToque(); });
+    }
+    function esperarToque() {
+        if (esperandoToque) return;
+        esperandoToque = true; toast('Toca la pantalla para activar el sonido');
+        const f = () => {
+            esperandoToque = false; document.removeEventListener('pointerdown', f, true);
+            document.querySelectorAll('#nltCallRoot audio, audio').forEach((a) => { if (a.srcObject) a.play().catch(() => {}); });
+            if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+        };
+        document.addEventListener('pointerdown', f, true);
+    }
+
     function liberarMedios() {
         if (S.mic) { try { S.mic.track.stop(); } catch (_) { /* parado */ } quitarVigia(S.myId); S.mic = null; }
         if (S.share) { try { S.share.track.stop(); } catch (_) { /* parado */ } S.share = null; }
@@ -729,6 +753,7 @@
     }
 
     function salir() {
+        if (!S.call && S.uniendo) { S.cancelarUnion = true; return; }
         const callId = S.call && S.call.id, enSala = !!S.live;
         terminarLocal(enSala ? 'Saliste de la operativa' : 'Saliste de la llamada');
         if (callId && !enSala && api()) api().callSalir(callId).catch(() => {});
@@ -790,7 +815,7 @@
     }
     window.addEventListener('popstate', () => { if (marco && !(history.state && history.state.nltMarco)) { cerrarMarco(); document.title = document.title; } });
     window.addEventListener('beforeunload', (e) => { if (S.call) { e.preventDefault(); e.returnValue = ''; } });
-    window.addEventListener('pagehide', (e) => { if (S.live && !e.persisted) { try { S.live.room.disconnect(); } catch (_) { /* nada */ } return; } if (S.call && api() && !e.persisted) { try { api().callSalir(S.call.id); } catch (_) { /* el servidor lo da por salido a los 30 s */ } } });
+    window.addEventListener('pagehide', (e) => { if (S.live && !e.persisted) { try { S.live.room.disconnect(); } catch (_) { /* nada */ } return; } if (S.call && api() && !e.persisted) { try { (api().callSalirAlCerrar || api().callSalir)(S.call.id); } catch (_) { /* el servidor lo da por salido a los pocos segundos */ } } });
     window.addEventListener('resize', () => {
         if (!elBurbuja || !elBurbuja.style.left) return;
         elBurbuja.style.left = Math.min(parseFloat(elBurbuja.style.left), window.innerWidth - 64) + 'px';
