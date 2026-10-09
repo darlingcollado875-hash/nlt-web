@@ -205,6 +205,26 @@
            iOS mueva o agrande la página. Escritorio (>= 1024 px) no cambia: lista y conversación lado a lado. */
         #dmInput { resize: none; overflow-y: auto; line-height: 1.35; max-height: 120px; }
         .dm-pendiente { opacity: .6; }
+        /* Espaciado propio (el space-y-3 de Tailwind v4 pone margen ABAJO de cada mensaje y dejaba 16px entre burbujas "pegadas") */
+        #dmMensajes > .dm-message { margin: 10px 0 0 !important; }
+        #dmMensajes > .dm-message.msg-agrupado { margin-top: 2px !important; }
+        .dm-dia { display: flex; justify-content: center; margin: 14px 0 8px; }
+        .dm-dia span { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: #9CA3AF; background: rgba(255,255,255,0.05); padding: 3px 11px; border-radius: 999px; }
+        .dm-mas { text-align: center; font-size: 11px; color: #6B7280; padding: 4px 0 10px; min-height: 22px; }
+        .dm-mas.cargando::before { content: ''; display: inline-block; width: 11px; height: 11px; margin-right: 7px; vertical-align: -1px; border-radius: 50%;
+            border: 2px solid rgba(255,255,255,0.15); border-top-color: #4378FF; animation: dmGira .7s linear infinite; }
+        @keyframes dmGira { to { transform: rotate(360deg); } }
+        .dm-nuevo { animation: dmEntra .16s ease-out; }
+        @keyframes dmEntra { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+        .btn-dm-bajar { position: absolute; right: 12px; bottom: 12px; width: 38px; height: 38px; border-radius: 50%; z-index: 5; display: flex; align-items: center; justify-content: center;
+            background: rgba(22,26,36,0.94); color: #E5E7EB; border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 6px 18px rgba(0,0,0,0.45); cursor: pointer; font-size: 18px; }
+        .btn-dm-bajar.hidden { display: none; }
+        .dm-esqueleto { display: flex; flex-direction: column; gap: 10px; padding: 8px 0; }
+        .dm-esqueleto i { display: block; height: 36px; width: 56%; border-radius: 20px; background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.10), rgba(255,255,255,0.05)); background-size: 200% 100%; animation: dmBrillo 1.2s linear infinite; }
+        .dm-esqueleto i:nth-child(even) { align-self: flex-end; width: 44%; }
+        .dm-esqueleto i:nth-child(3n) { width: 68%; height: 52px; }
+        @keyframes dmBrillo { to { background-position: -200% 0; } }
+        @media (prefers-reduced-motion: reduce) { .dm-nuevo, .dm-esqueleto i, .dm-mas.cargando::before { animation: none; } }
         @media (max-width: 1023px) {
             html.dm-abierto, html.dm-abierto body { overflow: hidden; overscroll-behavior: none; }
             html.dm-abierto body > header { display: none !important; }
@@ -215,15 +235,25 @@
             .dm-topbar #btn-volver-mensajes { width: 40px; height: 40px; margin: 0; padding: 0; justify-content: center; border-radius: 999px; font-size: 20px; color: #E5E7EB; flex-shrink: 0; }
             .dm-topbar .dm-volver-txt { display: none; }
             .dm-topbar #dmConversacionHeader { margin: 0; flex: 1; min-width: 0; }
-            #dmConversacionBox .msg-scroll { flex: 1; min-height: 0; margin: 0; }
-            #dmMensajes { height: 100% !important; border-radius: 0; border: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
-                padding: 12px 12px 8px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; display: flex; flex-direction: column; }
+            #dmConversacionBox .msg-scroll { flex: 1 1 0; min-height: 0; margin: 0; display: flex; flex-direction: column; }
+            #dmMensajes { flex: 1 1 0; height: auto !important; min-height: 0; border-radius: 0; border: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
+                padding: 12px 12px 8px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; }
+            #dmMensajes > * { flex-shrink: 0; }
             #dmMensajes::before { content: ''; margin-top: auto; }               /* pocos mensajes: se quedan abajo, junto al texto (como Instagram) */
             #dmMensajes .dm-message p.text-xs { font-size: 15px; line-height: 1.35; }
-            #dmMensajes .dm-message .border.rounded-xl { border-radius: 20px; padding: 8px 13px; }
-            #dmMensajes .msg-row-own .border.rounded-xl { background: linear-gradient(135deg, #4378FF, #6A5CFF); border-color: transparent; }
+            #dmMensajes .dm-message { max-width: 100%; }
+            #dmMensajes .msg-bubble-wrap { max-width: 80%; }
+            #dmMensajes .dm-message .border.rounded-xl { border-radius: 20px; padding: 8px 13px; border-color: transparent; background: rgba(255,255,255,0.08); }
+            #dmMensajes .msg-row-own .border.rounded-xl { background: linear-gradient(135deg, #4378FF, #6A5CFF); }
             #dmMensajes .msg-row-own .border.rounded-xl p { color: #fff; }
-            /* Acciones (responder, copiar, borrar, editar): escondidas, aparecen al tocar el mensaje */
+            /* Burbujas seguidas del mismo remitente: se "pegan" (esquinas chicas donde se tocan), como Instagram */
+            #dmMensajes .msg-row-own.msg-agrupado .border.rounded-xl { border-top-right-radius: 6px; }
+            #dmMensajes .msg-row-own:has(+ .msg-row-own.msg-agrupado) .border.rounded-xl { border-bottom-right-radius: 6px; }
+            #dmMensajes .dm-message:not(.msg-row-own).msg-agrupado .border.rounded-xl { border-top-left-radius: 6px; }
+            #dmMensajes .dm-message:not(.msg-row-own):has(+ .dm-message:not(.msg-row-own).msg-agrupado) .border.rounded-xl { border-bottom-left-radius: 6px; }
+            /* Hora/estado: solo en el último mensaje o al tocar uno; acciones (responder, copiar, borrar, editar) solo al tocar */
+            #dmMensajes .dm-meta { display: none; margin-top: 3px; }
+            #dmMensajes .dm-message.dm-ultimo .dm-meta, #dmMensajes .dm-message.dm-acc .dm-meta { display: block; }
             #dmMensajes .dm-message p[class~="text-[10px]"] button { display: none; font-size: 15px; padding: 6px 7px; margin-left: 2px; }
             #dmMensajes .dm-message.dm-acc p[class~="text-[10px]"] button { display: inline-flex; }
             #dmConversacionBox .msg-typing { padding: 0 14px; margin: 0; min-height: 18px; flex-shrink: 0; }
@@ -476,6 +506,7 @@
                             <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
                         </div>
                         <button id="btn-dm-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
+                        <button id="btn-dm-bajar" type="button" class="btn-dm-bajar hidden" aria-label="Ir al último mensaje"><i class="ph ph-caret-down" aria-hidden="true"></i></button>
                     </div>
                     <p id="dmEscribiendo" class="msg-typing mb-1">&nbsp;</p>
                     <div id="dmMediaPreview" class="hidden"></div>
@@ -1858,41 +1889,65 @@
                 : '';
             const avatar = !m.is_own ? `<div class="dm-avatar-slot w-7 h-7 shrink-0 mt-0.5">${avatarImg}</div>` : '';
             return `
-                <div class="dm-message flex ${m.is_own ? 'msg-row-own' : 'items-start gap-2'} ${esContinuacion ? 'msg-agrupado' : ''}" data-message-id="${m.id}" data-is-own="${m.is_own}">
+                <div class="dm-message flex ${m.is_own ? 'msg-row-own' : 'items-start gap-2'} ${esContinuacion ? 'msg-agrupado' : ''}" data-message-id="${m.id}" data-is-own="${m.is_own}" data-day="${diaDM(m.created_at)}" data-created="${esc(m.created_at)}">
                     ${avatar}
                     <div class="flex flex-col ${m.is_own ? 'items-end' : 'items-start'} msg-bubble-wrap">
                         ${textoBurbuja}
                         ${media}
-                        <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}${estadoLectura} ${acciones}</p>
+                        <p class="dm-meta text-[10px] text-gray-600 mt-1">${horaDM(m.created_at)}${m.edited_at ? ' · editado' : ''}${estadoLectura} ${acciones}</p>
                     </div>
                 </div>
             `;
         }
 
-        // Arma la lista completa calculando qué mensajes muestran avatar
-        // (agrupación por remitente, ver mensajeDMHTML). Usado solo en la
-        // carga inicial de la conversación -- los mensajes que se agregan
-        // de a uno (envío propio / poll) usan _agregarMensajeDM más abajo.
+        // Fechas de los DMs: hora real en cada mensaje y separador de día ("Hoy", "Ayer", "lun 5 oct"), como Instagram.
+        function diaDM(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleDateString('en-CA'); }
+        function horaDM(iso) { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString('es', { hour: '2-digit', minute: '2-digit' }); }
+        function etiquetaDiaDM(iso) {
+            const d = new Date(iso), hoy = new Date(), ayer = new Date(Date.now() - 86400000);
+            if (diaDM(d) === diaDM(hoy)) return 'Hoy';
+            if (diaDM(d) === diaDM(ayer)) return 'Ayer';
+            const t = d.toLocaleDateString('es', d.getFullYear() === hoy.getFullYear() ? { weekday: 'short', day: 'numeric', month: 'short' } : { day: 'numeric', month: 'short', year: 'numeric' });
+            return t.replace(/\./g, '');
+        }
+        const separadorDiaDM = (iso) => `<div class="dm-dia" data-day="${diaDM(iso)}"><span>${esc(etiquetaDiaDM(iso))}</span></div>`;
+
+        // Arma la lista completa calculando qué mensajes muestran avatar (agrupación por remitente) y dónde van los separadores de día.
+        // Usado en la carga inicial y al traer mensajes anteriores; los que se agregan de a uno (envío propio / poll) usan _agregarMensajeDM.
         function _listaMensajesDMHTML(mensajes) {
             return mensajes.map((m, i) => {
-                const esUltimoDeLaTanda = i === mensajes.length - 1 || mensajes[i + 1].is_own !== m.is_own;
-                const esContinuacion = i > 0 && mensajes[i - 1].is_own === m.is_own;
-                return mensajeDMHTML(m, esUltimoDeLaTanda, esContinuacion);
+                const dia = diaDM(m.created_at);
+                const nuevoDia = i === 0 || diaDM(mensajes[i - 1].created_at) !== dia;
+                const esUltimoDeLaTanda = i === mensajes.length - 1 || mensajes[i + 1].is_own !== m.is_own || diaDM(mensajes[i + 1].created_at) !== dia;
+                const esContinuacion = !nuevoDia && mensajes[i - 1].is_own === m.is_own;
+                return (nuevoDia ? separadorDiaDM(m.created_at) : '') + mensajeDMHTML(m, esUltimoDeLaTanda, esContinuacion);
             }).join('');
         }
 
-        // Agrega UN mensaje nuevo al final (envío propio o el que trae el
-        // poll) manteniendo la agrupación de avatar: si el mensaje anterior
-        // era del MISMO remitente y todavía mostraba su avatar, se lo retira
-        // (el nuevo, al ser ahora el último de la tanda, es el que lo lleva).
+        // Agrega UN mensaje nuevo al final manteniendo la agrupación de avatar: si el anterior era del MISMO remitente (y del mismo día)
+        // y todavía mostraba su avatar, se lo retira (el nuevo, al ser ahora el último de la tanda, es el que lo lleva).
         function _agregarMensajeDM(box, nuevo) {
             const anterior = box.querySelector('.dm-message:last-child');
-            const esContinuacion = !!anterior && anterior.getAttribute('data-is-own') === String(nuevo.is_own);
+            const mismoDia = !!anterior && anterior.getAttribute('data-day') === diaDM(nuevo.created_at);
+            const esContinuacion = mismoDia && anterior.getAttribute('data-is-own') === String(nuevo.is_own);
             if (esContinuacion) {
                 const slot = anterior.querySelector('.dm-avatar-slot');
                 if (slot) slot.innerHTML = '';
             }
+            if (!mismoDia) box.insertAdjacentHTML('beforeend', separadorDiaDM(nuevo.created_at));
             box.insertAdjacentHTML('beforeend', mensajeDMHTML(nuevo, true, esContinuacion));
+            box.lastElementChild.classList.add('dm-nuevo');
+            _marcarUltimoDM();
+        }
+
+        // La hora y el estado (✓ / ✓✓) se ven en el último mensaje de la conversación y en el último mío; en los demás, al tocarlos.
+        function _marcarUltimoDM() {
+            const box = document.getElementById('dmMensajes');
+            box.querySelectorAll('.dm-ultimo').forEach((x) => x.classList.remove('dm-ultimo'));
+            const todos = box.querySelectorAll('.dm-message');
+            if (!todos.length) return;
+            todos[todos.length - 1].classList.add('dm-ultimo');
+            for (let i = todos.length - 1; i >= 0; i--) { if (todos[i].getAttribute('data-is-own') === 'true') { todos[i].classList.add('dm-ultimo'); break; } }
         }
 
         function activarEdicionDM(messageId) {
@@ -1932,6 +1987,7 @@
                     if (!confirm('¿Eliminar este mensaje?')) return;
                     await NLT_API.communityDMBorrar(b.getAttribute('data-message-id'));
                     b.closest('.dm-message').remove();
+                    _marcarUltimoDM();
                 });
             }));
             scopeEl.querySelectorAll('.btn-ver-imagen-dm').forEach(img => _unaVez(img, () => {
@@ -2039,11 +2095,16 @@
                 header.innerHTML = '';
             }
             const box = document.getElementById('dmMensajes');
-            box.innerHTML = '<p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>';
+            dmHayMas = false; dmCargandoAntes = false;
+            document.getElementById('btn-dm-bajar').classList.add('hidden');
+            box.innerHTML = '<div class="dm-esqueleto" aria-label="Cargando mensajes"><i></i><i></i><i></i><i></i><i></i></div>';
             try {
                 const pre = _pre.msgs.get(conversationId); _pre.msgs.delete(conversationId);
                 const mensajes = await _tomar(pre, () => NLT_API.communityDMMensajes(conversationId));
-                box.innerHTML = mensajes.length ? _listaMensajesDMHTML(mensajes) : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                if (conversationId !== conversacionActualId) return;                  // cambió de conversación mientras cargaba
+                dmHayMas = mensajes.length >= DM_PAGINA;
+                box.innerHTML = mensajes.length ? (dmHayMas ? '<p id="dmMas" class="dm-mas">Desliza hacia arriba para ver mensajes anteriores</p>' : '') + _listaMensajesDMHTML(mensajes) : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                _marcarUltimoDM();
                 wireMensajesDM(box);
                 box.scrollTop = box.scrollHeight;
                 // Preparado: marca como leídos los mensajes del otro participante
@@ -2081,6 +2142,60 @@
             panel.classList.add('dm-panel-saliendo');
             panel.addEventListener('animationend', completar, { once: true });
             setTimeout(completar, 260);
+        });
+
+        // Mensajes anteriores: al acercarte al borde de arriba se piden los 50 anteriores y la vista NO salta (sigues leyendo lo mismo).
+        const DM_PAGINA = 50;
+        let dmHayMas = false, dmCargandoAntes = false;
+        async function cargarAnterioresDM() {
+            const box = document.getElementById('dmMensajes');
+            if (dmCargandoAntes || !dmHayMas || !conversacionActualId) return;
+            const primero = box.querySelector('.dm-message[data-created]:not([data-message-id^="tmp-"])');
+            if (!primero) return;
+            dmCargandoAntes = true;
+            const convId = conversacionActualId;
+            let indicador = document.getElementById('dmMas');
+            if (!indicador) { box.insertAdjacentHTML('afterbegin', '<p id="dmMas" class="dm-mas"></p>'); indicador = document.getElementById('dmMas'); }
+            indicador.classList.add('cargando'); indicador.textContent = 'Cargando mensajes anteriores…';
+            try {
+                const antes = await NLT_API.communityDMMensajes(convId, primero.getAttribute('data-created'));
+                if (convId !== conversacionActualId) return;
+                dmHayMas = antes.length >= DM_PAGINA;
+                const existentes = new Set([...box.querySelectorAll('.dm-message')].map((el) => el.getAttribute('data-message-id')));
+                const nuevos = antes.filter((m) => !existentes.has(m.id));
+                if (nuevos.length) {
+                    const alto = box.scrollHeight, top = box.scrollTop;
+                    indicador.insertAdjacentHTML('afterend', _listaMensajesDMHTML(nuevos));
+                    // Unión con lo que ya estaba: si el último de los nuevos y el primero de los viejos son del mismo remitente y día, se pegan
+                    // (sin avatar repetido, sin separador de día duplicado).
+                    const sepViejo = primero.previousElementSibling && primero.previousElementSibling.classList.contains('dm-dia') ? primero.previousElementSibling : null;
+                    const prevMsg = sepViejo ? sepViejo.previousElementSibling : primero.previousElementSibling;
+                    if (prevMsg && prevMsg.classList.contains('dm-message') && prevMsg.getAttribute('data-day') === primero.getAttribute('data-day')) {
+                        if (sepViejo) sepViejo.remove();
+                        if (prevMsg.getAttribute('data-is-own') === primero.getAttribute('data-is-own')) {
+                            primero.classList.add('msg-agrupado');
+                            const slot = prevMsg.querySelector('.dm-avatar-slot'); if (slot) slot.innerHTML = '';
+                        }
+                    }
+                    wireMensajesDM(box);
+                    box.scrollTop = top + (box.scrollHeight - alto);
+                }
+                indicador.classList.remove('cargando');
+                if (dmHayMas) { indicador.textContent = 'Desliza hacia arriba para ver mensajes anteriores'; }
+                else { indicador.textContent = 'Inicio de la conversación'; setTimeout(() => { if (indicador.isConnected) indicador.remove(); }, 1800); }
+            } catch (_) {
+                indicador.classList.remove('cargando');
+                indicador.textContent = 'No se pudieron cargar · desliza de nuevo para reintentar';
+            } finally { dmCargandoAntes = false; }
+        }
+        document.getElementById('dmMensajes').addEventListener('scroll', () => {
+            const box = document.getElementById('dmMensajes');
+            if (box.scrollTop < 160) cargarAnterioresDM();
+            document.getElementById('btn-dm-bajar').classList.toggle('hidden', box.scrollHeight - box.scrollTop - box.clientHeight < 420);
+        }, { passive: true });
+        document.getElementById('btn-dm-bajar').addEventListener('click', () => {
+            const box = document.getElementById('dmMensajes');
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
         });
 
         document.getElementById('btn-dm-nuevos').addEventListener('click', () => {
@@ -2152,12 +2267,14 @@
                 dmPendientes.delete(clientId);
                 if (convId !== conversacionActualId) { temporal.remove(); return; }       // cambió de conversación mientras tanto
                 temporal.remove();
-                if (!box.querySelector(`.dm-message[data-message-id="${nuevo.id}"]`)) { _agregarMensajeDM(box, nuevo); wireMensajesDM(box); }
+                if (!box.querySelector(`.dm-message[data-message-id="${nuevo.id}"]`)) { _agregarMensajeDM(box, nuevo); box.lastElementChild.classList.remove('dm-nuevo'); wireMensajesDM(box); }
+                _marcarUltimoDM();
                 dmAbajo();
                 NLT_API.communityDMDejarDeEscribir(convId).catch(() => {});
             } catch (err) {
                 dmPendientes.delete(clientId);
                 temporal.remove();
+                _marcarUltimoDM();
                 if (convId !== conversacionActualId) return;
                 dmClientMessageIdPendiente = clientId; dmTextoPendiente = contenido;
                 if (!input.value.trim()) { input.value = contenido; ajustarComposerDM(); }
