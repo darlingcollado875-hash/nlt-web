@@ -577,31 +577,6 @@
         html[data-perf="bajo"] .ch-tran-chip i, html[data-perf="bajo"] .ch-tran-barra i { animation: none; }
         html[data-perf="bajo"] .ch-stage.ch-entra #chart { animation: none; }
         @media (prefers-reduced-motion: reduce) { .ch-tfs::before, .ch-tfs .ch-tf { transition: none; } .ch-tran-chip i, .ch-tran-barra i { animation: none; } .ch-stage.ch-entra #chart { animation: none; } .ch-tran-chip { transition: none; } }
-        /* Aviso tipo iOS (Ir a fecha) y estado de carga */
-        .nlt-ios { position: absolute; top: 10px; left: 50%; z-index: 60; width: min(440px, calc(100% - 20px)); display: flex; align-items: center; gap: 11px; padding: 11px 12px 11px 11px; border-radius: 22px;
-                   background: rgba(24,27,36,.88); -webkit-backdrop-filter: blur(22px) saturate(170%); backdrop-filter: blur(22px) saturate(170%); border: 1px solid rgba(255,255,255,.10);
-                   box-shadow: 0 14px 40px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.07); color: #F3F4F6; transform: translate(-50%, -140%) scale(.96); opacity: 0; cursor: pointer; touch-action: pan-x;
-                   transition: transform .55s cubic-bezier(.2,1.1,.3,1), opacity .3s ease; }
-        .nlt-ios.on { transform: translate(-50%, 0) scale(1); opacity: 1; }
-        .nlt-ios.sale { transform: translate(-50%, -140%) scale(.96); opacity: 0; transition: transform .35s ease-in, opacity .3s ease; }
-        .nlt-ios-ico { flex: none; width: 42px; height: 42px; border-radius: 11px; display: grid; place-items: center; font-size: 23px; color: #04121A; background: linear-gradient(145deg, rgb(var(--ch-accent)), #7C9CFF); box-shadow: 0 4px 12px rgba(var(--ch-accent), .35); }
-        .nlt-ios-txt { min-width: 0; flex: 1; line-height: 1.25; }
-        .nlt-ios-app { display: flex; justify-content: space-between; gap: 8px; font-size: 10.5px; letter-spacing: .05em; color: #9CA3AF; margin-bottom: 1px; }
-        .nlt-ios-app b { font-weight: 700; }
-        .nlt-ios-t { font-size: 14px; font-weight: 700; color: #fff; }
-        .nlt-ios-s { font-size: 12px; color: #B8BEC9; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .nlt-ios-b { flex: none; padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,.10); color: #fff; font-size: 11.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
-        .rp.nlt-bajo-aviso { opacity: 0; pointer-events: none; transition: opacity .2s ease; }
-        .nlt-ios-b:hover { background: rgba(255,255,255,.18); }
-        @media (max-width: 480px) { .nlt-ios-b { display: none; } }
-        .nlt-fcarga { position: absolute; top: 50%; left: 50%; z-index: 40; transform: translate(-50%, -46%); opacity: 0; transition: opacity .25s ease, transform .35s ease; pointer-events: none; display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-radius: 18px;
-                      background: rgba(24,27,36,.78); -webkit-backdrop-filter: blur(16px); backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,.10); box-shadow: 0 12px 34px rgba(0,0,0,.45); color: #fff; }
-        .nlt-fcarga.on { opacity: 1; transform: translate(-50%, -50%); }
-        .nlt-fcarga i { font-size: 22px; color: rgb(var(--ch-accent)); animation: rpGiro 1s linear infinite; }
-        .nlt-fcarga b { display: block; font-size: 13.5px; } .nlt-fcarga span { font-size: 11.5px; color: #9CA3AF; }
-        html.es-safari .nlt-ios, html.es-safari .nlt-fcarga, html[data-perf="bajo"] .nlt-ios, html[data-perf="bajo"] .nlt-fcarga { -webkit-backdrop-filter: none; backdrop-filter: none; background: rgba(24,27,36,.96); }
-        html[data-perf="bajo"] .nlt-fcarga i { animation: none; }
-        @media (prefers-reduced-motion: reduce) { .nlt-ios, .nlt-ios.sale { transition: opacity .2s ease; transform: translate(-50%, 0); } .nlt-ios.sale { opacity: 0; } .nlt-fcarga i { animation: none; } }
         /* NLT Bar Replay: barra flotante arriba del gráfico */
         .rp { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 30; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; justify-content: center;
               max-width: calc(100% - 24px); padding: 6px 8px; border-radius: 12px; background: rgba(13,16,22,.94); border: 1px solid rgba(var(--ch-accent),.35); box-shadow: 0 8px 30px rgba(0,0,0,.45); font-size: 12px; }
@@ -626,7 +601,6 @@
         .rp-load { color: #FBBF24; display: inline-flex; align-items: center; gap: 4px; }
         @media (hover: hover) and (prefers-reduced-motion: no-preference) { .rp-load i { animation: rpGiro 1s linear infinite; } }
         @keyframes rpGiro { to { transform: rotate(360deg); } }
-        .rp-hist { top: 52px; }
         .rp-err { color: #F87171; flex-basis: 100%; text-align: center; font-size: 11px; }
         .ch-conn[data-estado="replay"] { color: rgb(var(--ch-accent)); border-color: rgba(var(--ch-accent),.4); }
         .ch-conn[data-estado="replay"] i, .ch-conn[data-estado="backtest"] i { background: rgb(var(--ch-accent)); }
@@ -653,7 +627,6 @@
                 <div id="chHint" class="ch-hint" hidden></div>
                 <div id="chBarraDibujo" class="dw-bar" role="toolbar" aria-label="Dibujo seleccionado" hidden></div>
                 <div id="chReplay" class="rp" role="toolbar" aria-label="NLT Bar Replay" hidden></div>
-                <div id="chHistoria" class="rp rp-hist" role="toolbar" aria-label="Ir a fecha" hidden></div>
             </div>
             <aside id="chWatch" class="wl" aria-label="Watchlist" hidden></aside>
         </div>
@@ -679,7 +652,7 @@
     <script src="assets/js/charts/trade-panel.js?v=fb68a28f"></script>
     <script src="assets/js/charts/countdown.js?v=1b92948a"></script>
     <script src="assets/js/charts/engine.js?v=43ca3a9c"></script>
-    <script src="assets/js/charts/ui.js?v=a24050ed"></script>
+    <script src="assets/js/charts/ui.js?v=a6d71d51"></script>
     <script src="assets/js/charts/pine.js?v=fc989077"></script>
     <script src="assets/js/charts/settings.js?v=5316241b"></script>
     <script src="assets/js/charts/layout.js?v=7601270b"></script>
@@ -697,7 +670,6 @@
     <script src="assets/js/charts/nlt-ai.js?v=701ad486"></script>
     <script src="assets/js/charts/guia-ai.js?v=ecbfd436"></script>
     <script type="nlt/diferido" src="assets/js/charts/replay.js?v=18f74f03"></script>
-    <script type="nlt/diferido" src="assets/js/charts/historia.js?v=30c07c99"></script>
     <script type="nlt/diferido" src="assets/js/charts/backtest.js?v=b77302e1"></script>
     <script type="nlt/diferido" src="assets/js/charts/multichart.js?v=456e9156"></script>
     <script type="nlt/diferido" src="assets/js/charts/ratings.js?v=26642596"></script>
@@ -714,6 +686,6 @@
     <script type="nlt/diferido" src="assets/js/charts/paper.js?v=c9697dc9"></script>
     <script src="assets/js/charts/nselect.js?v=605f9780"></script>
     <script src="assets/js/charts/pestanas.js?v=c2766218"></script>
-    <script src="assets/js/charts/app.js?v=c79854ae"></script>
+    <script src="assets/js/charts/app.js?v=8f74c97e"></script>
 </body>
 </html>
