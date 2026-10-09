@@ -204,11 +204,11 @@
            el cuadro de texto abajo, que SUBE con el teclado (la altura sigue al `visualViewport`, ver JS: --dm-h/--dm-top) en vez de que
            iOS mueva o agrande la página. Escritorio (>= 1024 px) no cambia: lista y conversación lado a lado. */
         #dmMensajes, #chatMensajes { overflow-y: auto; overflow-x: hidden; }   /* .glass-card (overflow:hidden) les ganaba a las utilidades de Tailwind y no dejaba desplazar */
-        #dmInput { resize: none; overflow-y: auto; line-height: 1.35; max-height: 120px; }
+        #dmInput, #chatInput { resize: none; overflow-y: auto; line-height: 1.35; max-height: 120px; }
         .dm-pendiente { opacity: .6; }
         /* Espaciado propio (el space-y-3 de Tailwind v4 pone margen ABAJO de cada mensaje y dejaba 16px entre burbujas "pegadas") */
-        #dmMensajes > .dm-message { margin: 10px 0 0 !important; }
-        #dmMensajes > .dm-message.msg-agrupado { margin-top: 2px !important; }
+        :is(#dmMensajes, #chatMensajes) > :is(.dm-message, .chat-message) { margin: 10px 0 0 !important; }
+        :is(#dmMensajes, #chatMensajes) > :is(.dm-message, .chat-message).msg-agrupado { margin-top: 2px !important; }
         /* Foto del chat privado: aparece YA al enviar, con una bolita girando mientras sube */
         .dm-img-wrap { position: relative; display: inline-block; margin-top: 6px; line-height: 0; }
         .dm-img-wrap .msg-thumb { margin-top: 0; }
@@ -299,36 +299,60 @@
             .dm-topbar .dm-volver-txt { display: none; }
             .dm-topbar #dmConversacionHeader { margin: 0; flex: 1; min-width: 0; }
             #dmConversacionBox .msg-scroll { flex: 1 1 0; min-height: 0; margin: 0; display: flex; flex-direction: column; }
-            #dmMensajes { flex: 1 1 0; height: auto !important; min-height: 0; border-radius: 0; border: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
+            :is(#dmMensajes, #chatMensajes) { flex: 1 1 0; height: auto !important; min-height: 0; border-radius: 0; border: 0; background: transparent; -webkit-backdrop-filter: none; backdrop-filter: none;
                 padding: 12px 12px 8px; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; touch-action: pan-y; display: flex; flex-direction: column; }
-            #dmMensajes > * { flex-shrink: 0; }
-            #dmMensajes::before { content: ''; margin-top: auto; }               /* pocos mensajes: se quedan abajo, junto al texto (como Instagram) */
-            #dmMensajes .dm-message p.text-xs { font-size: 15px; line-height: 1.35; }
-            #dmMensajes .dm-message { max-width: 100%; }
-            #dmMensajes .msg-thumb { max-width: min(260px, 100%); max-height: 340px; border-radius: 18px; }
-            #dmMensajes .msg-bubble-wrap { max-width: 80%; }
-            #dmMensajes .dm-message .border.rounded-xl { border-radius: 20px; padding: 8px 13px; border-color: transparent; background: rgba(255,255,255,0.08); }
-            #dmMensajes .msg-row-own .border.rounded-xl { background: linear-gradient(135deg, #4378FF, #6A5CFF); }
-            #dmMensajes .msg-row-own .border.rounded-xl p { color: #fff; }
+            :is(#dmMensajes, #chatMensajes) > * { flex-shrink: 0; }
+            :is(#dmMensajes, #chatMensajes)::before { content: ''; margin-top: auto; }               /* pocos mensajes: se quedan abajo, junto al texto (como Instagram) */
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message) p.text-xs { font-size: 15px; line-height: 1.35; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message) { max-width: 100%; }
+            :is(#dmMensajes, #chatMensajes) .msg-thumb { max-width: min(260px, 100%); max-height: 340px; border-radius: 18px; }
+            :is(#dmMensajes, #chatMensajes) .msg-bubble-wrap { max-width: 80%; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message) .border.rounded-xl { border-radius: 20px; padding: 8px 13px; border-color: transparent; background: rgba(255,255,255,0.08); }
+            :is(#dmMensajes, #chatMensajes) .msg-row-own .border.rounded-xl { background: linear-gradient(135deg, #4378FF, #6A5CFF); }
+            :is(#dmMensajes, #chatMensajes) .msg-row-own .border.rounded-xl p { color: #fff; }
             /* Burbujas seguidas del mismo remitente: se "pegan" (esquinas chicas donde se tocan), como Instagram */
-            #dmMensajes .msg-row-own.msg-agrupado .border.rounded-xl { border-top-right-radius: 6px; }
-            #dmMensajes .msg-row-own:has(+ .msg-row-own.msg-agrupado) .border.rounded-xl { border-bottom-right-radius: 6px; }
-            #dmMensajes .dm-message:not(.msg-row-own).msg-agrupado .border.rounded-xl { border-top-left-radius: 6px; }
-            #dmMensajes .dm-message:not(.msg-row-own):has(+ .dm-message:not(.msg-row-own).msg-agrupado) .border.rounded-xl { border-bottom-left-radius: 6px; }
+            :is(#dmMensajes, #chatMensajes) .msg-row-own.msg-agrupado .border.rounded-xl { border-top-right-radius: 6px; }
+            :is(#dmMensajes, #chatMensajes) .msg-row-own:has(+ .msg-row-own.msg-agrupado) .border.rounded-xl { border-bottom-right-radius: 6px; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message):not(.msg-row-own).msg-agrupado .border.rounded-xl { border-top-left-radius: 6px; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message):not(.msg-row-own):has(+ :is(.dm-message, .chat-message):not(.msg-row-own).msg-agrupado) .border.rounded-xl { border-bottom-left-radius: 6px; }
             /* Hora/estado: solo en el último mensaje o al tocar uno; acciones (responder, copiar, borrar, editar) solo al tocar */
-            #dmMensajes .dm-meta { display: none; margin-top: 3px; }
-            #dmMensajes .dm-message.dm-ultimo .dm-meta, #dmMensajes .dm-message.dm-acc .dm-meta { display: block; }
-            #dmMensajes .dm-message p[class~="text-[10px]"] button { display: none; font-size: 15px; padding: 6px 7px; margin-left: 2px; }
-            #dmMensajes .dm-message.dm-acc p[class~="text-[10px]"] button { display: inline-flex; }
-            #dmConversacionBox .msg-typing { padding: 0 14px; margin: 0; min-height: 18px; flex-shrink: 0; }
-            #dmMediaPreview, #dmReplyPreview, #dmMsg { margin: 0 10px 6px; flex-shrink: 0; }
+            :is(#dmMensajes, #chatMensajes) .dm-meta { display: none; margin-top: 3px; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message).dm-ultimo .dm-meta, :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message).dm-acc .dm-meta { display: block; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message) p[class~="text-[10px]"] button { display: none; font-size: 15px; padding: 6px 7px; margin-left: 2px; }
+            :is(#dmMensajes, #chatMensajes) :is(.dm-message, .chat-message).dm-acc p[class~="text-[10px]"] button { display: inline-flex; }
+            #dmConversacionBox .msg-typing, #chatAutorizado .msg-typing { padding: 0 14px; margin: 0; min-height: 18px; flex-shrink: 0; }
+            #dmMediaPreview, #dmReplyPreview, #dmMsg, #chatMediaPreview, #chatReplyPreview, #chatMsg { margin: 0 10px 6px; flex-shrink: 0; }
             .dm-composer { flex-shrink: 0; margin: 0; padding: 8px 10px calc(8px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid rgba(255,255,255,0.07);
                 background: rgba(8,10,15,0.98); align-items: flex-end; position: static; }
             .dm-composer .emoji-btn, .dm-composer .media-btn { width: 40px; height: 40px; margin-bottom: 1px; }
-            .dm-composer #dmInput { border-radius: 22px; padding: 10px 15px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
-            .dm-composer #btn-dm-enviar { background: transparent; color: #4378FF; padding: 10px 6px; min-width: 0; font-size: 15px; height: 40px; margin-bottom: 1px; }
-            .dm-composer:not(.dm-tiene) #btn-dm-enviar { display: none; }
+            .dm-composer :is(#dmInput, #chatInput) { border-radius: 22px; padding: 10px 15px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
+            .dm-composer :is(#btn-dm-enviar, #btn-chat-enviar) { background: transparent; color: #4378FF; padding: 10px 6px; min-width: 0; font-size: 15px; height: 40px; margin-bottom: 1px; }
+            .dm-composer:not(.dm-tiene) :is(#btn-dm-enviar, #btn-chat-enviar) { display: none; }
             html.dm-teclado .dm-composer { padding-bottom: 8px; }          /* con el teclado abierto no hay barra del iPhone abajo: sin ese hueco vacío */
+        }
+
+        /* ───── Chat de Community: mismo estilo que los mensajes privados ───── */
+        .ig-topbar { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+        .ig-volver { display: none; width: 40px; height: 40px; border-radius: 999px; border: 0; background: transparent; color: #E5E7EB; font-size: 20px; cursor: pointer; align-items: center; justify-content: center; flex-shrink: 0; }
+        .ig-ident { display: flex; align-items: center; gap: 11px; flex: 1; min-width: 0; }
+        .ig-ident b { display: block; font-size: 15px; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ig-ident small { display: block; font-size: 11.5px; color: #64748b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .ig-avatar-grupo { width: 42px; height: 42px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 21px; color: #fff;
+            background: linear-gradient(135deg, #4378FF, #7B5CFF); box-shadow: 0 6px 18px rgba(67,120,255,.35); }
+        .ig-acciones { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .chat-nombre { font-size: 11.5px; font-weight: 700; margin: 0 0 3px 6px; letter-spacing: .01em; }
+        .chat-avatar-slot { width: 28px; height: 28px; flex-shrink: 0; }
+        @media (max-width: 1023px) {
+            html.chat-abierto #vistaChat { position: fixed; left: 0; right: 0; top: var(--dm-top, 0px); height: var(--dm-h, 100dvh); z-index: 60; display: flex; flex-direction: column;
+                background: #080A0F; margin: 0; padding: 0; max-width: none; width: auto; }
+            html.chat-abierto .chat-titulo-desktop { display: none; }
+            html.chat-abierto #chatAutorizado { display: flex; flex-direction: column; flex: 1 1 0; min-height: 0; }
+            html.chat-abierto .ig-topbar { flex-shrink: 0; margin: 0; padding: calc(env(safe-area-inset-top, 0px) + 8px) 8px 8px; border-bottom: 1px solid rgba(255,255,255,0.07); background: rgba(8,10,15,0.96); }
+            html.chat-abierto .ig-volver { display: flex; }
+            html.chat-abierto .ig-ident { gap: 10px; }
+            html.chat-abierto .ig-acciones .chip { width: 40px; height: 40px; padding: 0; border-radius: 999px; justify-content: center; font-size: 18px; }
+            html.chat-abierto .ig-acciones .chip span { display: none; }
+            html.chat-abierto #chatAutorizado .msg-scroll { flex: 1 1 0; min-height: 0; margin: 0; display: flex; flex-direction: column; }
         }
 
         /* --- Fase "Reliability + Reply + Typing Premium" --- */
@@ -500,9 +524,9 @@
 
         <!-- Chat view -->
         <div id="vistaChat" class="hidden vista-ancha">
-            <div class="text-center mb-6">
+            <div class="text-center mb-6 chat-titulo-desktop">
                 <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
-                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Chat privado</h1>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Chat de Community</h1>
             </div>
 
             <div id="chatSinAcceso" class="hidden glass-card p-10 text-center">
@@ -513,26 +537,34 @@
             </div>
 
             <div id="chatAutorizado" class="hidden">
-                <div class="flex items-center justify-between gap-2 mb-2">
-                    <button id="btn-chat-llamada" type="button" class="chip chip-llamada hidden" title="Llamada de voz para todo Community: toca para empezar una o unirte a la que esté en curso"><i class="ph-fill ph-phone-call" aria-hidden="true"></i> <span>Llamada grupal</span></button>
-                    <button id="btn-chat-avisos" type="button" class="chip" aria-pressed="true" title="Avisos de mensajes nuevos del chat global (campana y notificación del teléfono)"><i class="ph ph-bell-ringing" aria-hidden="true"></i> <span>Avisos: activados</span></button>
+                <div class="ig-topbar">
+                    <button id="btn-chat-volver" type="button" class="ig-volver" aria-label="Volver al feed"><i class="ph ph-arrow-left" aria-hidden="true"></i></button>
+                    <div class="ig-ident">
+                        <div class="ig-avatar-grupo" aria-hidden="true"><i class="ph-fill ph-users-three"></i></div>
+                        <div class="min-w-0"><b>Chat de Community</b><small id="chatSub">Todos los miembros de NLT</small></div>
+                    </div>
+                    <div class="ig-acciones">
+                        <button id="btn-chat-llamada" type="button" class="chip chip-llamada hidden" title="Llamada de voz para todo Community: toca para empezar una o unirte a la que esté en curso"><i class="ph-fill ph-phone-call" aria-hidden="true"></i> <span>Llamada grupal</span></button>
+                        <button id="btn-chat-avisos" type="button" class="chip" aria-pressed="true" title="Avisos de mensajes nuevos del chat global (campana y notificación del teléfono)"><i class="ph ph-bell-ringing" aria-hidden="true"></i> <span>Avisos: activados</span></button>
+                    </div>
                 </div>
                 <div class="msg-scroll mb-1">
                     <div id="chatMensajes" class="glass-card p-4 space-y-3 overflow-y-auto" style="height: 55vh; height: 55dvh;">
-                        <p class="text-sm text-gray-500 text-center py-10 animate-pulse">Cargando mensajes...</p>
+                        <div class="dm-esqueleto" aria-label="Cargando mensajes"><i></i><i></i><i></i><i></i><i></i></div>
                     </div>
                     <button id="btn-chat-nuevos" class="btn-nuevos-msg hidden">↓ Nuevos mensajes</button>
+                    <button id="btn-chat-bajar" type="button" class="btn-dm-bajar hidden" aria-label="Ir al último mensaje"><i class="ph ph-caret-down" aria-hidden="true"></i></button>
                 </div>
                 <p id="chatEscribiendo" class="msg-typing mb-1">&nbsp;</p>
                 <div id="chatMediaPreview" class="hidden"></div>
                 <div id="chatReplyPreview" class="hidden"></div>
-                <div class="msg-input-row flex items-center gap-2">
+                <div class="msg-input-row dm-composer flex items-center gap-2">
                     <button id="btn-chat-emoji" type="button" class="emoji-btn" title="Emojis" aria-label="Insertar emoji"><i class="ph ph-smiley" aria-hidden="true"></i></button>
                     <label class="media-btn" title="Adjuntar imagen" aria-label="Adjuntar imagen">
                         <i class="ph ph-image" aria-hidden="true"></i><input type="file" id="chatImagenInput" accept="image/jpeg,image/png,image/webp" class="hidden">
                     </label>
-                    <input id="chatInput" placeholder="Escribe un mensaje..." maxlength="2000" class="post-input flex-1">
-                    <button id="btn-chat-enviar" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
+                    <textarea id="chatInput" rows="1" placeholder="Escribe un mensaje..." maxlength="2000" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" class="post-input flex-1"></textarea>
+                    <button id="btn-chat-enviar" type="button" class="px-5 py-2.5 rounded-full bg-nlt-accent text-white text-sm font-semibold cursor-pointer">Enviar</button>
                 </div>
                 <p id="chatMsg" class="mt-2 text-xs hidden"></p>
             </div>
@@ -1622,34 +1654,60 @@
             return responder + copiar + propias;
         }
 
-        function mensajeChatHTML(m) {
+        // Color propio por persona para el nombre sobre su burbuja (el mismo siempre para la misma persona)
+        const _colorDe = (id) => { let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return `hsl(${h % 360} 78% 74%)`; };
+
+        // Chat de Community con el mismo estilo del chat privado: burbujas agrupadas por persona (nombre arriba de la primera, foto junto a la
+        // última), separadores de día, hora/estado solo en el último mensaje y al tocar, y acciones al tocar un mensaje.
+        function mensajeChatHTML(m, ultimoDeTanda = true, esContinuacion = false) {
             const media = m.media_url ? `<img loading="lazy" decoding="async" src="${esc(m.media_url)}" class="msg-thumb btn-ver-imagen-chat" data-message-id="${m.id}" data-url="${esc(m.media_url)}" alt="Imagen adjunta">` : '';
-            const textoBurbuja = m.content ? `<div id="chatBody-${m.id}" data-raw-body="${esc(m.content)}"><p class="text-xs text-gray-300 mt-0.5">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : '';
+            const burbuja = m.is_own ? 'bg-nlt-accent/15 border-nlt-accent/20' : 'glass-item';
             const replyRef = replyRefHTML(m, 'chat');
-            if (m.is_own) {
-                const acciones = accionesMensajeHTML(m, 'chat', 'ti mismo');
-                return `
-                    <div class="chat-message msg-row-own flex gap-2" data-message-id="${m.id}">
-                        <div class="flex flex-col items-end msg-bubble-wrap">
-                            ${textoBurbuja || media ? `<div class="glass-item px-3 py-2" style="background:rgba(67,120,255,0.14); border-color:rgba(67,120,255,0.22);">${replyRef}${textoBurbuja}${media}</div>` : ''}
-                            <p class="text-[10px] text-gray-600 mt-1">${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''} ${acciones}</p>
-                        </div>
-                    </div>
-                `;
-            }
-            const acciones = accionesMensajeHTML(m, 'chat', m.author_display_name);
+            const cuerpo = m.content ? `<div id="chatBody-${m.id}" data-raw-body="${esc(m.content)}" class="${burbuja} border rounded-xl px-3 py-2">${replyRef}<p class="text-xs text-gray-200">${esc(m.content).replace(/\n/g, '<br>')}</p></div>` : (replyRef ? `<div class="${burbuja} border rounded-xl px-3 py-2">${replyRef}</div>` : '');
+            const acciones = accionesMensajeHTML(m, 'chat', m.is_own ? 'ti mismo' : m.author_display_name);
+            const nombre = !m.is_own && !esContinuacion
+                ? `<p class="chat-nombre" style="color:${_colorDe(m.user_id)}">${esc(m.author_display_name)}${m.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''}</p>` : '';
+            const avatarImg = `<div class="w-7 h-7 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden">${m.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>`;
+            const avatar = !m.is_own ? `<div class="chat-avatar-slot">${ultimoDeTanda ? avatarImg : ''}</div>` : '';
             return `
-                <div class="chat-message flex items-start gap-2.5" data-message-id="${m.id}">
-                    <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-gray-700 to-gray-600 flex items-center justify-center text-[10px] font-bold text-white shrink-0 overflow-hidden">${m.author_avatar_url ? `<img loading="lazy" decoding="async" src="${esc(m.author_avatar_url)}" class="w-full h-full object-cover">` : iniciales(m.author_display_name)}</div>
-                    <div class="msg-bubble-wrap min-w-0 glass-item px-3 py-2">
-                        <p class="text-xs font-semibold text-white">${esc(m.author_display_name)}${m.author_verified ? ' <i class="ph-fill ph-check-circle verified-badge" title="Miembro verificado por NLT"></i>' : ''} <span class="text-gray-600 font-normal">· ${tiempoRelativo(m.created_at)}${m.edited_at ? ' · editado' : ''}</span></p>
-                        ${replyRef}
-                        ${textoBurbuja}
-                        ${media}
-                        <p class="text-[10px] text-gray-600 mt-1">${acciones}</p>
+                <div class="chat-message flex ${m.is_own ? 'msg-row-own' : 'items-end gap-2'} ${esContinuacion ? 'msg-agrupado' : ''}" data-message-id="${m.id}" data-is-own="${!!m.is_own}" data-author="${esc(m.user_id || '')}" data-day="${diaDM(m.created_at)}" data-created="${esc(m.created_at)}">
+                    ${avatar}
+                    <div class="flex flex-col ${m.is_own ? 'items-end' : 'items-start'} msg-bubble-wrap">
+                        ${nombre}${cuerpo}${media}
+                        <p class="dm-meta text-[10px] text-gray-600 mt-1">${horaDM(m.created_at)}${m.edited_at ? ' · editado' : ''} ${acciones}</p>
                     </div>
                 </div>
             `;
+        }
+
+        function _listaChatHTML(mensajes) {
+            return mensajes.map((m, i) => {
+                const dia = diaDM(m.created_at);
+                const nuevoDia = i === 0 || diaDM(mensajes[i - 1].created_at) !== dia;
+                const esUltimo = i === mensajes.length - 1 || mensajes[i + 1].user_id !== m.user_id || diaDM(mensajes[i + 1].created_at) !== dia;
+                const esContinuacion = !nuevoDia && mensajes[i - 1].user_id === m.user_id;
+                return (nuevoDia ? separadorDiaDM(m.created_at) : '') + mensajeChatHTML(m, esUltimo, esContinuacion);
+            }).join('');
+        }
+
+        function _agregarMensajeChat(box, nuevo) {
+            const anterior = box.querySelector('.chat-message:last-child');
+            const mismoDia = !!anterior && anterior.getAttribute('data-day') === diaDM(nuevo.created_at);
+            const esContinuacion = mismoDia && anterior.getAttribute('data-author') === String(nuevo.user_id);
+            if (esContinuacion) { const slot = anterior.querySelector('.chat-avatar-slot'); if (slot) slot.innerHTML = ''; }
+            if (!mismoDia) box.insertAdjacentHTML('beforeend', separadorDiaDM(nuevo.created_at));
+            box.insertAdjacentHTML('beforeend', mensajeChatHTML(nuevo, true, esContinuacion));
+            box.lastElementChild.classList.add('dm-nuevo');
+            _marcarUltimoChat();
+        }
+
+        function _marcarUltimoChat() {
+            const box = document.getElementById('chatMensajes');
+            box.querySelectorAll('.dm-ultimo').forEach((x) => x.classList.remove('dm-ultimo'));
+            const todos = box.querySelectorAll('.chat-message');
+            if (!todos.length) return;
+            todos[todos.length - 1].classList.add('dm-ultimo');
+            for (let i = todos.length - 1; i >= 0; i--) { if (todos[i].getAttribute('data-is-own') === 'true') { todos[i].classList.add('dm-ultimo'); break; } }
         }
 
         function activarEdicionChat(messageId) {
@@ -1693,6 +1751,7 @@
                     // data-message-id, closest() con ese selector encontraría
                     // el botón mismo, no el bloque completo.
                     b.closest('.chat-message').remove();
+                    _marcarUltimoChat();
                 });
             }));
             scopeEl.querySelectorAll('.btn-ver-imagen-chat').forEach(img => _unaVez(img, () => {
@@ -1777,13 +1836,21 @@
             } catch (_) { /* no crítico */ }
         }
 
+        const CHAT_PAGINA = 50;
+        let chatHayMas = false, chatCargandoAntes = false;
+        const chatPendientes = new Set();               // client_message_id de lo que se está enviando: el refresco no lo agrega dos veces
+        const chatImgPendientes = new Map();
+        const chatTactil = window.matchMedia('(pointer: coarse)').matches;
+
         async function cargarChat() {
             const box = document.getElementById('chatMensajes');
             try {
                 const pre = _pre.chat; _pre.chat = null;
                 const mensajes = await _tomar(pre, () => NLT_API.communityChatMensajes());
                 ultimoMensajeChatId = mensajes.length ? mensajes[mensajes.length - 1].id : null;
-                box.innerHTML = mensajes.length ? mensajes.map(mensajeChatHTML).join('') : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                chatHayMas = mensajes.length >= CHAT_PAGINA;
+                box.innerHTML = mensajes.length ? (chatHayMas ? '<p id="chatMas" class="dm-mas">Desliza hacia arriba para ver mensajes anteriores</p>' : '') + _listaChatHTML(mensajes) : '<p class="text-sm text-gray-600 text-center py-10">Sé el primero en escribir acá.</p>';
+                _marcarUltimoChat();
                 wireMensajesChat(box);
                 box.scrollTop = box.scrollHeight;
                 chatCargado = true;
@@ -1793,25 +1860,61 @@
             }
         }
 
-        // Poll eficiente (no agresivo): solo agrega mensajes nuevos al final,
-        // nunca reconstruye la lista completa (perdería una edición en curso
-        // o el scroll del usuario). Se detiene solo si la vista de chat no
-        // está visible -- ver pollWhileVisible en init(). El indicador de
-        // "escribiendo" se refresca en el mismo tick -- a propósito no se
-        // suma un poll nuevo/más agresivo solo para eso.
+        // Mensajes anteriores: al acercarte al borde de arriba se piden los 50 anteriores y la vista NO salta
+        async function cargarAnterioresChat() {
+            const box = document.getElementById('chatMensajes');
+            if (chatCargandoAntes || !chatHayMas) return;
+            const primero = box.querySelector('.chat-message[data-created]:not([data-message-id^="tmp-"])');
+            if (!primero) return;
+            chatCargandoAntes = true;
+            let indicador = document.getElementById('chatMas');
+            if (!indicador) { box.insertAdjacentHTML('afterbegin', '<p id="chatMas" class="dm-mas"></p>'); indicador = document.getElementById('chatMas'); }
+            indicador.classList.add('cargando'); indicador.textContent = 'Cargando mensajes anteriores…';
+            try {
+                const antes = await NLT_API.communityChatMensajes(primero.getAttribute('data-created'));
+                chatHayMas = antes.length >= CHAT_PAGINA;
+                const existentes = new Set([...box.querySelectorAll('.chat-message')].map((el) => el.getAttribute('data-message-id')));
+                const nuevos = antes.filter((m) => !existentes.has(m.id));
+                if (nuevos.length) {
+                    const alto = box.scrollHeight, top = box.scrollTop;
+                    indicador.insertAdjacentHTML('afterend', _listaChatHTML(nuevos));
+                    // unión con lo que ya estaba: misma persona y mismo día = una sola tanda (sin foto ni nombre repetidos, sin separador doble)
+                    const sepViejo = primero.previousElementSibling && primero.previousElementSibling.classList.contains('dm-dia') ? primero.previousElementSibling : null;
+                    const prevMsg = sepViejo ? sepViejo.previousElementSibling : primero.previousElementSibling;
+                    if (prevMsg && prevMsg.classList.contains('chat-message') && prevMsg.getAttribute('data-day') === primero.getAttribute('data-day')) {
+                        if (sepViejo) sepViejo.remove();
+                        if (prevMsg.getAttribute('data-author') === primero.getAttribute('data-author')) {
+                            primero.classList.add('msg-agrupado');
+                            const nom = primero.querySelector('.chat-nombre'); if (nom) nom.remove();
+                            const slot = prevMsg.querySelector('.chat-avatar-slot'); if (slot) slot.innerHTML = '';
+                        }
+                    }
+                    wireMensajesChat(box);
+                    box.scrollTop = top + (box.scrollHeight - alto);
+                }
+                indicador.classList.remove('cargando');
+                if (chatHayMas) indicador.textContent = 'Desliza hacia arriba para ver mensajes anteriores';
+                else { indicador.textContent = 'Inicio del chat'; setTimeout(() => { if (indicador.isConnected) indicador.remove(); }, 1800); }
+            } catch (_) {
+                indicador.classList.remove('cargando');
+                indicador.textContent = 'No se pudieron cargar · desliza de nuevo para reintentar';
+            } finally { chatCargandoAntes = false; }
+        }
+
+        // Poll eficiente: solo agrega mensajes nuevos al final, nunca reconstruye la lista (perdería una edición en curso o tu posición).
         async function pollChatNuevo() {
             if (document.getElementById('vistaChat').classList.contains('hidden') || !chatCargado) return;
             actualizarTypingChat();
             try {
                 const mensajes = await NLT_API.communityChatMensajes();
                 const idsActuales = new Set([...document.querySelectorAll('.chat-message')].map(el => el.getAttribute('data-message-id')));
-                const nuevos = mensajes.filter(m => !idsActuales.has(m.id));
+                const nuevos = mensajes.filter(m => !idsActuales.has(m.id) && !(m.is_own && m.client_message_id && chatPendientes.has(m.client_message_id)));
                 if (!nuevos.length) return;
                 const box = document.getElementById('chatMensajes');
                 const placeholder = box.querySelector('p.text-gray-600');
                 if (placeholder) placeholder.remove();
                 const estabaAlFondo = box.scrollHeight - box.scrollTop - box.clientHeight < 40;
-                box.insertAdjacentHTML('beforeend', nuevos.map(mensajeChatHTML).join(''));
+                nuevos.forEach(m => _agregarMensajeChat(box, m));
                 wireMensajesChat(box);
                 if (estabaAlFondo) box.scrollTop = box.scrollHeight;
                 else document.getElementById('btn-chat-nuevos').classList.remove('hidden');
@@ -1825,85 +1928,163 @@
         });
         document.getElementById('chatMensajes').addEventListener('scroll', () => {
             const box = document.getElementById('chatMensajes');
-            if (box.scrollHeight - box.scrollTop - box.clientHeight < 40) document.getElementById('btn-chat-nuevos').classList.add('hidden');
+            const aFondo = box.scrollHeight - box.scrollTop - box.clientHeight;
+            if (aFondo < 40) document.getElementById('btn-chat-nuevos').classList.add('hidden');
+            if (box.scrollTop < 160) cargarAnterioresChat();
+            document.getElementById('btn-chat-bajar').classList.toggle('hidden', aFondo < 420);
+        }, { passive: true });
+        document.getElementById('btn-chat-bajar').addEventListener('click', () => {
+            const box = document.getElementById('chatMensajes');
+            box.scrollTo({ top: box.scrollHeight, behavior: 'smooth' });
         });
+        document.getElementById('btn-chat-volver').addEventListener('click', () => mostrarVista('feed'));
 
         document.getElementById('chatImagenInput').addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (!file) return;
             if (!validarImagenCliente(file)) { e.target.value = ''; return; }
             chatImagenSeleccionada = file;
-            mostrarPreviewImagen('chatMediaPreview', file, () => { chatImagenSeleccionada = null; document.getElementById('chatImagenInput').value = ''; });
+            mostrarPreviewImagen('chatMediaPreview', file, () => { chatImagenSeleccionada = null; document.getElementById('chatImagenInput').value = ''; ajustarComposerChat(); });
+            ajustarComposerChat();
         });
 
-        // Doble/triple-send (Parte 1) -- chatEnviando bloquea el mismo submit
-        // mientras hay un request en curso (cubre click doble/triple Y
-        // Enter+click, ambos llaman a esta misma función). El
-        // client_message_id se genera UNA sola vez por intento lógico: se
-        // mantiene si el envío anterior falló (para que un reintento manual
-        // sea EL MISMO intento, nunca un mensaje duplicado si el request
-        // original en realidad sí había llegado a crearse), y se limpia
-        // recién cuando el server confirma éxito.
-        let chatEnviando = false;
-        let chatClientMessageIdPendiente = null;
+        // El cuadro crece con lo que escribes (hasta 5 líneas) y, en móvil, "Enviar" aparece solo cuando hay algo que enviar.
+        function ajustarComposerChat() {
+            const input = document.getElementById('chatInput');
+            input.style.height = 'auto';
+            input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+            document.querySelector('#chatAutorizado .dm-composer').classList.toggle('dm-tiene', !!input.value.trim() || !!chatImagenSeleccionada);
+        }
+        const chatAbajo = () => { const box = document.getElementById('chatMensajes'); box.scrollTop = box.scrollHeight; };
+
+        // Texto: el mensaje aparece YA (un poco apagado), el cuadro queda vacío y el teclado abierto, como el chat privado; el servidor lo confirma
+        // después. Si falla, se quita y el texto vuelve al cuadro para reintentar sin perderlo (con el mismo client_message_id: sin duplicados).
+        let chatClientMessageIdPendiente = null, chatTextoPendiente = null;
         async function enviarMensajeChat() {
-            if (chatEnviando) return;
             const input = document.getElementById('chatInput');
             const msg = document.getElementById('chatMsg');
             const contenido = input.value.trim();
-            if (!contenido && !chatImagenSeleccionada) return;
-            const btn = document.getElementById('btn-chat-enviar');
-            const textoOriginal = btn.textContent;
-            chatEnviando = true;
-            btn.disabled = true;
-            btn.classList.add('btn-enviando');
-            btn.textContent = 'Enviando...';
-            if (!chatClientMessageIdPendiente) chatClientMessageIdPendiente = crypto.randomUUID();
-            const clientId = chatClientMessageIdPendiente;
+            if ((!contenido && !chatImagenSeleccionada) || !miPerfil) return;
+            if (chatImagenSeleccionada) return enviarFotoChat(contenido);
             const replyToId = chatReplyState ? chatReplyState.id : null;
+            const replyGuardado = chatReplyState;
+            const clientId = (chatClientMessageIdPendiente && chatTextoPendiente === contenido) ? chatClientMessageIdPendiente : crypto.randomUUID();
+            chatClientMessageIdPendiente = null; chatTextoPendiente = null;
+            const box = document.getElementById('chatMensajes');
+            const placeholder = box.querySelector('p.text-gray-600');
+            if (placeholder) placeholder.remove();
+            _agregarMensajeChat(box, { id: 'tmp-' + clientId, user_id: miPerfil.user_id, content: contenido, is_own: true, created_at: new Date().toISOString(), author_display_name: miPerfil.display_name || '', author_avatar_url: miPerfil.avatar_url || null });
+            const temporal = box.lastElementChild;
+            temporal.classList.add('dm-pendiente');
+            chatPendientes.add(clientId);
+            input.value = ''; ajustarComposerChat();
+            msg.classList.add('hidden');
+            cancelarReplyChat();
+            chatAbajo();
             try {
-                const nuevo = chatImagenSeleccionada
-                    ? await NLT_API.communityChatEnviarImagen(chatImagenSeleccionada, contenido || null, replyToId, clientId)
-                    : await NLT_API.communityChatEnviar(contenido, replyToId, clientId);
-                chatClientMessageIdPendiente = null; // éxito confirmado -- el próximo envío es un intento lógico nuevo
-                input.value = '';
-                chatImagenSeleccionada = null;
-                document.getElementById('chatImagenInput').value = '';
-                document.getElementById('chatMediaPreview').innerHTML = '';
-                document.getElementById('chatMediaPreview').classList.add('hidden');
-                cancelarReplyChat();
-                msg.classList.add('hidden');
+                const nuevo = await NLT_API.communityChatEnviar(contenido, replyToId, clientId);
+                chatPendientes.delete(clientId);
+                temporal.remove();
+                if (!box.querySelector(`.chat-message[data-message-id="${nuevo.id}"]`)) { _agregarMensajeChat(box, nuevo); box.lastElementChild.classList.remove('dm-nuevo'); wireMensajesChat(box); }
+                _marcarUltimoChat();
+                chatAbajo();
                 NLT_API.communityChatDejarDeEscribir().catch(() => {});
-                const box = document.getElementById('chatMensajes');
-                const placeholder = box.querySelector('p.text-gray-600');
-                if (placeholder) placeholder.remove();
-                box.insertAdjacentHTML('beforeend', mensajeChatHTML(nuevo));
-                wireMensajesChat(box);
-                box.scrollTop = box.scrollHeight;
             } catch (err) {
-                // Fallo real -- se mantiene el texto Y el client_message_id
-                // (mismo intento lógico en el próximo click) para que el
-                // usuario pueda reintentar sin perder lo escrito ni arriesgar
-                // un duplicado.
-                msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
-            } finally {
-                chatEnviando = false;
-                btn.disabled = false;
-                btn.classList.remove('btn-enviando');
-                btn.textContent = textoOriginal;
+                chatPendientes.delete(clientId);
+                temporal.remove(); _marcarUltimoChat();
+                chatClientMessageIdPendiente = clientId; chatTextoPendiente = contenido;
+                if (!input.value.trim()) { input.value = contenido; ajustarComposerChat(); }
+                if (replyGuardado && !chatReplyState) { chatReplyState = replyGuardado; renderReplyPreviewChat(); }
+                msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'No se envió: ' + err.message + ' · toca Enviar para reintentar.';
             }
         }
-        document.getElementById('btn-chat-enviar').addEventListener('click', enviarMensajeChat);
-        document.getElementById('chatInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                enviarMensajeChat();
+
+        // Foto: aparece al instante con el logo de NLT girando, se achica y sube en segundo plano; si falla queda con «Reintentar / Quitar».
+        async function subirFotoChat(clientId) {
+            const p = chatImgPendientes.get(clientId);
+            if (!p) return;
+            const { fila } = p;
+            const wrap = fila.querySelector('.dm-img-wrap');
+            wrap.classList.add('subiendo'); wrap.classList.remove('fallo');
+            const fallo = wrap.querySelector('.dm-img-fallo'); if (fallo) fallo.remove();
+            chatPendientes.add(clientId);
+            try {
+                if (!p.listo) p.listo = await comprimirImagenCliente(p.file);
+                const nuevo = await NLT_API.communityChatEnviarImagen(p.listo, p.contenido || null, p.replyToId, clientId);
+                chatPendientes.delete(clientId); chatImgPendientes.delete(clientId);
+                if (!fila.isConnected) return;
+                const box = document.getElementById('chatMensajes');
+                if (box.querySelector(`.chat-message[data-message-id="${nuevo.id}"]`)) { fila.remove(); _marcarUltimoChat(); return; }
+                const pegado = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+                fila.insertAdjacentHTML('afterend', mensajeChatHTML(nuevo, true, fila.classList.contains('msg-agrupado')));
+                const real = fila.nextElementSibling;
+                real.className = fila.className.replace('dm-pendiente', '').replace('dm-nuevo', '');
+                const img = real.querySelector('img.msg-thumb');
+                if (img) { img.src = p.urlLocal; img.removeAttribute('loading'); }          // sin parpadeo: se queda la foto local ya decodificada
+                fila.remove();
+                _marcarUltimoChat(); wireMensajesChat(box);
+                if (pegado) chatAbajo();
+            } catch (err) {
+                chatPendientes.delete(clientId);
+                if (!fila.isConnected) return;
+                wrap.classList.remove('subiendo'); wrap.classList.add('fallo');
+                wrap.insertAdjacentHTML('beforeend', `<div class="dm-img-fallo"><button type="button" class="dm-img-reintentar">↻ Reintentar</button><button type="button" class="dm-img-quitar">Quitar</button></div>`);
+                wrap.querySelector('.dm-img-fallo').insertAdjacentHTML('afterbegin', `<span style="font-size:12px;color:#FCA5A5;text-align:center;padding:0 10px">No se envió${err && err.message ? ' · ' + esc(err.message) : ''}</span>`);
+                wrap.querySelector('.dm-img-reintentar').addEventListener('click', () => subirFotoChat(clientId));
+                wrap.querySelector('.dm-img-quitar').addEventListener('click', () => { fila.remove(); chatImgPendientes.delete(clientId); _marcarUltimoChat(); });
             }
+        }
+        function enviarFotoChat(contenido) {
+            const input = document.getElementById('chatInput');
+            const file = chatImagenSeleccionada;
+            const replyToId = chatReplyState ? chatReplyState.id : null;
+            const clientId = crypto.randomUUID();
+            const urlLocal = URL.createObjectURL(file);
+            const box = document.getElementById('chatMensajes');
+            const placeholder = box.querySelector('p.text-gray-600');
+            if (placeholder) placeholder.remove();
+            _agregarMensajeChat(box, { id: 'tmp-' + clientId, user_id: miPerfil.user_id, content: contenido, is_own: true, created_at: new Date().toISOString(), media_url: urlLocal, author_display_name: miPerfil.display_name || '', author_avatar_url: miPerfil.avatar_url || null });
+            const fila = box.lastElementChild;
+            fila.classList.add('dm-pendiente');
+            const img = fila.querySelector('img.msg-thumb');
+            if (img) { img.removeAttribute('loading'); const wrap = document.createElement('div'); wrap.className = 'dm-img-wrap subiendo'; img.replaceWith(wrap); wrap.appendChild(img); }
+            input.value = ''; chatImagenSeleccionada = null;
+            document.getElementById('chatImagenInput').value = '';
+            const prev = document.getElementById('chatMediaPreview'); prev.innerHTML = ''; prev.classList.add('hidden');
+            ajustarComposerChat(); cancelarReplyChat(); document.getElementById('chatMsg').classList.add('hidden');
+            NLT_API.communityChatDejarDeEscribir().catch(() => {});
+            chatAbajo();
+            if (img) img.addEventListener('load', chatAbajo, { once: true });
+            chatImgPendientes.set(clientId, { file, contenido, replyToId, urlLocal, fila });
+            subirFotoChat(clientId);
+        }
+
+        // Tocar un mensaje muestra/oculta sus acciones; con el teclado abierto, tocar la conversación (o arrastrarla hacia abajo) solo lo baja.
+        const _cerrarTecladoChat = () => { const c = document.getElementById('chatInput'); if (document.activeElement === c) { c.blur(); return true; } return false; };
+        let _toqueChatY = null, _teniaTecladoChat = false;
+        document.getElementById('chatMensajes').addEventListener('touchstart', (e) => { _toqueChatY = e.touches[0].clientY; _teniaTecladoChat = document.activeElement === document.getElementById('chatInput'); }, { passive: true });
+        document.getElementById('chatMensajes').addEventListener('touchmove', (e) => { if (_toqueChatY !== null && e.touches[0].clientY - _toqueChatY > 28 && _cerrarTecladoChat()) _toqueChatY = null; }, { passive: true });
+        document.getElementById('chatMensajes').addEventListener('click', (e) => {
+            if (e.target.closest('button, a, img, input, textarea')) return;
+            const tenia = _teniaTecladoChat; _teniaTecladoChat = false;
+            if (_cerrarTecladoChat() || tenia) return;
+            const fila = e.target.closest('.chat-message');
+            if (!fila) return;
+            const abrir = !fila.classList.contains('dm-acc');
+            document.querySelectorAll('#chatMensajes .dm-acc').forEach((x) => x.classList.remove('dm-acc'));
+            if (abrir) fila.classList.add('dm-acc');
         });
-        // Heartbeat de "escribiendo" -- a lo sumo 1 cada 3s mientras se
-        // sigue tipeando, nunca un poll: son escrituras disparadas por
-        // eventos reales de tecleo, no un timer corriendo solo.
+        // El botón no le quita el foco al cuadro de texto: el teclado se queda abierto después de enviar.
+        const _btnChatEnviar = document.getElementById('btn-chat-enviar');
+        _btnChatEnviar.addEventListener('pointerdown', (e) => e.preventDefault());
+        _btnChatEnviar.addEventListener('click', enviarMensajeChat);
+        document.getElementById('chatInput').addEventListener('keydown', (e) => {
+            // En el teléfono, Enter es salto de línea (se envía con el botón); en computador, Enter envía y Shift+Enter hace salto.
+            if (e.key === 'Enter' && !e.shiftKey && !chatTactil) { e.preventDefault(); enviarMensajeChat(); }
+        });
+        // Heartbeat de "escribiendo" -- a lo sumo 1 cada 3s mientras se sigue tipeando
         document.getElementById('chatInput').addEventListener('input', () => {
+            ajustarComposerChat();
             if (!document.getElementById('chatInput').value.trim()) { NLT_API.communityChatDejarDeEscribir().catch(() => {}); return; }
             if (chatTypingTimer) return;
             NLT_API.communityChatEscribiendo().catch(() => {});
@@ -2333,7 +2514,7 @@
             const input = document.getElementById('dmInput');
             input.style.height = 'auto';
             input.style.height = Math.min(input.scrollHeight, 120) + 'px';
-            document.querySelector('.dm-composer').classList.toggle('dm-tiene', !!input.value.trim() || !!dmImagenSeleccionada);
+            document.querySelector('#dmConversacionBox .dm-composer').classList.toggle('dm-tiene', !!input.value.trim() || !!dmImagenSeleccionada);
         }
         const dmAbajo = () => { const box = document.getElementById('dmMensajes'); box.scrollTop = box.scrollHeight; };
 
@@ -2507,21 +2688,25 @@
 
         // Teclado (móvil): el panel de la conversación mide lo que mide la parte VISIBLE de la pantalla, así el cuadro de texto sube con el
         // teclado y los mensajes se quedan pegados abajo; además se bloquea el desplazamiento de la página de atrás y se oculta el header.
-        (function () {
+        // Lo usan el chat privado y el chat de Community (cada uno con su panel, lista y cuadro de texto).
+        const _estadoPaneles = new Map();           // panel -> { abierta, teclado }: las clases de <html> son la UNIÓN de todos los paneles
+        function montarTeclado({ caja, tambien, lista, campo, abierta: estaAbierta, clase }) {
             const vv = window.visualViewport, raiz = document.documentElement;
-            const caja = document.getElementById('dmConversacionBox'), lista = document.getElementById('dmMensajes');
             let pegado = true;
             const movil = () => window.matchMedia('(max-width: 1023px)').matches;
-            const abierta = () => !caja.classList.contains('hidden') && movil();
+            const abierta = () => movil() && estaAbierta();
             lista.addEventListener('scroll', () => { pegado = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80; }, { passive: true });
-            const campo = document.getElementById('dmInput'), buscador = document.getElementById('buscadorPersonas');
+            const buscador = document.getElementById('buscadorPersonas');
             function ajustar() {
                 const tecladoAbierto = abierta() && ((vv && window.innerHeight - vv.height > 120) || document.activeElement === campo);
-                raiz.classList.toggle('dm-teclado', !!tecladoAbierto);        // sin el margen de la barra inferior del iPhone mientras el teclado está arriba
+                _estadoPaneles.set(caja, { abierta: abierta(), teclado: !!tecladoAbierto });
+                const paneles = [..._estadoPaneles.values()];
+                raiz.classList.toggle('dm-teclado', paneles.some((x) => x.teclado));        // sin el margen de la barra inferior del iPhone mientras el teclado está arriba
                 // el resto de campos de la página no se pueden enfocar mientras chateas: iOS no muestra las flechas ▲▼ de "campo anterior/siguiente"
-                if (buscador) buscador.inert = abierta();
-                raiz.classList.toggle('dm-abierto', abierta());
-                if (!abierta()) { raiz.style.removeProperty('--dm-h'); raiz.style.removeProperty('--dm-top'); return; }
+                if (buscador) buscador.inert = paneles.some((x) => x.abierta);
+                raiz.classList.toggle('dm-abierto', paneles.some((x) => x.abierta));
+                if (clase) raiz.classList.toggle(clase, abierta());
+                if (!abierta()) { if (!paneles.some((x) => x.abierta)) { raiz.style.removeProperty('--dm-h'); raiz.style.removeProperty('--dm-top'); } return; }
                 raiz.style.setProperty('--dm-h', (vv ? vv.height : window.innerHeight) + 'px');
                 raiz.style.setProperty('--dm-top', (vv ? vv.offsetTop : 0) + 'px');
                 if (pegado) lista.scrollTop = lista.scrollHeight;
@@ -2529,15 +2714,23 @@
             if (vv) { vv.addEventListener('resize', ajustar); vv.addEventListener('scroll', ajustar); }
             window.addEventListener('resize', ajustar);
             window.addEventListener('orientationchange', () => setTimeout(ajustar, 300));
-            new MutationObserver(() => { pegado = true; ajustar(); }).observe(caja, { attributes: true, attributeFilter: ['class'] });
+            const obs = new MutationObserver(() => { pegado = true; ajustar(); });
+            [caja, tambien].forEach((el) => { if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] }); });
             campo.addEventListener('blur', () => setTimeout(ajustar, 50));
-            document.getElementById('dmInput').addEventListener('focus', () => {
+            campo.addEventListener('focus', () => {
                 pegado = true;
                 // iOS tarda en abrir el teclado: se reajusta varias veces y se evita que la página de atrás se corra
                 [60, 220, 450].forEach((t) => setTimeout(() => { if (!abierta()) return; window.scrollTo(0, 0); ajustar(); lista.scrollTop = lista.scrollHeight; }, t));
             });
             ajustar();
-        })();
+        }
+        {
+            const cajaDM = document.getElementById('dmConversacionBox');
+            montarTeclado({ caja: cajaDM, lista: document.getElementById('dmMensajes'), campo: document.getElementById('dmInput'), abierta: () => !cajaDM.classList.contains('hidden') });
+            const vistaChat = document.getElementById('vistaChat'), panelChat = document.getElementById('chatAutorizado');
+            montarTeclado({ caja: vistaChat, tambien: panelChat, lista: document.getElementById('chatMensajes'), campo: document.getElementById('chatInput'), clase: 'chat-abierto',
+                abierta: () => !vistaChat.classList.contains('hidden') && !panelChat.classList.contains('hidden') && esMiembro });
+        }
         document.getElementById('dmInput').addEventListener('blur', () => { if (conversacionActualId) NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {}); });
 
         // Poll eficiente: solo agrega mensajes nuevos a la conversación
