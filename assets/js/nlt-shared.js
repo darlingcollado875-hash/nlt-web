@@ -440,6 +440,11 @@
                 position: relative; overflow: hidden;
                 transition: border-color 0.4s ease, box-shadow 0.4s ease, transform 0.4s ease;
             }
+            /* .glass-card trae overflow:hidden y, al no estar en una capa de Tailwind v4, le gana a overflow-y-auto: sin esto
+               cualquier tarjeta con scroll interno (chats, listas del admin, modales) NO se desplazaba con el dedo. */
+            .glass-card.overflow-y-auto { overflow-y: auto; }
+            .glass-card.overflow-x-auto { overflow-x: auto; }
+            .glass-card.overflow-auto { overflow: auto; }
             .glass-card:hover {
                 border-color: rgba(var(--card-glow-rgb), 0.45);
                 box-shadow: 0 20px 50px -18px rgba(var(--card-glow-rgb), 0.35);

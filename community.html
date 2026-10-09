@@ -203,6 +203,7 @@
            Al abrir una conversación ocupa TODA la pantalla: barra de arriba fija (volver + persona), mensajes que se desplazan solos y
            el cuadro de texto abajo, que SUBE con el teclado (la altura sigue al `visualViewport`, ver JS: --dm-h/--dm-top) en vez de que
            iOS mueva o agrande la página. Escritorio (>= 1024 px) no cambia: lista y conversación lado a lado. */
+        #dmMensajes, #chatMensajes { overflow-y: auto; overflow-x: hidden; }   /* .glass-card (overflow:hidden) les ganaba a las utilidades de Tailwind y no dejaba desplazar */
         #dmInput { resize: none; overflow-y: auto; line-height: 1.35; max-height: 120px; }
         .dm-pendiente { opacity: .6; }
         /* Espaciado propio (el space-y-3 de Tailwind v4 pone margen ABAJO de cada mensaje y dejaba 16px entre burbujas "pegadas") */
@@ -540,7 +541,7 @@
     </div>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
-    <script src="assets/js/nlt-shared.js?v=610f0fe5"></script>
+    <script src="assets/js/nlt-shared.js?v=f4c1719e"></script>
     <script src="assets/js/nlt-api-client.js?v=03ccae48"></script>
     <script>
         let sesionActual = null;
