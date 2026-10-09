@@ -2589,7 +2589,7 @@
     const _NOTIF_ICONOS = {
         comment: 'ph-chat-circle', reply: 'ph-arrow-bend-up-left', reaction: 'ph-heart',
         mention: 'ph-at', announcement: 'ph-megaphone', certificate: 'ph-certificate',
-        new_dm: 'ph-envelope-simple-open', chat_global: 'ph-chats-circle', payment_admin_proc: 'ph-hourglass-medium', payment_admin_ok: 'ph-seal-check', payment_admin_fail: 'ph-x-circle', elite_signal_new: 'ph-chart-line-up', elite_signal_tp: 'ph-target',
+        new_dm: 'ph-envelope-simple-open', chat_global: 'ph-chats-circle', call_global: 'ph-phone-call', call_dm: 'ph-phone-incoming', payment_admin_proc: 'ph-hourglass-medium', payment_admin_ok: 'ph-seal-check', payment_admin_fail: 'ph-x-circle', elite_signal_new: 'ph-chart-line-up', elite_signal_tp: 'ph-target',
         elite_signal_sl: 'ph-warning-octagon', elite_signal_cancelled: 'ph-x-circle', elite_signal_expired: 'ph-clock-countdown',
         academy_lesson_completed: 'ph-check-circle', academy_certificate: 'ph-certificate',
         payment_confirmed: 'ph-credit-card', payment_failed: 'ph-credit-card',
@@ -2605,7 +2605,7 @@
     const _NOTIF_HREFS = {
         comment: 'community.html', reply: 'community.html', reaction: 'community.html', mention: 'community.html',
         announcement: 'community.html', certificate: 'academy-dashboard.html',
-        new_dm: 'community.html?vista=mensajes', chat_global: 'community.html?vista=chat', payment_admin_proc: 'admin.html', payment_admin_ok: 'admin.html', payment_admin_fail: 'admin.html',
+        new_dm: 'community.html?vista=mensajes', chat_global: 'community.html?vista=chat', call_global: 'community.html?vista=chat&llamada=1', call_dm: 'community.html?vista=mensajes&llamada=1', payment_admin_proc: 'admin.html', payment_admin_ok: 'admin.html', payment_admin_fail: 'admin.html',
         elite_signal_new: 'signals-dashboard.html', elite_signal_tp: 'signals-dashboard.html',
         elite_signal_sl: 'signals-dashboard.html', elite_signal_cancelled: 'signals-dashboard.html', elite_signal_expired: 'signals-dashboard.html',
         academy_lesson_completed: 'academy-dashboard.html', academy_certificate: 'academy-dashboard.html',
@@ -2660,6 +2660,12 @@
             // Ya estamos en Community y la notificación es de DM -- cambia de
             // pestaña en la misma página en vez de recargarla (mejor UX, sin
             // inventar un router: solo se usa si la función ya existe en scope).
+            // Llamadas: en Community se abre el lugar de la llamada SIN recargar la página (recargar cortaría una llamada en curso)
+            if ((n.type === 'call_global' || n.type === 'call_dm') && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.irALlamadaDesdeAviso === 'function') {
+                panel.classList.add('hidden');
+                window.irALlamadaDesdeAviso(href);
+                return;
+            }
             if ((n.type === 'new_dm' || n.type === 'chat_global') && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.mostrarVista === 'function') {
                 panel.classList.add('hidden');
                 window.mostrarVista(n.type === 'chat_global' ? 'chat' : 'mensajes');
