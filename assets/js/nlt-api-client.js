@@ -918,7 +918,7 @@
 
         // --- NLT "Contact us" (chat de soporte) ---
         supportConversacion: () => request('/support/conversation'),
-        supportMensajes: (before) => request(`/support/conversation/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
+        supportMensajes: (before, limit) => request(`/support/conversation/messages?${[before ? 'before=' + encodeURIComponent(before) : '', limit ? 'limit=' + limit : ''].filter(Boolean).join('&')}`),
         supportEnviarMensaje: (datos) => request('/support/conversation/messages', { method: 'POST', body: JSON.stringify(datos) }),
         supportMarcarLeido: () => request('/support/conversation/read', { method: 'POST' }),
         supportNoLeidos: () => request('/support/conversation/unread-count'),

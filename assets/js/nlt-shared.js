@@ -3053,8 +3053,23 @@
                estado manejado 100% acá adentro (.nlt-support-panel-open) no
                hay cascada compartida de la que depender. */
             .nlt-support-panel.nlt-support-panel-open { display: flex; }
-            @media (max-width: 480px) {
-                .nlt-support-panel { right: 12px; left: 12px; width: auto; bottom: 84px; }
+            .nlt-support-panel { width: 380px; height: 560px; }
+            #supportChatMensajes { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; scroll-behavior: auto; }
+            #supportChatInput { max-height: 110px; line-height: 1.35; }
+            .nlt-support-pend { opacity: .6; }
+            .nlt-support-mas { text-align: center; font-size: 11px; color: #6b7280; padding: 4px 0 8px; }
+            /* Móvil: el soporte ocupa toda la pantalla (como un chat de verdad); su alto sigue a la parte VISIBLE (teclado abierto) con
+               --sp-h/--sp-top (ver mountSupportChat); letra de 16 px en el cuadro para que iOS no haga zoom al enfocarlo. */
+            @media (max-width: 640px) {
+                html.nlt-sp-abierto, html.nlt-sp-abierto body { overflow: hidden; overscroll-behavior: none; }
+                .nlt-support-panel.nlt-support-panel-open { position: fixed; z-index: 2147483000; left: 0; right: 0; bottom: auto; width: auto; max-width: none;
+                    top: var(--sp-top, 0px); height: var(--sp-h, 100dvh); max-height: none; border-radius: 0; border: 0; box-shadow: none; background: #080A0F; -webkit-backdrop-filter: none; backdrop-filter: none; }
+                .nlt-support-panel > div:first-child { padding-top: calc(env(safe-area-inset-top, 0px) + 12px); }
+                .nlt-support-panel > div:last-child { padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 10px); }
+                #supportChatInput { font-size: 16px; border-radius: 20px; padding: 9px 14px; }
+                #btn-cerrar-support-chat { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; }
+                #btn-support-enviar { width: 40px; height: 40px; }
+                html.nlt-sp-abierto .nlt-support-bubble { display: none; }
             }
             @media (prefers-reduced-motion: reduce) {
                 .nlt-support-bubble { transition: none; }
@@ -3063,28 +3078,20 @@
         document.head.appendChild(style);
     }
 
-    function _renderMensajesSupportChat(mensajes) {
-        const cont = document.getElementById('supportChatMensajes');
-        if (!cont) return;
-        if (!mensajes.length) {
-            cont.innerHTML = '<p class="text-xs text-gray-500 text-center py-6">Escribinos lo que necesites -- el equipo NLT te responde acá mismo.</p>';
-            return;
-        }
-        cont.innerHTML = mensajes.map((m) => {
-            const esMio = m.sender_role === 'user';
-            // Nunca se muestra QUÉ persona del equipo respondió (ver
-            // support.sql) -- siempre "Equipo NLT" genérico.
-            const quien = esMio ? '' : '<p class="text-[10px] text-nlt-accent font-semibold mb-0.5">Equipo NLT</p>';
-            return `
-                <div class="flex ${esMio ? 'justify-end' : 'justify-start'}">
-                    <div class="max-w-[80%] ${esMio ? 'bg-nlt-accent text-white' : 'bg-white/5 text-gray-200'} rounded-2xl px-3 py-2">
-                        ${quien}
-                        <p class="text-xs whitespace-pre-wrap break-words">${_escNotif(m.content)}</p>
-                    </div>
+    // Soporte: la lista se mantiene en el navegador (por id) y SOLO se agrega lo nuevo -- nunca se vuelve a pintar entera ni se manda
+    // al final mientras lees mensajes anteriores. Arriba, al llegar al borde, se piden los mensajes más viejos de a 40.
+    const _SP_PAGINA = 40;
+    function _htmlMensajeSoporte(m, pendiente) {
+        const esMio = m.sender_role === 'user';
+        // Nunca se muestra QUÉ persona del equipo respondió (ver support.sql) -- siempre "Equipo NLT" genérico.
+        const quien = esMio ? '' : '<p class="text-[10px] text-nlt-accent font-semibold mb-0.5">Equipo NLT</p>';
+        return `
+            <div class="flex ${esMio ? 'justify-end' : 'justify-start'}${pendiente ? ' nlt-support-pend' : ''}" data-sp-id="${_escNotif(String(m.id))}"${m.client_message_id ? ` data-sp-cid="${_escNotif(m.client_message_id)}"` : ''}>
+                <div class="max-w-[80%] ${esMio ? 'bg-nlt-accent text-white' : 'bg-white/5 text-gray-200'} rounded-2xl px-3 py-2">
+                    ${quien}
+                    <p class="text-sm md:text-xs whitespace-pre-wrap break-words">${_escNotif(m.content)}</p>
                 </div>
-            `;
-        }).join('');
-        cont.scrollTop = cont.scrollHeight;
+            </div>`;
     }
 
     function mountSupportChat(session) {
@@ -3106,27 +3113,101 @@
         panel.innerHTML = `
             <div class="flex items-center justify-between px-4 py-3 border-b border-white/5 shrink-0">
                 <p class="text-sm font-semibold text-white flex items-center gap-2"><i class="ph-fill ph-lifebuoy text-nlt-accent"></i> Contact us</p>
-                <button id="btn-cerrar-support-chat" type="button" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph-bold ph-x text-lg"></i></button>
+                <button id="btn-cerrar-support-chat" type="button" aria-label="Cerrar" class="text-gray-500 hover:text-white cursor-pointer"><i class="ph-bold ph-x text-lg"></i></button>
             </div>
-            <div id="supportChatMensajes" class="flex-1 overflow-y-auto px-3 py-3 space-y-2"></div>
+            <div id="supportChatMensajes" class="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2"></div>
             <div class="p-3 border-t border-white/5 shrink-0 flex items-end gap-2">
-                <textarea id="supportChatInput" rows="1" placeholder="Escribe tu mensaje..." class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-white resize-none"></textarea>
+                <textarea id="supportChatInput" rows="1" placeholder="Escribe tu mensaje..." enterkeyhint="send" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm text-white resize-none"></textarea>
                 <button id="btn-support-enviar" type="button" aria-label="Enviar" class="w-9 h-9 rounded-full bg-nlt-accent text-white flex items-center justify-center cursor-pointer shrink-0"><i class="ph-fill ph-paper-plane-tilt text-sm"></i></button>
             </div>
         `;
         document.body.appendChild(panel);
 
-        let abierto = false;
-        let cargado = false;
+        const cont = document.getElementById('supportChatMensajes');
+        const input = document.getElementById('supportChatInput');
+        const raiz = document.documentElement, vv = window.visualViewport;
+        const claveCache = `nlt_support_v1:${session.user && session.user.id ? session.user.id : 'anon'}`;
+        let abierto = false, cargado = false, cargandoAntes = false, hayMas = true, pegado = true, sinLeer = false;
+        let msgs = [];                       // en orden cronológico
+        const ids = new Set();
+        const pendientes = new Map();        // client_message_id -> nodo apagado (envío en curso)
+        const tactil = window.matchMedia('(pointer: coarse)').matches;
+        const movil = () => window.matchMedia('(max-width: 640px)').matches;
 
-        async function _cargarMensajes() {
-            try {
-                _renderMensajesSupportChat(await window.NLT_API.supportMensajes());
-            } catch (err) {
-                const cont = document.getElementById('supportChatMensajes');
-                if (cont) cont.innerHTML = '<p class="text-xs text-nlt-danger text-center py-6">No se pudo cargar la conversación.</p>';
+        function _guardarCache() {
+            try { sessionStorage.setItem(claveCache, JSON.stringify(msgs.slice(-_SP_PAGINA))); } catch (_) { /* sin almacenamiento */ }
+        }
+        function _abajo() { cont.scrollTop = cont.scrollHeight; }
+        function _vacio() {
+            if (!msgs.length && !pendientes.size && !cont.querySelector('[data-sp-vacio]')) {
+                cont.innerHTML = '<p data-sp-vacio class="text-xs text-gray-500 text-center py-6">Escríbenos lo que necesites -- el equipo NLT te responde aquí mismo.</p>';
             }
         }
+        function _pintarTodo() {
+            cont.innerHTML = (hayMas && msgs.length >= _SP_PAGINA ? '<p id="supportChatMas" class="nlt-support-mas">Desliza hacia arriba para ver mensajes anteriores</p>' : '') + msgs.map((m) => _htmlMensajeSoporte(m)).join('');
+            _vacio();
+            _abajo();
+        }
+        // Agrega SOLO lo que no está; si hay un envío propio apagado con el mismo client_message_id, lo reemplaza. Devuelve cuántos eran nuevos.
+        function _agregar(lista) {
+            const nuevos = lista.filter((m) => !ids.has(m.id));
+            if (!nuevos.length) return 0;
+            const estabaAbajo = pegado;
+            cont.querySelector('[data-sp-vacio]')?.remove();
+            nuevos.forEach((m) => {
+                ids.add(m.id); msgs.push(m);
+                const pend = m.client_message_id && pendientes.get(m.client_message_id);
+                const html = _htmlMensajeSoporte(m);
+                if (pend && pend.isConnected) { pend.insertAdjacentHTML('afterend', html); pend.remove(); pendientes.delete(m.client_message_id); }
+                else cont.insertAdjacentHTML('beforeend', html);
+            });
+            msgs.sort((a, b) => (a.created_at < b.created_at ? -1 : a.created_at > b.created_at ? 1 : 0));
+            if (estabaAbajo) _abajo();
+            _guardarCache();
+            return nuevos.length;
+        }
+        async function _cargarInicial() {
+            let cache = null;
+            try { cache = JSON.parse(sessionStorage.getItem(claveCache) || 'null'); } catch (_) { /* nada */ }
+            if (Array.isArray(cache) && cache.length) {             // se ve al instante lo último que ya conocías, y se actualiza por detrás
+                msgs = cache; cache.forEach((m) => ids.add(m.id)); _pintarTodo();
+            }
+            try {
+                const ultimos = await window.NLT_API.supportMensajes(undefined, _SP_PAGINA);
+                hayMas = ultimos.length >= _SP_PAGINA;
+                if (!msgs.length) { msgs = ultimos; ids.clear(); ultimos.forEach((m) => ids.add(m.id)); _pintarTodo(); }
+                else _agregar(ultimos);
+                _guardarCache();
+            } catch (err) {
+                if (!msgs.length) cont.innerHTML = '<p class="text-xs text-nlt-danger text-center py-6">No se pudo cargar la conversación. Cierra y vuelve a abrir para reintentar.</p>';
+                cargado = false;
+            }
+        }
+        async function _cargarAnteriores() {
+            if (cargandoAntes || !hayMas || !msgs.length) return;
+            cargandoAntes = true;
+            const indicador = cont.querySelector('#supportChatMas') || (() => { cont.insertAdjacentHTML('afterbegin', '<p id="supportChatMas" class="nlt-support-mas"></p>'); return cont.firstElementChild; })();
+            indicador.textContent = 'Cargando mensajes anteriores…';
+            try {
+                const antes = await window.NLT_API.supportMensajes(msgs[0].created_at, _SP_PAGINA);
+                hayMas = antes.length >= _SP_PAGINA;
+                const nuevos = antes.filter((m) => !ids.has(m.id));
+                const alto = cont.scrollHeight, top = cont.scrollTop;
+                nuevos.forEach((m) => ids.add(m.id));
+                msgs = nuevos.concat(msgs);
+                indicador.insertAdjacentHTML('afterend', nuevos.map((m) => _htmlMensajeSoporte(m)).join(''));
+                cont.scrollTop = top + (cont.scrollHeight - alto);          // la vista no salta: sigues viendo lo mismo que estabas leyendo
+                indicador.textContent = hayMas ? 'Desliza hacia arriba para ver mensajes anteriores' : 'Inicio de la conversación';
+                if (!hayMas) setTimeout(() => indicador.remove(), 1500);
+            } catch (_) {
+                indicador.textContent = 'No se pudieron cargar los anteriores · desliza de nuevo para reintentar';
+            }
+            cargandoAntes = false;
+        }
+        cont.addEventListener('scroll', () => {
+            pegado = cont.scrollHeight - cont.scrollTop - cont.clientHeight < 80;
+            if (cont.scrollTop < 120) _cargarAnteriores();
+        }, { passive: true });
 
         async function _refrescarBadge() {
             try {
@@ -3137,53 +3218,90 @@
                 else badge.style.display = 'none';
             } catch (_) {}
         }
+        async function _marcarLeido() {
+            try { await window.NLT_API.supportMarcarLeido(); } catch (_) {}
+            _refrescarBadge();
+        }
+        // Altura = parte visible de la pantalla (el cuadro de texto sube con el teclado); solo en móvil
+        function _ajustarAlto() {
+            raiz.classList.toggle('nlt-sp-abierto', abierto && movil());
+            if (!abierto || !movil()) { raiz.style.removeProperty('--sp-h'); raiz.style.removeProperty('--sp-top'); return; }
+            raiz.style.setProperty('--sp-h', (vv ? vv.height : window.innerHeight) + 'px');
+            raiz.style.setProperty('--sp-top', (vv ? vv.offsetTop : 0) + 'px');
+            if (pegado) _abajo();
+        }
+        if (vv) { vv.addEventListener('resize', _ajustarAlto); vv.addEventListener('scroll', _ajustarAlto); }
+        window.addEventListener('resize', _ajustarAlto);
+        input.addEventListener('focus', () => { pegado = true; [60, 220, 450].forEach((t) => setTimeout(() => { if (abierto) { window.scrollTo(0, 0); _ajustarAlto(); _abajo(); } }, t)); });
+        function _crecerInput() { input.style.height = 'auto'; input.style.height = Math.min(input.scrollHeight, 110) + 'px'; }
+        input.addEventListener('input', _crecerInput);
 
         async function abrir() {
             panel.classList.add('nlt-support-panel-open');
-            abierto = true;
-            if (!cargado) { cargado = true; await _cargarMensajes(); }
-            try { await window.NLT_API.supportMarcarLeido(); } catch (_) {}
-            _refrescarBadge();
+            abierto = true; pegado = true;
+            _ajustarAlto();
+            if (!cargado) { cargado = true; await _cargarInicial(); }
+            else _abajo();
+            _marcarLeido();
         }
         function cerrar() {
             panel.classList.remove('nlt-support-panel-open');
             abierto = false;
+            _ajustarAlto();
         }
         bubble._nltAbrir = abrir;  // hook para abrirSupportChat() -- ver Notification Center más arriba
 
         bubble.addEventListener('click', () => (abierto ? cerrar() : abrir()));
         document.getElementById('btn-cerrar-support-chat').addEventListener('click', cerrar);
+        document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && abierto) cerrar(); });
 
+        // Envío instantáneo: el mensaje aparece ya (apagado), el cuadro queda libre con el teclado abierto y el servidor confirma por detrás.
+        // Si falla, se quita y el texto vuelve al cuadro.
+        let textoFallido = null, idFallido = null;
         async function enviar() {
-            const input = document.getElementById('supportChatInput');
             const contenido = input.value.trim();
             if (!contenido) return;
-            input.value = '';
-            input.disabled = true;
+            const cid = (idFallido && textoFallido === contenido) ? idFallido : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            idFallido = null; textoFallido = null;
+            cont.querySelector('[data-sp-vacio]')?.remove();
+            cont.insertAdjacentHTML('beforeend', _htmlMensajeSoporte({ id: 'tmp-' + cid, sender_role: 'user', content: contenido, client_message_id: cid }, true));
+            const nodo = cont.lastElementChild;
+            pendientes.set(cid, nodo);
+            input.value = ''; _crecerInput();
+            pegado = true; _abajo();
             try {
-                await window.NLT_API.supportEnviarMensaje({
-                    content: contenido,
-                    client_message_id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-                });
-                await _cargarMensajes();
+                const real = await window.NLT_API.supportEnviarMensaje({ content: contenido, client_message_id: cid });
+                if (pendientes.has(cid)) _agregar([real]);        // si el refresco ya lo trajo, no se duplica
+                else if (!ids.has(real.id)) _agregar([real]);
             } catch (err) {
-                alert('No se pudo enviar el mensaje: ' + err.message);
-            } finally {
-                input.disabled = false;
-                input.focus();
+                nodo.remove(); pendientes.delete(cid); _vacio();
+                idFallido = cid; textoFallido = contenido;
+                if (!input.value.trim()) { input.value = contenido; _crecerInput(); }
+                const aviso = document.createElement('p');
+                aviso.className = 'text-[11px] text-nlt-danger text-center';
+                aviso.textContent = 'No se pudo enviar: ' + err.message + ' · toca enviar para reintentar.';
+                cont.appendChild(aviso); _abajo();
+                setTimeout(() => aviso.remove(), 6000);
             }
         }
-        document.getElementById('btn-support-enviar').addEventListener('click', enviar);
-        document.getElementById('supportChatInput').addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviar(); }
+        const btnEnviar = document.getElementById('btn-support-enviar');
+        btnEnviar.addEventListener('pointerdown', (e) => e.preventDefault());       // el teclado se queda abierto
+        btnEnviar.addEventListener('click', enviar);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey && !tactil) { e.preventDefault(); enviar(); }      // en el teléfono Enter es salto de línea
         });
 
+        // Mensajes nuevos del equipo mientras el panel está abierto: solo se agrega lo nuevo (sin volver a pintar ni mover lo que lees).
+        async function _poll() {
+            if (!abierto || !cargado) return;
+            try {
+                const ultimos = await window.NLT_API.supportMensajes(undefined, 30);
+                if (_agregar(ultimos)) _marcarLeido();
+            } catch (_) { /* el siguiente intento lo resuelve */ }
+        }
         _refrescarBadge();
         pollWhileVisible(_refrescarBadge, 20000);
-        // Poll de mensajes nuevos SOLO mientras el panel está abierto -- no
-        // gastar requests si el usuario ni lo tiene abierto (mismo criterio
-        // de auto-pausa que el resto de los pollers de este archivo).
-        pollWhileVisible(() => { if (abierto) _cargarMensajes(); }, 15000);
+        pollWhileVisible(_poll, 8000);
     }
 
     // Usado por el Notification Center (_irAlRecurso, más arriba) para abrir
