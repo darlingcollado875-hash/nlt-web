@@ -498,6 +498,7 @@
         }
 
         let reintentos403 = 0;
+        let ultPedido = null;         // diagnóstico: cómo terminó el último pedido al servidor { en, ms, res, calcTs, ultTs, status }
         let esquemaDesde = 0;
         // El dibujo se pinta solo si es del dataset actual. Si el gráfico pasó a otro (cambio de fuente, ventana de fecha...) sin que nadie
         // avisara al Zone Engine, el dibujo viejo se omitía y no se pedía otro hasta el próximo ciclo (30 s, o 5 min con mercado cerrado).
@@ -523,6 +524,7 @@
             const n = ++seq;
             const gen = NLTCharts.market.generacion ? NLTCharts.market.generacion() : 0;
             iniciosPedido.set(n, Date.now());
+            const tIni = Date.now();
             try {
                 const r = fuenteZE ? await fuenteZE(entradasCalculo(valores()))
                     : await NLT_API.chartsZoneEngine(getSymbol(), getTimeframe(), entradasCalculo(valores()));
@@ -530,10 +532,11 @@
                 // Contexto: misma generación del dataset (vivo/replay/símbolo/timeframe) y calculado sobre una
                 // vela que el gráfico ya tiene (nunca después de la última visible). Si el gráfico avanzó, el
                 // dibujo es histórico y válido (anclado por timestamp) y se pide otro para la vela nueva.
-                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { zeDescartados++; programar(300); return; }   // el gráfico cambió de dataset mientras se calculaba: se pide otra vez ya
+                if (NLTCharts.market.generacion && gen !== NLTCharts.market.generacion()) { zeDescartados++; ultPedido = { en: Date.now(), ms: Date.now() - tIni, res: 'descartada: el gráfico cambió de datos mientras se calculaba' }; programar(300); return; }   // el gráfico cambió de dataset mientras se calculaba: se pide otra vez ya
                 const dl = chart.getDataList(), ultTs = dl.length ? dl[dl.length - 1].timestamp : null;
                 const calcTs = r.cursor_ts != null ? r.cursor_ts : r.last_candle;
-                if (calcTs != null && ultTs != null && calcTs > ultTs) { zeDescartados++; programar(200); return; }
+                ultPedido = { en: Date.now(), ms: Date.now() - tIni, res: 'ok', calcTs, ultTs, boxes: (r.drawing.boxes || []).length, lines: (r.drawing.lines || []).length, labels: (r.drawing.labels || []).length };
+                if (calcTs != null && ultTs != null && calcTs > ultTs) { zeDescartados++; ultPedido.res = 'descartada: el servidor calculó sobre una vela más nueva que la del gráfico'; programar(200); return; }
                 if (calcTs != null && ultTs != null && calcTs < ultTs) programar(300);
                 reintentos403 = 0;
                 dibujo = r.drawing;
@@ -547,6 +550,7 @@
             } catch (err) {
                 if (n !== seq) return;
                 error = err.message;
+                ultPedido = { en: Date.now(), ms: Date.now() - tIni, res: 'error', status: err.status || 0, msg: err.message };
                 if (err.status === 403) {
                     // Un 403 suelto (pasarela, token que se renueva...) NO le quita el indicador a quien lo tiene: se confirma con el catálogo y,
                     // si el acceso sigue ahí, se conserva la preferencia 'ver' y se reintenta con espera creciente (antes quedaba apagado hasta recargar).
@@ -640,6 +644,25 @@
             refrescar();
         }
 
+        // Diagnóstico para soporte: qué ve ESTE navegador del Zone Engine (para pegarlo en un chat; no lleva datos personales)
+        function textoDiagnostico() {
+            const dl = chart.getDataList(), a = zeAcceso(), v = vista;
+            const hora = (t) => (t ? new Date(t).toISOString().replace('T', ' ').slice(0, 19) : '-');
+            let ind = -1; try { ind = chart.getIndicators({ name: 'NLT_PRO_ZONES' }).length; } catch (_) { /* nada */ }
+            const L = [
+                `Zone Engine · ${new Date().toISOString().slice(0, 19)}Z · v${(document.querySelector('script[src*="pro.js"]') || {}).src ? (document.querySelector('script[src*="pro.js"]').src.split('v=')[1] || '?') : '?'}`,
+                `acceso: ${a ? `${a.has_access ? 'SI' : 'NO'} · ${a.reason || '-'} · trial ${a.trial_status || '-'}` : 'catálogo sin cargar'}${error ? ` · error: ${error}` : ''}`,
+                `mostrar: ${ver ? 'si' : 'NO'} · ojo (oculto): ${oculto ? 'SI' : 'no'} · visible en esta temporalidad: ${visibleEnTf() ? 'si' : 'NO'}`,
+                `configuración cargada: ${esquema ? esquema.length + ' entradas' : 'NO'} · indicador en el gráfico: ${ind} · dibujado: ${dibujado ? 'si' : 'no'}`,
+                `dibujo del servidor: ${dibujo ? `${(dibujo.boxes || []).length} cajas, ${(dibujo.lines || []).length} líneas, ${(dibujo.labels || []).length} etiquetas` : 'ninguno'} · vigente: ${dibujoVigente() ? 'si' : 'NO'}${v ? ` · en pantalla: ${(v.boxes || []).length}/${(v.lines || []).length}/${(v.labels || []).length}` : ''}`,
+                `último pedido: ${ultPedido ? `${hora(ultPedido.en)} · ${ultPedido.ms} ms · ${ultPedido.res}${ultPedido.status ? ' ' + ultPedido.status : ''}${ultPedido.msg ? ' · ' + ultPedido.msg : ''}${ultPedido.calcTs ? ` · calculado ${hora(ultPedido.calcTs)} · gráfico ${hora(ultPedido.ultTs)}` : ''}` : 'ninguno'} · en vuelo: ${iniciosPedido.size} · descartados: ${zeDescartados} · omitidos: ${zeOmitidos}`,
+                `gráfico: ${getSymbol()} ${getTimeframe()} · ${dl.length} velas · última ${hora(dl.length ? dl[dl.length - 1].timestamp : 0)} · modo: ${NLTCharts.motor && NLTCharts.motor.enModoExterno && NLTCharts.motor.enModoExterno() ? 'replay/backtest' : 'en vivo'}`,
+                `pantalla: ${innerWidth}x${innerHeight} · ${navigator.userAgent.replace(/\(.*?\)/, '').slice(0, 90)}`,
+            ];
+            return L.join('\n');
+        }
+        let diagAbierto = false;
+
         function seccionZoneEngine(ind) {
             const acc = ind.access;
             let cuerpo;
@@ -653,6 +676,11 @@
                         <input type="checkbox" data-pro-ver${ver ? ' checked' : ''}>
                         <span><span class="ch-ind-name block">Mostrar en el gráfico</span><span class="ch-ind-desc">${origen}</span></span>
                     </label>
+                    <details class="ch-pro-diag"${diagAbierto ? ' open' : ''}><summary class="ch-ind-desc" style="cursor:pointer">¿No se ve en el gráfico? Diagnóstico</summary>
+                        <pre class="ch-ind-desc" style="white-space:pre-wrap; word-break:break-word; margin:6px 0; font-size:11px; color:#E5E7EB" data-pro-diag-txt>${esc(textoDiagnostico())}</pre>
+                        <button type="button" class="ch-btn" data-pro-diag-copiar>Copiar</button>
+                        <button type="button" class="ch-btn" data-pro-diag-reintentar>Reintentar ahora</button>
+                    </details>
                     <div class="ch-pro-manual">
                         <p class="ch-ind-desc" style="margin-bottom:6px">Zona manual: dibuja un rectángulo y toca <strong>NLT Engine</strong> en su barra, o cargala en la configuración.</p>
                         ${z ? `<p class="ch-ind-desc" style="color:#E5E7EB">${z.esOB ? 'OB' : 'FVG'} ${z.alcista ? 'alcista' : 'bajista'} · ${esc(NLTCharts.drawings.formatear(z.bottom))} – ${esc(NLTCharts.drawings.formatear(z.top))}${rectId ? ' · conectada a un rectángulo' : ''}</p>` : ''}
@@ -702,6 +730,17 @@
                     (error ? `<p class="ch-ind-desc" style="color:rgb(248,113,113); padding:0 8px">${esc(error)}</p>` : '');
                 if (nltAi) nltAi.enlazar(el);
 
+                const dg = el.querySelector('.ch-pro-diag');
+                if (dg) {
+                    dg.addEventListener('toggle', () => { diagAbierto = dg.open; });
+                    const txt = () => (el.querySelector('[data-pro-diag-txt]') || {}).textContent || '';
+                    dg.querySelector('[data-pro-diag-copiar]').addEventListener('click', (ev) => {
+                        const b = ev.currentTarget;
+                        const listo = () => { b.textContent = 'Copiado'; setTimeout(() => { b.textContent = 'Copiar'; }, 1500); };
+                        try { navigator.clipboard.writeText(txt()).then(listo, () => {}); } catch (_) { /* sin portapapeles: se puede seleccionar el texto */ }
+                    });
+                    dg.querySelector('[data-pro-diag-reintentar]').addEventListener('click', () => { error = ''; reintentos403 = 0; cargarCatalogo().then(() => programar(0)); });
+                }
                 const cb = el.querySelector('[data-pro-ver]');
                 if (cb) cb.addEventListener('change', () => { ver = cb.checked; guardarPref(ver); refrescar(); });
                 const bt = el.querySelector('[data-pro-trial]');
