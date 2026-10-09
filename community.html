@@ -852,9 +852,9 @@
     <div id="llamadaEntrante" class="llamada-entrante hidden" role="alertdialog" aria-live="assertive"></div>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
-    <script src="assets/js/nlt-shared.js?v=6387c159"></script>
-    <script src="assets/js/nlt-api-client.js?v=24bda1c7"></script>
-    <script src="assets/js/nlt-call.js?v=255dc0cd"></script>
+    <script src="assets/js/nlt-shared.js?v=6b857351"></script>
+    <script src="assets/js/nlt-api-client.js?v=064a63b8"></script>
+    <script src="assets/js/nlt-call.js?v=544d1de6"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -3268,11 +3268,14 @@
         const llamadas = () => window.NLTCall;
         const dentroDe = (scope, convId) => { const e = llamadas() && llamadas().estado(); return !!e && e.activa && e.scope === scope && (scope === 'global' || scope === 'live' || e.conversationId === convId); };
 
-        async function iniciarLlamada(scope, conversationId, label, cambiar) {
-            if (!llamadas() || !miPerfil) return;
-            try { await llamadas().unirse({ scope, conversationId, label, myId: miPerfil.user_id, cambiar: !!cambiar }); }
-            catch (err) { llamadas().toast(err && err.message ? err.message : 'No se pudo entrar a la llamada.'); }
+        // soloUnirse: contestar un aviso. Si quien llamó ya colgó, la API avisa en vez de empezar una llamada nueva (que le sonaría a esa persona)
+        async function iniciarLlamada(scope, conversationId, label, cambiar, soloUnirse) {
+            if (!llamadas() || !miPerfil) return false;
+            let ok = true;
+            try { await llamadas().unirse({ scope, conversationId, label, myId: miPerfil.user_id, cambiar: !!cambiar, soloUnirse: !!soloUnirse }); }
+            catch (err) { ok = false; llamadas().toast(err && err.message ? err.message : 'No se pudo entrar a la llamada.'); }
             pintarLlamadas();
+            return ok;
         }
 
         function pintarLlamadas() {
@@ -3323,9 +3326,10 @@
             if (!b || !ent) return;
             LL.descartadas.add(ent.call_id); LL.entrante = null; pintarLlamadas();
             if (b.getAttribute('data-ll') !== 'si') return;
-            await mostrarVista('mensajes');
-            await abrirConversacion(ent.conversation_id);
-            await iniciarLlamada('dm', ent.conversation_id, ent.from.display_name, true);
+            // Contestar entra a la llamada AQUÍ, en el mismo toque y sin mover a nadie de donde está (antes se cambiaba de pantalla primero y,
+            // si algo fallaba en el camino, la persona quedaba fuera del chat y sin llamada).
+            const ok = await iniciarLlamada('dm', ent.conversation_id, ent.from.display_name, true, true);
+            if (!ok) { LL.descartadas.delete(ent.call_id); setTimeout(pollLlamadas, 300); }     // si la llamada sigue viva, el aviso vuelve a aparecer para reintentar
         });
         document.getElementById('btn-chat-llamada').addEventListener('click', () => (dentroDe('global') ? llamadas().abrirPanel() : iniciarLlamada('global', null, 'Community')));
         document.getElementById('btn-dm-llamar').addEventListener('click', () => {
@@ -3334,8 +3338,11 @@
             else iniciarLlamada('dm', conversacionActualId, dmOtroParticipante ? dmOtroParticipante.other_display_name : '');
         });
 
+        // Mientras una llamada «suena» se revisa cada 2 s (si quien llama cuelga, el aviso se va enseguida); si no, cada 10 s por el reloj general
+        let _timerTimbre = null;
         async function pollLlamadas() {
             if (!esMiembro || !llamadas() || !llamadas().hayWebRTC) return;
+            clearTimeout(_timerTimbre);
             try {
                 const ent = await NLT_API.callEntrantes();                       // también estando en otra llamada: queda «en espera»
                 LL.entrante = ent.find((x) => !LL.descartadas.has(x.call_id)) || null;
@@ -3344,6 +3351,7 @@
                 else LL.dm = { active: false, participants: [] };
             } catch (_) { /* un poll fallido no debe molestar */ }
             pintarLlamadas();
+            if (LL.entrante && !document.hidden) _timerTimbre = setTimeout(pollLlamadas, 2000);
         }
         if (window.NLTCall) window.NLTCall.alCambiar(() => { pintarLlamadas(); pintarOperativa(); });
 
@@ -3389,12 +3397,28 @@
         document.getElementById('btn-op-salir').addEventListener('click', () => { llamadas().salir(); });
 
         // Desde una notificación de llamada, sin recargar la página (recargar cortaría una llamada en curso)
+        // Entrar a la llamada de un aviso (campana, cartel de otra página o notificación del teléfono): abre el lugar y se une a la llamada
+        // si todavía existe. Nunca crea una llamada nueva: si ya terminó, solo se avisa.
+        async function entrarPorAviso(vista, c) {
+            if (!esMiembro || !llamadas() || !miPerfil) return;
+            if (vista === 'chat') { await iniciarLlamada('global', null, 'Community', true, true); return; }
+            if (vista === 'mensajes' && c) {
+                const conv = conversacionesCache.find((x) => x.id === c);
+                await iniciarLlamada('dm', c, conv ? conv.other_display_name : '', true, true);
+            }
+        }
         window.irALlamadaDesdeAviso = async (href) => {
             let u; try { u = new URL(href, window.location.href); } catch (_) { return; }
             const c = u.searchParams.get('c');
-            const vista = u.searchParams.get('vista');
-            await mostrarVista(vista === 'chat' ? 'chat' : (vista === 'operativa' ? 'operativa' : 'mensajes'));
-            if (c && vista !== 'chat' && vista !== 'operativa') await abrirConversacion(c);
+            const vista = u.searchParams.get('vista') === 'chat' ? 'chat' : (u.searchParams.get('vista') === 'operativa' ? 'operativa' : 'mensajes');
+            const unir = u.searchParams.get('llamada') === '1' && vista !== 'operativa';
+            // primero se entra a la llamada (en el toque de la persona) y luego se abre el lugar: si abrir la pantalla falla, la llamada ya está
+            const entrando = unir ? entrarPorAviso(vista, c) : null;
+            try {
+                await mostrarVista(vista);
+                if (c && vista === 'mensajes') await abrirConversacion(c);
+            } catch (_) { /* la llamada no depende de que esta pantalla cargue */ }
+            if (entrando) await entrando;
             pollLlamadas();
         };
 
@@ -3473,8 +3497,12 @@
                 // /Messages, ver nlt-shared.js::_NOTIF_HREFS) -- solo cambia de
                 // pestaña si el usuario ya es miembro (mismo gate que el resto).
                 if (esMiembro && (vistaParam === 'mensajes' || vistaParam === 'chat' || vistaParam === 'operativa')) {
+                    const unirLlamada = params.get('llamada') === '1' && vistaParam !== 'operativa';
+                    if (unirLlamada) { params.delete('llamada'); try { window.history.replaceState({}, '', 'community.html?' + params.toString()); } catch (_) { /* nada */ } }   // recargar no debe volver a entrar
+                    const entrando = unirLlamada ? entrarPorAviso(vistaParam, params.get('c')) : null;
                     await mostrarVista(vistaParam);
                     if (vistaParam === 'mensajes' && params.get('c')) await abrirConversacion(params.get('c'));
+                    if (entrando) entrando.catch(() => {});
                 }
             }
 

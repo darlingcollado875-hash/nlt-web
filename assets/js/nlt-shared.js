@@ -2796,11 +2796,23 @@
                 <div class="cl-tx"><b>${_escNotif(n.title || (dm ? 'Llamada' : 'Llamada grupal'))}</b>${_escNotif(n.message || '')}</div>
                 <button class="cl-no" type="button">Ahora no</button><button class="cl-ok" type="button">${enLlamada ? 'Ver' : (dm ? 'Contestar' : 'Unirme')}</button>`;
             caja.style.display = 'flex';
-            const cerrar = () => { caja.style.display = 'none'; clearTimeout(caja._t); tonos.detener(); };
+            const cerrar = () => { caja.style.display = 'none'; clearTimeout(caja._t); clearInterval(caja._v); tonos.detener(); };
             if (dm) tonos.iniciar(enLlamada ? 'espera' : 'timbre', 25); else tonos.sonar('aviso');
             caja.querySelector('.cl-no').onclick = cerrar;
             caja.querySelector('.cl-ok').onclick = () => { cerrar(); window.NLT_API.communityMarcarLeida && window.NLT_API.communityMarcarLeida(n.id).catch(() => {}); _irAlRecurso(n); };
             caja._t = setTimeout(cerrar, 25000);
+            // Si quien llama cuelga (o la llamada grupal se acaba) el cartel se va solo: cada 3 s se comprueba que esa llamada siga viva
+            clearInterval(caja._v);
+            const llamadaId = n.resource_id;
+            if (llamadaId) {
+                caja._v = setInterval(async () => {
+                    try {
+                        const viva = dm ? (await window.NLT_API.callEntrantes()).some((x) => x.call_id === llamadaId)
+                                        : (await window.NLT_API.callEstado('global')).active;
+                        if (!viva) cerrar();
+                    } catch (_) { /* sin red no se decide nada */ }
+                }, 3000);
+            }
         }
 
         function _irAlRecurso(n) {
