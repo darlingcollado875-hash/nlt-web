@@ -516,6 +516,8 @@
         communityNoLeidas: () => request('/community/notifications/unread-count'),
         communityMarcarLeida: (id) => request(`/community/notifications/${id}/read`, { method: 'POST' }),
         communityMarcarTodasLeidas: () => request('/community/notifications/read-all', { method: 'POST' }),
+        communityChatAviso: () => request('/community/chat/notifications'),
+        communityChatAvisoGuardar: (enabled) => request('/community/chat/notifications', { method: 'PUT', body: JSON.stringify({ enabled: !!enabled }) }),
         communityChatMensajes: (before) => request(`/community/chat/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
         // clientMessageId (Fase "Reliability") -- UUID generado por el
         // llamador, UNA vez por intento lógico de envío (se reenvía igual en
