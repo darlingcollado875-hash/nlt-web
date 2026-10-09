@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="assets/js/nlt-perf.js?v=6f425d16"></script>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://nlt-api-production.up.railway.app" crossorigin>
+    <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
+    <title>NLT | Seguimiento de pago</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=83ad1a4b">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="NLT">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="assets/vendor/phosphor/regular.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="assets/vendor/phosphor/fill.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="assets/vendor/phosphor/regular.css">
+        <link rel="stylesheet" href="assets/vendor/phosphor/fill.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; color: #FFFFFF; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+        .glass-card { background: linear-gradient(180deg, rgba(17, 21, 28, 0.7) 0%, rgba(13, 16, 22, 0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 22px; }
+        .paso { display: flex; align-items: center; gap: 12px; padding: 10px 0; color: #6B7280; transition: color .3s ease; }
+        .paso .punto { width: 30px; height: 30px; border-radius: 999px; display: grid; place-items: center; flex-shrink: 0; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); font-size: 15px; transition: all .35s ease; }
+        .paso.listo { color: #E5E7EB; } .paso.listo .punto { background: rgba(34,197,94,.14); border-color: rgba(34,197,94,.5); color: #22C55E; }
+        .paso.activo { color: #fff; } .paso.activo .punto { background: rgba(250,204,21,.12); border-color: rgba(250,204,21,.5); color: #FACC15; }
+        .paso.activo .punto i { animation: giro 1.1s linear infinite; }
+        .paso.error { color: #FCA5A5; } .paso.error .punto { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.5); color: #EF4444; }
+        @keyframes giro { to { transform: rotate(360deg); } }
+        .dato { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-bottom: 1px solid rgba(255,255,255,.05); font-size: 13px; }
+        .dato:last-child { border-bottom: 0; } .dato span:first-child { color: #6B7280; flex-shrink: 0; } .dato span:last-child { color: #F3F4F6; text-align: right; word-break: break-all; }
+        .estado-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; }
+        .confirmado-pulso { animation: pulso .9s ease-out 1; } @keyframes pulso { 0% { transform: scale(.92); } 60% { transform: scale(1.04); } 100% { transform: scale(1); } }
+        @media (prefers-reduced-motion: reduce) { .paso .punto i, .confirmado-pulso { animation: none; } }
+    </style>
+    <link rel="stylesheet" href="assets/css/nlt-perf.css?v=a1191217">
+</head>
+<body class="min-h-screen p-4 sm:p-6 flex justify-center">
+    <main class="w-full max-w-xl pt-4 pb-10">
+        <a href="admin.html" class="text-xs text-gray-500 hover:text-white inline-flex items-center gap-1 mb-4"><i class="ph ph-arrow-left"></i> Panel de administración</a>
+        <div class="glass-card p-6 mb-4">
+            <div class="flex items-start justify-between gap-3 mb-1">
+                <div>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-[0.2em] mb-1">Seguimiento de pago</p>
+                    <h1 id="titulo" class="text-xl font-extrabold tracking-tight">Cargando…</h1>
+                </div>
+                <span id="chip" class="estado-chip bg-white/5 text-gray-400"></span>
+            </div>
+            <p id="sub" class="text-sm text-gray-400 mb-4"></p>
+            <div id="pasos" class="border-t border-white/5 pt-3"></div>
+            <p id="nota" class="text-[11px] text-gray-500 mt-3"></p>
+        </div>
+
+        <div id="usuarioBox" class="glass-card p-6 mb-4 hidden"></div>
+        <div id="ordenBox" class="glass-card p-6 mb-4 hidden"></div>
+        <div id="eventosBox" class="glass-card p-6 mb-4 hidden"></div>
+        <div id="errorBox" class="glass-card p-6 hidden text-center"></div>
+    </main>
+
+    <script src="assets/vendor/supabase-2.117.3.js"></script>
+    <script src="assets/js/nlt-shared.js?v=5d8dc1b0"></script>
+    <script src="assets/js/nlt-api-client.js?v=3ba75965"></script>
+    <script>
+        const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const $ = (id) => document.getElementById(id);
+        const fecha = (iso) => { if (!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toLocaleString([], { year: 'numeric', month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit' }); };
+        const PROV = { whop: 'Tarjeta (Whop)', nowpayments: 'Cripto (NOWPayments)', pay2commerce: 'Tarjeta (Pay2Commerce)', crypto_manual: 'Cripto directo', manual: 'Manual' };
+        let ultimoEstado = null;
+
+        function pasos(estado, creada) {
+            const p = (cls, ico, txt, sub) => `<div class="paso ${cls}"><span class="punto"><i class="ph-bold ${ico}"></i></span><div><p class="text-sm font-semibold">${txt}</p>${sub ? `<p class="text-[11px] text-gray-500">${sub}</p>` : ''}</div></div>`;
+            const uno = p('listo', 'ph-check', 'Pago iniciado', fecha(creada));
+            if (estado === 'confirmed') return uno + p('listo', 'ph-check', 'Confirmado por el sistema', 'El acceso del cliente ya está activo');
+            if (estado === 'failed') return uno + p('error', 'ph-x', 'No se completó', 'Rechazado, cancelado o vencido');
+            return uno + p('activo', 'ph-circle-notch', 'Confirmando el pago…', 'Tarjeta: segundos · Cripto: unos minutos mientras la red lo confirma');
+        }
+
+        function pintar(d) {
+            const u = d.usuario || {};
+            const nombre = u.nombre || u.email || 'Usuario';
+            const confirmado = d.estado === 'confirmed', fallo = d.estado === 'failed';
+            $('titulo').textContent = confirmado ? 'Pago confirmado' : fallo ? 'Pago no completado' : 'Procesando pago…';
+            $('sub').innerHTML = `<b class="text-white">${esc(nombre)}</b> · ${esc(d.plan.nombre)} · <b class="text-white">$${d.monto.toFixed(2)} ${esc(d.moneda)}</b>`;
+            const chip = $('chip');
+            chip.className = 'estado-chip ' + (confirmado ? 'bg-green-500/15 text-green-400' : fallo ? 'bg-red-500/15 text-red-400' : 'bg-yellow-500/15 text-yellow-400');
+            chip.innerHTML = confirmado ? '<i class="ph-fill ph-seal-check"></i> Confirmado' : fallo ? '<i class="ph-fill ph-x-circle"></i> Fallido' : '<i class="ph-fill ph-hourglass-medium"></i> Procesando';
+            $('pasos').innerHTML = pasos(d.estado, d.creada);
+            $('nota').textContent = confirmado ? (d.tipo === 'indicator' && d.status_raw === 'pending' ? 'Pago recibido. Queda en revisión para invitar al usuario de TradingView.' : 'Listo: ya puedes dejar esta página.')
+                : fallo ? '' : 'Esta página se actualiza sola. También te avisamos en la campana cuando se confirme.';
+            if (confirmado && ultimoEstado && ultimoEstado !== 'confirmed') $('titulo').classList.add('confirmado-pulso');
+            ultimoEstado = d.estado;
+
+            const ub = $('usuarioBox'); ub.classList.remove('hidden');
+            const suscr = (u.suscripciones || []).map((s) => `${esc(s.plan || s.producto)} · ${esc(s.status)}${s.vence ? ' · vence ' + esc(String(s.vence).slice(0, 10)) : ''}`).join('<br>') || '—';
+            ub.innerHTML = `<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="ph-fill ph-user"></i> Datos del usuario</p>
+                <div class="dato"><span>Nombre</span><span>${esc(u.nombre || '—')}</span></div>
+                <div class="dato"><span>Correo</span><span>${esc(u.email || '—')}</span></div>
+                <div class="dato"><span>Teléfono</span><span>${esc(u.telefono || '—')}</span></div>
+                <div class="dato"><span>Usuario Community</span><span>${u.username ? '@' + esc(u.username) : '—'}</span></div>
+                <div class="dato"><span>Miembro desde</span><span>${fecha(u.miembro_desde)}</span></div>
+                <div class="dato"><span>Último ingreso</span><span>${fecha(u.ultimo_ingreso)}</span></div>
+                <div class="dato"><span>Suscripciones</span><span>${suscr}</span></div>
+                ${d.tradingview && d.tradingview !== '(NLT Charts)' ? `<div class="dato"><span>Usuario TradingView</span><span>${esc(d.tradingview)}</span></div>` : ''}`;
+
+            const ob = $('ordenBox'); ob.classList.remove('hidden');
+            ob.innerHTML = `<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="ph-fill ph-receipt"></i> Orden</p>
+                <div class="dato"><span>Referencia</span><span class="font-mono">${esc(d.order_id)}</span></div>
+                <div class="dato"><span>Plan</span><span>${esc(d.plan.nombre)}</span></div>
+                <div class="dato"><span>Monto</span><span>$${d.monto.toFixed(2)} ${esc(d.moneda)}${d.cupon ? ` · cupón ${esc(d.cupon)} (de $${d.monto_original.toFixed(2)})` : ''}</span></div>
+                <div class="dato"><span>Método</span><span>${esc(PROV[d.proveedor] || d.proveedor || '—')}</span></div>
+                <div class="dato"><span>ID del proveedor</span><span class="font-mono">${esc(d.referencia || '—')}</span></div>
+                <div class="dato"><span>Creada</span><span>${fecha(d.creada)}</span></div>
+                <div class="dato"><span>Pagada / activada</span><span>${fecha(d.pagada)}</span></div>
+                <div class="dato"><span>Estado interno</span><span>${esc(d.status_raw)}</span></div>`;
+            const ev = $('eventosBox');
+            if ((d.eventos || []).length) {
+                ev.classList.remove('hidden');
+                ev.innerHTML = `<p class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2"><i class="ph-fill ph-clock-counter-clockwise"></i> Historial</p>` +
+                    d.eventos.map((e) => `<div class="dato"><span>${fecha(e.cuando)}</span><span>${esc(String(e.accion || '').replace(/_/g, ' '))}${e.a ? ' → ' + esc(e.a) : ''}</span></div>`).join('');
+            }
+        }
+
+        async function init() {
+            const sesion = await NLT.requireSession();
+            if (!sesion) return;
+            const orderId = new URLSearchParams(location.search).get('order');
+            const err = (msg) => { $('titulo').textContent = 'No se pudo abrir'; $('errorBox').classList.remove('hidden'); $('errorBox').innerHTML = `<p class="text-sm text-gray-300 mb-4">${esc(msg)}</p><a href="admin.html" class="inline-block px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-sm font-semibold">Ir al panel</a>`; };
+            if (!orderId) return err('No se indicó ninguna orden.');
+            let intentos = 0, timer = null;
+            async function revisar() {
+                intentos += 1;
+                try {
+                    const d = await NLT_API.adminPagoSeguimiento(orderId);
+                    $('errorBox').classList.add('hidden');
+                    pintar(d);
+                    return d.estado !== 'processing';
+                } catch (e) {
+                    if (e.status === 403) { err('Tu cuenta no tiene el permiso de Pagos.'); return true; }
+                    if (e.status === 404) { err('No encontramos esa orden.'); return true; }
+                    if (intentos === 1) { err(e.message || 'No se pudo cargar el seguimiento.'); return true; }
+                    return false;           // un fallo suelto durante el seguimiento se reintenta solo
+                }
+            }
+            if (await revisar()) return;
+            // cada 3 s (pausa con la pestaña oculta) hasta ~45 min: cubre la confirmación en la red de un pago cripto
+            timer = setInterval(async () => {
+                if (document.hidden) return;
+                if (await revisar() || intentos > 900) clearInterval(timer);
+            }, 3000);
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) revisar(); });
+        }
+        init();
+    </script>
+</body>
+</html>

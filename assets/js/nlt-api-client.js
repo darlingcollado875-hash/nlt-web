@@ -926,6 +926,7 @@
         adminSupportMensajes: (conversationId, before) => request(`/admin/support/conversations/${conversationId}/messages${before ? '?before=' + encodeURIComponent(before) : ''}`),
         adminSupportResponder: (conversationId, datos) => request(`/admin/support/conversations/${conversationId}/messages`, { method: 'POST', body: JSON.stringify(datos) }),
         adminSupportMarcarLeido: (conversationId) => request(`/admin/support/conversations/${conversationId}/read`, { method: 'POST' }),
+        adminPagoSeguimiento: (orderId) => request(`/admin/payments/${encodeURIComponent(orderId)}`),
         adminSupportNoLeidos: () => request('/admin/support/unread-count'),
 
         // --- Web Push (notificaciones nativas navegador/PWA, ver NLT.mountPushNotifications) ---
