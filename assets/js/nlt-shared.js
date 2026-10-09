@@ -2665,9 +2665,8 @@
             // se abre directo en vez de navegar -- mejor UX que mandar a
             // Dashboard para terminar abriendo el mismo panel igual.
             if (n.type === 'support_reply' && typeof window.NLT !== 'undefined' && typeof window.NLT.abrirSupportChat === 'function') {
-                panel.classList.add('hidden');
-                window.NLT.abrirSupportChat();
-                return;
+                // Si la página no tiene la burbuja (p. ej. Community o el gráfico), abrirSupportChat devuelve false y se navega a la página del aviso.
+                if (window.NLT.abrirSupportChat()) { panel.classList.add('hidden'); return; }
             }
             window.location.href = href;
         }
@@ -3309,7 +3308,8 @@
     // en la página actual.
     function abrirSupportChat() {
         const bubble = document.getElementById('supportChatBubble');
-        if (bubble && typeof bubble._nltAbrir === 'function') bubble._nltAbrir();
+        if (bubble && typeof bubble._nltAbrir === 'function') { bubble._nltAbrir(); return true; }
+        return false;
     }
 
     // --- Motion System NLT (Performance Sprint, Fase F/11-13) ---------------
