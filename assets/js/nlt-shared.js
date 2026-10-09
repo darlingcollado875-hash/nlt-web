@@ -445,6 +445,29 @@
             .glass-card.overflow-y-auto { overflow-y: auto; }
             .glass-card.overflow-x-auto { overflow-x: auto; }
             .glass-card.overflow-auto { overflow: auto; }
+            /* Paneles flotantes (notificaciones, cuenta): FONDO SÓLIDO. Antes usaban la tarjeta de cristal (casi transparente) y el
+               texto de la página se veía a través, encimado con las notificaciones. */
+            .nlt-notif-panel, .nlt-profile-panel { background: #0c101a !important; border: 1px solid rgba(255,255,255,0.11); border-radius: 18px !important;
+                box-shadow: 0 16px 40px -8px rgba(0,0,0,0.65); -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+            .nlt-notif-panel::before, .nlt-notif-panel::after, .nlt-profile-panel::before, .nlt-profile-panel::after { display: none !important; }
+            .nlt-notif-panel { overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; padding: 0; }
+            .nlt-notif-cab { position: sticky; top: 0; z-index: 2; display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 12px;
+                background: #0c101a; border-bottom: 1px solid rgba(255,255,255,0.08); }
+            .nlt-notif-cab b { font-size: 14px; color: #fff; }
+            .nlt-notif-cab button { font-size: 12px; font-weight: 600; color: #4378FF; background: none; border: 0; cursor: pointer; padding: 4px 0; }
+            .notif-item { display: flex; gap: 12px; align-items: flex-start; width: 100%; text-align: left; padding: 13px 16px; background: transparent; border: 0;
+                border-bottom: 1px solid rgba(255,255,255,0.06); cursor: pointer; transition: background .15s ease; }
+            .notif-item:last-child { border-bottom: 0; }
+            .notif-item:hover, .notif-item:active { background: rgba(255,255,255,0.05); }
+            .notif-item .nlt-notif-ic { flex: none; width: 36px; height: 36px; border-radius: 50%; background: rgba(67,120,255,0.14); color: #6c97ff; display: flex; align-items: center; justify-content: center; font-size: 17px; }
+            .notif-item .nlt-notif-tx { flex: 1; min-width: 0; }
+            .notif-item .nlt-notif-t { font-size: 13px; font-weight: 700; color: #fff; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+            .notif-item .nlt-notif-m { font-size: 13px; line-height: 1.35; color: #cbd5e1; margin: 2px 0 0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+            .notif-item .nlt-notif-h { font-size: 11px; color: #64748b; margin: 4px 0 0; }
+            .notif-item .nlt-notif-punto { flex: none; width: 9px; height: 9px; border-radius: 50%; background: #4378FF; margin-top: 6px; box-shadow: 0 0 8px rgba(67,120,255,.7); }
+            .notif-item.leida { opacity: .62; }
+            .nlt-notif-vacio { padding: 36px 20px; text-align: center; color: #64748b; font-size: 13px; }
+            .nlt-notif-vacio i { display: block; font-size: 30px; margin-bottom: 8px; color: #334155; }
             .glass-card:hover {
                 border-color: rgba(var(--card-glow-rgb), 0.45);
                 box-shadow: 0 20px 50px -18px rgba(var(--card-glow-rgb), 0.35);
@@ -2713,7 +2736,7 @@
                     <i class="ph ph-bell text-lg"></i>
                     <span id="${idPrefix}Badge" class="hidden absolute -top-1 -right-1 min-w-[16px] h-4 px-1 rounded-full bg-nlt-danger text-white text-[9px] font-bold flex items-center justify-center"></span>
                 </button>
-                <div id="${idPrefix}Panel" class="hidden absolute top-11 w-80 max-h-96 overflow-y-auto glass-card p-0 z-50 shadow-2xl"></div>
+                <div id="${idPrefix}Panel" class="hidden glass-card nlt-notif-panel" role="dialog" aria-label="Notificaciones"></div>
             </div>
         `;
     }
@@ -2814,55 +2837,41 @@
             const icono = _NOTIF_ICONOS[n.type] || 'ph-bell';
             const titulo = n.title ? _escNotif(n.title) : '';
             return `
-                <button type="button" data-id="${n.id}" class="notif-item w-full text-left p-3 border-b border-white/5 last:border-0 hover:bg-white/5 transition-colors flex gap-2.5 items-start ${n.read ? 'opacity-60' : ''}">
-                    <i class="ph-fill ${icono} text-nlt-accent text-base mt-0.5 shrink-0"></i>
-                    <span class="flex-1 min-w-0">
-                        ${titulo ? `<p class="text-xs font-semibold text-white truncate">${titulo}</p>` : ''}
-                        <p class="text-xs text-gray-300 line-clamp-2">${_escNotif(n.message)}</p>
-                        <p class="text-[10px] text-gray-600 mt-0.5">${_tiempoRelativoNotif(n.created_at)}</p>
+                <button type="button" data-id="${n.id}" class="notif-item ${n.read ? 'leida' : ''}">
+                    <span class="nlt-notif-ic"><i class="ph-fill ${icono}"></i></span>
+                    <span class="nlt-notif-tx">
+                        ${titulo ? `<p class="nlt-notif-t">${titulo}</p>` : ''}
+                        <p class="nlt-notif-m">${_escNotif(n.message)}</p>
+                        <p class="nlt-notif-h">${_tiempoRelativoNotif(n.created_at)}</p>
                     </span>
-                    ${!n.read ? '<span class="w-2 h-2 rounded-full bg-nlt-accent shrink-0 mt-1"></span>' : ''}
+                    ${!n.read ? '<span class="nlt-notif-punto"></span>' : ''}
                 </button>
             `;
         }
 
+        // El panel se pasa a <body> y se posiciona con coordenadas de la pantalla: así ningún contenedor del header (transform, filtro,
+        // overflow, z-index) puede recortarlo, taparlo o dejarlo detrás de otra cosa. En pantallas angostas ocupa casi todo el ancho.
         function _posicionarPanel() {
-            // El bundle de Tailwind de este proyecto está PRECOMPILADO (sin
-            // build step JIT) -- una clase arbitraria nueva (ej. w-[min(...)])
-            // simplemente no existe en el CSS y no tiene efecto (confirmado:
-            // 0 matches en assets/css/tailwind.css). Por eso el ancho máximo
-            // se fuerza acá con estilos inline, nunca con una clase nueva.
-            //
-            // right-0 puro (absolute, la clase de base) asume que sobra
-            // espacio a la izquierda del botón -- falso en mobile cuando el
-            // botón NO está pegado al borde derecho REAL de la pantalla
-            // (header de Community/Academy, a diferencia del sidebar de
-            // escritorio). "left" en un elemento absolute es relativo a su
-            // offset parent (el propio wrapper del botón), NO al viewport --
-            // por eso, cuando no entra, se pasa a fixed (ahí sí left/top son
-            // relativos al viewport real) en vez de solo cambiar left/right.
-            const ancho = Math.min(320, window.innerWidth - 24);
-            panel.style.width = `${ancho}px`;
-            const rectBtn = btn.getBoundingClientRect();
-            if (rectBtn.right - ancho >= 8) {
-                panel.style.position = '';
-                panel.style.top = '';
-                panel.style.left = 'auto';
-                panel.style.right = '0';
-            } else {
-                panel.style.position = 'fixed';
-                panel.style.top = `${rectBtn.bottom + 6}px`;
-                panel.style.left = '8px';
-                panel.style.right = 'auto';
-            }
+            if (panel.parentElement !== document.body) document.body.appendChild(panel);
+            const r = btn.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+            panel.style.position = 'fixed';
+            panel.style.zIndex = '2147483100';
+            panel.style.top = `${Math.round(r.bottom + 10)}px`;
+            panel.style.bottom = 'auto';
+            if (vw < 560) { panel.style.left = '10px'; panel.style.right = '10px'; panel.style.width = 'auto'; }
+            else { panel.style.width = '380px'; panel.style.left = 'auto'; panel.style.right = `${Math.max(10, Math.round(vw - r.right))}px`; }
+            panel.style.maxHeight = `${Math.max(240, Math.min(560, vh - r.bottom - 24))}px`;
         }
+        const _reposicionar = () => { if (!panel.classList.contains('hidden')) _posicionarPanel(); };
+        window.addEventListener('resize', _reposicionar);
+        window.addEventListener('scroll', _reposicionar, { passive: true, capture: true });
 
         async function abrirPanel() {
             const oculto = panel.classList.contains('hidden');
             panel.classList.toggle('hidden');
             if (!oculto) return; // se estaba cerrando, nada más que hacer
 
-            panel.innerHTML = '<p class="text-xs text-gray-500 animate-pulse p-4">Cargando...</p>';
+            panel.innerHTML = '<div class="nlt-notif-vacio animate-pulse">Cargando…</div>';
             _posicionarPanel();
             let notifs;
             try {
@@ -2872,13 +2881,13 @@
                 return;
             }
             if (!notifs.length) {
-                panel.innerHTML = '<p class="text-xs text-gray-500 p-4">Sin notificaciones todavía.</p>';
+                panel.innerHTML = '<div class="nlt-notif-vacio"><i class="ph ph-bell-slash"></i>Sin notificaciones todavía</div>';
                 return;
             }
             panel.innerHTML = `
-                <div class="flex items-center justify-between p-3 border-b border-white/5">
-                    <p class="text-xs font-semibold text-white">Notificaciones</p>
-                    <button id="${idPrefix}MarcarTodas" type="button" class="text-[10px] text-nlt-accent hover:underline cursor-pointer">Marcar todas leídas</button>
+                <div class="nlt-notif-cab">
+                    <b>Notificaciones</b>
+                    <button id="${idPrefix}MarcarTodas" type="button">Marcar todas leídas</button>
                 </div>
                 ${notifs.map(_renderItem).join('')}
             `;
@@ -2887,8 +2896,8 @@
                 try { await window.NLT_API.communityMarcarTodasLeidas(); } catch (_) { /* red -- se reintenta en el próximo open */ }
                 refrescarBadge();
                 panel.querySelectorAll('.notif-item').forEach((el) => {
-                    el.classList.add('opacity-60');
-                    const punto = el.querySelector('.bg-nlt-accent.shrink-0');
+                    el.classList.add('leida');
+                    const punto = el.querySelector('.nlt-notif-punto');
                     if (punto) punto.remove();
                 });
             });
