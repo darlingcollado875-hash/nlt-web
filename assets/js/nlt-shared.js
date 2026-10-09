@@ -2620,6 +2620,75 @@
         support_message_new: 'admin.html#soporte', support_reply: 'dashboard.html',
     };
 
+    // ---------- Tonos de llamada (sintetizados con WebAudio: no hay archivos de sonido que descargar) ----------
+    //  llamando  -> el "tuuu... tuuu..." que oyes mientras suena al otro lado       timbre -> cuando TE llaman (melodía en bucle)
+    //  espera    -> avisos suaves si te llaman estando ya en otra llamada             conectado / colgar / entra / sale / aviso -> sonidos cortos
+    // Se pueden apagar con localStorage.nlt_tonos = 'off'. Un navegador no deja sonar nada hasta que hubo un toque en la página:
+    // por eso se "desbloquea" en el primer toque, y si aún así no suena, en el teléfono al menos vibra.
+    const tonos = (() => {
+        let ctx = null, ciclo = null, parar = null;
+        const activo = () => { try { return localStorage.getItem('nlt_tonos') !== 'off'; } catch (_) { return true; } };
+        function contexto() {
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (!AC) return null;
+            if (!ctx) { try { ctx = new AC(); } catch (_) { return null; } }
+            if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+            return ctx;
+        }
+        const desbloquear = () => {
+            const c = contexto();
+            if (c) { try { const b = c.createBuffer(1, 1, 22050), f = c.createBufferSource(); f.buffer = b; f.connect(c.destination); f.start(0); } catch (_) { /* nada */ } }
+        };
+        ['pointerdown', 'touchstart', 'keydown'].forEach((ev) => window.addEventListener(ev, desbloquear, { once: true, passive: true }));
+
+        function nota(frec, t0, dur, { tipo = 'sine', vol = 0.16, ataque = 0.012 } = {}) {
+            const c = ctx; if (!c) return;
+            const o = c.createOscillator(), g = c.createGain();
+            o.type = tipo; o.frequency.setValueAtTime(frec, t0);
+            g.gain.setValueAtTime(0.0001, t0);
+            g.gain.exponentialRampToValueAtTime(vol, t0 + ataque);
+            g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+            o.connect(g); g.connect(c.destination);
+            o.start(t0); o.stop(t0 + dur + 0.05);
+        }
+        const CORTOS = {
+            conectado: [[523.25, 0, 0.14], [783.99, 0.12, 0.14], [1046.5, 0.24, 0.34]],      // do-sol-do agudo: «ya estás en la llamada»
+            colgar: [[392, 0, 0.18], [261.63, 0.17, 0.4]],                                  // dos notas que bajan
+            entra: [[880, 0, 0.09], [1174.66, 0.08, 0.12]],
+            sale: [[659.25, 0, 0.09], [493.88, 0.08, 0.14]],
+            aviso: [[783.99, 0, 0.16], [987.77, 0.16, 0.3]],
+        };
+        const CICLOS = {
+            llamando: { cada: 3000, tocar: (t) => { nota(440, t, 1.1, { vol: 0.1 }); nota(480, t, 1.1, { vol: 0.1 }); } },
+            timbre: { cada: 2600, tocar: (t) => { [659.25, 783.99, 987.77, 1318.51, 987.77, 783.99].forEach((f, i) => nota(f, t + i * 0.16, 0.34, { tipo: 'triangle', vol: 0.2 })); nota(659.25, t + 1.2, 0.5, { tipo: 'triangle', vol: 0.18 }); } },
+            espera: { cada: 4500, tocar: (t) => { nota(880, t, 0.12, { vol: 0.12 }); nota(880, t + 0.22, 0.12, { vol: 0.12 }); } },
+        };
+        function sonar(nombre) {
+            if (!activo() || !CORTOS[nombre]) return;
+            const c = contexto(); if (!c) return;
+            const t = c.currentTime + 0.02;
+            CORTOS[nombre].forEach(([f, ini, dur]) => nota(f, t + ini, dur));
+        }
+        function detener() {
+            if (ciclo) { clearInterval(ciclo); ciclo = null; }
+            if (parar) { clearTimeout(parar); parar = null; }
+            try { if (navigator.vibrate) navigator.vibrate(0); } catch (_) { /* sin vibración */ }
+        }
+        function iniciar(nombre, maxSeg = 40) {
+            detener();
+            const def = CICLOS[nombre];
+            if (!def || !activo()) return;
+            const ronda = () => {
+                const c = contexto(); if (c) def.tocar(c.currentTime + 0.02);
+                if (nombre === 'timbre') { try { if (navigator.vibrate) navigator.vibrate([350, 150, 350]); } catch (_) { /* sin vibración */ } }
+            };
+            ronda();
+            ciclo = setInterval(ronda, def.cada);
+            parar = setTimeout(detener, maxSeg * 1000);
+        }
+        return { sonar, iniciar, detener, sonando: () => !!ciclo };
+    })();
+
     const _llamadasAvisadas = new Set();
 
     // Tocar un aviso del teléfono con la app ya abierta: la página lo abre ella misma (si estás en una llamada, SIN cortarla)
@@ -2677,8 +2746,6 @@
         async function avisarLlamadaEntrante() {
             try {
                 if (/community\.html$/.test(window.location.pathname)) return;                          // Community ya tiene su propio aviso
-                let top = window; try { top = window.top; } catch (_) { /* otro origen */ }
-                if (top.NLTCall && top.NLTCall.estado().activa) return;                                 // ya estás en una llamada
                 const lista = await window.NLT_API.communityNotificaciones();
                 const hace = (n) => (Date.now() - new Date(n.created_at).getTime()) / 1000;
                 const n = lista.find((x) => !x.read && /^(call_dm|call_global|live_start)$/.test(x.type) && hace(x) < 150 && !_llamadasAvisadas.has(x.id));
@@ -2688,6 +2755,7 @@
             } catch (_) { /* un aviso que falla no debe molestar */ }
         }
         function _mostrarCartelLlamada(n) {
+            let enLlamada = false; try { const t = window.top; enLlamada = !!(t.NLTCall && t.NLTCall.estado().activa); } catch (_) { /* otro origen */ }
             let caja = document.getElementById('nltCartelLlamada');
             if (!caja) {
                 const st = document.createElement('style');
@@ -2703,9 +2771,10 @@
             const dm = n.type === 'call_dm';
             caja.innerHTML = `<div class="cl-ic"><i class="ph-fill ${dm ? 'ph-phone-incoming' : 'ph-phone-call'}"></i></div>
                 <div class="cl-tx"><b>${_escNotif(n.title || (dm ? 'Llamada' : 'Llamada grupal'))}</b>${_escNotif(n.message || '')}</div>
-                <button class="cl-no" type="button">Ahora no</button><button class="cl-ok" type="button">${dm ? 'Contestar' : 'Unirme'}</button>`;
+                <button class="cl-no" type="button">Ahora no</button><button class="cl-ok" type="button">${enLlamada ? 'Ver' : (dm ? 'Contestar' : 'Unirme')}</button>`;
             caja.style.display = 'flex';
-            const cerrar = () => { caja.style.display = 'none'; clearTimeout(caja._t); };
+            const cerrar = () => { caja.style.display = 'none'; clearTimeout(caja._t); tonos.detener(); };
+            if (dm) tonos.iniciar(enLlamada ? 'espera' : 'timbre', 25); else tonos.sonar('aviso');
             caja.querySelector('.cl-no').onclick = cerrar;
             caja.querySelector('.cl-ok').onclick = () => { cerrar(); window.NLT_API.communityMarcarLeida && window.NLT_API.communityMarcarLeida(n.id).catch(() => {}); _irAlRecurso(n); };
             caja._t = setTimeout(cerrar, 25000);
@@ -3874,6 +3943,7 @@
         mountProfileMenu,
         mountSupportChat,
         abrirSupportChat,
+        tonos,
         mountReveal,
         animateCounter,
         mountCounters,

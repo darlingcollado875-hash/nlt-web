@@ -635,9 +635,9 @@
     <div id="llamadaEntrante" class="llamada-entrante hidden" role="alertdialog" aria-live="assertive"></div>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
-    <script src="assets/js/nlt-shared.js?v=29247918"></script>
+    <script src="assets/js/nlt-shared.js?v=8f397213"></script>
     <script src="assets/js/nlt-api-client.js?v=24bda1c7"></script>
-    <script src="assets/js/nlt-call.js?v=2860152b"></script>
+    <script src="assets/js/nlt-call.js?v=255dc0cd"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -2719,9 +2719,9 @@
         const llamadas = () => window.NLTCall;
         const dentroDe = (scope, convId) => { const e = llamadas() && llamadas().estado(); return !!e && e.activa && e.scope === scope && (scope === 'global' || scope === 'live' || e.conversationId === convId); };
 
-        async function iniciarLlamada(scope, conversationId, label) {
+        async function iniciarLlamada(scope, conversationId, label, cambiar) {
             if (!llamadas() || !miPerfil) return;
-            try { await llamadas().unirse({ scope, conversationId, label, myId: miPerfil.user_id }); }
+            try { await llamadas().unirse({ scope, conversationId, label, myId: miPerfil.user_id, cambiar: !!cambiar }); }
             catch (err) { llamadas().toast(err && err.message ? err.message : 'No se pudo entrar a la llamada.'); }
             pintarLlamadas();
         }
@@ -2750,19 +2750,24 @@
                     dm.setAttribute('aria-label', dm.title);
                 }
             }
-            mostrarEntrante(ok && !e.activa ? LL.entrante : null);
+            mostrarEntrante(ok ? LL.entrante : null);
         }
 
+        let timbreBanner = false;
         function mostrarEntrante(ent) {
             const box = document.getElementById('llamadaEntrante');
-            if (!ent) { box.classList.add('hidden'); box.innerHTML = ''; return; }
+            const tonos = window.NLT && NLT.tonos && typeof NLT.tonos.iniciar === 'function' ? NLT.tonos : null;
+            if (!ent) { box.classList.add('hidden'); box.innerHTML = ''; box.removeAttribute('data-call'); if (timbreBanner && tonos) { tonos.detener(); } timbreBanner = false; return; }
+            const enLlamada = !!(llamadas() && llamadas().estado().activa);
             if (box.getAttribute('data-call') === ent.call_id && !box.classList.contains('hidden')) return;
             box.setAttribute('data-call', ent.call_id);
             const nombre = ent.from.display_name || 'Alguien';
+            // Si ya estás en otra llamada, la llamada queda «en espera»: suena suave y puedes cambiar a ella (sale de la actual) o dejarla sonar
             box.innerHTML = `<div class="ll-av">${ent.from.avatar_url ? `<img src="${esc(ent.from.avatar_url)}" alt="">` : esc(iniciales(nombre))}</div>
-                <div class="ll-txt"><b>${esc(nombre)}</b>te está llamando…</div>
-                <button type="button" class="ll-no" data-ll="no">Ahora no</button><button type="button" class="ll-ok" data-ll="si">Contestar</button>`;
+                <div class="ll-txt"><b>${esc(nombre)}</b>${enLlamada ? 'te llama · estás en otra llamada' : 'te está llamando…'}</div>
+                <button type="button" class="ll-no" data-ll="no">${enLlamada ? 'Rechazar' : 'Ahora no'}</button><button type="button" class="ll-ok" data-ll="si">${enLlamada ? 'Cambiar' : 'Contestar'}</button>`;
             box.classList.remove('hidden');
+            if (tonos) { tonos.iniciar(enLlamada ? 'espera' : 'timbre', 40); timbreBanner = true; }
         }
         document.getElementById('llamadaEntrante').addEventListener('click', async (e) => {
             const b = e.target.closest('[data-ll]'); const ent = LL.entrante;
@@ -2771,7 +2776,7 @@
             if (b.getAttribute('data-ll') !== 'si') return;
             await mostrarVista('mensajes');
             await abrirConversacion(ent.conversation_id);
-            await iniciarLlamada('dm', ent.conversation_id, ent.from.display_name);
+            await iniciarLlamada('dm', ent.conversation_id, ent.from.display_name, true);
         });
         document.getElementById('btn-chat-llamada').addEventListener('click', () => (dentroDe('global') ? llamadas().abrirPanel() : iniciarLlamada('global', null, 'Community')));
         document.getElementById('btn-dm-llamar').addEventListener('click', () => {
@@ -2783,11 +2788,8 @@
         async function pollLlamadas() {
             if (!esMiembro || !llamadas() || !llamadas().hayWebRTC) return;
             try {
-                const e = llamadas().estado();
-                if (!e.activa) {
-                    const ent = await NLT_API.callEntrantes();
-                    LL.entrante = ent.find((x) => !LL.descartadas.has(x.call_id)) || null;
-                } else LL.entrante = null;
+                const ent = await NLT_API.callEntrantes();                       // también estando en otra llamada: queda «en espera»
+                LL.entrante = ent.find((x) => !LL.descartadas.has(x.call_id)) || null;
                 if (!document.getElementById('vistaChat').classList.contains('hidden')) LL.global = await NLT_API.callEstado('global');
                 if (conversacionActualId) LL.dm = await NLT_API.callEstado('dm', conversacionActualId);
                 else LL.dm = { active: false, participants: [] };
