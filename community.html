@@ -385,6 +385,9 @@
 
         /* Publicaciones */
         .ig-post { background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: hidden; position: relative; }
+        /* El navegador no calcula ni pinta las tarjetas que están fuera de pantalla (el tamaño estimado se corrige solo al verlas): cambiar de pestaña y desplazar pesan mucho menos. */
+        .ig-post, .dm-fila { content-visibility: auto; contain-intrinsic-size: auto 520px; }
+        .dm-fila { contain-intrinsic-size: auto 72px; }
         .ig-post + .ig-post { margin-top: 16px; }
         #feedBox { display: block; }
         #feedBox > * + * { margin-top: 16px; }
@@ -3036,9 +3039,15 @@
             const abierta = () => movil() && estaAbierta();
             lista.addEventListener('scroll', () => { pegado = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80; }, { passive: true });
             const buscador = document.getElementById('buscadorPersonas');
+            let ultima = '';
             function ajustar() {
-                const tecladoAbierto = abierta() && ((vv && window.innerHeight - vv.height > 120) || document.activeElement === campo);
-                _estadoPaneles.set(caja, { abierta: abierta(), teclado: !!tecladoAbierto });
+                const estaAbierta = abierta();
+                const tecladoAbierto = estaAbierta && ((vv && window.innerHeight - vv.height > 120) || document.activeElement === campo);
+                // sin cambios (y sin nada abierto) no se toca nada: cada escritura en <html> recalcula los estilos de toda la página al cambiar de pestaña
+                const firma = estaAbierta + '|' + !!tecladoAbierto + '|' + (estaAbierta && vv ? vv.height + ',' + vv.offsetTop : '');
+                if (!estaAbierta && firma === ultima) return;
+                ultima = firma;
+                _estadoPaneles.set(caja, { abierta: estaAbierta, teclado: !!tecladoAbierto });
                 const paneles = [..._estadoPaneles.values()];
                 raiz.classList.toggle('dm-teclado', paneles.some((x) => x.teclado));        // sin el margen de la barra inferior del iPhone mientras el teclado está arriba
                 // el resto de campos de la página no se pueden enfocar mientras chateas: iOS no muestra las flechas ▲▼ de "campo anterior/siguiente"
@@ -3046,8 +3055,10 @@
                 raiz.classList.toggle('dm-abierto', paneles.some((x) => x.abierta));
                 if (clase) raiz.classList.toggle(clase, abierta());
                 if (!abierta()) { if (!paneles.some((x) => x.abierta)) { raiz.style.removeProperty('--dm-h'); raiz.style.removeProperty('--dm-top'); } return; }
-                raiz.style.setProperty('--dm-h', (vv ? vv.height : window.innerHeight) + 'px');
-                raiz.style.setProperty('--dm-top', (vv ? vv.offsetTop : 0) + 'px');
+                // las variables viven en <html>: reescribirlas aunque no cambien obliga al navegador a recalcular estilos de TODA la página
+                const alto = (vv ? vv.height : window.innerHeight) + 'px', arriba = (vv ? vv.offsetTop : 0) + 'px';
+                if (raiz.style.getPropertyValue('--dm-h') !== alto) raiz.style.setProperty('--dm-h', alto);
+                if (raiz.style.getPropertyValue('--dm-top') !== arriba) raiz.style.setProperty('--dm-top', arriba);
                 if (pegado) lista.scrollTop = lista.scrollHeight;
             }
             if (vv) { vv.addEventListener('resize', ajustar); vv.addEventListener('scroll', ajustar); }
