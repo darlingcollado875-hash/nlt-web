@@ -303,6 +303,8 @@
         // por defecto usa producto='copy_system' si no se especifica --
         // por eso cualquier caller que quite acceso de OTRO producto debe
         // pasar producto explícitamente (ver admin_billing.py::asignar_plan_manual).
+        adminEliteBuscarUsuarios: (q) => request(`/admin/signals/access/users?q=${encodeURIComponent(q)}`),
+        adminEliteAcceso: (userId, plan) => request(`/admin/signals/access/${encodeURIComponent(userId)}`, { method: 'PUT', body: JSON.stringify({ plan }) }),
         adminAsignarPlan: (userId, plan, producto) => request(`/admin/billing/users/${userId}/plan`, { method: 'POST', body: JSON.stringify(producto ? { plan, producto } : { plan }) }),
 
         // --- NLT Indicator (usuario) ---

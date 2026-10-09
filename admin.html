@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
     <script src="assets/js/nlt-perf.js?v=6f425d16"></script>
     <meta name="robots" content="noindex, nofollow">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -11,7 +11,7 @@
     <link rel="preconnect" href="https://wjczkcuxptzpayzemttb.supabase.co">
     <title>NLT Admin Center</title>
     <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
-    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=83ad1a4b">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=7a7bba0e">
     <link rel="manifest" href="/manifest.webmanifest">
     <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1509,7 +1509,7 @@
                      acá para no tener que ir a otra pestaña. -->
                 <div class="glass-card p-6">
                     <h3 class="text-sm font-semibold text-white mb-3 flex items-center gap-2"><i class="ph-fill ph-key text-nlt-accent"></i> Dar acceso manual</h3>
-                    <p class="text-xs text-gray-500 mb-4">Para cortesías o correcciones -- sin pasar por pago. Requiere permiso "Planes" (mismo endpoint que Pagos → Usuarios).</p>
+                    <p class="text-xs text-gray-500 mb-4">Para cortesías o correcciones -- sin pasar por pago. Basta el permiso "Elite Signals". Escribe al menos 3 letras del correo.</p>
                     <div class="flex flex-col sm:flex-row gap-2">
                         <input id="esBuscarEmail" type="email" placeholder="Email del usuario" class="flex-1 bg-black/20 border border-white/5 rounded-lg px-3 py-2 text-sm">
                         <button id="btn-es-buscar-usuario" class="px-4 py-2 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer whitespace-nowrap">Buscar</button>
@@ -1904,7 +1904,7 @@
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=5d8dc1b0"></script>
-    <script src="assets/js/nlt-api-client.js?v=3ba75965"></script>
+    <script src="assets/js/nlt-api-client.js?v=03ccae48"></script>
     <script src="assets/js/nlt-certificate.js?v=f29013df"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
@@ -5232,7 +5232,7 @@
             document.getElementById('esAccesoMsg').classList.add('hidden');
             esUsuarioEncontrado = null;
             try {
-                const resultados = await NLT_API.adminGlobalUsuarios(email);
+                const resultados = await NLT_API.adminEliteBuscarUsuarios(email);
                 const match = resultados.find((u) => (u.email || '').toLowerCase() === email.toLowerCase()) || resultados[0];
                 if (!match) {
                     esMostrarMsg('No se encontró ningún usuario con ese email.', 'error');
@@ -5240,7 +5240,7 @@
                 }
                 esUsuarioEncontrado = match;
                 document.getElementById('esUsuarioEmail').textContent = match.email;
-                document.getElementById('esUsuarioPlanActual').textContent = `user_id: ${match.user_id}`;
+                document.getElementById('esUsuarioPlanActual').textContent = match.plan_actual ? `Ya tiene: ${match.plan_actual}${match.vence ? ' · vence ' + String(match.vence).slice(0, 10) : ' · sin vencimiento'}` : 'Sin acceso a Elite Signals';
                 document.getElementById('esResultadoBusqueda').classList.remove('hidden');
             } catch (err) {
                 esMostrarMsg('Error: ' + err.message, 'error');
@@ -5251,7 +5251,7 @@
             if (!esUsuarioEncontrado) return;
             const plan = document.getElementById('esPlanSelect').value;
             try {
-                await NLT_API.adminAsignarPlan(esUsuarioEncontrado.user_id, plan);
+                await NLT_API.adminEliteAcceso(esUsuarioEncontrado.user_id, plan);
                 esMostrarMsg(`Acceso otorgado a ${esUsuarioEncontrado.email} (${plan}).`, 'ok');
             } catch (err) {
                 esMostrarMsg('Error: ' + err.message, 'error');
@@ -5265,7 +5265,7 @@
                 // producto explícito: sin esto, el backend por defecto quitaría
                 // la suscripción de 'copy_system' del usuario en vez de la de
                 // Elite Signals (ver admin_billing.py::asignar_plan_manual).
-                await NLT_API.adminAsignarPlan(esUsuarioEncontrado.user_id, null, 'elite_signals');
+                await NLT_API.adminEliteAcceso(esUsuarioEncontrado.user_id, null);
                 esMostrarMsg(`Acceso quitado a ${esUsuarioEncontrado.email}.`, 'ok');
             } catch (err) {
                 esMostrarMsg('Error: ' + err.message, 'error');

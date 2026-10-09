@@ -66,3 +66,18 @@ details[data-acc][open] .faq-icon, details[data-acc][open] > summary > i { trans
 .text-gray-600 { color: #6f7a8b; }
 ::placeholder { color: #7d8797; opacity: 1; }
 .cal-filter-pill.active { background-color: #3a68ee !important; }
+
+
+/* ── Móvil: sin zoom ni desplazamiento raros en todo el ecosistema ──
+   · iOS acerca (zoom) la pantalla al enfocar un campo con letra menor de 16 px y no vuelve sola: en pantallas táctiles/chicas todo campo
+     de texto lleva 16 px.
+   · `text-size-adjust` evita que Safari/Chrome agranden textos solos (al girar el teléfono, en bloques anchos).
+   · `touch-action: manipulation` quita el zoom por doble toque en botones, enlaces y campos (el pellizco con dos dedos sigue funcionando).
+   · `overscroll-behavior-x: none` evita el "rebote" lateral de la página; las animaciones de scroll (canvas) nunca pasan del ancho de la pantalla.
+   · el <meta viewport> de cada página lleva minimum-scale=1: iOS no encoge la página para "hacer caber" un elemento ancho. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; overscroll-behavior-x: none; }
+a, button, input, select, textarea, label, summary, [role="button"], [role="tab"] { touch-action: manipulation; }
+canvas[data-seq] { max-width: 100%; height: auto; }
+@media (max-width: 1023px), (pointer: coarse) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]):not([type="color"]):not([type="hidden"]), select, textarea { font-size: 16px !important; }
+}
