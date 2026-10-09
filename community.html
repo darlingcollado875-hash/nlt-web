@@ -209,6 +209,15 @@
         /* Espaciado propio (el space-y-3 de Tailwind v4 pone margen ABAJO de cada mensaje y dejaba 16px entre burbujas "pegadas") */
         #dmMensajes > .dm-message { margin: 10px 0 0 !important; }
         #dmMensajes > .dm-message.msg-agrupado { margin-top: 2px !important; }
+        /* Foto del chat privado: aparece YA al enviar, con una bolita girando mientras sube */
+        .dm-img-wrap { position: relative; display: inline-block; margin-top: 6px; line-height: 0; }
+        .dm-img-wrap .msg-thumb { margin-top: 0; }
+        .dm-img-wrap.subiendo .msg-thumb, .dm-img-wrap.fallo .msg-thumb { filter: brightness(.55); }
+        .dm-img-wrap.subiendo::after { content: ''; position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.28); border-top-color: #fff; animation: dmGira .8s linear infinite; }
+        .dm-img-fallo { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; line-height: 1.2; }
+        .dm-img-fallo button { font-size: 13px; font-weight: 600; color: #fff; background: rgba(0,0,0,0.55); border: 1px solid rgba(255,255,255,0.25); border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+        .dm-img-fallo .dm-img-quitar { background: transparent; border-color: transparent; font-weight: 500; color: #E5E7EB; padding: 2px 10px; }
         .dm-dia { display: flex; justify-content: center; margin: 14px 0 8px; }
         .dm-dia span { font-size: 11px; font-weight: 600; letter-spacing: .02em; color: #9CA3AF; background: rgba(255,255,255,0.05); padding: 3px 11px; border-radius: 999px; }
         .dm-mas { text-align: center; font-size: 11px; color: #6B7280; padding: 4px 0 10px; min-height: 22px; }
@@ -225,7 +234,8 @@
         .dm-esqueleto i:nth-child(even) { align-self: flex-end; width: 44%; }
         .dm-esqueleto i:nth-child(3n) { width: 68%; height: 52px; }
         @keyframes dmBrillo { to { background-position: -200% 0; } }
-        @media (prefers-reduced-motion: reduce) { .dm-nuevo, .dm-esqueleto i, .dm-mas.cargando::before { animation: none; } }
+        @media (prefers-reduced-motion: reduce) { .dm-nuevo, .dm-esqueleto i, .dm-mas.cargando::before, .dm-img-wrap.subiendo::after { animation: none; } }
+        .dm-pendiente .dm-meta { display: none !important; }
         @media (max-width: 1023px) {
             html.dm-abierto, html.dm-abierto body { overflow: hidden; overscroll-behavior: none; }
             html.dm-abierto body > header { display: none !important; }
@@ -243,6 +253,7 @@
             #dmMensajes::before { content: ''; margin-top: auto; }               /* pocos mensajes: se quedan abajo, junto al texto (como Instagram) */
             #dmMensajes .dm-message p.text-xs { font-size: 15px; line-height: 1.35; }
             #dmMensajes .dm-message { max-width: 100%; }
+            #dmMensajes .msg-thumb { max-width: min(260px, 100%); max-height: 340px; border-radius: 18px; }
             #dmMensajes .msg-bubble-wrap { max-width: 80%; }
             #dmMensajes .dm-message .border.rounded-xl { border-radius: 20px; padding: 8px 13px; border-color: transparent; background: rgba(255,255,255,0.08); }
             #dmMensajes .msg-row-own .border.rounded-xl { background: linear-gradient(135deg, #4378FF, #6A5CFF); }
@@ -1461,6 +1472,7 @@
         async function abrirLightboxDesdeMensaje(tipo, messageId, urlActual) {
             document.getElementById('lightboxImg').src = urlActual;
             document.getElementById('lightboxModal').classList.remove('hidden');
+            if (String(messageId).startsWith('tmp-')) return;                 // foto que aún se está enviando: ya se ve la local
             try {
                 const r = tipo === 'chat' ? await NLT_API.communityChatMediaUrl(messageId) : await NLT_API.communityDMMediaUrl(messageId);
                 if (r.url) document.getElementById('lightboxImg').src = r.url;
@@ -2284,45 +2296,90 @@
             }
         }
 
-        async function enviarMensajeDMConImagen(contenido) {
-            if (dmEnviando) return;
+        // Foto: aparece al instante en la conversación (con una bolita girando) y se sube en segundo plano. Antes se achica (los
+        // fotos del teléfono pesan 3-8 MB; a ~1600 px quedan en ~300 KB y suben 10-20 veces más rápido). Si falla, queda con "Reintentar".
+        async function comprimirImagenCliente(file) {
+            try {
+                if (file.size < 350 * 1024) return file;
+                const bmp = await createImageBitmap(file);
+                const MAX = 1600, escala = Math.min(1, MAX / Math.max(bmp.width, bmp.height));
+                const w = Math.round(bmp.width * escala), h = Math.round(bmp.height * escala);
+                const lienzo = document.createElement('canvas'); lienzo.width = w; lienzo.height = h;
+                const ctx = lienzo.getContext('2d');
+                ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h);               // PNG/WebP con transparencia -> fondo blanco al pasar a JPG
+                ctx.drawImage(bmp, 0, 0, w, h);
+                if (bmp.close) bmp.close();
+                const blob = await new Promise((ok) => lienzo.toBlob(ok, 'image/jpeg', 0.82));
+                if (!blob || blob.size >= file.size) return file;
+                return new File([blob], 'foto.jpg', { type: 'image/jpeg' });
+            } catch (_) { return file; }
+        }
+
+        const dmImgPendientes = new Map();      // clientId -> { file, contenido, replyToId, convId, urlLocal, fila }
+
+        async function subirFotoDM(clientId) {
+            const p = dmImgPendientes.get(clientId);
+            if (!p) return;
+            const { fila, convId } = p;
+            const wrap = fila.querySelector('.dm-img-wrap');
+            wrap.classList.add('subiendo'); wrap.classList.remove('fallo');
+            const fallo = wrap.querySelector('.dm-img-fallo'); if (fallo) fallo.remove();
+            dmPendientes.add(clientId);
+            try {
+                if (!p.listo) p.listo = await comprimirImagenCliente(p.file);
+                const nuevo = await NLT_API.communityDMEnviarImagen(convId, p.listo, p.contenido || null, p.replyToId, clientId);
+                dmPendientes.delete(clientId); dmImgPendientes.delete(clientId);
+                if (convId !== conversacionActualId || !fila.isConnected) return;          // cambió de conversación: se verá al volver
+                const box = document.getElementById('dmMensajes');
+                if (box.querySelector(`.dm-message[data-message-id="${nuevo.id}"]`)) { fila.remove(); _marcarUltimoDM(); return; }
+                // La foto real reemplaza a la local SIN parpadeo: se queda mostrando la local (ya decodificada) y el visor usa la real.
+                nuevo.media_url = nuevo.media_url || '';
+                const pegado = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
+                fila.insertAdjacentHTML('afterend', mensajeDMHTML(nuevo, true, fila.classList.contains('msg-agrupado')));
+                const real = fila.nextElementSibling;
+                real.className = fila.className.replace('dm-pendiente', '').replace('dm-nuevo', '');
+                const img = real.querySelector('img.msg-thumb');
+                if (img) { img.src = p.urlLocal; img.removeAttribute('loading'); }
+                fila.remove();
+                _marcarUltimoDM(); wireMensajesDM(box);
+                if (pegado) dmAbajo();
+            } catch (err) {
+                dmPendientes.delete(clientId);
+                if (!fila.isConnected) return;
+                wrap.classList.remove('subiendo'); wrap.classList.add('fallo');
+                wrap.insertAdjacentHTML('beforeend', `<div class="dm-img-fallo"><button type="button" class="dm-img-reintentar">↻ Reintentar</button><button type="button" class="dm-img-quitar">Quitar</button></div>`);
+                wrap.querySelector('.dm-img-reintentar').addEventListener('click', () => subirFotoDM(clientId));
+                wrap.querySelector('.dm-img-quitar').addEventListener('click', () => { fila.remove(); dmImgPendientes.delete(clientId); _marcarUltimoDM(); });
+                wrap.querySelector('.dm-img-fallo').insertAdjacentHTML('afterbegin', `<span style="font-size:12px;color:#FCA5A5;text-align:center;padding:0 10px">No se envió${err && err.message ? ' · ' + esc(err.message) : ''}</span>`);
+            }
+        }
+
+        function enviarMensajeDMConImagen(contenido) {
             const input = document.getElementById('dmInput');
             const msg = document.getElementById('dmMsg');
-            const btn = document.getElementById('btn-dm-enviar');
-            const textoOriginal = btn.textContent;
-            dmEnviando = true;
-            btn.disabled = true;
-            btn.classList.add('btn-enviando');
-            btn.textContent = 'Enviando...';
-            if (!dmClientMessageIdPendiente) dmClientMessageIdPendiente = crypto.randomUUID();
-            const clientId = dmClientMessageIdPendiente;
+            const file = dmImagenSeleccionada;
+            const convId = conversacionActualId;
             const replyToId = dmReplyState ? dmReplyState.id : null;
-            try {
-                const nuevo = await NLT_API.communityDMEnviarImagen(conversacionActualId, dmImagenSeleccionada, contenido || null, replyToId, clientId);
-                dmClientMessageIdPendiente = null; dmTextoPendiente = null;
-                input.value = '';
-                dmImagenSeleccionada = null;
-                document.getElementById('dmImagenInput').value = '';
-                document.getElementById('dmMediaPreview').innerHTML = '';
-                document.getElementById('dmMediaPreview').classList.add('hidden');
-                ajustarComposerDM();
-                cancelarReplyDM();
-                msg.classList.add('hidden');
-                NLT_API.communityDMDejarDeEscribir(conversacionActualId).catch(() => {});
-                const box = document.getElementById('dmMensajes');
-                const placeholder = box.querySelector('p.text-gray-600');
-                if (placeholder) placeholder.remove();
-                _agregarMensajeDM(box, nuevo);
-                wireMensajesDM(box);
-                dmAbajo();
-            } catch (err) {
-                msg.classList.remove('hidden'); msg.className = 'mt-2 text-xs text-nlt-danger'; msg.textContent = 'Error: ' + err.message;
-            } finally {
-                dmEnviando = false;
-                btn.disabled = false;
-                btn.classList.remove('btn-enviando');
-                btn.textContent = textoOriginal;
-            }
+            const clientId = crypto.randomUUID();
+            const urlLocal = URL.createObjectURL(file);
+            const box = document.getElementById('dmMensajes');
+            const placeholder = box.querySelector('p.text-gray-600');
+            if (placeholder) placeholder.remove();
+            _agregarMensajeDM(box, { id: 'tmp-' + clientId, content: contenido, is_own: true, created_at: new Date().toISOString(), read_at: null, reply_to_id: null, media_url: urlLocal });
+            const fila = box.lastElementChild;
+            fila.classList.add('dm-pendiente');
+            const img = fila.querySelector('img.msg-thumb');
+            if (img) { img.removeAttribute('loading'); const wrap = document.createElement('div'); wrap.className = 'dm-img-wrap subiendo'; img.replaceWith(wrap); wrap.appendChild(img); }
+            // El cuadro queda libre al instante (y el teclado abierto) para seguir escribiendo
+            input.value = ''; dmImagenSeleccionada = null;
+            document.getElementById('dmImagenInput').value = '';
+            const prev = document.getElementById('dmMediaPreview'); prev.innerHTML = ''; prev.classList.add('hidden');
+            ajustarComposerDM(); cancelarReplyDM(); msg.classList.add('hidden');
+            NLT_API.communityDMDejarDeEscribir(convId).catch(() => {});
+            dmAbajo();
+            if (img) img.addEventListener('load', dmAbajo, { once: true });
+            dmImgPendientes.set(clientId, { file, contenido, replyToId, convId, urlLocal, fila });
+            subirFotoDM(clientId);
         }
         // Tocar un mensaje muestra/oculta sus acciones (solo se ven así en móvil; en escritorio siempre están a la vista)
         // Tocar la conversación (o arrastrarla hacia abajo para ver mensajes anteriores) baja el teclado, como en Instagram.
