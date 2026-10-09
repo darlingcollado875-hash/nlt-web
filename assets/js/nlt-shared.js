@@ -2589,7 +2589,7 @@
     const _NOTIF_ICONOS = {
         comment: 'ph-chat-circle', reply: 'ph-arrow-bend-up-left', reaction: 'ph-heart',
         mention: 'ph-at', announcement: 'ph-megaphone', certificate: 'ph-certificate',
-        new_dm: 'ph-envelope-simple-open', chat_global: 'ph-chats-circle', call_global: 'ph-phone-call', call_dm: 'ph-phone-incoming', payment_admin_proc: 'ph-hourglass-medium', payment_admin_ok: 'ph-seal-check', payment_admin_fail: 'ph-x-circle', elite_signal_new: 'ph-chart-line-up', elite_signal_tp: 'ph-target',
+        new_dm: 'ph-envelope-simple-open', chat_global: 'ph-chats-circle', call_global: 'ph-phone-call', call_dm: 'ph-phone-incoming', live_start: 'ph-broadcast', payment_admin_proc: 'ph-hourglass-medium', payment_admin_ok: 'ph-seal-check', payment_admin_fail: 'ph-x-circle', elite_signal_new: 'ph-chart-line-up', elite_signal_tp: 'ph-target',
         elite_signal_sl: 'ph-warning-octagon', elite_signal_cancelled: 'ph-x-circle', elite_signal_expired: 'ph-clock-countdown',
         academy_lesson_completed: 'ph-check-circle', academy_certificate: 'ph-certificate',
         payment_confirmed: 'ph-credit-card', payment_failed: 'ph-credit-card',
@@ -2605,7 +2605,7 @@
     const _NOTIF_HREFS = {
         comment: 'community.html', reply: 'community.html', reaction: 'community.html', mention: 'community.html',
         announcement: 'community.html', certificate: 'academy-dashboard.html',
-        new_dm: 'community.html?vista=mensajes', chat_global: 'community.html?vista=chat', call_global: 'community.html?vista=chat&llamada=1', call_dm: 'community.html?vista=mensajes&llamada=1', payment_admin_proc: 'admin.html', payment_admin_ok: 'admin.html', payment_admin_fail: 'admin.html',
+        new_dm: 'community.html?vista=mensajes', chat_global: 'community.html?vista=chat', call_global: 'community.html?vista=chat&llamada=1', call_dm: 'community.html?vista=mensajes&llamada=1', live_start: 'community.html?vista=operativa', payment_admin_proc: 'admin.html', payment_admin_ok: 'admin.html', payment_admin_fail: 'admin.html',
         elite_signal_new: 'signals-dashboard.html', elite_signal_tp: 'signals-dashboard.html',
         elite_signal_sl: 'signals-dashboard.html', elite_signal_cancelled: 'signals-dashboard.html', elite_signal_expired: 'signals-dashboard.html',
         academy_lesson_completed: 'academy-dashboard.html', academy_certificate: 'academy-dashboard.html',
@@ -2619,6 +2619,23 @@
         // página actual, en vez de navegar.
         support_message_new: 'admin.html#soporte', support_reply: 'dashboard.html',
     };
+
+    const _llamadasAvisadas = new Set();
+
+    // Tocar un aviso del teléfono con la app ya abierta: la página lo abre ella misma (si estás en una llamada, SIN cortarla)
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (e) => {
+            const d = e.data;
+            if (!d || d.nlt !== 'abrir' || typeof d.url !== 'string') return;
+            let u; try { u = new URL(d.url, window.location.origin); } catch (_) { return; }
+            if (u.origin !== window.location.origin) return;
+            if (e.ports && e.ports[0]) e.ports[0].postMessage('ok');
+            let top = window; try { top = window.top; } catch (_) { /* otro origen */ }
+            if (top.NLTCall && top.NLTCall.estado().activa) { top.NLTCall.abrirUrl(u.href); return; }
+            if (/community\.html$/.test(window.location.pathname) && /community\.html$/.test(u.pathname) && /llamada=1/.test(u.search) && typeof window.irALlamadaDesdeAviso === 'function') { window.irALlamadaDesdeAviso(u.href); return; }
+            window.location.href = u.href;
+        });
+    }
 
     function notifBellHTML(idPrefix = 'notifBell') {
         return `
@@ -2642,14 +2659,56 @@
         const panel = document.getElementById(`${idPrefix}Panel`);
         if (!btn || !badge || !panel || typeof window.NLT_API === 'undefined') return null;
 
+        let _ultimoConteo = 0;
         async function refrescarBadge() {
             try {
                 const { count } = await window.NLT_API.communityNoLeidas();
                 if (count > 0) { badge.textContent = count > 9 ? '9+' : String(count); badge.classList.remove('hidden'); }
                 else badge.classList.add('hidden');
+                if (count > _ultimoConteo) avisarLlamadaEntrante();
+                _ultimoConteo = count;
             } catch (_) {
                 badge.classList.add('hidden');
             }
+        }
+
+        // Una llamada que te hacen (o una llamada grupal / la operativa que se abre) mientras estás en cualquier otra parte del ecosistema:
+        // además de la campana y el aviso del teléfono, sale un cartel arriba para contestar/unirte sin buscar la notificación.
+        async function avisarLlamadaEntrante() {
+            try {
+                if (/community\.html$/.test(window.location.pathname)) return;                          // Community ya tiene su propio aviso
+                let top = window; try { top = window.top; } catch (_) { /* otro origen */ }
+                if (top.NLTCall && top.NLTCall.estado().activa) return;                                 // ya estás en una llamada
+                const lista = await window.NLT_API.communityNotificaciones();
+                const hace = (n) => (Date.now() - new Date(n.created_at).getTime()) / 1000;
+                const n = lista.find((x) => !x.read && /^(call_dm|call_global|live_start)$/.test(x.type) && hace(x) < 150 && !_llamadasAvisadas.has(x.id));
+                if (!n) return;
+                _llamadasAvisadas.add(n.id);
+                _mostrarCartelLlamada(n);
+            } catch (_) { /* un aviso que falla no debe molestar */ }
+        }
+        function _mostrarCartelLlamada(n) {
+            let caja = document.getElementById('nltCartelLlamada');
+            if (!caja) {
+                const st = document.createElement('style');
+                st.textContent = `#nltCartelLlamada{position:fixed;left:10px;right:10px;top:calc(env(safe-area-inset-top,0px) + 10px);z-index:2147483200;max-width:460px;margin:0 auto;background:rgba(12,16,26,.97);
+                    border:1px solid rgba(34,197,94,.5);border-radius:20px;padding:12px 14px;display:flex;align-items:center;gap:12px;box-shadow:0 18px 50px rgba(0,0,0,.6);color:#f3f4f6}
+                    #nltCartelLlamada .cl-ic{width:42px;height:42px;border-radius:50%;background:#16a34a;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+                    #nltCartelLlamada .cl-tx{flex:1;min-width:0;font-size:13px;line-height:1.25}#nltCartelLlamada .cl-tx b{display:block;font-size:14px}
+                    #nltCartelLlamada button{border:0;border-radius:999px;padding:10px 16px;font-size:13px;font-weight:700;cursor:pointer;flex:none}
+                    #nltCartelLlamada .cl-ok{background:#16a34a;color:#fff}#nltCartelLlamada .cl-no{background:rgba(255,255,255,.1);color:#e5e7eb;padding:10px 12px}`;
+                document.head.appendChild(st);
+                caja = document.createElement('div'); caja.id = 'nltCartelLlamada'; document.body.appendChild(caja);
+            }
+            const dm = n.type === 'call_dm';
+            caja.innerHTML = `<div class="cl-ic"><i class="ph-fill ${dm ? 'ph-phone-incoming' : 'ph-phone-call'}"></i></div>
+                <div class="cl-tx"><b>${_escNotif(n.title || (dm ? 'Llamada' : 'Llamada grupal'))}</b>${_escNotif(n.message || '')}</div>
+                <button class="cl-no" type="button">Ahora no</button><button class="cl-ok" type="button">${dm ? 'Contestar' : 'Unirme'}</button>`;
+            caja.style.display = 'flex';
+            const cerrar = () => { caja.style.display = 'none'; clearTimeout(caja._t); };
+            caja.querySelector('.cl-no').onclick = cerrar;
+            caja.querySelector('.cl-ok').onclick = () => { cerrar(); window.NLT_API.communityMarcarLeida && window.NLT_API.communityMarcarLeida(n.id).catch(() => {}); _irAlRecurso(n); };
+            caja._t = setTimeout(cerrar, 25000);
         }
 
         function _irAlRecurso(n) {
@@ -2661,7 +2720,7 @@
             // pestaña en la misma página en vez de recargarla (mejor UX, sin
             // inventar un router: solo se usa si la función ya existe en scope).
             // Llamadas: en Community se abre el lugar de la llamada SIN recargar la página (recargar cortaría una llamada en curso)
-            if ((n.type === 'call_global' || n.type === 'call_dm') && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.irALlamadaDesdeAviso === 'function') {
+            if ((n.type === 'call_global' || n.type === 'call_dm' || n.type === 'live_start') && window.location.pathname.endsWith(ruta.split('?')[0]) && typeof window.irALlamadaDesdeAviso === 'function') {
                 panel.classList.add('hidden');
                 window.irALlamadaDesdeAviso(href);
                 return;

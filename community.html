@@ -223,6 +223,31 @@
         .dm-img-fallo .dm-img-quitar { background: transparent; border-color: transparent; font-weight: 500; color: #E5E7EB; padding: 2px 10px; }
         /* Llamadas: chip del chat global, botón del chat privado y aviso de llamada entrante */
         .chip-llamada { color: #86efac; border-color: rgba(34,197,94,.35); background: rgba(34,197,94,.1); }
+        .op-punto { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ef4444; margin-right: 7px; animation: llPulso 1.6s ease-in-out infinite; }
+        .op-punto.hidden { display: none; }
+        .op-hero { padding: 26px 20px; text-align: center; }
+        .op-estado { display: inline-flex; align-items: center; font-size: 13px; font-weight: 700; padding: 7px 15px; border-radius: 999px; background: rgba(255,255,255,0.06); color: #cbd5e1; }
+        .op-estado .op-punto { background: #64748b; animation: none; }
+        .op-estado.vivo { background: rgba(239,68,68,.14); color: #fecaca; }
+        .op-estado.vivo .op-punto { background: #ef4444; animation: llPulso 1.6s ease-in-out infinite; }
+        .op-sub { color: #94a3b8; font-size: 13px; line-height: 1.5; max-width: 520px; margin: 16px auto 20px; }
+        .op-acciones { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+        .op-btn { display: inline-flex; align-items: center; gap: 9px; border: 0; border-radius: 999px; padding: 14px 30px; font-size: 15px; font-weight: 800; color: #fff; cursor: pointer;
+            background: linear-gradient(135deg, #1fbf6a, #14a057); box-shadow: 0 10px 28px rgba(20,160,87,.35); }
+        .op-btn:disabled { opacity: .5; cursor: default; }
+        .op-btn-sec { border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); color: #e5e7eb; border-radius: 999px; padding: 14px 24px; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .op-btn-sec.op-rojo { background: #ef4444; border-color: transparent; color: #fff; }
+        .op-btn.hidden, .op-btn-sec.hidden { display: none; }
+        .op-nota { color: #64748b; font-size: 11.5px; margin-top: 16px; }
+        .op-gente { display: grid; grid-template-columns: repeat(auto-fill, minmax(86px, 1fr)); gap: 14px 10px; margin-top: 22px; }
+        .op-pers { text-align: center; min-width: 0; }
+        .op-av { position: relative; width: 58px; height: 58px; margin: 0 auto 6px; border-radius: 50%; background: linear-gradient(135deg,#3b4658,#252d3b); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; }
+        .op-av img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .op-pers.habla .op-av { box-shadow: 0 0 0 3px #4378FF, 0 0 16px rgba(67,120,255,.7); }
+        .op-pers .op-n { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .op-pers small { display: block; font-size: 10px; color: #64748b; }
+        .op-pers small.host { color: #4378FF; font-weight: 700; }
+        .op-mudo { position: absolute; right: -2px; bottom: -2px; width: 20px; height: 20px; border-radius: 50%; background: #0b0f17; border: 1.5px solid #475569; color: #94a3b8; display: flex; align-items: center; justify-content: center; font-size: 11px; }
         .chip-llamada.hidden { display: none; }
         .chip-llamada.viva { background: #16a34a; color: #fff; border-color: transparent; animation: llPulso 1.8s ease-in-out infinite; }
         .chip-llamada.dentro { background: #fff; color: #0b0f17; border-color: transparent; }
@@ -413,6 +438,7 @@
             <button data-vista="feed" id="tab-vista-feed" class="chip activo">Feed</button>
             <button data-vista="chat" id="tab-vista-chat" class="chip">Chat</button>
             <button data-vista="mensajes" id="tab-vista-mensajes" class="chip">Mensajes</button>
+            <button data-vista="operativa" id="tab-vista-operativa" class="chip"><span id="opPuntoTab" class="op-punto hidden" aria-hidden="true"></span>Operativa en vivo</button>
             <!-- Solo visible para miembros (mismo gate que composerBox/chat/DM) --
                  se revela en init() junto con la carga de miPerfil. Reusa
                  mostrarPerfil() con el username propio: es el MISMO componente
@@ -513,6 +539,32 @@
         </div>
 
         <!-- Mensajes (DM 1-a-1) view -->
+        <!-- Operativa en vivo: sala de voz del equipo (hasta 30 personas); los anfitriones comparten pantalla -->
+        <div id="vistaOperativa" class="hidden vista-ancha">
+            <div class="text-center mb-6">
+                <p class="text-[10px] font-bold text-nlt-accent uppercase tracking-[0.25em] mb-3">NLT Community</p>
+                <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Operativa en vivo</h1>
+            </div>
+            <div id="opSinAcceso" class="hidden glass-card p-10 text-center">
+                <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
+                <p class="font-bold text-white mb-1">Necesitas un producto NLT activo</p>
+                <p class="text-xs text-gray-500">Con un producto activo puedes entrar a la operativa diaria.</p>
+            </div>
+            <div id="opAutorizado" class="hidden">
+                <div class="glass-card op-hero">
+                    <div id="opEstado" class="op-estado"><span class="op-punto" aria-hidden="true"></span><span id="opEstadoTxt">Conectando…</span></div>
+                    <p class="op-sub">La sala de voz del equipo para operar juntos cada día. Entran hasta <b id="opMax">30</b> personas. Entras en silencio: toca el micrófono cuando quieras hablar. Los anfitriones comparten su pantalla y se abre sola.</p>
+                    <div class="op-acciones">
+                        <button id="btn-op-entrar" type="button" class="op-btn"><i class="ph-fill ph-broadcast" aria-hidden="true"></i> <span>Entrar a la operativa</span></button>
+                        <button id="btn-op-controles" type="button" class="op-btn-sec hidden">Abrir controles</button>
+                        <button id="btn-op-salir" type="button" class="op-btn-sec op-rojo hidden">Salir</button>
+                    </div>
+                    <p class="op-nota">Si sales de Community, la llamada sigue: te acompaña la burbuja verde. Solo se cierra con «Salir».</p>
+                </div>
+                <div id="opGente" class="op-gente"></div>
+            </div>
+        </div>
+
         <div id="vistaMensajes" class="hidden vista-ancha">
             <div id="dmSinAcceso" class="hidden glass-card p-10 text-center">
                 <i class="ph-fill ph-lock-key text-2xl text-nlt-accent mb-3"></i>
@@ -583,9 +635,9 @@
     <div id="llamadaEntrante" class="llamada-entrante hidden" role="alertdialog" aria-live="assertive"></div>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
-    <script src="assets/js/nlt-shared.js?v=513a1529"></script>
-    <script src="assets/js/nlt-api-client.js?v=a61dc0fd"></script>
-    <script src="assets/js/nlt-call.js?v=fc82752e"></script>
+    <script src="assets/js/nlt-shared.js?v=29247918"></script>
+    <script src="assets/js/nlt-api-client.js?v=24bda1c7"></script>
+    <script src="assets/js/nlt-call.js?v=2860152b"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -1266,6 +1318,7 @@
             document.getElementById('vistaFeed').classList.add('hidden');
             document.getElementById('vistaChat').classList.add('hidden');
             document.getElementById('vistaMensajes').classList.add('hidden');
+            document.getElementById('vistaOperativa').classList.add('hidden');
             document.getElementById('chatTabs').classList.add('hidden');
             const box = document.getElementById('vistaPerfil');
             box.classList.remove('hidden');
@@ -2528,6 +2581,8 @@
             document.getElementById('tab-vista-feed').classList.toggle('activo', vista === 'feed');
             document.getElementById('tab-vista-chat').classList.toggle('activo', vista === 'chat');
             document.getElementById('tab-vista-mensajes').classList.toggle('activo', vista === 'mensajes');
+            document.getElementById('tab-vista-operativa').classList.toggle('activo', vista === 'operativa');
+            document.getElementById('vistaOperativa').classList.toggle('hidden', vista !== 'operativa');
             document.getElementById('vistaFeed').classList.toggle('hidden', vista !== 'feed');
             document.getElementById('vistaChat').classList.toggle('hidden', vista !== 'chat');
             document.getElementById('vistaMensajes').classList.toggle('hidden', vista !== 'mensajes');
@@ -2557,6 +2612,11 @@
                     document.getElementById('dmSinAcceso').classList.remove('hidden');
                 }
                 dmCargado = true;
+            }
+            if (vista === 'operativa') {
+                document.getElementById('opAutorizado').classList.toggle('hidden', !esMiembro);
+                document.getElementById('opSinAcceso').classList.toggle('hidden', esMiembro);
+                refrescarOperativa();
             }
             pintarLlamadas(); pollLlamadas();
         }
@@ -2613,6 +2673,7 @@
         document.getElementById('tab-vista-feed').addEventListener('click', () => mostrarVista('feed'));
         document.getElementById('tab-vista-chat').addEventListener('click', () => mostrarVista('chat'));
         document.getElementById('tab-vista-mensajes').addEventListener('click', () => mostrarVista('mensajes'));
+        document.getElementById('tab-vista-operativa').addEventListener('click', () => mostrarVista('operativa'));
         // Mismo patrón que el header clickeable de un DM (btn-dm-header-perfil):
         // pushState primero para que la URL refleje ?u=<propio-username> (Volver,
         // refresh y compartir el link se comportan igual que en cualquier otro perfil).
@@ -2656,7 +2717,7 @@
         // La llamada vive en nlt-call.js y NO se corta al cambiar de página (ver ahí). Aquí solo van los botones y el aviso de llamada entrante.
         const LL = { global: { active: false, participants: [] }, dm: { active: false, participants: [] }, descartadas: new Set(), entrante: null };
         const llamadas = () => window.NLTCall;
-        const dentroDe = (scope, convId) => { const e = llamadas() && llamadas().estado(); return !!e && e.activa && e.scope === scope && (scope === 'global' || e.conversationId === convId); };
+        const dentroDe = (scope, convId) => { const e = llamadas() && llamadas().estado(); return !!e && e.activa && e.scope === scope && (scope === 'global' || scope === 'live' || e.conversationId === convId); };
 
         async function iniciarLlamada(scope, conversationId, label) {
             if (!llamadas() || !miPerfil) return;
@@ -2733,14 +2794,56 @@
             } catch (_) { /* un poll fallido no debe molestar */ }
             pintarLlamadas();
         }
-        if (window.NLTCall) window.NLTCall.alCambiar(() => { pintarLlamadas(); });
+        if (window.NLTCall) window.NLTCall.alCambiar(() => { pintarLlamadas(); pintarOperativa(); });
+
+        // ───── Operativa en vivo ─────
+        const OP = { enabled: false, participants: 0, live: false, max: 30, host: false };
+        async function refrescarOperativa() {
+            if (!esMiembro || !llamadas()) return;
+            try {
+                const r = await NLT_API.liveEstado();
+                Object.assign(OP, { enabled: !!r.enabled, participants: r.participants || 0, live: !!r.live, max: r.max || 30, host: !!r.is_host });
+            } catch (_) { /* un poll fallido no debe molestar */ }
+            pintarOperativa();
+        }
+        function pintarOperativa() {
+            const dentro = dentroDe('live'), e = llamadas() ? llamadas().estado() : null;
+            const punto = document.getElementById('opPuntoTab');
+            if (punto) punto.classList.toggle('hidden', !(OP.live || dentro));
+            const estado = document.getElementById('opEstado'), txt = document.getElementById('opEstadoTxt');
+            if (!estado) return;
+            const n = dentro ? e.participantes.length : OP.participants;
+            estado.classList.toggle('vivo', !!(OP.live || dentro));
+            txt.textContent = !OP.enabled ? 'Próximamente' : (dentro ? `Estás dentro · ${n} ${n === 1 ? 'persona' : 'personas'}` : (OP.live ? `En vivo · ${n} ${n === 1 ? 'persona' : 'personas'} dentro` : 'Sala abierta · nadie dentro todavía'));
+            document.getElementById('opMax').textContent = OP.max;
+            const entrar = document.getElementById('btn-op-entrar');
+            entrar.classList.toggle('hidden', dentro);
+            entrar.disabled = !OP.enabled || !(llamadas() && llamadas().hayWebRTC);
+            entrar.querySelector('span').textContent = OP.enabled ? (OP.live ? 'Unirme a la operativa' : 'Entrar a la operativa') : 'Se activa pronto';
+            document.getElementById('btn-op-controles').classList.toggle('hidden', !dentro);
+            document.getElementById('btn-op-salir').classList.toggle('hidden', !dentro);
+            const gente = document.getElementById('opGente');
+            gente.innerHTML = dentro ? e.participantes.map((p) => `<div class="op-pers ${e.hablando && e.hablando.includes(p.user_id) ? 'habla' : ''}">
+                <div class="op-av">${p.avatar_url ? `<img src="${esc(p.avatar_url)}" alt="">` : esc(iniciales(p.display_name))}${p.muted ? '<span class="op-mudo"><i class="ph-fill ph-microphone-slash"></i></span>' : ''}</div>
+                <div class="op-n">${esc(p.display_name)}</div>${p.host ? '<small class="host">Anfitrión</small>' : ''}</div>`).join('') : '';
+        }
+        document.getElementById('btn-op-entrar').addEventListener('click', async () => {
+            if (!llamadas() || !miPerfil) return;
+            const b = document.getElementById('btn-op-entrar'); b.disabled = true;
+            try { await llamadas().unirse({ scope: 'live', myId: miPerfil.user_id }); }
+            catch (err) { llamadas().toast(err && err.message ? err.message : 'No se pudo entrar a la operativa.'); }
+            pintarOperativa(); refrescarOperativa();
+        });
+        document.getElementById('btn-op-controles').addEventListener('click', () => llamadas().abrirPanel());
+        document.getElementById('btn-op-salir').addEventListener('click', () => { llamadas().salir(); });
 
         // Desde una notificación de llamada, sin recargar la página (recargar cortaría una llamada en curso)
         window.irALlamadaDesdeAviso = async (href) => {
             let u; try { u = new URL(href, window.location.href); } catch (_) { return; }
             const c = u.searchParams.get('c');
-            await mostrarVista(u.searchParams.get('vista') === 'chat' ? 'chat' : 'mensajes');
-            if (c && u.searchParams.get('vista') !== 'chat') await abrirConversacion(c);
+            const vista = u.searchParams.get('vista');
+            await mostrarVista(vista === 'chat' ? 'chat' : (vista === 'operativa' ? 'operativa' : 'mensajes'));
+            if (c && vista !== 'chat' && vista !== 'operativa') await abrirConversacion(c);
             pollLlamadas();
         };
 
@@ -2816,7 +2919,7 @@
                 // Deep-link del Notification Center ("Nuevo DM" -> Community
                 // /Messages, ver nlt-shared.js::_NOTIF_HREFS) -- solo cambia de
                 // pestaña si el usuario ya es miembro (mismo gate que el resto).
-                if (esMiembro && (vistaParam === 'mensajes' || vistaParam === 'chat')) {
+                if (esMiembro && (vistaParam === 'mensajes' || vistaParam === 'chat' || vistaParam === 'operativa')) {
                     await mostrarVista(vistaParam);
                     if (vistaParam === 'mensajes' && params.get('c')) await abrirConversacion(params.get('c'));
                 }
@@ -2833,8 +2936,10 @@
             NLT.pollWhileVisible(pollChatNuevo, 8000);
             NLT.pollWhileVisible(pollDMNuevo, 8000);
             NLT.pollWhileVisible(pollLlamadas, 10000);
+            NLT.pollWhileVisible(refrescarOperativa, 20000);
             pintarLlamadas();
             setTimeout(pollLlamadas, 600);
+            setTimeout(refrescarOperativa, 900);
         }
         init();
     </script>
