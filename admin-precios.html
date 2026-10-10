@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover">
+    <script src="assets/js/nlt-perf.js?v=6f425d16"></script>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <title>Cuenta de precios · Admin</title>
+    <link rel="stylesheet" href="assets/css/tailwind.css?v=5de2fbbf">
+    <link rel="stylesheet" href="assets/css/nlt-flow.css?v=7a7bba0e">
+    <link rel="manifest" href="/manifest.webmanifest">
+    <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png?v=2">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="NLT">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="theme-color" content="#080A0F">
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@500;600;700;800;900&display=swap"></noscript>
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"></noscript>
+    <link rel="preload" as="style" href="assets/vendor/phosphor/regular.css" onload="this.onload=null;this.rel='stylesheet'">
+    <link rel="preload" as="style" href="assets/vendor/phosphor/fill.css" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript>
+        <link rel="stylesheet" href="assets/vendor/phosphor/regular.css">
+        <link rel="stylesheet" href="assets/vendor/phosphor/fill.css">
+    </noscript>
+    <style>
+        body { background-color: #080A0F; background-image: radial-gradient(650px circle at 0% 0%, rgba(67,120,255,0.09), transparent 60%), radial-gradient(550px circle at 100% 100%, rgba(34,197,94,0.05), transparent 60%); background-attachment: fixed; color: #FFFFFF; -webkit-font-smoothing: antialiased; }
+        .glass-card { background: linear-gradient(180deg, rgba(17,21,28,0.7) 0%, rgba(13,16,22,0.9) 100%); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.04); border-radius: 20px; }
+        ::-webkit-scrollbar { width: 0; background: transparent; }
+        html { overflow-x: hidden; }
+        .chip { padding: 7px 15px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #9CA6B4; background: rgba(255,255,255,0.04); cursor: pointer; white-space: nowrap; border: 1px solid transparent; transition: all .15s; }
+        .chip:hover { color: #fff; background: rgba(255,255,255,0.08); }
+        .chip.on { color: #4378FF; background: rgba(67,120,255,0.12); border-color: rgba(67,120,255,0.25); }
+        .kpi { font-size: 26px; font-weight: 800; line-height: 1; }
+        .lvl-error { color: #f85149; } .lvl-warn { color: #d29922; } .lvl-info { color: #6B7280; }
+        .g-Splus,.g-Aplus { color:#4378FF; } .g-A { color:#3fb950; } .g-B { color:#d29922; } .g-C { color:#e3742f; } .g-INVALID,.g-unknown { color:#6B7280; }
+        @media (max-width: 767px) {
+            #sidebar { position: fixed; inset: 0 auto 0 0; z-index: 50; transform: translateX(-100%); transition: transform .3s; }
+            #sidebar.sidebar-open { transform: translateX(0); }
+        }
+    </style>
+    <link rel="stylesheet" href="assets/css/nlt-perf.css?v=a1191217">
+</head>
+<body class="h-screen flex overflow-hidden">
+    <aside id="sidebar" class="w-[280px] border-r border-nlt-border flex flex-col justify-between shrink-0 bg-nlt-bg/50 backdrop-blur-xl"></aside>
+
+    <main class="flex-1 min-w-0 flex flex-col h-full">
+        <header class="min-h-24 md:h-24 flex flex-wrap items-center justify-between gap-y-2 pl-20 pr-4 py-3 md:pr-10 md:py-0 shrink-0 border-b border-nlt-border/50 bg-nlt-bg/50 backdrop-blur-md">
+            <div>
+                <h1 class="text-lg md:text-2xl font-bold tracking-tight">Cuenta de precios · NLT Charts</h1>
+                <p class="text-[11px] text-gray-500 -mt-0.5">Las cuentas MT5 que alimentan el gráfico en vivo</p>
+            </div>
+            <a href="admin.html" class="text-xs font-medium text-gray-400 hover:text-white border border-gray-700 px-3 py-1.5 rounded-lg">← Admin</a>
+        </header>
+
+        <div class="flex-1 overflow-y-auto p-4 md:p-10 space-y-6">
+            <div id="vistaCargando" class="py-24 text-center"><p class="text-sm text-gray-500 animate-pulse">Cargando…</p></div>
+            <div id="vistaSinPermiso" class="hidden py-16 max-w-lg mx-auto text-center">
+                <div class="glass-card p-10">
+                    <i class="ph-fill ph-lock-key text-4xl text-nlt-accent mb-4"></i>
+                    <h2 class="text-xl font-bold mb-2">Sin permiso</h2>
+                    <p class="text-sm text-gray-500">Solo el administrador principal puede ver esta pantalla.</p>
+                </div>
+            </div>
+
+            <div id="vista" class="hidden space-y-6 max-w-3xl">
+                <div class="glass-card p-5 text-sm text-gray-300 leading-relaxed">
+                    <p><b class="text-white">Para qué sirve:</b> TickerAll enfría las cuentas de precios y no guarda su contraseña. Si guardas aquí el login, la API reconecta sola la cuenta
+                    cuando se enfría y el gráfico no se queda «Desconectado». Si el broker rechaza el login (por ejemplo, la demo caducó) no insiste y te llega un aviso.</p>
+                    <p class="mt-2 text-xs text-gray-500">La contraseña se guarda cifrada y nunca se vuelve a mostrar. Usa una cuenta <b>demo</b> o de solo precios, nunca una cuenta con dinero.</p>
+                </div>
+                <div id="cuentas" class="space-y-6"></div>
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/vendor/supabase-2.117.3.js"></script>
+    <script src="assets/js/nlt-shared.js?v=5621e70d"></script>
+    <script src="assets/js/nlt-api-client.js?v=7c7ea089"></script>
+    <script>
+    (function () {
+        const $ = (id) => document.getElementById(id);
+        const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        const ROL = { primary: 'Principal', backup: 'Respaldo' };
+        const ESTADO = {
+            CONNECTED: ['Conectada', 'text-green-400'], MARKET_CLOSED: ['Conectada · mercado cerrado', 'text-green-400'], DELAYED: ['Conectada · con retraso', 'text-yellow-400'],
+            DISCONNECTED: ['Sin conexión', 'text-yellow-400'], COOLING: ['Fría · reintentando', 'text-yellow-400'], EXPIRED: ['Login rechazado', 'text-red-400'],
+            INVALID: ['Cuenta no encontrada', 'text-red-400'], NO_CONFIGURADA: ['Sin configurar', 'text-gray-500'],
+        };
+        function tarjeta(a) {
+            const [txt, cls] = ESTADO[a.state] || [a.state, 'text-gray-400'];
+            const aviso = a.rejected ? '<p class="text-xs text-red-400 mt-2">El broker rechazó el login guardado: crea o actualiza la cuenta y guarda el login nuevo.</p>' : '';
+            const guardada = a.saved ? `<p class="text-xs text-gray-500">Login guardado: <b class="text-gray-300">${esc(a.login)}</b> · ${esc(a.server)} · ${a.updated_at ? new Date(a.updated_at).toLocaleString() : ''}</p>` : '<p class="text-xs text-gray-500">Todavía no hay un login guardado.</p>';
+            return `<div class="glass-card p-5 md:p-6" data-rol="${a.role}">
+                <div class="flex items-center justify-between gap-3 mb-1">
+                    <h2 class="text-lg font-bold">Cuenta ${ROL[a.role]}</h2>
+                    <span class="text-xs font-semibold ${cls}">${esc(txt)}${a.account ? ' · ' + esc(a.account) : ''}</span>
+                </div>
+                ${guardada}
+                <p class="text-xs mt-1 ${a.auto_reconnect ? 'text-green-400' : 'text-gray-500'}">${a.auto_reconnect ? 'Reconexión automática activa' : 'Sin reconexión automática'}</p>
+                ${a.last_error ? `<p class="text-[11px] text-gray-500 mt-1">Último error: ${esc(a.last_error.code)} (${esc(a.last_error.at || '')})</p>` : ''}
+                ${aviso}
+                <form class="mt-5 grid gap-3 sm:grid-cols-2" autocomplete="off">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Número de cuenta MT5
+                        <input name="login" inputmode="numeric" pattern="[0-9]*" required placeholder="${a.saved ? 'Escribe de nuevo para cambiarla' : '12345678'}" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Servidor
+                        <input name="server" required value="${esc(a.server || '')}" placeholder="MetaQuotes-Demo" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider sm:col-span-2">Contraseña
+                        <input name="password" type="password" required autocomplete="new-password" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <div class="sm:col-span-2 flex flex-wrap items-center gap-2">
+                        <button type="submit" class="px-5 py-3 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all cursor-pointer">Guardar y conectar</button>
+                        ${a.saved ? '<button type="button" data-acc="reconnect" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm cursor-pointer">Reconectar ahora</button><button type="button" data-acc="delete" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-red-500/20 text-sm text-red-300 cursor-pointer">Quitar</button>' : ''}
+                    </div>
+                    <p class="msg sm:col-span-2 text-xs hidden"></p>
+                </form>
+            </div>`;
+        }
+        async function pintar() {
+            const r = await NLT_API.chartsPreciosListar();
+            $('cuentas').innerHTML = r.accounts.map(tarjeta).join('');
+        }
+        function mensaje(card, texto, ok) {
+            const m = card.querySelector('.msg'); m.textContent = texto; m.className = 'msg sm:col-span-2 text-xs ' + (ok ? 'text-green-400' : 'text-red-400');
+        }
+        document.addEventListener('submit', async (e) => {
+            const f = e.target.closest('form'); if (!f) return; e.preventDefault();
+            const card = f.closest('[data-rol]'), rol = card.dataset.rol, btn = f.querySelector('button[type=submit]');
+            btn.disabled = true; btn.textContent = 'Conectando…';
+            try {
+                const r = await NLT_API.chartsPreciosGuardar(rol, { login: f.login.value.trim(), password: f.password.value, server: f.server.value.trim(), connect: true });
+                await pintar();
+                const nuevo = document.querySelector(`[data-rol="${rol}"]`);
+                mensaje(nuevo, r.result.message, !!r.result.connected);
+            } catch (err) { mensaje(card, err.message, false); btn.disabled = false; btn.textContent = 'Guardar y conectar'; }
+        });
+        document.addEventListener('click', async (e) => {
+            const b = e.target.closest('[data-acc]'); if (!b) return;
+            const card = b.closest('[data-rol]'), rol = card.dataset.rol;
+            if (b.dataset.acc === 'delete') {
+                if (!confirm('¿Quitar el login guardado de la cuenta ' + ROL[rol].toLowerCase() + '? Dejará de reconectarse sola.')) return;
+                try { await NLT_API.chartsPreciosBorrar(rol); await pintar(); } catch (err) { mensaje(card, err.message, false); }
+                return;
+            }
+            b.disabled = true; b.textContent = 'Reconectando…';
+            try { const r = await NLT_API.chartsPreciosReconectar(rol); await pintar(); mensaje(document.querySelector(`[data-rol="${rol}"]`), r.result.message, !!r.result.connected); }
+            catch (err) { mensaje(card, err.message, false); b.disabled = false; b.textContent = 'Reconectar ahora'; }
+        });
+        (async function init() {
+            const session = await NLT.requireSession();
+            if (!session) return;
+            try { await NLT.mountSidebar(session, { activo: 'admin', seccion: 'general', planLabel: 'Admin' }); } catch (_) {}
+            $('vistaCargando').classList.add('hidden');
+            if (!NLT.isGlobalAdmin(session)) { $('vistaSinPermiso').classList.remove('hidden'); return; }
+            $('vista').classList.remove('hidden');
+            try { await pintar(); } catch (e) { $('cuentas').innerHTML = `<p class="text-sm text-red-400">No se pudo cargar: ${esc(e.message)}</p>`; }
+            setInterval(() => { if (!document.hidden && !document.querySelector('form :focus')) pintar().catch(() => {}); }, 15000);
+        })();
+    })();
+    </script>
+</body>
+</html>
