@@ -85,7 +85,7 @@
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=5621e70d"></script>
-    <script src="assets/js/nlt-api-client.js?v=496a43fd"></script>
+    <script src="assets/js/nlt-api-client.js?v=ae41eb41"></script>
     <script>
     (function () {
         const $ = (id) => document.getElementById(id);
@@ -139,7 +139,7 @@
             $('cuentas').innerHTML = r.accounts.map(tarjeta).join('');
         }
         // ── fuentes adicionales ──
-        const NOMBRE = { binance: 'Cripto en vivo · Binance', oanda: 'Índices, metales y energía · OANDA' };
+        const NOMBRE = { binance: 'Cripto en vivo · Binance', oanda: 'Índices, metales y energía · OANDA', capital: 'Índices, metales y energía · Capital.com' };
         function listaSimbolos(a) {
             const s = a.symbols || [];
             return s.length ? `<p class="text-xs text-gray-400 mt-2 leading-relaxed break-words"><b class="text-gray-300">${s.length} símbolos:</b> ${s.map(esc).join(', ')}</p>` : '';
@@ -156,6 +156,27 @@
                         <button type="button" data-ex="binance-toggle" data-val="${a.enabled ? '0' : '1'}" class="px-5 py-3 rounded-xl ${a.enabled ? 'bg-white/5 hover:bg-white/10' : 'bg-nlt-accent hover:bg-blue-500 text-white'} text-sm font-semibold cursor-pointer">${a.enabled ? 'Apagar' : 'Encender'}</button>
                         <button type="button" data-ex="test" data-f="binance" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm cursor-pointer">Probar ahora</button>
                     </div><p class="msg text-xs mt-3 hidden"></p></div>`;
+            }
+            if (a.source === 'capital') {
+                return `<div class="glass-card p-5 md:p-6" data-extra="capital">
+                <div class="flex items-center justify-between gap-3 mb-1"><h2 class="text-lg font-bold">${NOMBRE.capital}</h2><span class="text-xs font-semibold ${estado[1]}">${estado[0]}</span></div>
+                <p class="text-xs text-gray-500">Abre una cuenta <b>demo</b> gratis en Capital.com, activa el doble factor, entra a Ajustes → «API integrations» y genera una llave. Pega aquí la llave, el correo y la contraseña de esa cuenta. Se guardan cifrados y no se vuelven a mostrar.</p>
+                ${a.configured ? `<p class="text-xs text-gray-400 mt-2">Datos guardados · entorno ${esc(a.env || 'practice')}</p>` : ''}
+                ${listaSimbolos(a)}${err}
+                <form class="mt-4 grid gap-3 sm:grid-cols-2" autocomplete="off">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider sm:col-span-2">Llave de la API
+                        <input name="api_key" type="password" required minlength="4" autocomplete="new-password" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Correo de la cuenta
+                        <input name="identifier" type="email" required autocomplete="off" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Contraseña
+                        <input name="password" type="password" required autocomplete="new-password" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Entorno
+                        <select name="env" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"><option value="practice">Demo (gratis)</option><option value="live">Real</option></select></label>
+                    <div class="sm:col-span-2 flex flex-wrap gap-2">
+                        <button type="submit" class="px-5 py-3 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 cursor-pointer">Guardar y probar</button>
+                        ${a.configured ? '<button type="button" data-ex="test" data-f="capital" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm cursor-pointer">Probar ahora</button><button type="button" data-ex="capital-delete" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-red-500/20 text-sm text-red-300 cursor-pointer">Quitar</button>' : ''}
+                    </div><p class="msg sm:col-span-2 text-xs hidden"></p>
+                </form></div>`;
             }
             return `<div class="glass-card p-5 md:p-6" data-extra="oanda">
                 <div class="flex items-center justify-between gap-3 mb-1"><h2 class="text-lg font-bold">${NOMBRE.oanda}</h2><span class="text-xs font-semibold ${estado[1]}">${estado[0]}</span></div>
@@ -190,6 +211,10 @@
             try {
                 if (b.dataset.ex === 'binance-toggle') { b.textContent = '…'; const r = await NLT_API.chartsFuenteBinance(b.dataset.val === '1'); await volverAPintarExtra('binance', r.result); }
                 else if (b.dataset.ex === 'test') { b.textContent = 'Probando…'; const r = await NLT_API.chartsFuentePruebar(b.dataset.f); await volverAPintarExtra(fuente, r.result); }
+                else if (b.dataset.ex === 'capital-delete') {
+                    if (!confirm('¿Quitar los datos de Capital.com? Los índices que dependen de esa fuente dejarán de estar disponibles.')) { b.disabled = false; return; }
+                    await NLT_API.chartsFuenteCapitalBorrar(); await pintarExtras();
+                }
                 else if (b.dataset.ex === 'oanda-delete') {
                     if (!confirm('¿Quitar el token de OANDA? Los índices que dependen de esa fuente dejarán de estar disponibles.')) { b.disabled = false; return; }
                     await NLT_API.chartsFuenteOandaBorrar(); await pintarExtras();
@@ -197,6 +222,15 @@
             } catch (err) { msgExtra(card, { ok: false, message: err.message }); b.disabled = false; b.textContent = orig; }
         });
         document.addEventListener('submit', async (e) => {
+            const cap = e.target.closest('[data-extra="capital"] form');
+            if (cap) {
+                e.preventDefault(); e.stopImmediatePropagation();
+                const card = cap.closest('[data-extra]'), btn = cap.querySelector('button[type=submit]');
+                btn.disabled = true; btn.textContent = 'Probando…';
+                try { const r = await NLT_API.chartsFuenteCapital({ api_key: cap.api_key.value.trim(), identifier: cap.identifier.value.trim(), password: cap.password.value, env: cap.env.value, enabled: true }); await volverAPintarExtra('capital', r.result); }
+                catch (err) { msgExtra(card, { ok: false, message: err.message }); btn.disabled = false; btn.textContent = 'Guardar y probar'; }
+                return;
+            }
             const f = e.target.closest('[data-extra="oanda"] form'); if (!f) return; e.preventDefault(); e.stopImmediatePropagation();
             const card = f.closest('[data-extra]'), btn = f.querySelector('button[type=submit]');
             btn.disabled = true; btn.textContent = 'Probando…';

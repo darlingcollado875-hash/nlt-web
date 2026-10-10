@@ -296,6 +296,8 @@
         chartsFuentesExtra: () => request('/admin/charts/extra-sources', { timeoutMs: 60000, intentos: 1 }),
         chartsFuenteBinance: (enabled) => request('/admin/charts/extra-sources/binance', { method: 'PUT', body: JSON.stringify({ enabled }), timeoutMs: 60000, intentos: 1 }),
         chartsFuenteOanda: (datos) => request('/admin/charts/extra-sources/oanda', { method: 'PUT', body: JSON.stringify(datos), timeoutMs: 60000, intentos: 1 }),
+        chartsFuenteCapital: (datos) => request('/admin/charts/extra-sources/capital', { method: 'PUT', body: JSON.stringify(datos), timeoutMs: 90000, intentos: 1 }),
+        chartsFuenteCapitalBorrar: () => request('/admin/charts/extra-sources/capital', { method: 'DELETE' }),
         chartsFuentePruebar: (fuente) => request(`/admin/charts/extra-sources/${fuente}/test`, { method: 'POST', timeoutMs: 60000, intentos: 1 }),
         chartsFuenteOandaBorrar: () => request('/admin/charts/extra-sources/oanda', { method: 'DELETE' }),
         // --- Futures: administración (admin-only) ---
