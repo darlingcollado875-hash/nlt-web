@@ -47,7 +47,7 @@
             <p class="text-xs text-gray-500 animate-pulse">Cargando...</p>
         </div>
 
-        <a href="dashboard.html" class="inline-block w-full py-3 rounded-xl bg-nlt-accent hover:bg-blue-500 font-semibold text-sm transition-all">Ir al Dashboard</a>
+        <a id="btnDestino" href="dashboard.html" class="inline-block w-full py-3 rounded-xl bg-nlt-accent hover:bg-blue-500 font-semibold text-sm transition-all">Ir al Dashboard</a>
     </div>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
@@ -67,11 +67,25 @@
             }
 
             try {
-                const [orden, sub] = await Promise.all([NLT_API.obtenerOrden(orderId), NLT_API.miSuscripcion()]);
+                const orden = await NLT_API.obtenerOrden(orderId);
                 if (orden.status !== 'paid') {
                     window.location.href = `pago-pendiente.html?order=${encodeURIComponent(orderId)}`;
                     return;
                 }
+                if (String(orden.plan || '').startsWith('NLT_BOT')) {
+                    // NLT Bot Supreme: la licencia y el instalador viven en su propio panel (no en el de Copy System).
+                    document.getElementById('subtitulo').textContent = 'Tu compra de NLT Bot Supreme está confirmada.';
+                    box.innerHTML = `
+                        <p class="text-sm text-gray-300 mb-3">Entra a tu panel del bot para ver tu licencia y descargar el instalador. Si la licencia aún no aparece, espera un minuto y recarga.</p>
+                        <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Order ID</p>
+                        <p class="text-sm font-mono text-white">${orden.order_id}</p>
+                    `;
+                    const destino = document.getElementById('btnDestino');
+                    destino.href = 'nlt-bot-dashboard.html';
+                    destino.textContent = 'Ir a mi licencia y descarga';
+                    return;
+                }
+                const sub = await NLT_API.miSuscripcion();
                 document.getElementById('subtitulo').textContent = `Tu plan ${orden.plan} está activo.`;
                 box.innerHTML = `
                     <p class="text-[11px] text-gray-500 uppercase tracking-wider mb-1">Cuentas MT5 disponibles</p>

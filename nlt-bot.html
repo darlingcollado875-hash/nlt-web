@@ -209,7 +209,7 @@
                 <p class="text-xs text-gray-500 mb-5">1 Cuenta</p>
                 <p class="mb-6"><span class="text-4xl font-extrabold text-white">$50</span><span class="text-sm text-gray-500 font-medium"> /mes</span></p>
                 <div class="flex-1"></div>
-                <span class="block text-center w-full py-3.5 rounded-xl bg-white/5 text-gray-400 font-semibold text-sm cursor-default">Próximamente</span>
+                <button type="button" class="bot-plan-cta block text-center w-full py-3.5 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 transition-all" data-plan="NLT_BOT_MONTHLY" data-period="monthly">Comprar</button>
             </div>
 
             <!-- Plan 2: Lifetime 1 Cuenta -->
@@ -219,7 +219,7 @@
                 <p class="text-xs text-gray-500 mb-5">Lifetime -- 1 Cuenta</p>
                 <p class="mb-6"><span class="text-4xl font-extrabold text-white">$250</span><span class="text-sm text-gray-500 font-medium"> pago único</span></p>
                 <div class="flex-1"></div>
-                <span class="block text-center w-full py-3.5 rounded-xl bg-white/5 text-gray-400 font-semibold text-sm cursor-default">Próximamente</span>
+                <button type="button" class="bot-plan-cta block text-center w-full py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-all" data-plan="NLT_BOT_LIFETIME" data-period="one_time">Comprar</button>
             </div>
 
             <!-- Plan 3: Lifetime 2 Cuentas -->
@@ -229,18 +229,29 @@
                 <p class="text-xs text-gray-500 mb-5">Lifetime -- 2 Cuentas</p>
                 <p class="mb-6"><span class="text-4xl font-extrabold text-white">$300</span><span class="text-sm text-gray-500 font-medium"> pago único</span></p>
                 <div class="flex-1"></div>
-                <span class="block text-center w-full py-3.5 rounded-xl bg-white/5 text-gray-400 font-semibold text-sm cursor-default">Próximamente</span>
+                <button type="button" class="bot-plan-cta block text-center w-full py-3.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-sm transition-all" data-plan="NLT_BOT_2_ACCOUNTS_LIFETIME" data-period="one_time">Comprar</button>
             </div>
 
         </div>
+        <!-- Aviso de riesgo: obligatorio antes de crear la orden (ver script). Sin cifras ni promesas de resultado. -->
+        <div id="riesgoBox" class="max-w-3xl mx-auto mt-10 glass-card p-6 text-sm text-gray-400" data-reveal>
+            <p class="font-semibold text-white mb-2">Aviso de riesgo</p>
+            <p class="leading-relaxed">NLT Bot Supreme es un software de automatización de trading. No garantiza resultados ni beneficios, y los resultados históricos o simulados no garantizan resultados futuros. Operar en mercados financieros implica riesgo de pérdida del capital. El bot empieza en modo PAPER (simulado, sin enviar órdenes); enviar órdenes a una cuenta demo o real es una decisión tuya, se activa desde el programa y en una cuenta real exige tu aceptación expresa del riesgo.</p>
+            <label class="flex items-start gap-3 mt-4 cursor-pointer">
+                <input id="chkRiesgo" type="checkbox" class="mt-1 accent-blue-500">
+                <span>Entiendo y acepto que operar implica riesgo de pérdida y que NLT Bot Supreme no garantiza resultados.</span>
+            </label>
+            <p id="botMsg" class="hidden mt-3 text-xs"></p>
+        </div>
+        <div id="checkoutBox" class="max-w-xl mx-auto glass-card p-8 mt-6 hidden"></div>
     </section>
 
     <!-- CTA FINAL -->
     <section class="relative z-10 max-w-4xl mx-auto px-6 py-20 text-center">
         <div class="glass-card p-10 md:p-14" data-reveal>
-            <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Muy pronto disponible</h2>
-            <p class="text-gray-400 mb-8 max-w-xl mx-auto">NLT Bot Supreme está en beta cerrada. Abriremos la venta cuando esté listo -- mientras tanto, explora el resto del ecosistema.</p>
-            <a href="ecosystem.html" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm glow-button">Ver el ecosistema</a>
+            <h2 class="text-2xl md:text-4xl font-extrabold tracking-tight mb-4">Empieza en modo PAPER</h2>
+            <p class="text-gray-400 mb-8 max-w-xl mx-auto">Elige tu plan, paga y descarga el instalador desde tu Dashboard. El bot arranca en modo PAPER (simulado): tú decides cuándo pasar a una cuenta demo o real.</p>
+            <a href="#precio" class="inline-block px-8 py-3.5 rounded-full bg-nlt-accent text-white font-semibold text-sm glow-button">Ver precio</a>
         </div>
     </section>
 
@@ -253,22 +264,55 @@
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=5621e70d"></script>
+    <script src="assets/js/nlt-api-client.js?v=c8d2b950"></script>
     <script>
-        // Sin backend todavía (catálogo/checkout de NLT Bot Supreme pendiente,
-        // ver auditoría comercial) -- los 3 CTA de precio + el CTA final usan
-        // EXACTAMENTE el mismo comportamiento que el botón "Comenzar" del
-        // header (mountPublicHeader): si hay sesión, va al Dashboard; si no,
-        // dispara el login real de Supabase. Nunca crea una orden ni llama a
-        // ningún endpoint de pago -- eso queda para cuando el catálogo exista.
+        // Venta abierta: cada botón de precio crea una orden real (POST /billing/orders) y muestra los métodos de
+        // pago (tarjeta con Whop / cripto con NOWPayments). La orden NO se crea sin marcar el aviso de riesgo.
+        // Sin sesión, se pide el login y se vuelve a #precio.
         function conectarCTAsPrecio() {
+            const msg = document.getElementById('botMsg');
+            const aviso = (texto, tono) => {
+                msg.classList.remove('hidden');
+                msg.className = 'mt-3 text-xs ' + (tono === 'error' ? 'text-nlt-danger' : 'text-nlt-accent');
+                msg.textContent = texto;
+            };
             document.querySelectorAll('.bot-plan-cta').forEach((btn) => {
                 btn.addEventListener('click', async () => {
+                    if (!document.getElementById('chkRiesgo').checked) {
+                        aviso('Marca la casilla del aviso de riesgo para continuar con la compra.', 'error');
+                        document.getElementById('riesgoBox').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        return;
+                    }
                     const session = await NLT.getSession();
-                    if (session) {
-                        window.location.href = 'dashboard.html';
-                    } else {
-                        const urlDestino = new URL('nlt-bot.html', window.location.href).toString();
+                    if (!session) {
+                        const urlDestino = new URL('nlt-bot.html#precio', window.location.href).toString();
                         NLT.supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: urlDestino } });
+                        return;
+                    }
+                    const original = btn.textContent;
+                    document.querySelectorAll('.bot-plan-cta').forEach((b) => { b.disabled = true; });
+                    btn.textContent = 'Creando orden...';
+                    aviso('Un momento...', 'info');
+                    try {
+                        const plan = btn.getAttribute('data-plan');
+                        const periodo = btn.getAttribute('data-period');
+                        // El backend exige una red para los planes de pago único (resto del flujo manual anterior);
+                        // el cobro real sale por Whop o NOWPayments, así que el valor no se usa para pagar.
+                        const orden = await NLT_API.crearOrden(plan, periodo, null, periodo === 'one_time' ? 'BSC' : null);
+                        if (!orden.payment_available) {
+                            aviso(orden.payment_unavailable_reason || 'Pagos temporalmente no disponibles. Intenta de nuevo más tarde.', 'error');
+                            btn.textContent = original;
+                            document.querySelectorAll('.bot-plan-cta').forEach((b) => { b.disabled = false; });
+                            return;
+                        }
+                        msg.classList.add('hidden');
+                        const box = document.getElementById('checkoutBox');
+                        box.classList.remove('hidden');
+                        await NLT.mountMetodosPago(box, orden);
+                    } catch (err) {
+                        aviso(err.message || 'No pudimos crear la orden. Intenta de nuevo.', 'error');
+                        btn.textContent = original;
+                        document.querySelectorAll('.bot-plan-cta').forEach((b) => { b.disabled = false; });
                     }
                 });
             });
