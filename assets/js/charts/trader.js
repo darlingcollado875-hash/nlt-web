@@ -59,6 +59,17 @@
             return null;
         }
         const puedeOperar = () => !!(est && est.has_access && est.execution_enabled && cuentaActual());
+        // ¿La cuenta conectada ofrece este símbolo? `symbol_map` = lo que NLT emparejó con los símbolos del broker al conectar.
+        // Sin mapa todavía no se sabe qué ofrece: no se bloquea nada (decide el broker).
+        const noOfrece = (c, sym) => { const m = c && c.symbol_map; return !!(m && typeof m === 'object' && Object.keys(m).length && !m[sym]); };
+        const MSG_NO_OFRECE = (c, sym) => `Tu broker no permite operar ${sym}: no está disponible en tu cuenta #${c.login}. Puedes verlo y dibujar en el gráfico, pero no enviar órdenes desde aquí.`;
+        function htmlNoOfrece(c, sym) {
+            return `<div class="tr-nope" role="alert"><div class="tr-nope-ic"><i class="ph-fill ph-prohibit"></i></div>
+                <div class="tr-nope-tx"><b>Tu broker no permite operar este activo</b>
+                    <p><span class="tr-nope-sym">${esc(sym)}</span> no está disponible en tu cuenta <b>#${esc(c.login)}</b>${c.server ? ' · ' + esc(c.server) : ''}.</p>
+                    <p class="tr-nope-sub">Puedes verlo en el gráfico y dibujar tus zonas, pero las órdenes no se pueden enviar desde esta cuenta.</p>
+                    <div class="tr-nope-acc"><button type="button" data-tab="sym" class="mc-d">Revisar mis símbolos</button><button type="button" data-tr="mas" class="mc-d">Usar otra cuenta</button></div></div></div>`;
+        }
         const cuentaActual = () => (est && est.accounts || []).find((c) => c.id === cuentaId) || null;
         const esDelSimbolo = (x) => (x.nlt_symbol ? x.nlt_symbol === getSymbol() : norm(x.symbol).startsWith(norm(getSymbol())));
         const posDeSimbolo = () => vivo.positions.filter(esDelSimbolo);
@@ -286,7 +297,9 @@
                     <div><small>G/P abierta</small><b style="color:${gpAbierta() >= 0 ? '#22C55E' : '#EF4444'}">${dinero(gpAbierta())}</b></div><div><small>Posiciones</small><b>${vivo.positions.length}</b></div></div>` : '';
                 const tabs = c ? `<div class="pp-tabs"><button type="button" data-tab="operar" class="${tab === 'operar' ? 'on' : ''}">Operar</button><button type="button" data-tab="pos" class="${tab === 'pos' ? 'on' : ''}">Posiciones (${vivo.positions.length})</button><button type="button" data-tab="ord" class="${tab === 'ord' ? 'on' : ''}">Órdenes (${(vivo.orders || []).length})</button><button type="button" data-tab="hist" class="${tab === 'hist' ? 'on' : ''}">Historial</button><button type="button" data-tab="sym" class="${tab === 'sym' ? 'on' : ''}">Símbolos</button></div>` : '';
                 let panel = '';
-                if (c && tab === 'operar') {
+                if (c && tab === 'operar' && noOfrece(c, sym)) {
+                    panel = htmlNoOfrece(c, sym);
+                } else if (c && tab === 'operar') {
                     const pf = prefill || {};
                     panel = pendiente ? `<div class="tr-conf"><b>${pendiente.side === 'buy' ? 'COMPRAR' : 'VENDER'} ${pendiente.volume} lotes de ${esc(pendiente.symbol)}${pendiente.type === 'market' ? ' a mercado' : ` · ${pendiente.type === 'limit' ? 'LÍMITE' : 'STOP'} en ${pendiente.price}`}</b>
                         <p>Cuenta #${esc(c.login)} · ${esc(c.server || '')}<br>${pendiente.stop_loss ? `SL ${pendiente.stop_loss}` : 'Sin stop loss'} · ${pendiente.take_profit ? `TP ${pendiente.take_profit}` : 'Sin take profit'}</p>
@@ -464,6 +477,9 @@
                     return;
                 }
                 const sym = pos.simbolo || getSymbol(), dec = decimales(sym), r = (x) => (x == null ? null : Number(Number(x).toFixed(dec)));
+                if (noOfrece(cuentaActual(), sym)) {            // el broker de esta cuenta no tiene el activo: se explica y no se envía nada
+                    avisar(MSG_NO_OFRECE(cuentaActual(), sym), 'error'); sonido('error'); api.desdePosicion(pos); return;
+                }
                 const px = ultimoPrecio();
                 // Auto: PENDIENTE en la entrada exacta que dibujaste (límite si el precio debe venir a buscarla, stop si debe romperla). También puedes forzar mercado, límite o stop.
                 const tipo = tipoDeOrden(pos, px);
