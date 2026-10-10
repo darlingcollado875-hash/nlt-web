@@ -287,6 +287,16 @@
             return `<label class="lab-f"${ayuda ? ` title="${esc(ayuda)}"` : ''}><span>${esc(etq)}</span>${html}</label>`;
         }
         const sel = (k, opciones, v, grupo = 'form') => `<select data-k="${k}" data-g="${grupo}">${opciones.map(([a, b]) => `<option value="${esc(a)}"${String(a) === String(v) ? ' selected' : ''}>${esc(b)}</option>`).join('')}</select>`;
+        // Lista de activos agrupada por categoría y con el nombre completo (si el API aún no manda symbol_info, queda la lista simple)
+        const CATEGORIAS = [['forex', 'Forex'], ['metals', 'Metales'], ['energy', 'Energía'], ['indices', 'Índices'], ['crypto', 'Cripto']];
+        function selSimbolos(actual) {
+            const c = st.cfg;
+            const info = c.symbol_info && c.symbol_info.length ? c.symbol_info : c.symbols.map((s) => ({ symbol: s, display_name: s, category: 'other' }));
+            const grupos = [...CATEGORIAS, ['other', 'Otros']]
+                .map(([cat, nombre]) => [nombre, info.filter((x) => x.category === cat)]).filter(([, l]) => l.length);
+            const opcion = (x) => `<option value="${esc(x.symbol)}"${x.symbol === actual ? ' selected' : ''}>${esc(x.symbol)}${x.display_name && x.display_name !== x.symbol ? ` — ${esc(x.display_name)}` : ''}</option>`;
+            return `<select data-k="symbol" data-g="form">${grupos.map(([nombre, l]) => `<optgroup label="${esc(nombre)}">${l.map(opcion).join('')}</optgroup>`).join('')}</select>`;
+        }
         const num = (k, v, grupo, paso = 'any', min = '') => `<input type="number" data-k="${k}" data-g="${grupo}" value="${esc(v)}" step="${paso}" min="${min}">`;
         const valorE = (k) => (form.execution[k] ?? st.cfg.defaults.execution[k]);
         const valorS = (k) => (form.strategy[k] ?? presetActual().strategy[k] ?? st.cfg.defaults.strategy[k]);
@@ -308,7 +318,7 @@
             ${bloqueado ? `<div class="lab-aviso">NLT Backtest Lab corre el motor PRO del NLT Zone Engine en el servidor. Necesitas un plan de NLT Indicator o la prueba activa del Zone Engine.</div>` : ''}
             <div class="lab-grid">
                 <fieldset><legend>Mercado</legend>
-                    ${campo('Symbol', sel('symbol', c.symbols.map((s) => [s, s]), form.symbol))}
+                    ${campo('Symbol', selSimbolos(form.symbol))}
                     ${campo('Timeframe', sel('timeframe', c.timeframes.map((t) => [t, t]), form.timeframe))}
                     ${campo('Fecha inicial', `<input type="date" data-k="desde" data-g="form" value="${esc(form.desde)}">`)}
                     ${campo('Fecha final', `<input type="date" data-k="hasta" data-g="form" value="${esc(form.hasta)}">`)}
