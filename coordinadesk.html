@@ -645,7 +645,7 @@
 
         function formHTML(m, rec, nuevo) {
             return m.fields.map((f) => {
-                if (f.onlyNew && nuevo === false) return '';
+                if (f.onlyNew && nuevo === false && !(f.serie && rec.series)) return '';
                 const val = rec[f.k];
                 const full = f.full || f.t === 'rows' || f.t === 'textarea' || f.t === 'members' || f.t === 'weekdays' ? ' full' : '';
                 const oculto = f.showIf && rec[f.showIf[0]] !== f.showIf[1] ? ' hidden' : '';
@@ -673,7 +673,7 @@
         function collect(m, form, base, nuevo) {
             const rec = { ...base };
             for (const f of m.fields) {
-                if (f.onlyNew && nuevo === false) continue;
+                if (f.onlyNew && nuevo === false && !(f.serie && base.series)) continue;
                 if (f.t === 'rows') {
                     rec[f.k] = Array.from(form.querySelectorAll(`[data-rows="${f.k}"] .cd-subrow`)).map((row) => {
                         const o = {};
@@ -692,8 +692,11 @@
             const base = rec ? clone(rec) : { id: uid(m.col.slice(0, 3)), createdAt: new Date().toISOString() };
             if (nuevo) for (const f of m.fields) if (f.def !== undefined) base[f.k] = typeof f.def === 'function' ? f.def() : f.def;
             if (presets) Object.assign(base, presets);
+            if (!nuevo && base.series && modId === 'daily') {      // actividad que ya se repite: el formulario muestra su regla actual
+                base.repeat = base.series.rule; base.repeatUntil = base.series.until || ''; base.repeatDays = base.series.days || [];
+            }
             const it = ctx && ctx.agendaItem;
-            const aviso = it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha y quedará enlazada con este registro.</p>` : (rec && rec.series ? `<p class="cd-sub" style="margin-top:6px">🔁 Esta actividad se repite (${esc(textoRepeticion(rec.series))}). Los cambios aplican solo a esta fecha.</p>` : '');
+            const aviso = it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha y quedará enlazada con este registro.</p>` : (rec && rec.series ? `<p class="cd-sub" style="margin-top:6px">🔁 Esta actividad se repite (${esc(textoRepeticion(rec.series))}). Al guardar eliges si los cambios son solo para esta fecha o también para las siguientes.</p>` : '');
             openModal(`
                 <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>${aviso}
                 <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base, nuevo)}</div>
@@ -714,9 +717,15 @@
                 }
                 const err = m.validate && m.validate(out, base, nuevo);
                 if (err) { toast(err, 'err'); return; }
+                let alcance = 'one';
+                if (modId === 'daily' && !nuevo && base.series) {       // repetición: ¿solo esta o también las que vienen?
+                    const siguientes = siguientesDeSerie(base);
+                    if (siguientes.length) { alcance = await preguntarAlcance(siguientes.length); if (!alcance) return; }
+                }
+                const repeticion = { repeat: out.repeat, repeatUntil: out.repeatUntil, repeatDays: out.repeatDays };   // before() los quita del registro
                 if (m.before) m.before(out);
                 const btn = form.querySelector('button[type=submit]'); btn.disabled = true;
-                const ok = await guardar(m.col, out);
+                const ok = alcance === 'all' ? await guardarDesdeAqui(out, base, repeticion) : await guardar(m.col, alcance === 'one' && base.series ? { ...out, series: { ...out.series, excepcion: true } } : out);
                 if (ok && AUTO[m.col]) await sincronizarRecordatorio(m.col, out);   // publicación / reunión / lanzamiento -> recordatorio en la agenda
                 if (ok && m.after) await m.after(out, nuevo);
                 if (ok && it) await marcarHecho(it.id, { col: m.col, id: out.id });   // la actividad de la agenda queda hecha y enlazada
@@ -832,6 +841,57 @@
             }
             return out;
         }
+        // --- Editar una actividad que se repite: «solo esta» o «esta y las siguientes» ---
+        const siguientesDeSerie = (it) => S.items.filter((i) => i.series && i.series.id === it.series.id && i.id !== it.id && i.date > it.date);
+        function preguntarAlcance(n) {
+            return new Promise((resolver) => {
+                const el = document.createElement('div');
+                el.className = 'cd-overlay'; el.style.zIndex = '120';
+                el.innerHTML = `<div class="cd-modal" role="dialog" aria-modal="true" style="max-width:460px;margin-top:12vh">
+                    <h2 style="margin-bottom:6px">¿A cuáles repeticiones aplican los cambios?</h2>
+                    <p class="cd-sub" style="margin:0 0 16px">Esta actividad se repite y ya hay ${n} ${n === 1 ? 'repetición programada' : 'repeticiones programadas'} después de esta fecha.</p>
+                    <div style="display:grid;gap:10px">
+                        <button type="button" class="cd-btn" data-v="one" style="justify-content:flex-start;padding:14px 16px;text-align:left"><span><b>Solo esta</b><br><span class="cd-sub">Las demás quedan como estaban.</span></span></button>
+                        <button type="button" class="cd-btn primary" data-v="all" style="justify-content:flex-start;padding:14px 16px;text-align:left"><span><b>Esta y las siguientes</b><br><span style="opacity:.85;font-size:12px">Cambia también la hora, los días y lo demás de las ${n} que vienen.</span></span></button>
+                        <button type="button" class="cd-btn" data-v="">Cancelar</button>
+                    </div></div>`;
+                const cerrar = (v) => { document.removeEventListener('keydown', tecla, true); el.remove(); resolver(v || null); };
+                const tecla = (e) => { if (e.key === 'Escape') { e.stopPropagation(); cerrar(null); } };
+                document.addEventListener('keydown', tecla, true);
+                el.addEventListener('click', (e) => { const b = e.target.closest('[data-v]'); if (b) cerrar(b.getAttribute('data-v')); });
+                document.body.appendChild(el);
+                el.querySelector('[data-v=all]').focus();
+            });
+        }
+        // Aplica la edición a ESTA y a las siguientes: las que ya estaban programadas se rehacen con la regla nueva (días, hora, título…).
+        async function guardarDesdeAqui(out, base, repeticion) {
+            const vieja = base.series;
+            const regla = repeticion.repeat || vieja.rule;
+            const siguientes = siguientesDeSerie(base);
+            const hechas = siguientes.filter((i) => i.status === 'completed');
+            const pendientes = siguientes.filter((i) => i.status !== 'completed');
+            const previas = S.items.filter((i) => i.series && i.series.id === vieja.id && i.date < base.date).sort((a, b) => String(a.date).localeCompare(String(b.date)));
+            let nueva = null;
+            if (regla !== 'none') {
+                nueva = { id: uid('ser'), rule: regla, start: out.date, until: repeticion.repeatUntil || '', genUntil: out.date, ...(regla === 'custom' ? { days: (repeticion.repeatDays || []).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)) } : {}) };
+                if (!out.time) out.time = HORA_POR_DEFECTO;
+            }
+            if (nueva) out.series = nueva; else delete out.series;
+            if (!(await guardar('items', out))) return false;
+            // lo anterior queda como estaba, pero su serie vieja ya no genera nada más
+            if (previas.length) {
+                const corte = addDays(base.date, -1);
+                const primera = { ...previas[0], series: { ...previas[0].series, until: corte } };
+                await guardar('items', primera);
+            }
+            for (const h of hechas) await guardar('items', nueva ? { ...h, series: { ...nueva, excepcion: true } } : h);   // las ya hechas se respetan
+            for (let k = 0; k < pendientes.length; k += 8) await Promise.all(pendientes.slice(k, k + 8).map((f) => borrar('items', f.id)));
+            if (nueva) {
+                const n = await extenderSerie(nueva.id);
+                toast(`Cambios aplicados a esta y las siguientes${n ? ` (${n} repeticiones nuevas · ${textoRepeticion(nueva).toLowerCase()})` : ''}`, 'ok');
+            } else toast('Ya no se repite: se quitaron las siguientes', 'ok');
+            return true;
+        }
         // Crea las repeticiones que falten hasta el horizonte (una sola llamada al servidor). Devuelve cuántas creó.
         async function extenderSerie(serieId) {
             const occ = S.items.filter((i) => i.series && i.series.id === serieId).sort((a, b) => String(a.date).localeCompare(String(b.date)));
@@ -842,14 +902,15 @@
             const tope = addDays(hoy(), HORIZONTE_DIAS[serie.rule]);
             const limite = serie.until && serie.until < tope ? serie.until : tope;
             if (genUntil >= limite) return 0;
-            const plantilla = occ[occ.length - 1];
-            const fechas = fechasSerie(serie.rule, serie.start, genUntil, limite, serie.days);
+            const plantilla = [...occ].reverse().find((i) => !(i.series && i.series.excepcion)) || occ[occ.length - 1];   // una edición «solo esta» no se copia a las que vienen
+            const ocupadas = new Set(occ.map((i) => i.date));
+            const fechas = fechasSerie(serie.rule, serie.start, genUntil, limite, serie.days).filter((f) => !ocupadas.has(f));
             const nuevas = fechas.map((f) => {
                 const o = clone(plantilla);
                 for (const k of ['_updated_at', 'completedAt', 'linked', 'autoDone', 'autoSource']) delete o[k];
                 o.id = uid('ite'); o.createdAt = new Date().toISOString(); o.date = f; o.status = 'pending';
                 o.subtasks = (o.subtasks || []).map((st) => ({ ...st, id: uid('st'), completed: false }));
-                o.series = { ...serie, genUntil: limite };
+                o.series = { ...serie, genUntil: limite }; delete o.series.excepcion;
                 return o;
             });
             // aunque no haya fechas nuevas (p. ej. fin de la serie), se avanza el marcador para no recalcular cada vez
@@ -1350,14 +1411,14 @@
             { k: 'priority', l: 'Prioridad', t: 'select', opts: PRIO_ITEM, def: 'normal' }, { k: 'status', l: 'Estado', t: 'select', opts: ST_ITEM, def: 'pending' },
             { k: 'locationOrLink', l: 'Lugar o enlace (Meet/Teams)', t: 'text', full: 1 },
             { k: 'automaticReminder', l: 'Recordatorio automático (requiere hora)', t: 'check', def: true }, { k: 'reminderLeadTime', l: 'Avisar', t: 'select', opts: LEAD, def: '15_min' },
-            { k: 'repeat', l: 'Repetir (te avisa cada vez)', t: 'select', opts: REPEAT, def: 'none', onlyNew: 1 }, { k: 'repeatUntil', l: 'Repetir hasta (opcional)', t: 'date', onlyNew: 1 },
-            { k: 'repeatDays', l: 'Días de la semana en que se repite', t: 'weekdays', onlyNew: 1, showIf: ['repeat', 'custom'] },
+            { k: 'repeat', l: 'Repetir (te avisa cada vez)', t: 'select', opts: REPEAT, def: 'none', onlyNew: 1, serie: 1 }, { k: 'repeatUntil', l: 'Repetir hasta (opcional)', t: 'date', onlyNew: 1, serie: 1 },
+            { k: 'repeatDays', l: 'Días de la semana en que se repite', t: 'weekdays', onlyNew: 1, serie: 1, showIf: ['repeat', 'custom'] },
             { k: 'description', l: 'Descripción', t: 'textarea', full: 1 },
             { k: 'subtasks', l: 'Subtareas', t: 'rows', full: 1, add: 'Añadir subtarea', sub: [{ k: 'title', l: 'Subtarea', t: 'text' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 80px' },
             { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
         ];
         MODS.daily.validate = (r, base, nuevo) => {
-            if (!nuevo || !r.repeat || r.repeat === 'none') return '';
+            if ((!nuevo && !base.series) || !r.repeat || r.repeat === 'none') return '';
             if (r.repeatUntil && r.repeatUntil < r.date) return 'La fecha final de la repetición no puede ser anterior al inicio.';
             if (r.repeat === 'custom') {
                 if (!(r.repeatDays || []).length) return 'Elige al menos un día de la semana para repetir.';
@@ -1371,7 +1432,7 @@
             toast(n ? `Se programaron ${n} repeticiones más (${textoRepeticion(r.series).toLowerCase()})` : 'Repetición programada', 'ok');
         };
         MODS.daily.before = (r) => {
-            if (r.repeat && r.repeat !== 'none') {   // nueva serie: esta actividad es la primera; las demás se generan al guardar
+            if (r.repeat && r.repeat !== 'none' && !r.series) {   // nueva serie: esta actividad es la primera; las demás se generan al guardar
                 r.series = { id: uid('ser'), rule: r.repeat, start: r.date, until: r.repeatUntil || '', genUntil: r.date, ...(r.repeat === 'custom' ? { days: (r.repeatDays || []).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)) } : {}) };
                 if (!r.time) r.time = HORA_POR_DEFECTO;   // el aviso necesita una hora
             }
