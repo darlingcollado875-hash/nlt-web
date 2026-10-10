@@ -1488,6 +1488,17 @@
                             <button id="seBtnRefrescar" class="px-3 py-1.5 rounded-lg bg-white/10 text-xs font-semibold cursor-pointer"><i class="ph-bold ph-arrows-clockwise"></i> Actualizar</button>
                         </div>
                     </div>
+                    <div id="seVivo" class="se-vivo" data-tono="gris">
+                        <div class="se-vivo-cab">
+                            <span class="se-dot" aria-hidden="true"></span>
+                            <div class="se-vivo-txt">
+                                <strong id="seVivoTitulo">Leyendo el motor…</strong>
+                                <span id="seVivoSub">Un momento.</span>
+                            </div>
+                            <span id="seVivoLatido" class="se-latido"></span>
+                        </div>
+                        <div id="seActivos" class="se-grid"></div>
+                    </div>
                     <div class="grid grid-cols-3 gap-2 mb-3" role="group" aria-label="Modo del motor">
                         <button data-se-modo="apagado" class="se-modo-btn px-3 py-2 rounded-lg border border-white/10 text-xs font-semibold cursor-pointer">Apagado<span class="block text-[10px] font-normal text-gray-500">no corre</span></button>
                         <button data-se-modo="sombra" class="se-modo-btn px-3 py-2 rounded-lg border border-white/10 text-xs font-semibold cursor-pointer">Sombra<span class="block text-[10px] font-normal text-gray-500">detecta y anota, no publica</span></button>
@@ -1501,7 +1512,33 @@
                             <tbody id="seEventos"><tr><td colspan="12" class="py-2 text-gray-500">Cargando…</td></tr></tbody>
                         </table>
                     </div>
-                    <style>.se-modo-btn.on { background: rgba(67,120,255,.18); border-color: rgba(67,120,255,.5); color: #fff; }</style>
+                    <style>
+                        .se-modo-btn.on { background: rgba(67,120,255,.18); border-color: rgba(67,120,255,.5); color: #fff; }
+                        .se-vivo { --tono: 156,163,175; border: 1px solid rgba(var(--tono), .28); background: linear-gradient(180deg, rgba(var(--tono), .09), rgba(var(--tono), .02)); border-radius: 16px; padding: 14px; margin-bottom: 14px; }
+                        .se-vivo[data-tono="verde"] { --tono: 34,197,94; }
+                        .se-vivo[data-tono="amarillo"] { --tono: 234,179,8; }
+                        .se-vivo[data-tono="rojo"] { --tono: 239,68,68; }
+                        .se-vivo-cab { display: flex; align-items: center; gap: 12px; }
+                        .se-vivo-txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+                        .se-vivo-txt strong { font-size: 14px; color: #fff; }
+                        .se-vivo-txt span { font-size: 12px; color: #9CA3AF; overflow-wrap: anywhere; }
+                        .se-latido { font-size: 11px; color: #6B7280; white-space: nowrap; align-self: flex-start; }
+                        .se-dot { width: 12px; height: 12px; border-radius: 50%; background: rgb(var(--tono)); position: relative; flex-shrink: 0; }
+                        .se-vivo[data-tono="verde"] .se-dot::after, .se-vivo[data-tono="amarillo"] .se-dot::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: rgb(var(--tono)); animation: se-pulso 1.8s ease-out infinite; }
+                        @keyframes se-pulso { 0% { transform: scale(1); opacity: .7; } 100% { transform: scale(3); opacity: 0; } }
+                        @media (prefers-reduced-motion: reduce) { .se-dot::after { animation: none !important; } }
+                        .se-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+                        .se-act { --tono: 156,163,175; border: 1px solid rgba(255,255,255,.06); background: rgba(255,255,255,.03); border-radius: 12px; padding: 9px 11px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+                        .se-act[data-tono="verde"] { --tono: 34,197,94; }
+                        .se-act[data-tono="amarillo"] { --tono: 234,179,8; }
+                        .se-act[data-tono="rojo"] { --tono: 239,68,68; }
+                        .se-act[data-tono="azul"] { --tono: 96,165,250; }
+                        .se-act-n { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 700; color: #fff; }
+                        .se-act-n i { width: 8px; height: 8px; border-radius: 50%; background: rgb(var(--tono)); flex-shrink: 0; box-shadow: 0 0 8px rgba(var(--tono), .7); }
+                        .se-act-e { font-size: 11px; font-weight: 600; color: rgb(var(--tono)); }
+                        .se-act-d { font-size: 10.5px; color: #6B7280; }
+                        .se-act-op { font-size: 10px; font-weight: 700; color: #60A5FA; }
+                    </style>
                 </div>
 
                 <!-- Dar acceso manual -- reutiliza el mecanismo GENÉRICO de
@@ -5349,9 +5386,77 @@
             el.className = 'text-xs mb-2 ' + (error ? 'text-nlt-danger' : 'text-nlt-success');
             el.textContent = txt;
         }
+        function seHace(ms) {
+            if (ms == null || ms < 0) return '--';
+            const s = Math.round(ms / 1000);
+            if (s < 5) return 'ahora mismo';
+            if (s < 60) return `hace ${s} s`;
+            if (s < 3600) return `hace ${Math.round(s / 60)} min`;
+            if (s < 86400) return `hace ${Math.round(s / 3600)} h`;
+            return `hace ${Math.round(s / 86400)} d`;
+        }
+        // Panel "en vivo": dice en claro si el motor está trabajando y qué activos está analizando.
+        function seRenderVivo(d) {
+            const vivo = document.getElementById('seVivo');
+            const ahora = d.ahora_ms || Date.now();
+            const orden = (d.simbolos || '').split(',').map((x) => x.trim()).filter(Boolean);
+            const porActivo = {};
+            d.series.forEach((x) => { (porActivo[x.symbol] ||= []).push(x); });
+            const nombres = orden.length ? orden.filter((n) => porActivo[n]) : Object.keys(porActivo);
+            const info = nombres.map((n) => {
+                const ss = porActivo[n];
+                const listas = ss.filter((x) => x.listo).length;
+                const err = ss.find((x) => x.error);
+                const rapida = ss.reduce((a, b) => (a.tf_seg <= b.tf_seg ? a : b));
+                const edad = rapida.ultima_vela_ms ? ahora - rapida.ultima_vela_ms : null;
+                const abierta = ss.filter((x) => x.operacion_abierta).length;
+                let tono, estado;
+                if (err && listas === 0) { tono = 'rojo'; estado = 'Sin precios'; }
+                else if (listas < ss.length) { tono = 'amarillo'; estado = err ? 'Parcial · ' + err.timeframe + ' con error' : 'Calentando…'; }
+                else if (edad != null && edad > 600000 && !ss[0].cripto) { tono = 'azul'; estado = 'Mercado cerrado · en espera'; }
+                else if (edad != null && edad > 600000) { tono = 'amarillo'; estado = 'Sin velas nuevas'; }
+                else { tono = 'verde'; estado = 'Analizando'; }
+                return { n, ss, listas, tono, estado, edad, abierta, err, ultima: (d.ultima_entrada || {})[n] };
+            });
+            const analizando = info.filter((x) => x.tono === 'verde').map((x) => x.n);
+            const espera = info.filter((x) => x.tono === 'azul').map((x) => x.n);
+            const mal = info.filter((x) => x.tono === 'rojo' || x.tono === 'amarillo');
+            const latido = d.latido_ms ? ahora - d.latido_ms : null;
+            let tono, titulo, sub;
+            if (d.modo === 'apagado') {
+                tono = 'gris'; titulo = 'Motor apagado'; sub = 'No está analizando nada. Pásalo a Activo para que busque señales.';
+            } else if (latido == null) {
+                tono = 'amarillo'; titulo = 'Arrancando el motor…'; sub = 'Se está calentando con el historial. Tarda un par de minutos tras un reinicio del servidor.';
+            } else if (latido > 120000) {
+                tono = 'rojo'; titulo = 'El motor no responde'; sub = `Su último latido fue ${seHace(latido)}. Revisa que el servidor esté encendido.`;
+            } else {
+                const todos = analizando.length === info.length && info.length > 0;
+                tono = mal.length ? 'amarillo' : 'verde';
+                titulo = (d.modo === 'sombra' ? 'Motor en sombra' : 'Motor activo') + (todos ? ' · analizando todos los activos' : analizando.length && !mal.length ? ` · analizando ${analizando.join(', ')}` : analizando.length ? ` · analizando ${analizando.length} de ${info.length}` : ' · en espera');
+                const partes = [];
+                if (analizando.length) partes.push('🔎 Buscando entradas en ' + analizando.join(', '));
+                if (espera.length) partes.push('🌙 ' + espera.join(', ') + ' esperando que abra el mercado');
+                if (mal.length) partes.push('⚠️ Revisar: ' + mal.map((x) => x.n).join(', '));
+                if (d.modo === 'sombra') partes.push('no publica señales');
+                sub = partes.join(' · ') || 'Sin activos configurados.';
+            }
+            vivo.setAttribute('data-tono', tono);
+            document.getElementById('seVivoTitulo').textContent = titulo;
+            document.getElementById('seVivoSub').textContent = sub;
+            document.getElementById('seVivoLatido').textContent = latido != null && d.modo !== 'apagado' ? 'Latido ' + seHace(latido) : '';
+            document.getElementById('seActivos').innerHTML = d.modo === 'apagado' ? '' : info.map((x) => `
+                <div class="se-act" data-tono="${x.tono}">
+                    <span class="se-act-n"><i></i>${esc(x.n)}</span>
+                    <span class="se-act-e">${esc(x.estado)}</span>
+                    <span class="se-act-d">${x.listas}/${x.ss.length} temporalidades${x.edad != null && x.tono === 'verde' ? ' · vela ' + seHace(x.edad) : ''}</span>
+                    <span class="se-act-d">${x.ultima ? 'Última señal ' + seHace(ahora - new Date(x.ultima).getTime()) : 'Sin señales todavía'}</span>
+                    ${x.abierta ? `<span class="se-act-op">● ${x.abierta} operación${x.abierta > 1 ? 'es' : ''} abierta${x.abierta > 1 ? 's' : ''}</span>` : ''}
+                </div>`).join('');
+        }
         async function cargarSignalEngine() {
             try {
                 const d = await NLT_API.adminSignalEngineEstado();
+                seRenderVivo(d);
                 const badge = document.getElementById('seModoBadge');
                 badge.textContent = SE_MODO_TXT[d.modo] || d.modo;
                 badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-bold ' + (SE_MODO_CLS[d.modo] || SE_MODO_CLS.apagado);
@@ -5377,6 +5482,11 @@
             }
         }
         document.getElementById('seBtnRefrescar').addEventListener('click', cargarSignalEngine);
+        // Se actualiza solo cada 10 s mientras el panel está a la vista y la pestaña del navegador está abierta.
+        setInterval(() => {
+            const caja = document.getElementById('seMotor');
+            if (!document.hidden && caja && caja.offsetParent !== null) cargarSignalEngine();
+        }, 10000);
         document.querySelectorAll('.se-modo-btn').forEach((btn) => btn.addEventListener('click', async () => {
             const modo = btn.getAttribute('data-se-modo');
             if (modo === 'activo' && !confirm('Modo ACTIVO: cada señal que encuentre el motor se publicará en Elite Signals y se avisará a suscritos y no suscritos. ¿Activar?')) return;
