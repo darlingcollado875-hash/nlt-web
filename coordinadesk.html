@@ -133,6 +133,10 @@
         .cd-chips { display: flex; flex-wrap: wrap; gap: 6px; }
         .cd-chips label { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); font-size: 12px; cursor: pointer; }
         .cd-chips input:checked + span { color: #4378FF; font-weight: 700; }
+        .cd-chips label:has(input:checked) { background: rgba(67,120,255,0.16); border-color: #4378FF; }
+        .cd-field[hidden] { display: none; }
+        .cd-diasem { gap: 8px; }
+        .cd-diasem label { min-width: 46px; justify-content: center; padding: 10px 0; font-size: 13px; }
         .cd-sub-rows { display: flex; flex-direction: column; gap: 8px; }
         .cd-subrow { display: grid; gap: 8px; align-items: center; padding: 10px; border-radius: 12px; background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.04); }
         .cd-checkrow { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; padding-top: 6px; }
@@ -271,7 +275,7 @@
         const PRIO_ITEM = O([['high', 'Alta', 'bad'], ['medium', 'Media', 'warn'], ['normal', 'Normal', 'mute']]);
         const TYPE_ITEM = O([['task', 'Tarea'], ['meeting', 'Reunión'], ['reminder', 'Recordatorio']]);
         const LEAD = O([['none', 'Sin recordatorio'], ['at_time', 'A la hora'], ['15_min', '15 min antes'], ['30_min', '30 min antes'], ['1_hour', '1 hora antes'], ['2_hours', '2 horas antes'], ['1_day', '1 día antes']]);
-        const REPEAT = O([['none', 'No se repite'], ['daily', 'Todos los días'], ['weekdays', 'Lunes a viernes'], ['weekly', 'Cada semana'], ['biweekly', 'Cada 2 semanas'], ['monthly', 'Cada mes'], ['yearly', 'Cada año']]);
+        const REPEAT = O([['none', 'No se repite'], ['daily', 'Todos los días'], ['weekdays', 'Lunes a viernes'], ['custom', 'Elegir los días…'], ['weekly', 'Cada semana'], ['biweekly', 'Cada 2 semanas'], ['monthly', 'Cada mes'], ['yearly', 'Cada año']]);
         const ST_CLIENT = O([['activo', 'Activo', 'ok'], ['por_vencer', 'Por vencer', 'warn'], ['vencido', 'Vencido', 'bad'], ['pendiente', 'Sin plan', 'mute'], ['cancelado', 'Cancelado', 'mute']]);
         const LEAD_MIN = { at_time: 0, '15_min': 15, '30_min': 30, '1_hour': 60, '2_hours': 120, '1_day': 1440 };
 
@@ -620,6 +624,11 @@
                     if (v && !lista.some((o) => o.v === v)) lista.push({ v, l: v + ' (actual)' });
                     return `<select class="cd-select" ${n}>${f.t === 'select' ? '' : '<option value="">— Sin asignar —</option>'}${lista.map((o) => `<option value="${esc(o.v)}" ${o.v === v ? 'selected' : ''}>${esc(o.l)}</option>`).join('')}</select>`;
                 }
+                case 'weekdays': {          // L M X J V S D (valores = getDay(): 1..6 y 0)
+                    const sel = Array.isArray(val) ? val.map(Number) : [];
+                    const dias = [[1, 'Lun'], [2, 'Mar'], [3, 'Mié'], [4, 'Jue'], [5, 'Vie'], [6, 'Sáb'], [0, 'Dom']];
+                    return `<div class="cd-chips cd-diasem">${dias.map(([d, l]) => `<label><input type="checkbox" name="${esc(name)}" value="${d}" ${sel.includes(d) ? 'checked' : ''} hidden><span>${l}</span></label>`).join('')}</div>`;
+                }
                 case 'members': {
                     const sel = Array.isArray(val) ? val : [];
                     const lista = S.team.map((m) => ({ v: m.id, l: m.name }));
@@ -638,13 +647,14 @@
             return m.fields.map((f) => {
                 if (f.onlyNew && nuevo === false) return '';
                 const val = rec[f.k];
-                const full = f.full || f.t === 'rows' || f.t === 'textarea' || f.t === 'members' ? ' full' : '';
+                const full = f.full || f.t === 'rows' || f.t === 'textarea' || f.t === 'members' || f.t === 'weekdays' ? ' full' : '';
+                const oculto = f.showIf && rec[f.showIf[0]] !== f.showIf[1] ? ' hidden' : '';
                 if (f.t === 'check') return `<div class="cd-field${full}">${fieldInput(f, f.dflt ? val !== false : val, f.k)}</div>`;
                 if (f.t === 'rows') {
                     const rows = (val && val.length ? val : []).map((r) => rowHTML(f, r)).join('');
                     return `<div class="cd-field full"><label>${esc(f.l)}</label><div class="cd-sub-rows" data-rows="${esc(f.k)}">${rows}</div><div><button type="button" class="cd-btn sm" data-act="row-add" data-k="${esc(f.k)}">＋ ${esc(f.add || 'Añadir')}</button></div></div>`;
                 }
-                return `<div class="cd-field${full}"><label for="f_${esc(f.k)}">${esc(f.l)}${f.req ? ' <em>*</em>' : ''}</label>${fieldInput(f, val, f.k)}</div>`;
+                return `<div class="cd-field${full}"${oculto} ${f.showIf ? `data-showif="${esc(f.showIf[0])}=${esc(f.showIf[1])}"` : ''}><label ${f.t === 'weekdays' ? '' : `for="f_${esc(f.k)}"`}>${esc(f.l)}${f.req ? ' <em>*</em>' : ''}</label>${fieldInput(f, val, f.k)}</div>`;
             }).join('');
         }
 
@@ -652,6 +662,7 @@
             const els = root.querySelectorAll(`[name="${name}"]`);
             if (f.t === 'check') return !!(els[0] && els[0].checked);
             if (f.t === 'members') return Array.from(els).filter((e) => e.checked).map((e) => e.value);
+            if (f.t === 'weekdays') return Array.from(els).filter((e) => e.checked).map((e) => Number(e.value));
             const el = els[0];
             if (!el) return undefined;
             if (f.t === 'number' || f.t === 'money') return num(el.value);
@@ -682,7 +693,7 @@
             if (nuevo) for (const f of m.fields) if (f.def !== undefined) base[f.k] = typeof f.def === 'function' ? f.def() : f.def;
             if (presets) Object.assign(base, presets);
             const it = ctx && ctx.agendaItem;
-            const aviso = it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha y quedará enlazada con este registro.</p>` : (rec && rec.series ? `<p class="cd-sub" style="margin-top:6px">🔁 Esta actividad se repite (${esc((optOf(REPEAT, rec.series.rule) || {}).l || '')}). Los cambios aplican solo a esta fecha.</p>` : '');
+            const aviso = it ? `<p class="cd-sub" style="margin-top:6px">Al guardar, la actividad “${esc(it.title)}” de la agenda se marcará como hecha y quedará enlazada con este registro.</p>` : (rec && rec.series ? `<p class="cd-sub" style="margin-top:6px">🔁 Esta actividad se repite (${esc(textoRepeticion(rec.series))}). Los cambios aplican solo a esta fecha.</p>` : '');
             openModal(`
                 <h2>${nuevo ? esc(m.newLabel) : 'Editar ' + esc(m.singular)}</h2>${aviso}
                 <form id="cdForm" novalidate><div class="cd-form">${formHTML(m, base, nuevo)}</div>
@@ -690,7 +701,11 @@
                 </form>`, true);
             const form = document.getElementById('cdForm');
             form.addEventListener('input', () => { formDirty = true; });
-            form.addEventListener('change', () => { formDirty = true; });
+            form.addEventListener('change', (e) => {
+                formDirty = true;
+                const n = e.target && e.target.name;
+                if (n) form.querySelectorAll('[data-showif]').forEach((el) => { const [k, v] = el.getAttribute('data-showif').split('='); if (k === n) el.hidden = e.target.value !== v; });
+            });
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 let out = collect(m, form, base, nuevo);
@@ -784,7 +799,7 @@
         }
 
         // --- Repetición: tareas, recordatorios y reuniones que se repiten (diario, semanal, mensual…) ---
-        const HORIZONTE_DIAS = { daily: 45, weekdays: 45, weekly: 140, biweekly: 140, monthly: 400, yearly: 1100 };
+        const HORIZONTE_DIAS = { daily: 45, weekdays: 45, custom: 45, weekly: 140, biweekly: 140, monthly: 400, yearly: 1100 };
         const MAX_NUEVAS = 400;
         function sumarMeses(f, n) {
             const d = parseYmd(f), dia = d.getDate();
@@ -793,11 +808,21 @@
             return ymd(d);
         }
         // Fechas de la serie estrictamente después de `despues` y hasta `hasta` (incluida).
-        function fechasSerie(rule, inicio, despues, hasta) {
+        // Texto de la repetición: «Lunes a viernes», «Mar, Mié» (días elegidos)…
+        function textoRepeticion(serie) {
+            if (serie && serie.rule === 'custom') {
+                const orden = (serie.days || []).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+                return orden.map((d) => DIAS[d]).join(', ') || 'Días elegidos';
+            }
+            return ((optOf(REPEAT, serie && serie.rule) || {}).l || '');
+        }
+        function fechasSerie(rule, inicio, despues, hasta, dias) {
             const out = [];
-            if (rule === 'weekdays') {
+            if (rule === 'weekdays' || rule === 'custom') {
+                const validos = rule === 'custom' ? new Set((dias || []).map(Number)) : new Set([1, 2, 3, 4, 5]);
+                if (!validos.size) return out;
                 let c = inicio;
-                for (let k = 0; k < 6000 && c < hasta && out.length < MAX_NUEVAS; k++) { c = addDays(c, 1); const w = parseYmd(c).getDay(); if (c > despues && c <= hasta && w !== 0 && w !== 6) out.push(c); }
+                for (let k = 0; k < 6000 && c < hasta && out.length < MAX_NUEVAS; k++) { c = addDays(c, 1); if (c > despues && c <= hasta && validos.has(parseYmd(c).getDay())) out.push(c); }
                 return out;
             }
             for (let n = 1; n < 6000 && out.length < MAX_NUEVAS; n++) {
@@ -818,7 +843,7 @@
             const limite = serie.until && serie.until < tope ? serie.until : tope;
             if (genUntil >= limite) return 0;
             const plantilla = occ[occ.length - 1];
-            const fechas = fechasSerie(serie.rule, serie.start, genUntil, limite);
+            const fechas = fechasSerie(serie.rule, serie.start, genUntil, limite, serie.days);
             const nuevas = fechas.map((f) => {
                 const o = clone(plantilla);
                 for (const k of ['_updated_at', 'completedAt', 'linked', 'autoDone', 'autoSource']) delete o[k];
@@ -1267,7 +1292,7 @@
                         ${ty ? `<span class="cd-badge">${esc(ty.l)}</span>` : ''}${d ? `<span class="cd-badge"><span class="cd-dot" style="background:${d.color}"></span>${esc(d.name)}</span>` : ''}
                         ${i.priority === 'high' ? `<span class="cd-badge cd-tone-bad">Alta prioridad</span>` : pr && i.priority === 'medium' ? `<span class="cd-badge cd-tone-warn">Media</span>` : ''}
                         ${i.assigneeId ? `<span class="cd-badge">👤 ${esc(mname(i.assigneeId))}</span>` : ''}${i.status === 'in_progress' ? '<span class="cd-badge cd-tone-info">En curso</span>' : ''}
-                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${i.series ? `<span class="cd-badge cd-tone-vio" title="Se repite">🔁 ${esc((optOf(REPEAT, i.series.rule) || {}).l || '')}</span>` : ''}${i.linked ? `<span class="cd-badge cd-tone-ok" title="Ya está registrada en su sección">📎 ${esc((Object.values(MODS).find((x) => x.col === i.linked.col) || {}).label || 'sección')}</span>` : ''}${i.autoSource ? `<span class="cd-badge" title="Se actualiza solo con su ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}">🔗 desde ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}</span>` : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
+                        ${i.automaticReminder && i.reminderLeadTime !== 'none' ? '<span class="cd-badge cd-tone-vio">🔔</span>' : ''}${i.series ? `<span class="cd-badge cd-tone-vio" title="Se repite">🔁 ${esc(textoRepeticion(i.series))}</span>` : ''}${i.linked ? `<span class="cd-badge cd-tone-ok" title="Ya está registrada en su sección">📎 ${esc((Object.values(MODS).find((x) => x.col === i.linked.col) || {}).label || 'sección')}</span>` : ''}${i.autoSource ? `<span class="cd-badge" title="Se actualiza solo con su ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}">🔗 desde ${esc((AUTO[i.autoSource.col] || {}).etiqueta || 'origen')}</span>` : ''}${subs.length ? `<span class="cd-badge">${subs.filter((s) => s.completed).length}/${subs.length} subtareas</span>` : ''}
                     </div>
                     ${i.description ? `<p class="cd-sub" style="margin-top:6px">${esc(i.description)}</p>` : ''}${i.locationOrLink ? `<p class="cd-sub">📍 ${esc(i.locationOrLink)}</p>` : ''}
                 </div>
@@ -1326,22 +1351,31 @@
             { k: 'locationOrLink', l: 'Lugar o enlace (Meet/Teams)', t: 'text', full: 1 },
             { k: 'automaticReminder', l: 'Recordatorio automático (requiere hora)', t: 'check', def: true }, { k: 'reminderLeadTime', l: 'Avisar', t: 'select', opts: LEAD, def: '15_min' },
             { k: 'repeat', l: 'Repetir (te avisa cada vez)', t: 'select', opts: REPEAT, def: 'none', onlyNew: 1 }, { k: 'repeatUntil', l: 'Repetir hasta (opcional)', t: 'date', onlyNew: 1 },
+            { k: 'repeatDays', l: 'Días de la semana en que se repite', t: 'weekdays', onlyNew: 1, showIf: ['repeat', 'custom'] },
             { k: 'description', l: 'Descripción', t: 'textarea', full: 1 },
             { k: 'subtasks', l: 'Subtareas', t: 'rows', full: 1, add: 'Añadir subtarea', sub: [{ k: 'title', l: 'Subtarea', t: 'text' }, { k: 'completed', l: 'Hecha', t: 'check' }], grid: '1fr 80px' },
             { k: 'notes', l: 'Notas', t: 'textarea', full: 1 },
         ];
-        MODS.daily.validate = (r, base, nuevo) => (nuevo && r.repeat && r.repeat !== 'none' && r.repeatUntil && r.repeatUntil < r.date ? 'La fecha final de la repetición no puede ser anterior al inicio.' : '');
+        MODS.daily.validate = (r, base, nuevo) => {
+            if (!nuevo || !r.repeat || r.repeat === 'none') return '';
+            if (r.repeatUntil && r.repeatUntil < r.date) return 'La fecha final de la repetición no puede ser anterior al inicio.';
+            if (r.repeat === 'custom') {
+                if (!(r.repeatDays || []).length) return 'Elige al menos un día de la semana para repetir.';
+                if (!r.repeatDays.includes(parseYmd(r.date).getDay())) return `La fecha de inicio cae en ${DIAS[parseYmd(r.date).getDay()]}: elige ese día o cambia la fecha a uno de los días marcados.`;
+            }
+            return '';
+        };
         MODS.daily.after = async (r, nuevo) => {
             if (!nuevo || !r.series) return;
             const n = await extenderSerie(r.series.id);
-            toast(n ? `Se programaron ${n} repeticiones más (${(optOf(REPEAT, r.series.rule) || {}).l.toLowerCase()})` : 'Repetición programada', 'ok');
+            toast(n ? `Se programaron ${n} repeticiones más (${textoRepeticion(r.series).toLowerCase()})` : 'Repetición programada', 'ok');
         };
         MODS.daily.before = (r) => {
             if (r.repeat && r.repeat !== 'none') {   // nueva serie: esta actividad es la primera; las demás se generan al guardar
-                r.series = { id: uid('ser'), rule: r.repeat, start: r.date, until: r.repeatUntil || '', genUntil: r.date };
+                r.series = { id: uid('ser'), rule: r.repeat, start: r.date, until: r.repeatUntil || '', genUntil: r.date, ...(r.repeat === 'custom' ? { days: (r.repeatDays || []).slice().sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)) } : {}) };
                 if (!r.time) r.time = HORA_POR_DEFECTO;   // el aviso necesita una hora
             }
-            delete r.repeat; delete r.repeatUntil;
+            delete r.repeat; delete r.repeatUntil; delete r.repeatDays;
             r.subtasks = (r.subtasks || []).filter((s) => s.title).map((s) => ({ id: s.id || uid('st'), ...s }));
             r.coordinatorName = r.coordinatorName || (SESSION && SESSION.user.email) || '';
             try { r.tz = Intl.DateTimeFormat().resolvedOptions().timeZone; } catch (_) {}   // el servidor la usa para avisar a la hora correcta
