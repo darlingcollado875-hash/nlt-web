@@ -2640,7 +2640,7 @@
         // que escribió -> el fallback es Dashboard, pero _irAlRecurso (abajo)
         // abre el widget flotante en el momento si ya está montado en la
         // página actual, en vez de navegar.
-        support_message_new: 'admin.html#soporte', support_reply: 'dashboard.html',
+        support_message_new: 'admin.html#soporte', support_reply: 'dashboard.html?soporte=1',
     };
 
     // ---------- Tonos de llamada (sintetizados con WebAudio: no hay archivos de sonido que descargar) ----------
@@ -3461,6 +3461,15 @@
         _refrescarBadge();
         pollWhileVisible(_refrescarBadge, 20000);
         pollWhileVisible(_poll, 8000);
+        // Llegar desde el aviso de «el equipo te respondió» (?soporte=1): el chat se abre solo y la dirección queda limpia
+        try {
+            const q = new URLSearchParams(window.location.search);
+            if (q.get('soporte') === '1') {
+                q.delete('soporte');
+                window.history.replaceState({}, '', window.location.pathname + (q.toString() ? '?' + q.toString() : '') + window.location.hash);
+                abrir();
+            }
+        } catch (_) { /* abrirlo a mano siempre funciona */ }
     }
 
     // Usado por el Notification Center (_irAlRecurso, más arriba) para abrir
