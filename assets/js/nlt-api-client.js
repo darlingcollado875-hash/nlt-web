@@ -288,6 +288,11 @@
         futuresMockEnfriar: (id) => request(`/futures/mock/${id}/enfriar`, { method: 'POST' }),
         futuresMockDuplicar: (id) => request(`/futures/mock/${id}/duplicar-evento`, { method: 'POST' }),
 
+        // --- NLT Charts: cuentas de precios (admin principal) ---
+        chartsPreciosListar: () => request('/admin/charts/price-accounts'),
+        chartsPreciosGuardar: (rol, datos) => request(`/admin/charts/price-accounts/${rol}`, { method: 'PUT', body: JSON.stringify(datos), timeoutMs: 120000, intentos: 1 }),
+        chartsPreciosReconectar: (rol) => request(`/admin/charts/price-accounts/${rol}/reconnect`, { method: 'POST', timeoutMs: 120000, intentos: 1 }),
+        chartsPreciosBorrar: (rol) => request(`/admin/charts/price-accounts/${rol}`, { method: 'DELETE' }),
         // --- Futures: administración (admin-only) ---
         futuresAdminStatus: () => request('/admin/futures/status'),
         futuresAdminCuentas: () => request('/admin/futures/accounts'),

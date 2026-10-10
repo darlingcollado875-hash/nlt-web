@@ -137,6 +137,10 @@
 
             <!-- VISTA GENERAL -->
             <div id="seccion-general" class="seccion-admin space-y-6">
+                <a href="admin-precios.html" class="flex items-center justify-between glass-card p-4 hover:border-nlt-accent/30 transition-all group">
+                    <span class="flex items-center gap-3 text-sm font-semibold text-white"><i class="ph-fill ph-chart-line-up text-nlt-accent text-lg"></i> NLT Charts · Cuenta de precios <span class="text-[11px] font-normal text-gray-500">— login de las cuentas que alimentan el gráfico y reconexión automática</span></span>
+                    <span class="text-nlt-accent text-xs font-semibold group-hover:translate-x-0.5 transition-transform">Abrir →</span>
+                </a>
                 <div id="statsGrid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <p class="text-xs text-gray-500 col-span-full animate-pulse">Cargando...</p>
                 </div>
@@ -1904,7 +1908,7 @@
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=5621e70d"></script>
-    <script src="assets/js/nlt-api-client.js?v=064a63b8"></script>
+    <script src="assets/js/nlt-api-client.js?v=7c7ea089"></script>
     <script src="assets/js/nlt-certificate.js?v=f29013df"></script>
     <script>
         // Escapa a mano (no via textContent/innerHTML) porque ese truco NO escapa
