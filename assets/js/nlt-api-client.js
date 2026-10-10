@@ -293,6 +293,11 @@
         chartsPreciosGuardar: (rol, datos) => request(`/admin/charts/price-accounts/${rol}`, { method: 'PUT', body: JSON.stringify(datos), timeoutMs: 120000, intentos: 1 }),
         chartsPreciosReconectar: (rol) => request(`/admin/charts/price-accounts/${rol}/reconnect`, { method: 'POST', timeoutMs: 120000, intentos: 1 }),
         chartsPreciosBorrar: (rol) => request(`/admin/charts/price-accounts/${rol}`, { method: 'DELETE' }),
+        chartsFuentesExtra: () => request('/admin/charts/extra-sources', { timeoutMs: 60000, intentos: 1 }),
+        chartsFuenteBinance: (enabled) => request('/admin/charts/extra-sources/binance', { method: 'PUT', body: JSON.stringify({ enabled }), timeoutMs: 60000, intentos: 1 }),
+        chartsFuenteOanda: (datos) => request('/admin/charts/extra-sources/oanda', { method: 'PUT', body: JSON.stringify(datos), timeoutMs: 60000, intentos: 1 }),
+        chartsFuentePruebar: (fuente) => request(`/admin/charts/extra-sources/${fuente}/test`, { method: 'POST', timeoutMs: 60000, intentos: 1 }),
+        chartsFuenteOandaBorrar: () => request('/admin/charts/extra-sources/oanda', { method: 'DELETE' }),
         // --- Futures: administración (admin-only) ---
         futuresAdminStatus: () => request('/admin/futures/status'),
         futuresAdminCuentas: () => request('/admin/futures/accounts'),

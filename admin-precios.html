@@ -74,13 +74,18 @@
                     <p class="mt-2 text-xs text-gray-500">La contraseña se guarda cifrada y nunca se vuelve a mostrar. Usa una cuenta <b>demo</b> o de solo precios, nunca una cuenta con dinero.</p>
                 </div>
                 <div id="cuentas" class="space-y-6"></div>
+                <div class="glass-card p-5 text-sm text-gray-300 leading-relaxed">
+                    <p><b class="text-white">Fuentes adicionales (gratis):</b> lo que la cuenta de TickerAll no ofrece (Nasdaq, Dow, petróleo, BTC…) lo puede dar otra fuente.
+                    La cuenta de TickerAll sigue mandando en lo que ya ofrece.</p>
+                </div>
+                <div id="extras" class="space-y-6"></div>
             </div>
         </div>
     </main>
 
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=5621e70d"></script>
-    <script src="assets/js/nlt-api-client.js?v=7c7ea089"></script>
+    <script src="assets/js/nlt-api-client.js?v=496a43fd"></script>
     <script>
     (function () {
         const $ = (id) => document.getElementById(id);
@@ -123,11 +128,76 @@
             const r = await NLT_API.chartsPreciosListar();
             $('cuentas').innerHTML = r.accounts.map(tarjeta).join('');
         }
+        // ── fuentes adicionales ──
+        const NOMBRE = { binance: 'Cripto en vivo · Binance', oanda: 'Índices, metales y energía · OANDA' };
+        function listaSimbolos(a) {
+            const s = a.symbols || [];
+            return s.length ? `<p class="text-xs text-gray-400 mt-2 leading-relaxed break-words"><b class="text-gray-300">${s.length} símbolos:</b> ${s.map(esc).join(', ')}</p>` : '';
+        }
+        function tarjetaExtra(a) {
+            const estado = !a.configured ? ['Sin configurar', 'text-gray-500'] : !a.enabled ? ['Apagada', 'text-gray-500'] : a.active ? (a.last_error ? ['Con errores', 'text-yellow-400'] : ['Activa', 'text-green-400']) : ['Sin conexión', 'text-yellow-400'];
+            const err = a.last_error ? `<p class="text-[11px] text-yellow-400 mt-1">Último error: ${esc(a.last_error.code)}</p>` : '';
+            if (a.source === 'binance') {
+                return `<div class="glass-card p-5 md:p-6" data-extra="binance">
+                    <div class="flex items-center justify-between gap-3 mb-1"><h2 class="text-lg font-bold">${NOMBRE.binance}</h2><span class="text-xs font-semibold ${estado[1]}">${estado[0]}</span></div>
+                    <p class="text-xs text-gray-500">No necesita cuenta ni llave. Pone BTC, ETH, SOL y otras monedas cuando TickerAll no las tiene (precio en USDT).</p>
+                    ${listaSimbolos(a)}${err}
+                    <div class="mt-4 flex flex-wrap gap-2">
+                        <button type="button" data-ex="binance-toggle" data-val="${a.enabled ? '0' : '1'}" class="px-5 py-3 rounded-xl ${a.enabled ? 'bg-white/5 hover:bg-white/10' : 'bg-nlt-accent hover:bg-blue-500 text-white'} text-sm font-semibold cursor-pointer">${a.enabled ? 'Apagar' : 'Encender'}</button>
+                        <button type="button" data-ex="test" data-f="binance" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm cursor-pointer">Probar ahora</button>
+                    </div><p class="msg text-xs mt-3 hidden"></p></div>`;
+            }
+            return `<div class="glass-card p-5 md:p-6" data-extra="oanda">
+                <div class="flex items-center justify-between gap-3 mb-1"><h2 class="text-lg font-bold">${NOMBRE.oanda}</h2><span class="text-xs font-semibold ${estado[1]}">${estado[0]}</span></div>
+                <p class="text-xs text-gray-500">Abre una cuenta <b>práctica</b> gratis en OANDA, entra a «Administrar acceso a la API», genera el token personal y pégalo aquí. El token se guarda cifrado y nunca se vuelve a mostrar.</p>
+                ${a.configured ? `<p class="text-xs text-gray-400 mt-2">Token guardado · entorno ${esc(a.env || 'practice')}${a.account ? ' · cuenta ' + esc(a.account) : ''}</p>` : ''}
+                ${listaSimbolos(a)}${err}
+                <form class="mt-4 grid gap-3 sm:grid-cols-2" autocomplete="off">
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider sm:col-span-2">Token de la API
+                        <input name="token" type="password" required autocomplete="new-password" minlength="10" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"></label>
+                    <label class="text-[11px] font-bold text-gray-500 uppercase tracking-wider">Entorno
+                        <select name="env" class="mt-1 w-full bg-black/20 border border-white/5 rounded-xl px-4 py-3 text-base normal-case font-normal text-white"><option value="practice">Práctica (gratis)</option><option value="live">Real</option></select></label>
+                    <div class="sm:col-span-2 flex flex-wrap gap-2">
+                        <button type="submit" class="px-5 py-3 rounded-xl bg-nlt-accent text-white font-semibold text-sm hover:bg-blue-500 cursor-pointer">Guardar y probar</button>
+                        ${a.configured ? '<button type="button" data-ex="test" data-f="oanda" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 text-sm cursor-pointer">Probar ahora</button><button type="button" data-ex="oanda-delete" class="px-4 py-3 rounded-xl bg-white/5 hover:bg-red-500/20 text-sm text-red-300 cursor-pointer">Quitar</button>' : ''}
+                    </div><p class="msg sm:col-span-2 text-xs hidden"></p>
+                </form></div>`;
+        }
+        async function pintarExtras() {
+            const r = await NLT_API.chartsFuentesExtra();
+            $('extras').innerHTML = r.sources.map(tarjetaExtra).join('');
+        }
+        function msgExtra(card, res) {
+            const m = card.querySelector('.msg'); m.textContent = res.message; m.className = 'msg text-xs mt-3 ' + (res.ok ? 'text-green-400' : 'text-red-400');
+        }
+        async function volverAPintarExtra(fuente, res) {
+            await pintarExtras(); const c = document.querySelector(`[data-extra="${fuente}"]`); if (c && res) msgExtra(c, res);
+        }
+        document.addEventListener('click', async (e) => {
+            const b = e.target.closest('[data-ex]'); if (!b) return;
+            const card = b.closest('[data-extra]'), fuente = card.dataset.extra, orig = b.textContent;
+            b.disabled = true;
+            try {
+                if (b.dataset.ex === 'binance-toggle') { b.textContent = '…'; const r = await NLT_API.chartsFuenteBinance(b.dataset.val === '1'); await volverAPintarExtra('binance', r.result); }
+                else if (b.dataset.ex === 'test') { b.textContent = 'Probando…'; const r = await NLT_API.chartsFuentePruebar(b.dataset.f); await volverAPintarExtra(fuente, r.result); }
+                else if (b.dataset.ex === 'oanda-delete') {
+                    if (!confirm('¿Quitar el token de OANDA? Los índices que dependen de esa fuente dejarán de estar disponibles.')) { b.disabled = false; return; }
+                    await NLT_API.chartsFuenteOandaBorrar(); await pintarExtras();
+                }
+            } catch (err) { msgExtra(card, { ok: false, message: err.message }); b.disabled = false; b.textContent = orig; }
+        });
+        document.addEventListener('submit', async (e) => {
+            const f = e.target.closest('[data-extra="oanda"] form'); if (!f) return; e.preventDefault(); e.stopImmediatePropagation();
+            const card = f.closest('[data-extra]'), btn = f.querySelector('button[type=submit]');
+            btn.disabled = true; btn.textContent = 'Probando…';
+            try { const r = await NLT_API.chartsFuenteOanda({ token: f.token.value.trim(), env: f.env.value, enabled: true }); await volverAPintarExtra('oanda', r.result); }
+            catch (err) { msgExtra(card, { ok: false, message: err.message }); btn.disabled = false; btn.textContent = 'Guardar y probar'; }
+        }, true);
         function mensaje(card, texto, ok) {
             const m = card.querySelector('.msg'); m.textContent = texto; m.className = 'msg sm:col-span-2 text-xs ' + (ok ? 'text-green-400' : 'text-red-400');
         }
         document.addEventListener('submit', async (e) => {
-            const f = e.target.closest('form'); if (!f) return; e.preventDefault();
+            const f = e.target.closest('form'); if (!f || f.closest('[data-extra]')) return; e.preventDefault();
             const card = f.closest('[data-rol]'), rol = card.dataset.rol, btn = f.querySelector('button[type=submit]');
             btn.disabled = true; btn.textContent = 'Conectando…';
             try {
@@ -156,6 +226,7 @@
             $('vistaCargando').classList.add('hidden');
             if (!NLT.isGlobalAdmin(session)) { $('vistaSinPermiso').classList.remove('hidden'); return; }
             $('vista').classList.remove('hidden');
+            pintarExtras().catch((e) => { $('extras').innerHTML = `<p class="text-sm text-red-400">No se pudieron cargar las fuentes adicionales: ${esc(e.message)}</p>`; });
             try { await pintar(); } catch (e) { $('cuentas').innerHTML = `<p class="text-sm text-red-400">No se pudo cargar: ${esc(e.message)}</p>`; }
             setInterval(() => { if (!document.hidden && !document.querySelector('form :focus')) pintar().catch(() => {}); }, 15000);
         })();
