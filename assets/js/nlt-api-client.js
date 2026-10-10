@@ -827,6 +827,8 @@
         signalsAccesoEstado: () => request('/signals/access'),
         signalsActivas: () => request('/signals/active'),
         signalsHistorial: () => request('/signals/history'),
+        signalsPrefs: () => request('/signals/prefs'),
+        signalsGuardarPrefs: (symbols) => request('/signals/prefs', { method: 'PUT', body: JSON.stringify({ symbols }) }),
 
         // --- admin: NLT Elite Signals ---
         adminSignalsListar: () => request('/admin/signals'),
