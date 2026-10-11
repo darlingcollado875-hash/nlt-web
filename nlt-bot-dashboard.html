@@ -105,7 +105,7 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                    <div class="glass-card p-5 md:p-6">
+                    <div id="cardLicencia" class="glass-card p-5 md:p-6">
                         <p class="text-[11px] font-medium text-gray-400 mb-2 uppercase tracking-wider">License Key</p>
                         <div class="flex items-center gap-2">
                             <code id="licenseKeyValor" class="flex-1 text-sm md:text-base font-mono text-white bg-black/20 rounded-lg px-3 py-2.5 truncate">--</code>
@@ -114,21 +114,21 @@
                             </button>
                         </div>
                     </div>
-                    <div class="glass-card p-5 md:p-6 flex justify-between items-center">
+                    <div id="cardEstado" class="glass-card p-5 md:p-6 flex justify-between items-center">
                         <div>
                             <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Estado</p>
                             <p id="estadoValor" class="text-xl md:text-2xl font-bold text-white">--</p>
                         </div>
                         <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph-fill ph-robot text-xl md:text-2xl"></i></div>
                     </div>
-                    <div class="glass-card p-5 md:p-6 flex justify-between items-center">
+                    <div id="cardDispositivos" class="glass-card p-5 md:p-6 flex justify-between items-center">
                         <div>
                             <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Dispositivos</p>
                             <div class="flex items-baseline gap-1"><h2 class="text-2xl md:text-3xl font-bold text-white" id="devicesUsados">--</h2><span class="text-lg text-gray-500">/ <span id="devicesMax">--</span></span></div>
                         </div>
                         <div class="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 flex items-center justify-center text-gray-300 shrink-0"><i class="ph ph-desktop text-xl md:text-2xl"></i></div>
                     </div>
-                    <div class="glass-card p-5 md:p-6 flex justify-between items-center">
+                    <div id="cardCuentas" class="glass-card p-5 md:p-6 flex justify-between items-center">
                         <div>
                             <p class="text-[11px] font-medium text-gray-400 mb-1 uppercase tracking-wider">Cuentas</p>
                             <div class="flex items-baseline gap-1"><h2 class="text-2xl md:text-3xl font-bold text-white" id="accountsUsadas">--</h2><span class="text-lg text-gray-500">/ <span id="accountsMax">--</span></span></div>
@@ -170,6 +170,46 @@
                             <p class="text-[11px] text-gray-500 mt-2">Ejecuta ese comando en PowerShell o CMD, en la carpeta donde se descargó el archivo, y comparalo a simple vista con el hash de arriba. Es una verificación de integridad para ti, no una validación automática -- si no coinciden, no ejecutes el instalador y contacta a soporte.</p>
                         </div>
                     </div>
+                </div>
+
+                <!-- PRIMEROS PASOS: guía en PDF + recorrido guiado (se muestra solo la primera vez; se puede repetir) -->
+                <div id="primerosPasos" class="glass-card p-6 space-y-5">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="text-sm font-bold text-white mb-1">Primeros pasos con NLT Bot</h3>
+                            <p class="text-xs text-gray-500">De la descarga a tu primera señal, en 6 pasos. Empieza siempre en modo PAPER (simulado).</p>
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <a id="btnGuiaPdf" href="assets/docs/NLT-Bot-Supreme-Guia.pdf" download="NLT-Bot-Supreme-Guia.pdf" class="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white font-semibold text-xs transition-all flex items-center gap-2"><i class="ph ph-file-pdf text-base"></i> Guía en PDF</a>
+                            <button id="btnVerTour" type="button" class="px-4 py-2.5 rounded-xl bg-nlt-accent hover:bg-blue-500 text-white font-semibold text-xs transition-all cursor-pointer flex items-center gap-2"><i class="ph ph-compass text-base"></i> Ver guía paso a paso</button>
+                        </div>
+                    </div>
+                    <ol class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <li id="paso1" class="glass-item p-4 flex gap-3">
+                            <span class="w-6 h-6 rounded-full bg-nlt-accent/20 text-nlt-accent text-xs font-bold flex items-center justify-center shrink-0">1</span>
+                            <div><p class="text-sm font-semibold text-white">Descarga el instalador</p><p class="text-xs text-gray-400 mt-0.5">Pulsa “Descargar installer” (arriba). El enlace es temporal: dura 10 minutos.</p></div>
+                        </li>
+                        <li id="paso2" class="glass-item p-4 flex gap-3">
+                            <span class="w-6 h-6 rounded-full bg-nlt-accent/20 text-nlt-accent text-xs font-bold flex items-center justify-center shrink-0">2</span>
+                            <div><p class="text-sm font-semibold text-white">Instálalo</p><p class="text-xs text-gray-400 mt-0.5">Doble clic en el archivo. Si Windows dice “protegió su PC”: Más información &gt; Ejecutar de todas formas.</p></div>
+                        </li>
+                        <li id="paso3" class="glass-item p-4 flex gap-3">
+                            <span class="w-6 h-6 rounded-full bg-nlt-accent/20 text-nlt-accent text-xs font-bold flex items-center justify-center shrink-0">3</span>
+                            <div><p class="text-sm font-semibold text-white">Abre MetaTrader 5</p><p class="text-xs text-gray-400 mt-0.5">Inicia sesión en tu cuenta antes de abrir NLT Bot. Para empezar, usa una cuenta demo.</p></div>
+                        </li>
+                        <li id="paso4" class="glass-item p-4 flex gap-3">
+                            <span class="w-6 h-6 rounded-full bg-nlt-accent/20 text-nlt-accent text-xs font-bold flex items-center justify-center shrink-0">4</span>
+                            <div><p class="text-sm font-semibold text-white">Asistente de primer uso</p><p class="text-xs text-gray-400 mt-0.5">Te pedirá tu terminal de MT5, confirmar tu cuenta, la zona horaria de tu broker y tu clave de licencia (cópiala arriba).</p></div>
+                        </li>
+                        <li id="paso5" class="glass-item p-4 flex gap-3">
+                            <span class="w-6 h-6 rounded-full bg-nlt-accent/20 text-nlt-accent text-xs font-bold flex items-center justify-center shrink-0">5</span>
+                            <div><p class="text-sm font-semibold text-white">Mira el ícono junto al reloj</p><p class="text-xs text-gray-400 mt-0.5">Su color y texto dicen qué hace el bot. Clic derecho &gt; Panel de estado para ver el detalle.</p></div>
+                        </li>
+                        <li id="paso6" class="glass-item p-4 flex gap-3">
+                            <span class="w-6 h-6 rounded-full bg-nlt-accent/20 text-nlt-accent text-xs font-bold flex items-center justify-center shrink-0">6</span>
+                            <div><p class="text-sm font-semibold text-white">Empieza en modo PAPER</p><p class="text-xs text-gray-400 mt-0.5">Precios reales, órdenes simuladas: sin riesgo. Después, clic derecho &gt; Modo de operacion para DEMO o REAL.</p></div>
+                        </li>
+                    </ol>
                 </div>
             </div>
         </div>
@@ -303,9 +343,31 @@
             }
         });
 
+        // Recorrido guiado de primer uso (motor NLT.startTour: Siguiente / Atrás / Saltar). Se muestra solo la primera vez por
+        // usuario (localStorage); "Ver guía paso a paso" y Ctrl+K lo repiten. Los pasos cuyo elemento no se ve se saltan solos.
+        let sesionBot = null;
+        function iniciarTourBot(forzar) {
+            const clave = 'bot-dashboard-' + String((sesionBot && sesionBot.user && sesionBot.user.id) || 'anon').slice(0, 8) + '-v1';
+            NLT.startTour([
+                { sel: '#cardLicencia', title: 'Tu clave de licencia', text: 'Es tu llave personal de NLT Bot. La pegarás una sola vez, en el asistente del programa, y se copia con el botón de al lado. No la compartas con nadie.' },
+                { sel: '#cardEstado', title: 'Estado de tu licencia', text: 'Activa significa que tu bot puede operar. Si ves Suspendida, Revocada o Expirada, escribe a soporte desde el chat.' },
+                { sel: '#cardDispositivos', title: 'Dispositivos', text: 'Tu licencia funciona en un PC. Si cambias de computador, pide a soporte que libere el anterior.' },
+                { sel: '#cardCuentas', title: 'Cuentas de MetaTrader 5', text: 'Cuántas cuentas de MT5 puede usar tu licencia, según tu plan. Si usas más, el bot se bloquea y su Panel de estado te avisa.' },
+                { sel: '#btnDescargarInstaller', title: '1 · Descarga el instalador', text: 'Pulsa aquí: se crea un enlace temporal (10 minutos) y baja el instalador. Después verás su código SHA256, por si quieres comprobar que el archivo llegó íntegro.' },
+                { sel: '#paso2', title: '2 · Instálalo', text: 'Doble clic en el archivo. Si Windows muestra “protegió su PC”, pulsa Más información y luego Ejecutar de todas formas: es normal, el instalador aún no lleva firma digital.' },
+                { sel: '#paso3', title: '3 · Abre MetaTrader 5', text: 'Antes de abrir NLT Bot, abre MT5 e inicia sesión en tu cuenta. Para empezar, usa una cuenta demo.' },
+                { sel: '#paso4', title: '4 · Asistente de primer uso', text: 'Al abrir NLT Bot verás 4 cuadros (en inglés): elegir tu terminal de MT5, confirmar tu cuenta, confirmar la zona horaria del servidor de tu broker y pegar tu clave de licencia.' },
+                { sel: '#paso5', title: '5 · Mira el ícono junto al reloj', text: 'NLT Bot vive en la bandeja de Windows. Su color y texto dicen qué hace: BUSCANDO OPORTUNIDADES, EN OPERACION, MERCADO CERRADO… Clic derecho > Panel de estado para el detalle.' },
+                { sel: '#paso6', title: '6 · Empieza en modo PAPER', text: 'PAPER usa precios reales pero simula las órdenes: cero riesgo. Cuando lo entiendas, clic derecho > Modo de operacion para pasar a DEMO o REAL. “PARAR OPERACIONES” lo detiene al instante.' },
+                { sel: '#btnGuiaPdf', title: 'Guía completa en PDF', text: 'Descárgala: explica cada paso con imágenes, el menú del ícono, los mensajes del panel y qué hacer si algo falla.' },
+            ], { key: clave, force: !!forzar });
+        }
+        document.getElementById('btnVerTour').addEventListener('click', () => iniciarTourBot(true));
+
         async function init() {
             const session = await NLT.requireSession();
             if (!session) return;
+            sesionBot = session;
             await NLT.mountSidebar(session, { activo: 'bot-dashboard', seccion: 'bot' });
 
             document.getElementById('vistaCargando').classList.add('hidden');
@@ -318,6 +380,8 @@
             }
 
             document.getElementById('vistaDashboard').classList.remove('hidden');
+            NLT.registerPaletteAction({ label: 'Ver la guía paso a paso de NLT Bot', icon: 'ph-compass', rgb: '248,113,113', kw: 'ayuda guia recorrido tutorial bot instalar primeros pasos', run: () => iniciarTourBot(true) });
+            setTimeout(() => iniciarTourBot(false), 1400);   // solo la primera vez (localStorage)
 
             // Mismo patrón que signals-dashboard.html/dashboard.html -- se
             // auto-pausa en tab oculta y refresca al volver.
