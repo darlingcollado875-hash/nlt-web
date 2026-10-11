@@ -42,6 +42,7 @@
         sono: false,           // ya sonó el «conectado» de esta llamada
         live: null,            // sala «Operativa en vivo»: { room }
         pantallasLive: new Map(),   // userId -> MediaStream de su pantalla
+        prevOculta: false,     // vista previa de TU pantalla compartida: la cierras con la X y vuelve con el botón «Vista previa»
     };
 
     // ---------- utilidades ----------
@@ -136,13 +137,24 @@
         .nc-visor .nc-barra { display: flex; align-items: center; gap: 10px; padding: calc(env(safe-area-inset-top, 0px) + 10px) 12px 10px; background: rgba(12,16,26,.95); }
         .nc-visor .nc-barra b { flex: 1; font-size: 14px; }
         .nc-visor .nc-min { flex: none; }
+        .nc-prev { position: fixed; left: 18px; bottom: 18px; width: 272px; pointer-events: auto; background: rgba(12,16,26,.97); border: 1px solid rgba(255,255,255,.12); border-radius: 16px;
+            box-shadow: 0 18px 44px rgba(0,0,0,.55); overflow: hidden; }
+        .nc-prev-cab { display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none; }
+        .nc-prev-cab b { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .nc-prev-cab b::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; margin-right: 7px; animation: ncPulso 1.6s ease-out infinite; }
+        .nc-prev .nc-min { width: 28px; height: 28px; padding: 6px; flex: none; }
+        .nc-prev video { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: contain; background: #000; }
+        .nc-prev-pie { padding: 7px 12px 9px; font-size: 11px; color: #94a3b8; line-height: 1.4; }
+        .nc-prev-chip { position: fixed; left: 18px; bottom: 18px; pointer-events: auto; border: 1px solid rgba(255,255,255,.14); background: rgba(12,16,26,.96); color: #f3f4f6; border-radius: 999px;
+            padding: 8px 14px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 7px; box-shadow: 0 10px 28px rgba(0,0,0,.5); }
+        .nc-prev-chip::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: #ef4444; }
         #nltCallFrame { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; z-index: 2147482000; background: #080A0F; }
-        @media (prefers-reduced-motion: reduce) { .nc-burbuja::after, .nc-toast { animation: none; } .nc-toast { opacity: 1; } }`;
+        @media (prefers-reduced-motion: reduce) { .nc-burbuja::after, .nc-toast, .nc-prev-cab b::before { animation: none; } .nc-toast { opacity: 1; } }`;
         document.head.appendChild(st);
     }
 
     // ---------- interfaz ----------
-    let raiz = null, elBurbuja = null, elPanel = null, elVisor = null, elAudios = null, tickTimer = null;
+    let raiz = null, elBurbuja = null, elPanel = null, elVisor = null, elAudios = null, tickTimer = null, elPrev = null, elChip = null;
 
     function montarUI() {
         if (raiz) return;
@@ -220,7 +232,7 @@
         const activa = !!S.call;
         elBurbuja.classList.toggle('nc-oculto', !activa || S.panelAbierto);
         elPanel.classList.toggle('nc-oculto', !activa || !S.panelAbierto);
-        if (!activa) { if (elVisor) cerrarVisor(); return; }
+        if (!activa) { if (elVisor) cerrarVisor(); pintarPrevia(); return; }
 
         const habla = S.hablando.size > 0;
         elBurbuja.classList.toggle('nc-habla', habla);
@@ -252,6 +264,7 @@
             // solo se vuelve a dibujar si algo cambió (si no, un toque a mitad de un redibujo se perdería)
             if (elPanel._html !== htmlPanel) { elPanel._html = htmlPanel; const lista = elPanel.querySelector('.nc-lista'); const top = lista ? lista.scrollTop : 0; elPanel.innerHTML = htmlPanel.replace('§T§', tiempo()); const l2 = elPanel.querySelector('.nc-lista'); if (l2) l2.scrollTop = top; }
         }
+        pintarPrevia();
         avisar();
     }
 
@@ -275,6 +288,77 @@
             d.querySelector('.nc-d-ok').onclick = () => fin(true);
             d.querySelector('.nc-d-no').onclick = () => fin(false);
         });
+    }
+
+    // ---------- vista previa de TU pantalla compartida ("así te ven") ----------
+    // Mientras compartes, una tarjeta pequeña muestra lo que estás enviando. Si compartes TODA la pantalla, la tarjeta también sale en lo que ven los demás:
+    // se puede mover o cerrar con la X (el botón «Vista previa» la vuelve a abrir). Si compartes una ventana u otra pestaña, ellos no la ven.
+    function pistaLocalPantalla() {
+        try {
+            if (S.live) {
+                const LK = window.LivekitClient, pub = LK && S.live.room.localParticipant.getTrackPublication(LK.Track.Source.ScreenShare);
+                return (pub && pub.track && pub.track.mediaStreamTrack) || null;
+            }
+            return S.share ? S.share.track : null;
+        } catch (_) { return null; }
+    }
+    function describirPantalla(track) {
+        let st = {}; try { st = track.getSettings() || {}; } catch (_) { /* sin datos */ }
+        const sup = { monitor: 'Pantalla completa', window: 'Una ventana', browser: 'Una pestaña' }[st.displaySurface] || 'Tu pantalla';
+        const res = st.width && st.height ? `${st.width}×${st.height}${st.frameRate ? ' · ' + Math.round(st.frameRate) + ' fps' : ''}` : '';
+        return { sup, res, monitor: st.displaySurface === 'monitor' };
+    }
+    function quitarPrevia() {
+        if (elPrev) { const v = elPrev.querySelector('video'); if (v) v.srcObject = null; elPrev.remove(); elPrev = null; }
+        if (elChip) { elChip.remove(); elChip = null; }
+    }
+    function arrastrarPorCabecera(caja, cab) {
+        let ini = null;
+        cab.addEventListener('pointerdown', (e) => {
+            if (e.target.closest('button')) return;
+            const r = caja.getBoundingClientRect();
+            ini = { px: e.clientX, py: e.clientY, x: r.left, y: r.top };
+            try { cab.setPointerCapture(e.pointerId); } catch (_) { /* sin captura */ }
+            cab.style.cursor = 'grabbing';
+        });
+        cab.addEventListener('pointermove', (e) => {
+            if (!ini) return;
+            const x = Math.min(Math.max(ini.x + e.clientX - ini.px, 4), window.innerWidth - caja.offsetWidth - 4);
+            const y = Math.min(Math.max(ini.y + e.clientY - ini.py, 4), window.innerHeight - caja.offsetHeight - 4);
+            caja.style.left = x + 'px'; caja.style.top = y + 'px'; caja.style.bottom = 'auto';
+        });
+        const fin = () => { if (!ini) return; ini = null; cab.style.cursor = ''; try { localStorage.setItem('nlt_call_prev', JSON.stringify({ x: caja.offsetLeft, y: caja.offsetTop })); } catch (_) { /* sin guardado */ } };
+        cab.addEventListener('pointerup', fin); cab.addEventListener('pointercancel', fin);
+    }
+    function pintarPrevia() {
+        const track = S.call && raiz ? pistaLocalPantalla() : null;
+        if (!track || track.readyState === 'ended') { S.prevOculta = false; quitarPrevia(); return; }
+        if (S.prevOculta) {
+            if (elPrev) { const v = elPrev.querySelector('video'); if (v) v.srcObject = null; elPrev.remove(); elPrev = null; }
+            if (!elChip) {
+                elChip = document.createElement('button');
+                elChip.type = 'button'; elChip.className = 'nc-prev-chip'; elChip.textContent = 'Vista previa';
+                elChip.addEventListener('click', () => { S.prevOculta = false; pintarPrevia(); });
+                raiz.appendChild(elChip);
+            }
+            return;
+        }
+        if (elChip) { elChip.remove(); elChip = null; }
+        const d = describirPantalla(track);
+        if (!elPrev) {
+            elPrev = document.createElement('div');
+            elPrev.className = 'nc-prev'; elPrev.setAttribute('role', 'region'); elPrev.setAttribute('aria-label', 'Vista previa de tu pantalla compartida');
+            elPrev.innerHTML = `<div class="nc-prev-cab"><b>Así te ven</b><button type="button" class="nc-min" data-prev="x" aria-label="Cerrar la vista previa">${IC.close}</button></div><video autoplay playsinline muted></video><div class="nc-prev-pie"></div>`;
+            raiz.appendChild(elPrev);
+            try { const p = JSON.parse(localStorage.getItem('nlt_call_prev') || 'null'); if (p) { elPrev.style.left = Math.min(Math.max(p.x, 4), Math.max(4, window.innerWidth - 276)) + 'px'; elPrev.style.top = Math.min(Math.max(p.y, 4), Math.max(4, window.innerHeight - 200)) + 'px'; elPrev.style.bottom = 'auto'; } } catch (_) { /* posición por defecto */ }
+            elPrev.querySelector('[data-prev="x"]').addEventListener('click', () => { S.prevOculta = true; pintarPrevia(); });
+            arrastrarPorCabecera(elPrev, elPrev.querySelector('.nc-prev-cab'));
+        }
+        const v = elPrev.querySelector('video');
+        if (v._pista !== track) { v._pista = track; v.srcObject = new MediaStream([track]); v.play().catch(() => {}); }
+        const pie = `${esc(d.sup)}${d.res ? ' · ' + esc(d.res) : ''}${d.monitor ? '<br>Compartes toda la pantalla: esta tarjeta también se ve. Muévela o ciérrala con la X.' : ''}`;
+        const elPie = elPrev.querySelector('.nc-prev-pie');
+        if (elPie._html !== pie) { elPie._html = pie; elPie.innerHTML = pie; }
     }
 
     // ---------- ver la pantalla de otra persona ----------
@@ -342,6 +426,7 @@
             if (!soportaPantalla) { toast('Compartir pantalla funciona desde el computador.'); return; }
             try {
                 const lp = S.live.room.localParticipant;
+                if (!lp.isScreenShareEnabled) S.prevOculta = false;
                 await lp.setScreenShareEnabled(!lp.isScreenShareEnabled, { audio: false, contentHint: 'detail', resolution: { width: 1920, height: 1080, frameRate: 15 } });
             } catch (e) { if (e && e.name !== 'NotAllowedError' && e.name !== 'AbortError') toast('No se pudo compartir la pantalla.'); }
             actualizarRosterLive(); return;
@@ -351,7 +436,7 @@
         try {
             const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { ideal: 15, max: 20 }, width: { max: 1920 } }, audio: false });
             const track = stream.getVideoTracks()[0];
-            S.share = { stream, track };
+            S.share = { stream, track }; S.prevOculta = false;
             track.addEventListener('ended', detenerPantalla);
             S.peers.forEach((p) => anadirPantalla(p));
             toast('Estás compartiendo tu pantalla');
@@ -628,6 +713,7 @@
             S.sinRespuesta = setTimeout(() => { if (S.call && S.llamando) { S.llamando = false; toast(`${label || 'La otra persona'} no contestó`); pintar(); } }, 45000);
         }
         if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); medirVoz(); }, 600);
+        guardarResume();
         pintar();
         bucle();
         return estado();
@@ -709,6 +795,8 @@
         S.sono = true; sonar('conectado');
         S.call = { id: 'live', scope: 'live', conversationId: null, label: 'Operativa en vivo', startedAt: Date.now() };
         S.panelAbierto = true;
+        S.myId = myId;
+        guardarResume();
         if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); }, 600);
         actualizarRosterLive();
         if (pase.is_host) { room.localParticipant.setMicrophoneEnabled(true).then(actualizarRosterLive).catch(() => { toast('Permite el micrófono para hablar.'); }); }
@@ -738,6 +826,7 @@
     }
 
     function terminarLocal(aviso) {
+        borrarResume();
         clearTimeout(S.timer); clearTimeout(S.sinRespuesta);
         if (S.call) { const t = tonos(); if (t) t.detener(); sonar('colgar'); }
         S.llamando = false;
@@ -772,6 +861,58 @@
         }
         sincronizarYa();
     });
+
+    // ---------- seguir en la llamada al RECARGAR la página ----------
+    // Al recargar (F5, o la página se actualiza sola) se pierde todo lo que vive en memoria. Por eso, mientras hay llamada se guarda en esta pestaña
+    // a cuál y como quien estás; al cargar la página se vuelve a entrar sola, sin avisar a nadie de que «empezó» una llamada. Lo que NO se puede
+    // recuperar solo es la pantalla compartida (el navegador exige que vuelvas a pulsar «Compartir»): se avisa. Salir con el botón, o que la llamada
+    // termine, borra el guardado.
+    const CLAVE_RESUME = 'nlt_call_resume', VIGENCIA_RESUME = 90000;
+    function guardarResume(extra) {
+        if (!S.call || !S.myId) return;
+        try {
+            sessionStorage.setItem(CLAVE_RESUME, JSON.stringify({ scope: S.call.scope, conversationId: S.call.conversationId, label: S.call.label, myId: S.myId,
+                empezo: S.call.startedAt, muted: !!S.muted, t: Date.now(), ...(extra || {}) }));
+        } catch (_) { /* sin almacenamiento: no se podrá retomar tras recargar */ }
+    }
+    function borrarResume() { try { sessionStorage.removeItem(CLAVE_RESUME); } catch (_) { /* nada */ } }
+    function leerResume() {
+        try {
+            const r = JSON.parse(sessionStorage.getItem(CLAVE_RESUME) || 'null');
+            return r && r.scope && r.myId && Date.now() - (r.t || 0) < VIGENCIA_RESUME ? r : null;
+        } catch (_) { return null; }
+    }
+    let retomando = false;
+    async function retomarLlamada() {
+        const r = leerResume();
+        if (!r || S.call || retomando || (window.top !== window.self)) return;
+        retomando = true;
+        toast('Volviendo a la llamada…');
+        // la sesión de la página tarda un momento en estar lista después de recargar: se reintenta unos segundos
+        let ultimo = null;
+        for (let i = 0; i < 6 && !S.call; i++) {
+            try {
+                await (r.scope === 'live' ? unirseLive({ myId: r.myId }) : unirse({ scope: r.scope, conversationId: r.conversationId, label: r.label, myId: r.myId, cambiar: true, soloUnirse: true }));
+                ultimo = null; break;
+            } catch (e) {
+                ultimo = e;
+                if (e && (e.status === 404 || e.status === 403 || e.status === 409)) break;        // la llamada ya no existe o no se puede entrar: no se insiste
+                await new Promise((ok) => setTimeout(ok, 1500 + i * 700));
+            }
+        }
+        retomando = false;
+        if (S.call) {
+            if (r.empezo) S.call.startedAt = r.empezo;          // el reloj sigue donde iba
+            if (r.muted && !S.live) { S.muted = true; if (S.mic) S.mic.track.enabled = false; }
+            S.panelAbierto = false;
+            guardarResume();
+            pintar();
+            if (r.compartia) toast('Se recargó la página: vuelve a pulsar «Compartir pantalla».');
+        } else {
+            borrarResume();
+            toast(ultimo && ultimo.message ? 'No se pudo volver a la llamada: ' + ultimo.message : 'La llamada ya terminó.');
+        }
+    }
 
     // ---------- seguir en la llamada al cambiar de página ----------
     let marco = null;
@@ -815,12 +956,23 @@
     }
     window.addEventListener('popstate', () => { if (marco && !(history.state && history.state.nltMarco)) { cerrarMarco(); document.title = document.title; } });
     window.addEventListener('beforeunload', (e) => { if (S.call) { e.preventDefault(); e.returnValue = ''; } });
-    window.addEventListener('pagehide', (e) => { if (S.live && !e.persisted) { try { S.live.room.disconnect(); } catch (_) { /* nada */ } return; } if (S.call && api() && !e.persisted) { try { (api().callSalirAlCerrar || api().callSalir)(S.call.id); } catch (_) { /* el servidor lo da por salido a los pocos segundos */ } } });
+    // Recargar y cerrar la pestaña se ven igual desde aquí, así que NO se cuelga: se deja guardado (con la hora) y, si la página vuelve en unos segundos, retoma la llamada.
+    // Si de verdad se cerró la pestaña, el servidor da a la persona por salida a los pocos segundos sin señales (y la sala en vivo se desconecta ya mismo).
+    window.addEventListener('pagehide', (e) => {
+        if (!S.call || e.persisted) return;
+        guardarResume({ compartia: !!pistaLocalPantalla() });
+        if (S.live) { try { S.live.room.disconnect(); } catch (_) { /* nada */ } }
+    });
     window.addEventListener('resize', () => {
         if (!elBurbuja || !elBurbuja.style.left) return;
         elBurbuja.style.left = Math.min(parseFloat(elBurbuja.style.left), window.innerWidth - 64) + 'px';
         elBurbuja.style.top = Math.min(parseFloat(elBurbuja.style.top), window.innerHeight - 90) + 'px';
     });
+
+    if (window.top === window.self && leerResume()) {
+        const arrancar = () => setTimeout(retomarLlamada, 400);
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', arrancar, { once: true }); else arrancar();
+    }
 
     window.NLTCall = {
         unirse, salir, toast,
