@@ -990,7 +990,7 @@
                 ultimo = null; break;
             } catch (e) {
                 ultimo = e;
-                if (e && (e.status === 404 || e.status === 403 || e.status === 409)) break;        // la llamada ya no existe o no se puede entrar: no se insiste
+                if (e && (e.status === 404 || e.status === 403 || e.status === 409 || e.status === 410)) break;        // la llamada ya no existe (410: ya terminó), está llena o no se puede entrar: no se insiste
                 await new Promise((ok) => setTimeout(ok, 1500 + i * 700));
             }
         }
