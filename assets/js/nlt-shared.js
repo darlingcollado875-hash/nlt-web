@@ -2874,7 +2874,14 @@
             panel.style.top = `${Math.round(r.bottom + 10)}px`;
             panel.style.bottom = 'auto';
             if (vw < 560) { panel.style.left = '10px'; panel.style.right = '10px'; panel.style.width = 'auto'; }
-            else { panel.style.width = '380px'; panel.style.left = 'auto'; panel.style.right = `${Math.max(10, Math.round(vw - r.right))}px`; }
+            else {
+                // Normal: borde derecho del panel = borde derecho de la campana (campana arriba a la derecha). Si así el panel se saldría
+                // por la izquierda (campana en el menú lateral, a ~250 px del borde), se abre hacia la derecha desde la campana.
+                const W = 380;
+                let left = r.right - W;
+                if (left < 10) left = Math.min(Math.max(10, r.left), vw - W - 10);
+                panel.style.width = `${W}px`; panel.style.left = `${Math.round(left)}px`; panel.style.right = 'auto';
+            }
             panel.style.maxHeight = `${Math.max(240, Math.min(560, vh - r.bottom - 24))}px`;
         }
         const _reposicionar = () => { if (!panel.classList.contains('hidden')) _posicionarPanel(); };
