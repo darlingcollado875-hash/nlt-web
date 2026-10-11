@@ -42,6 +42,12 @@
         sono: false,           // ya sonó el «conectado» de esta llamada
         live: null,            // sala «Operativa en vivo»: { room }
         pantallasLive: new Map(),   // userId -> MediaStream de su pantalla
+        entroEn: 0,            // cuando entré a esta llamada (margen antes de darme por «sacado»)
+        bye: new Set(),        // quienes colgaron A PROPOSITO (avisaron antes de irse): a ellos no se les espera
+        ultimoSync: 0,         // ultima vez que el servidor contesto (para el latido en segundo plano)
+        tics: 0,
+        ocultoDesde: 0,        // desde cuando la pagina esta en segundo plano (otra app, otra pestana, pantalla bloqueada)
+        reentrando: false,
         prevOculta: false,     // vista previa de TU pantalla compartida: la cierras con la X y vuelve con el botón «Vista previa»
     };
 
@@ -542,7 +548,7 @@
         const peer = { uid, pid: Math.random().toString(36).slice(2, 10), remotePid: null, pc, polite: S.myId < uid, haciendoOferta: false, ignorarOferta: false, pantalla: null, pantallaSender: null, audioSender: null, audioEl: null, ausencias: 0, cola: Promise.resolve(), cerrado: false };
         S.peers.set(uid, peer);
         if (iniciar === undefined ? esIniciador(uid) : iniciar) iniciarOferta(peer);
-        else peer.espera = setTimeout(() => { if (!peer.cerrado && !pc.remoteDescription) iniciarOferta(peer); }, 8000);
+        else peer.espera = setTimeout(() => { if (!peer.cerrado && !pc.remoteDescription) iniciarOferta(peer); }, 3000);
 
         pc.onicecandidate = (e) => { if (e.candidate) enviarSenal(uid, 'ice', e.candidate.toJSON()); };
         pc.onnegotiationneeded = async () => {
@@ -589,6 +595,7 @@
     // Señal entrante ("negociación perfecta": las dos partes pueden ofrecer a la vez y se resuelve sin quedarse trabadas).
     function recibirSenal(de, tipo, envoltorio) {
         const sid = envoltorio && envoltorio.sid, pid = envoltorio && envoltorio.pid, payload = envoltorio && envoltorio.d;
+        if (payload && payload.bye) { S.bye.add(de); return; }          // colgó a propósito (no es una señal de conexión)
         let peer = S.peers.get(de);
         // la otra persona salió y volvió a entrar, o rehízo su conexión con nosotros: se empieza una conexión nueva en vez de mezclar
         if (peer && ((sid && peer.sid && peer.sid !== sid) || (pid && peer.remotePid && peer.remotePid !== pid))) { cerrarPeer(de); peer = null; }
@@ -636,10 +643,15 @@
         const ahora = new Set(lista.map((p) => p.user_id));
         const dm = S.call && S.call.scope === 'dm';
         lista.forEach((p) => { if (p.user_id !== S.myId && !antes.has(p.user_id) && S.roster.length) { if (!dm) { toast(`${p.display_name} se unió a la llamada`); sonar('entra'); } } });
-        S.roster.forEach((p) => { if (p.user_id !== S.myId && !ahora.has(p.user_id)) { toast(dm ? `${p.display_name} colgó` : `${p.display_name} salió de la llamada`); if (!dm) sonar('sale'); } });
+        S.roster.forEach((p) => { if (p.user_id !== S.myId && !ahora.has(p.user_id)) { toast(dm ? (S.bye.has(p.user_id) ? `${p.display_name} colgó` : `${p.display_name} perdió la conexión · esperando…`) : `${p.display_name} salió de la llamada`); if (!dm) sonar('sale'); } });
+        lista.forEach((p) => S.bye.delete(p.user_id));
         // llamada privada: al contestar la otra persona deja de sonar el «tuuu» y suena el de conectado; si cuelga, se cuelga también
         if (dm && S.llamando && lista.length > 1) { S.llamando = false; clearTimeout(S.sinRespuesta); const t = tonos(); if (t) t.detener(); if (!S.sono) { S.sono = true; sonar('conectado'); } }
-        if (dm && S.roster.length > 1 && lista.length <= 1 && S.call) { const id = S.call.id; setTimeout(() => { if (S.call && S.call.id === id && S.roster.length <= 1) salir(); }, 1200); }
+        if (dm && S.roster.length > 1 && lista.length <= 1 && S.call) {
+            // colgó a propósito -> se cuelga enseguida; se cayó sin avisar (app en segundo plano, túnel, cambio de red) -> se le espera 45 s por si vuelve
+            const id = S.call.id, otro = S.roster.find((p) => p.user_id !== S.myId), espera = otro && S.bye.has(otro.user_id) ? 1200 : 45000;
+            setTimeout(() => { if (S.call && S.call.id === id && S.roster.length <= 1) salir(); }, espera);
+        }
         S.roster = lista;
         lista.forEach((p) => { if (p.user_id !== S.myId && !S.peers.has(p.user_id)) crearPeer(p.user_id); });
         // una persona nueva puede mandar su señal un instante antes de aparecer en la lista: se cierra solo tras 2 ausencias seguidas
@@ -657,7 +669,10 @@
         try {
             const r = await api().callSync(callId, { after: S.seq, muted: S.muted, sharing: !!S.share });
             if (!S.call || S.call.id !== callId) return;
-            if (!r.active) { terminarLocal('La llamada terminó'); return; }
+            S.ultimoSync = Date.now();
+            if (!r.active) { if (await reentrar()) return; terminarLocal('La llamada terminó'); return; }
+            const meVeo = (r.participants || []).some((p) => p.user_id === S.myId);
+            if (!meVeo && (r.participants || []).length && S.myId && Date.now() - S.entroEn > 6000) { if (await reentrar()) return; }       // 6 s de margen tras entrar: la lista tarda en incluirme          // el servidor me dio por salido: se vuelve a entrar
             S.errores = 0; S.seq = r.seq;
             aplicarRoster(r.participants || []);
             // sola en la llamada: no se queda abierta para siempre (privada 1 min, grupal 5 min)
@@ -668,8 +683,8 @@
             for (const s of (r.signals || [])) recibirSenal(s.from_user, s.kind, s.payload);
             pintar();
         } catch (e) {
-            if (e && e.status === 404) { terminarLocal('La llamada terminó'); return; }
-            if (++S.errores >= ERRORES_MAX) { terminarLocal('Se perdió la conexión con la llamada'); return; }
+            if (e && (e.status === 404 || e.status === 403)) { if (await reentrar()) return; terminarLocal('La llamada terminó'); return; }
+            if (++S.errores >= ERRORES_MAX) { if (await reentrar()) return; terminarLocal('Se perdió la conexión con la llamada'); return; }
         } finally { syncPendiente = false; }
         if (S.call && S.call.id === callId) S.timer = setTimeout(bucle, intervalo());
     }
@@ -698,7 +713,7 @@
         if (S.uniendo) return estado();                                // doble toque: ya se está entrando
         montarUI();
         S.myId = myId; S.sid = (crypto.randomUUID ? crypto.randomUUID() : String(Math.random()).slice(2));
-        S.muted = false; S.sinMic = false; S.seq = 0; S.errores = 0; S.roster = []; S.sono = false; S.llamando = false;
+        S.muted = false; S.sinMic = false; S.seq = 0; S.errores = 0; S.roster = []; S.sono = false; S.llamando = false; S.bye.clear(); S.ultimoSync = Date.now();
         S.uniendo = true; S.cancelarUnion = false;
         let r;
         try {
@@ -710,17 +725,21 @@
             S.cancelarUnion = false; liberarMedios(); api().callSalir(r.call_id).catch(() => {}); pintar(); return estado();
         }
         S.call = { id: r.call_id, scope, conversationId: conversationId || null, label: label || '', startedAt: Date.now() };
+        S.entroEn = Date.now();
         S.ice = r.ice_servers || [];
         S.panelAbierto = true;
         S.roster = (r.participants || []);
-        S.roster.forEach((p) => { if (p.user_id !== S.myId) crearPeer(p.user_id); });
+        // Quien entra es quien ofrece a los que YA estaban: no depende de joined_at del servidor (al volver a entrar a una llamada ya empezada puede conservar la hora
+        // de la primera vez, y las dos partes se quedaban esperando la oferta de la otra hasta que vencía el plazo). Si las dos ofrecen a la vez, se resuelve solo.
+        S.roster.forEach((p) => { if (p.user_id !== S.myId) crearPeer(p.user_id, true); });
         if (scope === 'dm' && S.roster.filter((p) => p.user_id !== S.myId).length === 0) {
             // yo llamo: suena el «tuuu» hasta que contesten (o 45 s)
             S.llamando = true; const t = tonos(); if (t) t.iniciar('llamando', 45);
             S.sinRespuesta = setTimeout(() => { if (S.call && S.llamando) { S.llamando = false; toast(`${label || 'La otra persona'} no contestó`); pintar(); } }, 45000);
         }
-        if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); medirVoz(); }, 600);
+        if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); medirVoz(); if (++S.tics % 50 === 0) guardarResume(); }, 600);
         guardarResume();
+        iniciarLatido();
         pintar();
         bucle();
         return estado();
@@ -793,7 +812,7 @@
         room.on(E.ActiveSpeakersChanged, (hablan) => { S.hablando = new Set(hablan.map((p) => p.identity)); pintar(); });
         room.on(E.Reconnecting, () => toast('Reconectando…'));
         room.on(E.Reconnected, () => toast('Reconectado'));
-        room.on(E.Disconnected, () => { if (S.live && S.live.room === room) terminarLocal('Se cortó la conexión con la operativa'); });
+        room.on(E.Disconnected, async () => { if (S.live && S.live.room === room) { if (await reentrar()) return; terminarLocal('Se cortó la conexión con la operativa'); } });
         try {
             await room.connect(pase.url, pase.token);
             room.startAudio().catch(() => {});
@@ -803,7 +822,7 @@
         S.call = { id: 'live', scope: 'live', conversationId: null, label: 'Operativa en vivo', startedAt: Date.now() };
         S.panelAbierto = true;
         S.myId = myId;
-        guardarResume();
+        guardarResume(); iniciarLatido();
         if (!tickTimer) tickTimer = setInterval(() => { document.querySelectorAll('#nltCallRoot [data-nc-t]').forEach((el) => { el.textContent = tiempo(); }); }, 600);
         actualizarRosterLive();
         if (pase.is_host) { room.localParticipant.setMicrophoneEnabled(true).then(actualizarRosterLive).catch(() => { toast('Permite el micrófono para hablar.'); }); }
@@ -832,10 +851,12 @@
         if (S.share) { try { S.share.track.stop(); } catch (_) { /* parado */ } S.share = null; }
     }
 
-    function terminarLocal(aviso) {
-        borrarResume();
+    function terminarLocal(aviso, opc) {
+        const conservar = !!(opc && opc.conservar);
+        if (!conservar) borrarResume();
+        detenerLatido();
         clearTimeout(S.timer); clearTimeout(S.sinRespuesta);
-        if (S.call) { const t = tonos(); if (t) t.detener(); sonar('colgar'); }
+        if (S.call) { const t = tonos(); if (t) t.detener(); if (!conservar) sonar('colgar'); }
         S.llamando = false;
         if (S.live) { const room = S.live.room; S.live = null; try { room.disconnect(); } catch (_) { /* ya desconectada */ } S.pantallasLive.clear(); }
         [...S.peers.keys()].forEach(cerrarPeer);
@@ -851,9 +872,43 @@
     function salir() {
         if (!S.call && S.uniendo) { S.cancelarUnion = true; return; }
         const callId = S.call && S.call.id, enSala = !!S.live;
+        if (callId && !enSala) { S.peers.forEach((pe, uid) => { salida.push({ to_user_id: uid, kind: 'ice', payload: { sid: S.sid, pid: pe.pid, d: { bye: true } } }); }); vaciarSalida(); }
         terminarLocal(enSala ? 'Saliste de la operativa' : 'Saliste de la llamada');
-        if (callId && !enSala && api()) api().callSalir(callId).catch(() => {});
+        if (callId && !enSala && api()) S.cola = S.cola.then(() => api().callSalir(callId).catch(() => {}));
     }
+
+    // Latido: los temporizadores de una página en segundo plano se frenan (a veces a 1 vez por minuto). Uno dentro de un Worker no se frena igual, así que
+    // sigue avisando al servidor de que estamos; y la «sesión multimedia» le dice al teléfono que hay una llamada en curso (aviso en la pantalla de bloqueo).
+    let latido = null, latidoUrl = null;
+    function iniciarLatido() {
+        try {
+            if (!latido && window.Worker && window.Blob && URL.createObjectURL) {
+                latidoUrl = URL.createObjectURL(new Blob(['setInterval(function(){postMessage(1)},3000)'], { type: 'text/javascript' }));
+                latido = new Worker(latidoUrl);
+                latido.onmessage = () => { if (S.call && !S.live && document.hidden && Date.now() - S.ultimoSync > 5000) sincronizarYa(); };
+            }
+        } catch (_) { latido = null; /* sin Worker: se sigue con los temporizadores normales */ }
+        try {
+            if ('mediaSession' in navigator && S.call) {
+                navigator.mediaSession.metadata = new MediaMetadata({ title: S.call.scope === 'live' ? 'Operativa en vivo' : 'Llamada de NLT', artist: S.call.label || 'NLT Community' });
+                navigator.mediaSession.playbackState = 'playing';
+                try { navigator.mediaSession.setActionHandler('hangup', () => salir()); } catch (_) { /* esa acción no existe en este navegador */ }
+            }
+        } catch (_) { /* sin sesión multimedia */ }
+    }
+    function detenerLatido() {
+        try { if (latido) { latido.terminate(); latido = null; } if (latidoUrl) { URL.revokeObjectURL(latidoUrl); latidoUrl = null; } } catch (_) { /* nada */ }
+        try { if ('mediaSession' in navigator) { navigator.mediaSession.playbackState = 'none'; navigator.mediaSession.metadata = null; } } catch (_) { /* nada */ }
+    }
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden') { S.ocultoDesde = Date.now(); if (S.call) guardarResume(); return; }
+        // de vuelta: si estuvo mucho rato fuera, se comprueba de inmediato si seguimos en la llamada (el bucle normal puede tardar en despertar)
+        const fuera = S.ocultoDesde ? Date.now() - S.ocultoDesde : 0; S.ocultoDesde = 0;
+        if (!S.call) return;
+        guardarResume();
+        if (S.live) { if (fuera > 8000 && S.live.room.state !== 'connected') reentrar(); return; }
+        if (fuera > 8000) sincronizarYa();
+    });
 
     // Al volver a la app (después de bloquear el teléfono o cambiar de app) el sistema puede haber cortado el micrófono: se recupera solo
     document.addEventListener('visibilitychange', async () => {
@@ -890,7 +945,7 @@
     // a cuál y como quien estás; al cargar la página se vuelve a entrar sola, sin avisar a nadie de que «empezó» una llamada. Lo que NO se puede
     // recuperar solo es la pantalla compartida (el navegador exige que vuelvas a pulsar «Compartir»): se avisa. Salir con el botón, o que la llamada
     // termine, borra el guardado.
-    const CLAVE_RESUME = 'nlt_call_resume', VIGENCIA_RESUME = 90000;
+    const CLAVE_RESUME = 'nlt_call_resume', VIGENCIA_RESUME = 20 * 60000;
     function guardarResume(extra) {
         if (!S.call || !S.myId) return;
         try {
@@ -906,11 +961,27 @@
         } catch (_) { return null; }
     }
     let retomando = false;
-    async function retomarLlamada() {
-        const r = leerResume();
+    const intentosReentrar = [];
+    // El sistema pausa las páginas en segundo plano (sobre todo en el teléfono): sin señales, el servidor da a la persona por salida. Al volver (o cuando se
+    // nota que ya no estamos) se entra de nuevo a la MISMA llamada, sin ruido; solo si la llamada ya terminó de verdad se avisa.
+    async function reentrar() {
+        if (!S.call || S.reentrando || window.top !== window.self) return false;
+        const ahora = Date.now();
+        while (intentosReentrar.length && ahora - intentosReentrar[0] > 120000) intentosReentrar.shift();
+        if (intentosReentrar.length >= 3) return false;                    // no se queda en bucle si algo falla de verdad
+        intentosReentrar.push(ahora);
+        S.reentrando = true;
+        const r = { scope: S.call.scope, conversationId: S.call.conversationId, label: S.call.label, myId: S.myId, empezo: S.call.startedAt, muted: !!S.muted, compartia: !!pistaLocalPantalla(), t: ahora };
+        terminarLocal(null, { conservar: true });
+        S.reentrando = false;
+        await retomarLlamada(r, true);
+        return !!S.call;
+    }
+    async function retomarLlamada(registro, silencioso) {
+        const r = registro || leerResume();
         if (!r || S.call || retomando || (window.top !== window.self)) return;
         retomando = true;
-        toast('Volviendo a la llamada…');
+        if (!silencioso) toast('Volviendo a la llamada…');
         // la sesión de la página tarda un momento en estar lista después de recargar: se reintenta unos segundos
         let ultimo = null;
         for (let i = 0; i < 6 && !S.call; i++) {
@@ -930,7 +1001,7 @@
             S.panelAbierto = false;
             guardarResume();
             pintar();
-            if (r.compartia) toast('Se recargó la página: vuelve a pulsar «Compartir pantalla».');
+            if (r.compartia) toast(registro ? 'Se reconectó la llamada: vuelve a pulsar «Compartir pantalla».' : 'Se recargó la página: vuelve a pulsar «Compartir pantalla».');
         } else {
             borrarResume();
             toast(ultimo && ultimo.message ? 'No se pudo volver a la llamada: ' + ultimo.message : 'La llamada ya terminó.');

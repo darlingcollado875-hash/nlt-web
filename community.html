@@ -326,8 +326,11 @@
                 background: rgba(8,10,15,0.98); align-items: flex-end; position: static; }
             .dm-composer .emoji-btn, .dm-composer .media-btn { width: 40px; height: 40px; margin-bottom: 1px; }
             .dm-composer :is(#dmInput, #chatInput) { border-radius: 22px; padding: 10px 15px; background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.08); }
-            .dm-composer :is(#btn-dm-enviar, #btn-chat-enviar) { background: transparent; color: #4378FF; padding: 10px 6px; min-width: 0; font-size: 15px; height: 40px; margin-bottom: 1px; }
-            .dm-composer:not(.dm-tiene) :is(#btn-dm-enviar, #btn-chat-enviar) { display: none; }
+            /* «Enviar» SIEMPRE se ve en el teléfono (antes aparecía solo al escribir y mucha gente creía que no existía): apagado con el cuadro vacío, encendido al escribir */
+            .dm-composer :is(#dmInput, #chatInput) { min-width: 0; }
+            .dm-composer :is(#btn-dm-enviar, #btn-chat-enviar) { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; min-width: 68px; height: 40px; margin-bottom: 1px; padding: 0 16px;
+                border-radius: 999px; background: #4378FF; color: #fff; font-size: 14px; font-weight: 700; opacity: .4; transition: opacity .15s; }
+            .dm-composer.dm-tiene :is(#btn-dm-enviar, #btn-chat-enviar) { opacity: 1; }
             html.dm-teclado .dm-composer { padding-bottom: 8px; }          /* con el teclado abierto no hay barra del iPhone abajo: sin ese hueco vacío */
         }
 
@@ -854,7 +857,7 @@
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=721ab12c"></script>
     <script src="assets/js/nlt-api-client.js?v=fda6c628"></script>
-    <script src="assets/js/nlt-call.js?v=ec0a57e1"></script>
+    <script src="assets/js/nlt-call.js?v=f196bd49"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
