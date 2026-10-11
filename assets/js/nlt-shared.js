@@ -2352,6 +2352,9 @@
                 <a href="ecosystem.html" class="flex items-center gap-3 px-4 py-3 ${seccion === 'charts' ? 'mb-2 pb-4 border-b border-white/5' : ''} rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
                     <i class="ph ph-compass text-lg"></i> Ecosistema
                 </a>
+                ${seccion === 'bot' || seccion === 'charts' ? '' : `<a href="nlt-bot-dashboard.html" id="nav-nlt-bot" class="flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
+                    <i class="ph ph-robot text-lg" style="color:rgba(${SECTION_RGB.bot},0.85)"></i> NLT Bot Supreme
+                </a>`}
                 ${seccion === 'charts' ? '' : `<a href="charts.html" class="flex items-center gap-3 px-4 py-3 mb-2 pb-4 border-b border-white/5 rounded-2xl font-medium text-sm transition-all text-gray-400 hover:text-white hover:bg-white/5">
                     <i class="ph ph-chart-line-up text-lg" style="color:rgba(${SECTION_RGB.charts},0.85)"></i> NLT Charts
                 </a>`}
