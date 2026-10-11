@@ -13,6 +13,8 @@
  * y los precios de la watchlist quedan en pausa (serían el presente). */
 (function () {
     const VELOCIDADES = [0.5, 1, 2, 5, 10, 25];
+    const FLUIDO_MAX = 5;      // hasta 5x la vela se forma poco a poco ("en vivo"); a 10x y 25x pasan demasiadas velas por segundo y se muestran completas
+    const rf = () => NLTCharts.replayFluido;
     const DUR = { '1m': 60000, '5m': 300000, '15m': 900000, '30m': 1800000, '1H': 3600000, '4H': 14400000, '1D': 86400000 };
     const esc = (t) => NLTCharts.ui.esc(t);
     const dos = (n) => String(n).padStart(2, '0');
@@ -26,7 +28,8 @@
         const app = NLTCharts.app, motor = app.motor, chart = motor.chart, market = NLTCharts.market;
         const ayer = Date.now() - 86400000;
         const st = { abierto: false, activo: false, ses: null, timer: null, vel: 1, cargando: false, pidiendo: false, error: '',
-            fecha: fechaLocal(ayer), hora: '10:00', eligiendo: false, zeVisible: null };
+            fecha: fechaLocal(ayer), hora: '10:00', eligiendo: false, zeVisible: null,
+            fluido: true, bucle: 0, anim: null };
         // Token de operación (race LIVE <-> replay): iniciar / reset / salir lo incrementan y toda respuesta
         // que llega con un token viejo se descarta. Sin esto, salir del replay mientras se creaba una sesión
         // (p. ej. un cambio de timeframe lento) volvía a meter al usuario en el replay al llegar la
@@ -168,18 +171,34 @@
             if (st.activo && !st.error) { intentosRecuperar = 0; if (reanudar) play(); return true; }
             return false;
         }
-        async function siguiente(n = 1) {
-            if (!st.activo || st.pidiendo) return false;
+        // opc.durMs: ritmo de Play en modo "en vivo": la vela se forma poco a poco durante ese tiempo (menos lo que tardó el servidor).
+        // El servidor ya avanzó su cursor a la vela nueva: lo único que se hace con calma es DIBUJARLA; el resultado final es idéntico.
+        async function siguiente(n = 1, opc = {}) {
+            if (!st.activo) return false;
+            if (st.anim) st.anim.terminar();        // una vela a medio formar se cierra al instante (Next bar, cambio de velocidad)
+            if (st.pidiendo) return false;
             st.pidiendo = true;
             const mio = op;
             let mas = false;
             try {
+                const t0 = performance.now();
                 const r = await NLT_API.chartsReplayNext(st.ses.id, n);
                 if (mio !== op) { st.pidiendo = false; return false; }   // otra sesión / reset / salida en el medio
                 st.ses = { ...st.ses, ...r, candles: undefined };
                 limpiarCaches();
-                r.candles.forEach((c) => motor.empujar(aK(c)));
-                if (r.candles.length) { app.pro.velaNueva(); seguirUltimaVela(); }
+                const velas = r.candles.map(aK);
+                if (opc.durMs && velas.length === 1 && !document.hidden && rf()) {
+                    st.pidiendo = false;
+                    const real = velas[0];
+                    const durMs = Math.max(220, Math.min(6000, opc.durMs - (performance.now() - t0)));
+                    const a = rf().animar({ vela: real, durMs, empujar: (v) => { if (v === real) limpiarCaches(); motor.empujar(v); } });   // al cerrar, los indicadores se recalculan con la vela real
+                    st.anim = a;
+                    seguirUltimaVela();
+                    await a.promesa;
+                    if (st.anim === a) st.anim = null;
+                    if (mio !== op) return false;
+                } else velas.forEach((v) => motor.empujar(v));
+                if (velas.length) { app.pro.velaNueva(); seguirUltimaVela(); }
                 mas = r.has_more;
                 if (!mas) { detener(); st.error = 'Fin de los datos cargados para este replay.'; }
             } catch (err) {
@@ -198,13 +217,21 @@
         }
         function play() {
             detener();
-            const intervalo = Math.max(120, 1000 / st.vel);
-            const n = Math.max(1, Math.round(st.vel * intervalo / 1000));   // 25x: 3 velas cada 120 ms
-            const tick = async () => { const t0 = performance.now(); if (await siguiente(n)) st.timer = setTimeout(tick, Math.max(0, intervalo - (performance.now() - t0))); };   // el ritmo cuenta lo que tardó el servidor
-            st.timer = setTimeout(tick, intervalo);
+            const mio = ++st.bucle;
+            const vivo = st.fluido && st.vel <= FLUIDO_MAX && !!rf();
+            const intervalo = Math.max(vivo ? 250 : 120, 1000 / st.vel);
+            const n = vivo ? 1 : Math.max(1, Math.round(st.vel * intervalo / 1000));   // 25x: 3 velas cada 120 ms
+            const tick = async () => {
+                if (mio !== st.bucle) return;
+                const t0 = performance.now();
+                const mas = await siguiente(n, vivo ? { durMs: intervalo } : {});
+                if (mio !== st.bucle || !mas) return;      // pausa / otro Play / fin: el bucle viejo no sigue
+                st.timer = setTimeout(tick, Math.max(0, intervalo - (performance.now() - t0)));   // el ritmo cuenta lo que tardó el servidor
+            };
+            st.timer = setTimeout(tick, vivo ? 0 : intervalo);
             pintar();
         }
-        function detener() { clearTimeout(st.timer); st.timer = null; }
+        function detener() { clearTimeout(st.timer); st.timer = null; st.bucle += 1; if (st.anim) st.anim.terminar(); }
         async function reiniciar() {
             detener();
             if (!st.ses) return;
@@ -258,7 +285,7 @@
 
         // ── barra movible y ocultable: no tapa los botones de operar / las velas ──
         let pos = null;
-        try { pos = JSON.parse(localStorage.getItem('nlt_replay_pos') || 'null'); st.min = localStorage.getItem('nlt_replay_min') === '1'; } catch (_) { pos = null; }
+        try { pos = JSON.parse(localStorage.getItem('nlt_replay_pos') || 'null'); st.min = localStorage.getItem('nlt_replay_min') === '1'; st.fluido = localStorage.getItem('nlt_replay_fluido') !== '0'; } catch (_) { pos = null; }
         function aplicarPos() {
             const pr = el.parentElement && el.parentElement.getBoundingClientRect();
             if (!pos || !pr || !pr.width) { el.style.left = el.style.top = el.style.transform = ''; return; }
@@ -327,6 +354,7 @@
                     <button type="button" class="rp-b rp-ex" data-a="reset" title="RESET: volver a la vela de partida"><i class="ph ph-skip-back"></i></button>
                     <button type="button" class="rp-b rp-play" data-a="${corriendo ? 'pause' : 'play'}" title="${corriendo ? 'PAUSE' : 'PLAY'}"><i class="ph-fill ${corriendo ? 'ph-pause' : 'ph-play'}"></i></button>
                     <button type="button" class="rp-b" data-a="next" title="NEXT BAR: una vela" ${st.pidiendo && !corriendo ? 'disabled' : ''}><i class="ph ph-skip-forward"></i><span>Next bar</span></button>
+                    <button type="button" class="rp-b rp-ex ${st.fluido ? 'on' : ''}" data-a="fluido" aria-pressed="${st.fluido}" title="${st.fluido ? 'EN VIVO activado' : 'EN VIVO desactivado'}: con Play, cada vela se va formando poco a poco como en el gráfico en vivo (hasta 5x; a 10x y 25x se muestran velas completas). Apertura, máximo, mínimo y cierre son los reales; el recorrido dentro de la vela es una simulación."><i class="ph ph-pulse"></i><span>En vivo</span></button>
                     <select class="rp-ex" data-k="vel" aria-label="Velocidad">${VELOCIDADES.map((v) => `<option value="${v}"${v === st.vel ? ' selected' : ''}>${v}x</option>`).join('')}</select>
                     <span class="rp-cur rp-ex" title="Última vela visible (cerrada)">${esc(s.symbol)} ${esc(s.timeframe)} · ${esc(fmt(s.cursor_ts))}</span>
                     ${st.cargando ? '<span class="rp-cur rp-load"><i class="ph ph-spinner"></i> Cargando replay…</span>'
@@ -353,6 +381,7 @@
                 pause: () => { detener(); pintar(); },
                 min: () => { st.min = !st.min; try { localStorage.setItem('nlt_replay_min', st.min ? '1' : '0'); } catch (_) { /* sin almacenamiento */ } pintar(); },
                 next: () => { detener(); siguiente(1); },
+                fluido: () => { st.fluido = !st.fluido; try { localStorage.setItem('nlt_replay_fluido', st.fluido ? '1' : '0'); } catch (_) { /* sin almacenamiento */ } if (st.timer) play(); else pintar(); },
                 reset: () => reiniciar(),
                 elegir: () => { st.eligiendo = !st.eligiendo; pintar(); },
                 salir: () => { salir(); st.abierto = false; pintar(); },
@@ -370,6 +399,8 @@
             if (!st.activo || ev.key !== 'ArrowRight' || ev.shiftKey || /input|select|textarea/i.test(ev.target.tagName)) return;
             ev.preventDefault(); detener(); siguiente(1);
         });
+        // pestaña en segundo plano: el navegador pausa los cuadros de animación; la vela a medias se cierra para que Play no se quede esperando
+        document.addEventListener('visibilitychange', () => { if (document.hidden && st.anim) st.anim.terminar(); });
         boton.addEventListener('click', () => { if (st.activo) return; st.abierto = !st.abierto; if (st.abierto) precalentar(); pintar(); });
 
         const api = {
