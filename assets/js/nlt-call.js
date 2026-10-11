@@ -71,6 +71,7 @@
         down: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.4 8.6 12 13.2l4.6-4.6L18 10l-6 6-6-6z"/></svg>',
         close: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L10.6 13.4 4.3 19.7 2.9 18.3 9.2 12 2.9 5.7 4.3 4.3l6.3 6.3 6.3-6.3z"/></svg>',
         full: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M5 5h5v2H7v3H5zm9 0h5v5h-2V7h-3zM5 14h2v3h3v2H5zm12 0h2v5h-5v-2h3z"/></svg>',
+        chat: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4 4h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H8l-4.3 3.6A.5.5 0 0 1 3 21.2V6a2 2 0 0 1 1-2z"/></svg>',
     };
 
     // ---------- estilos ----------
@@ -122,6 +123,10 @@
         #nltCallRoot .nc-est svg { width: 17px; height: 17px; }
         #nltCallRoot .nc-cab .nc-min svg, #nltCallRoot .nc-visor .nc-min svg { width: 100%; height: 100%; }
         .nc-btn[hidden] { display: none; }
+        .nc-chat { display: flex; align-items: center; justify-content: center; gap: 8px; width: calc(100% - 28px); margin: 2px 14px 12px; padding: 11px 14px; border: 1px solid rgba(255,255,255,.12); border-radius: 14px;
+            background: rgba(255,255,255,.06); color: #f3f4f6; font-size: 14px; font-weight: 700; cursor: pointer; }
+        .nc-chat:hover { background: rgba(255,255,255,.12); }
+        #nltCallRoot .nc-chat svg { width: 18px; height: 18px; flex: none; }
         .nc-btn .nc-tip { position: absolute; left: 50%; top: 100%; transform: translateX(-50%); font-size: 10px; color: #94a3b8; white-space: nowrap; margin-top: 3px; }
         .nc-dialogo { position: fixed; inset: 0; pointer-events: auto; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 5; }
         .nc-caja { background: #0c101a; border: 1px solid rgba(255,255,255,.12); border-radius: 22px; padding: 22px; max-width: 360px; width: 100%; box-shadow: 0 24px 60px rgba(0,0,0,.6); }
@@ -183,6 +188,7 @@
             else if (acc === 'pantalla') alternarPantalla();
             else if (acc === 'salir') salir();
             else if (acc === 'ver') abrirVisor(b.getAttribute('data-uid'));
+            else if (acc === 'chat') irAlChat();
         });
     }
 
@@ -256,6 +262,7 @@
                 <div class="nc-cab"><div class="nc-tit"><b>${titulo}</b><small>${S.llamando ? 'Llamando…' : `<span data-nc-t>§T§</span> · ${S.roster.length} ${S.roster.length === 1 ? 'persona' : 'personas'}`}</small></div>
                     <button class="nc-min" data-nc="min" aria-label="Minimizar">${IC.down}</button></div>
                 <div class="nc-lista">${filas || '<div class="nc-fila"><div class="nc-nom"><i>Conectando…</i></div></div>'}</div>
+                ${S.call.scope === 'live' ? '' : `<button class="nc-chat" data-nc="chat" type="button">${IC.chat}<span>${S.call.scope === 'global' ? 'Ir al chat general' : 'Ir al chat'}</span></button>`}
                 <div class="nc-ctrl">
                     <button class="nc-btn ${S.muted ? 'nc-on' : ''}" data-nc="mic" aria-label="${S.muted ? 'Activar micrófono' : 'Silenciar micrófono'}">${S.muted ? IC.micOff : IC.mic}</button>
                     <button class="nc-btn ${S.share || (S.live && S.live.room.localParticipant.isScreenShareEnabled) ? 'nc-on' : ''}" data-nc="pantalla" aria-label="${S.share ? 'Dejar de compartir pantalla' : 'Compartir pantalla'}" ${soportaPantalla && (!S.live || S.live.anfitrion) ? '' : 'hidden'}>${IC.screen}</button>
@@ -862,6 +869,22 @@
         sincronizarYa();
     });
 
+    // ---------- «Ir al chat» desde el panel de la llamada ----------
+    // Llamada grupal -> chat general; llamada privada (2 o más personas) -> esa conversación. La llamada NO se corta: si la página de Community está a la vista
+    // la propia página cambia de pestaña (registrarChat); si no, Community se abre en el marco de siempre, encima de lo que estuvieras haciendo.
+    let hookChat = null;
+    function registrarChat(fn) { hookChat = fn; return () => { if (hookChat === fn) hookChat = null; }; }
+    async function irAlChat() {
+        if (!S.call || S.call.scope === 'live') return;
+        const sc = S.call.scope, cid = S.call.conversationId;
+        S.panelAbierto = false; pintar();
+        let enMarcoComunidad = false;
+        try { enMarcoComunidad = !!marco && /community\.html$/.test(marco.contentWindow.location.pathname); } catch (_) { /* otro origen */ }
+        if ((!marco || enMarcoComunidad) && hookChat) { try { if (await hookChat(sc, cid)) return; } catch (_) { /* se abre la página */ } }
+        const url = 'community.html?' + (sc === 'global' ? 'vista=chat' : `vista=mensajes&c=${encodeURIComponent(cid || '')}`);
+        if (marco || S.call) abrirMarco(new URL(url, location.href).href); else location.href = url;
+    }
+
     // ---------- seguir en la llamada al RECARGAR la página ----------
     // Al recargar (F5, o la página se actualiza sola) se pierde todo lo que vive en memoria. Por eso, mientras hay llamada se guarda en esta pestaña
     // a cuál y como quien estás; al cargar la página se vuelve a entrar sola, sin avisar a nadie de que «empezó» una llamada. Lo que NO se puede
@@ -975,7 +998,7 @@
     }
 
     window.NLTCall = {
-        unirse, salir, toast,
+        unirse, salir, toast, registrarChat, irAlChat,
         alternarMic, alternarPantalla,
         abrirPanel() { S.panelAbierto = true; montarUI(); pintar(); },
         // Abrir una página sin cortar la llamada (la usa el aviso del teléfono al tocarlo)

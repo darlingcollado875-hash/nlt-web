@@ -854,7 +854,7 @@
     <script src="assets/vendor/supabase-2.117.3.js"></script>
     <script src="assets/js/nlt-shared.js?v=721ab12c"></script>
     <script src="assets/js/nlt-api-client.js?v=fda6c628"></script>
-    <script src="assets/js/nlt-call.js?v=843a2637"></script>
+    <script src="assets/js/nlt-call.js?v=ec0a57e1"></script>
     <script>
         let sesionActual = null;
         let esMiembro = false;
@@ -3276,6 +3276,22 @@
             catch (err) { ok = false; llamadas().toast(err && err.message ? err.message : 'No se pudo entrar a la llamada.'); }
             pintarLlamadas();
             return ok;
+        }
+
+        // Botón «Ir al chat» del panel de la llamada: cambia de pestaña sin cortar nada. Devuelve true si lo resolvió esta página.
+        if (llamadas() && llamadas().registrarChat) {
+            const quitar = llamadas().registrarChat(async (scope, convId) => {
+                if (!esMiembro) return false;
+                document.getElementById('chatTabs').classList.remove('hidden');
+                if (scope === 'global') { await mostrarVista('chat'); }
+                else {
+                    await mostrarVista('mensajes');
+                    if (convId && (conversacionActualId !== convId || document.getElementById('dmConversacionBox').classList.contains('hidden'))) await abrirConversacion(convId);
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                return true;
+            });
+            window.addEventListener('pagehide', quitar);
         }
 
         function pintarLlamadas() {
